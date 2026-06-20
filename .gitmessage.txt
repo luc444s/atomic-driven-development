@@ -1,0 +1,12 @@
+# tipo: resumen corto
+#
+# Contexto
+# - que cambia
+# - por que cambia
+#
+# Validacion
+# - como se probo
+#
+# Riesgos
+# - impacto o puntos a revisar
+

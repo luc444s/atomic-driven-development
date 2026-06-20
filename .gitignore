@@ -1,0 +1,52 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyd
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyright/
+.coverage
+.coverage.*
+htmlcov/
+.venv/
+venv/
+env/
+
+# Node / frontend
+node_modules/
+.pnpm-store/
+dist/
+build/
+.vite/
+coverage/
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs / temp
+*.log
+tmp/
+.tmp/
+
+# Docker / local runtime
+*.pid
+postgres-data/
+redis-data/
+
+# Tooling outputs
+legacy_report/
+migration_errors*.xlsx
+migration_summary*.xlsx
+

@@ -91,6 +91,19 @@ Si una tarea contradice un ADR aceptado, no implementarla sin proponer un nuevo 
 
 No introducir herramientas base alternativas sin justificacion y ADR cuando corresponda.
 
+### Entorno local primario
+
+El entorno local primario de trabajo es **Termux**.
+
+Reglas operativas:
+
+- no asumir Docker como mecanismo principal de ejecucion local;
+- preferir ejecucion directa con `python3`, entorno virtual y variables `.env`;
+- tratar `docker-compose.yml` como soporte secundario fuera de Termux;
+- no asumir wheels binarias de Linux de escritorio;
+- revisar compatibilidad real de dependencias nativas con Android/Termux antes de agregarlas;
+- aceptar Python 3.13 en desarrollo local de Termux mientras el codigo siga siendo compatible con la base objetivo 3.12.
+
 ---
 
 ## Estructura del repositorio

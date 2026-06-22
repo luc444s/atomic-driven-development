@@ -1,0 +1,12 @@
+{
+  "id": "logistics",
+  "name": "Logistics",
+  "version": "0.1.0",
+  "api_version": "1",
+  "requires": [],
+  "backend_entrypoint": "backend.plugin:register",
+  "frontend_entrypoint": "frontend/register.ts",
+  "permissions": ["logistics.delivery.read"],
+  "events": ["logistics.delivery.created"],
+  "description": "Modulo de logistica para SYSTUTOR OSS"
+}

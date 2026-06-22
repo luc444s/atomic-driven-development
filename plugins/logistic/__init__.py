@@ -1,0 +1,1 @@
+"""Plugin ejemplo de logistics."""

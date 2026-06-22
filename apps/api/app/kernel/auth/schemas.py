@@ -1,0 +1,26 @@
+from __future__ import annotations
+
+from pydantic import BaseModel
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
+
+
+class UserProfile(BaseModel):
+    id: str
+    tenant_id: str
+    branch_id: str | None
+    email: str
+    full_name: str
+    is_active: bool
+    is_superadmin: bool
+    permissions: list[str]
+
+
+class LoginResponse(BaseModel):
+    access_token: str
+    token_type: str
+    expires_in: int
+    user: UserProfile

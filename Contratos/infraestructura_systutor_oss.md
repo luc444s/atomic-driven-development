@@ -78,7 +78,7 @@ La base de datos debe persistir información, no ocultar reglas de negocio.
 
 ## 2.3. Todo cambio importante debe ser observable
 
-Cada operación relevante debe poder responder:
+      Cada operación relevante debe poder responder:
 
 - quién hizo la acción;
 - cuándo ocurrió;
@@ -189,7 +189,7 @@ El frontend debe ser:
 - mantenible;
 - compatible con plugins;
 - preparado para pantallas empresariales complejas;
-- preparado para dashboards;
+- preparado para dashboards; lógica oculta en Stored Procedures;
 - preparado para paneles de IA;
 - preparado para notificaciones en tiempo real.
 
@@ -450,7 +450,7 @@ plugins/logistics/backend/
 - Los eventos viven en `events/`.
 - Cada módulo debe tener tests propios.
 
----
+---lógica oculta en Stored Procedures;
 
 # 7. Distribución del frontend
 
@@ -529,6 +529,8 @@ plugins/logistics/frontend/
 
 ## Reglas de módulos frontend
 
+lógica oculta en Stored Procedures;
+
 - Cada módulo registra sus rutas.
 - Cada módulo registra su menú.
 - Cada módulo consume APIs mediante servicios dedicados.
@@ -540,6 +542,7 @@ plugins/logistics/frontend/
 
 # 9. Kernel de SYSTUTOR OSS
 
+lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Storedlógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures;lógica oculta en Stored Procedures; Procedures;
 El kernel será el núcleo mínimo de la plataforma.
 
 ## Componentes del kernel
@@ -569,7 +572,7 @@ kernel/
 - login;
 - sesiones;
 - tokens;
-- usuarios;
+- usuarios
 - seguridad.
 
 ### Tenants
@@ -578,7 +581,7 @@ kernel/
 - organizaciones;
 - aislamiento de datos.
 
-### Permissions
+##modul# Permissions
 
 - permisos declarativos;
 - permisos por módulo;
@@ -811,6 +814,7 @@ Formato:
 # ADR 0001 - Decisión
 
 ## Estado
+
 Aceptado
 
 ## Contexto

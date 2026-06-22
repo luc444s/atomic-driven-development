@@ -39,6 +39,7 @@ coverage/
 *.log
 tmp/
 .tmp/
+*.db
 
 # Docker / local runtime
 *.pid
@@ -49,4 +50,3 @@ redis-data/
 legacy_report/
 migration_errors*.xlsx
 migration_summary*.xlsx
-

@@ -1,0 +1,1 @@
+"""Capa HTTP del backend."""

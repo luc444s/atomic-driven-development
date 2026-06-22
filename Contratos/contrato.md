@@ -6,7 +6,7 @@
 **Estado:** Documento inicial de dirección técnica y filosófica  
 **Proyecto:** SYSTUTOR OSS  
 **Empresa futura:** Censoria / TutoraBusiness Group  
-**Autoría conceptual:** Lucas y equipo SYSTUTOR  
+**Autoría conceptual:** Lucas y equipo SYSTOR:Propósito 
 
 ---
 
@@ -47,8 +47,8 @@ La meta de SYSTUTOR OSS no es borrar ese pasado, sino **absorberlo progresivamen
 El proceso debe parecerse a una transición progresiva de plataforma:
 
 ```text
-SYSTUTOR Legacy
-    ↓
+SYSTUTOR legacy
+Coexistenci
 Coexistencia controlada
     ↓
 Absorción progresiva por dominios

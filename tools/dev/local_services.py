@@ -168,6 +168,38 @@ def open_psql(env: dict[str, str]) -> None:
     os.execvpe("psql", ["psql", database_url], env)
 
 
+def stop_postgres() -> None:
+    if not postgres_running():
+        print("PostgreSQL no estaba corriendo.")
+        return
+    run_command(["pg_ctl", "-D", str(DEFAULT_DATA_DIR), "stop"])
+    print("PostgreSQL detenido.")
+
+
+def stop_backend() -> None:
+    import signal
+
+    result = subprocess.run(
+        ["pgrep", "-f", "uvicorn apps.api.app.main"],
+        capture_output=True, text=True, check=False,
+    )
+    if result.returncode == 0:
+        for pid_str in result.stdout.strip().splitlines():
+            try:
+                pid = int(pid_str)
+                os.kill(pid, signal.SIGTERM)
+                print(f"Backend detenido (pid={pid})")
+            except (OSError, ValueError):
+                pass
+    else:
+        print("Backend no estaba corriendo.")
+
+
+def stop_services() -> None:
+    stop_backend()
+    stop_postgres()
+
+
 def print_status(env: dict[str, str]) -> None:
     database_url = normalize_postgres_url(get_database_url(env))
     print(f"postgres_data_dir={DEFAULT_DATA_DIR}")
@@ -179,7 +211,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Local services helper for SYSTUTOR OSS")
     parser.add_argument(
         "command",
-        choices=["postgres", "backend", "services", "psql", "status"],
+        choices=["postgres", "backend", "services", "stop", "psql", "status"],
         help="Command to execute",
     )
     args = parser.parse_args()
@@ -203,6 +235,10 @@ def main() -> None:
 
     if args.command == "psql":
         open_psql(env)
+
+    if args.command == "stop":
+        stop_services()
+        return
 
     if args.command == "status":
         print_status(env)

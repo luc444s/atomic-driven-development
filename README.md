@@ -10,6 +10,7 @@ Este repositorio arranca con:
 - backend `FastAPI` con core persistente inicial;
 - runtime interno de eventos con outbox basico;
 - frontend shell `React + Vite` para login y estado del sistema;
+- aislamiento tenant activo a nivel aplicacion para auth, RBAC, auditoria y eventos;
 - contrato inicial de plugins;
 - entorno local con `PostgreSQL` y `Redis`.
 
@@ -78,11 +79,11 @@ cp .env.example .env
 
 Crear entorno virtual e instalar dependencias:
 
-```bash
+ ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install --upgrade pip
-python3 -m pip install -e ".[dev]"
+python3 -m pip install -e ".[termux-dev]"
 ```
 
 En Termux, `ruff` se instala por sistema para evitar compilarlo en cada `pip install`:
@@ -91,10 +92,18 @@ En Termux, `ruff` se instala por sistema para evitar compilarlo en cada `pip ins
 pkg install ruff
 ```
 
+No usar en Termux:
+
+```bash
+python3 -m pip install -e ".[dev]"
+```
+
+si ese extra incluye `ruff`.
+
 Si necesitas un entorno Python completo fuera de Termux o en CI, usa:
 
 ```bash
-python3 -m pip install -e ".[dev-full]"
+python3 -m pip install -e ".[dev]"
 ```
 
 Instalar frontend con pnpm:
@@ -106,7 +115,7 @@ pnpm install
 ### PostgreSQL y Redis en Termux
 
 
-Configura en `.env` URLs alcanzables desde tu entorno Termux:
+Configura en `.env` URLs alcanzables desde tu entorno Termux :
 
 - `SYSTUTOR_DATABASE_URL`
 - `SYSTUTOR_REDIS_URL`
@@ -196,6 +205,25 @@ API base:
 - `GET /api/v1/auth/me`
 - `GET /api/v1/system/plugins`
 
+## Aislamiento tenant activo
+
+Desde `Core v0.3.1`, el aislamiento multi-tenant ya no es solo estructural.
+
+Reglas activas:
+
+- un usuario autenticado opera dentro del `tenant_id` persistido en DB;
+- el JWT se valida contra usuario, tenant, branch e `is_superadmin` persistidos;
+- los permisos se resuelven solo mediante roles validos dentro del tenant correcto;
+- `Permission` sigue siendo catalogo global declarativo, pero no autoriza por si sola;
+- `PluginRegistry` sigue siendo global tecnico;
+- `health` y `ready` siguen siendo endpoints globales.
+
+En terminos practicos:
+
+```text
+Un usuario de Tenant A no puede leer, modificar, usar permisos ni roles de Tenant B.
+```
+
 Rutas frontend base:
 
 - `/login`
@@ -222,9 +250,19 @@ pnpm build
 Validar calidad:
 
 ```bash
-python3 -m ruff check .
-python3 -m ruff format --check .
+ruff check .
 python3 -m pyright
+python3 -m pytest apps/api/tests -q
+pnpm --dir apps/web build
+```
+
+Si usas `.venv`:
+
+```bash
+ruff check .
+./.venv/bin/python -m pyright
+./.venv/bin/python -m pytest apps/api/tests -q
+pnpm --dir apps/web build
 ```
 
 ## Login demo
@@ -249,6 +287,18 @@ python3 -m pyright
    - **password:** `ChangeMe123!`
 
 5. Validar `/app/system` (dashboard) y `/app/plugins` (runtime).
+
+## Flujo de prueba multi-tenant
+
+1. Levantar backend y frontend.
+2. Iniciar sesion con el usuario demo.
+3. Verificar `GET /api/v1/auth/me` y confirmar `tenant_id` y `branch_id` correctos.
+4. Verificar dashboard y layout.
+5. Hacer logout.
+6. Intentar entrar a `/app` sin token.
+7. Verificar redireccion a login.
+8. Probar un token invalido o manipulado contra `/api/v1/auth/me`.
+9. Confirmar que `GET /api/v1/system/health` y `GET /api/v1/system/ready` siguen funcionando sin tenant.
 
 ## Documentos obligatorios
 

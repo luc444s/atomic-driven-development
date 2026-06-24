@@ -9,10 +9,12 @@ from apps.api.app.core.config import Settings, get_settings
 from apps.api.app.core.database import build_session_factory
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.permissions.models import Permission, Role, RolePermission, UserRole
+from apps.api.app.kernel.permissions.models import Permission, Role, RolePermission
+from apps.api.app.kernel.permissions.service import assign_role_to_user
 from apps.api.app.kernel.plugins.runtime import LoadedPlugin, PluginManifestRegistry, PluginRuntime
 from apps.api.app.kernel.plugins.service import sync_plugin_registry
 from apps.api.app.kernel.tenants.models import Branch, Tenant
+from apps.api.app.kernel.tenants.service import assign_branch_to_user
 
 BASE_PERMISSIONS = [
     "core.auth.me",
@@ -21,8 +23,15 @@ BASE_PERMISSIONS = [
     "core.audit.read",
     "core.event.read",
     "core.user.manage",
+    "core.users.read",
+    "core.users.create",
+    "core.users.update",
+    "core.users.delete",
     "core.role.manage",
+    "core.roles.read",
+    "core.roles.manage",
     "core.permission.manage",
+    "core.branches.manage",
 ]
 
 
@@ -112,7 +121,6 @@ def _get_or_create_admin_user(
     user = db.scalar(stmt)
     if user is not None:
         user.tenant_id = tenant.id
-        user.branch_id = branch.id
         user.full_name = settings.seed_admin_full_name
         user.is_active = True
         user.is_superadmin = False
@@ -120,6 +128,7 @@ def _get_or_create_admin_user(
             user.password_hash = hash_password(settings.seed_admin_password)
         db.add(user)
         db.flush()
+        assign_branch_to_user(db, user, branch)
         return user
 
     user = User(
@@ -134,20 +143,6 @@ def _get_or_create_admin_user(
     db.add(user)
     db.flush()
     return user
-
-
-def _ensure_user_role(db: Session, user_id: str, role_id: str) -> None:
-    stmt: Select[tuple[UserRole]] = select(UserRole).where(
-        UserRole.user_id == user_id,
-        UserRole.role_id == role_id,
-    )
-    if db.scalar(stmt) is not None:
-        return
-
-    db.add(UserRole(user_id=user_id, role_id=role_id))
-    db.flush()
-
-
 def seed_demo_data(
     db: Session,
     settings: Settings,
@@ -157,15 +152,18 @@ def seed_demo_data(
     branch = _get_or_create_branch(db, tenant, settings)
     role = _get_or_create_role(db, tenant)
 
-    permission_names = sorted(
-        set(BASE_PERMISSIONS).union(*(plugin.manifest.permissions for plugin in plugins))
-    )
+    plugin_permissions = [
+        plugin.manifest.permissions
+        for plugin in plugins
+        if plugin.manifest is not None
+    ]
+    permission_names = sorted(set(BASE_PERMISSIONS).union(*plugin_permissions))
     for permission_name in permission_names:
         permission = _get_or_create_permission(db, permission_name)
         _ensure_role_permission(db, role.id, permission.id)
 
     user = _get_or_create_admin_user(db, tenant, branch, settings)
-    _ensure_user_role(db, user.id, role.id)
+    assign_role_to_user(db, user=user, role=role)
     sync_plugin_registry(db, list(plugins))
     db.commit()
 

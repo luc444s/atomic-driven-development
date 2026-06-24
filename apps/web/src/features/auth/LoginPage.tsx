@@ -28,7 +28,7 @@ export function LoginPage() {
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (response) => {
-      setSession(response.access_token, response.user);
+      setSession(response.access_token);
       navigate(from, { replace: true });
     },
   });

@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from apps.api.app.kernel.audit.models import AuditLog
+from apps.api.app.kernel.tenants.service import resolve_tenant_scope
 
 
 def record_audit(
@@ -21,9 +22,15 @@ def record_audit(
     request_id: str | None,
     details: dict,
 ) -> AuditLog:
-    audit = AuditLog(
+    effective_tenant_id, effective_branch_id = resolve_tenant_scope(
+        db,
         tenant_id=tenant_id,
         branch_id=branch_id,
+        actor_user_id=actor_user_id,
+    )
+    audit = AuditLog(
+        tenant_id=effective_tenant_id,
+        branch_id=effective_branch_id,
         actor_user_id=actor_user_id,
         actor_type=actor_type,
         module=module,

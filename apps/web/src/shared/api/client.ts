@@ -15,6 +15,29 @@ export type PluginManifest = {
   description: string;
 };
 
+export type PluginRuntimeRecord = {
+  id: string;
+  plugin_id: string;
+  name: string;
+  version: string;
+  api_version: string;
+  state: string;
+  is_enabled: boolean;
+  backend_entrypoint: string | null;
+  frontend_entrypoint: string | null;
+  requires_json: string[];
+  permissions_json: string[];
+  events_json: string[];
+  description: string | null;
+  migration_version: string | null;
+  installed_at: string | null;
+  enabled_at: string | null;
+  disabled_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export class ApiError extends Error {
   status: number;
 

@@ -1,5 +1,6 @@
 import { apiRequest } from "../../shared/api/client";
 import type { PluginManifest } from "../../shared/api/client";
+import type { PluginRuntimeRecord } from "../../shared/api/client";
 
 export type HealthResponse = {
   status: string;
@@ -25,4 +26,8 @@ export function getSystemReady() {
 
 export function getPlugins() {
   return apiRequest<PluginManifest[]>("/api/v1/system/plugins");
+}
+
+export function getPluginRuntime() {
+  return apiRequest<PluginRuntimeRecord[]>("/api/v1/system/plugin-runtime");
 }

@@ -11,7 +11,9 @@ class LoginRequest(BaseModel):
 class UserProfile(BaseModel):
     id: str
     tenant_id: str
+    tenant_name: str
     branch_id: str | None
+    branch_name: str | None
     email: str
     full_name: str
     is_active: bool

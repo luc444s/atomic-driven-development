@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 
+import { usePluginFrontendRuntime } from "../plugins/runtime";
 import { getSystemHealth, getSystemReady } from "./api";
 import { Alert } from "../../shared/ui/alert";
 import { Badge } from "../../shared/ui/badge";
@@ -10,6 +11,7 @@ export function SystemDashboardPage() {
     queryKey: ["system", "health"],
     queryFn: getSystemHealth,
   });
+  const pluginRuntime = usePluginFrontendRuntime();
 
   const readyQuery = useQuery({
     queryKey: ["system", "ready"],
@@ -63,6 +65,35 @@ export function SystemDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {pluginRuntime.widgets.length > 0 ? (
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold text-white">Widgets de plugins</h2>
+            <p className="text-sm text-slate-400">
+              Componentes habilitados por el runtime persistente segun estado y permisos.
+            </p>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2">
+            {pluginRuntime.widgets.map((widget) => {
+              const WidgetComponent = widget.component;
+
+              return (
+                <Card key={widget.id}>
+                  <CardHeader>
+                    <CardTitle>{widget.title}</CardTitle>
+                    <CardDescription>{widget.pluginId}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <WidgetComponent />
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

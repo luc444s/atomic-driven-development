@@ -7,16 +7,18 @@
     "backend": "python3 tools/dev/local_services.py backend",
     "services": "python3 tools/dev/local_services.py services",
     "psql": "python3 tools/dev/local_services.py psql",
+    "services:stop": "python3 tools/dev/local_services.py stop",
     "status:services": "python3 tools/dev/local_services.py status",
+    "frontend:stop": "python3 tools/dev/stop_frontend.py",
     "migrate": ".venv/bin/python -m alembic -c apps/api/alembic.ini upgrade head",
     "migrate:check": ".venv/bin/python -m alembic -c apps/api/alembic.ini check",
     "migrate:history": ".venv/bin/python -m alembic -c apps/api/alembic.ini history",
     "migrate:downgrade": ".venv/bin/python -m alembic -c apps/api/alembic.ini downgrade -1",
     "frontend": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web dev",
-    "dev:web": "pnpm --filter @systutor/web dev",
-    "build": "pnpm --filter @systutor/web build",
-    "build:web": "pnpm --filter @systutor/web build",
+    "dev:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web dev",
+    "build": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web build",
+    "build:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web build",
     "lint:web": "echo \"frontend lint no configurado todavia\"",
-    "test:web": "echo \"frontend testing manual en esta fase\""
+    "test:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web test"
   }
 }

@@ -5,7 +5,7 @@ import re
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 SEMVER_PATTERN = re.compile(r"^\d+\.\d+\.\d+$")
-PLUGIN_ID_PATTERN = re.compile(r"^[a-z0-9_]+$")
+PLUGIN_ID_PATTERN = re.compile(r"^[a-z0-9_-]+$")
 ENTRYPOINT_PATTERN = re.compile(r"^[a-zA-Z_][\w\.]*:[a-zA-Z_][\w]*$")
 PERMISSION_PATTERN = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+\.[a-z0-9_]+$")
 EVENT_PATTERN = re.compile(r"^[a-z0-9_]+\.[a-z0-9_]+\.[a-z0-9_]+$")
@@ -94,4 +94,11 @@ class PluginManifestContract(BaseModel):
     def validate_cross_fields(self) -> PluginManifestContract:
         if self.id in self.requires:
             raise ValueError("plugin cannot require itself")
+        expected_namespace = f"{self.id}."
+        for permission in self.permissions:
+            if not permission.startswith(expected_namespace):
+                raise ValueError("permissions must use the plugin id namespace")
+        for event_name in self.events:
+            if not event_name.startswith(expected_namespace):
+                raise ValueError("events must use the plugin id namespace")
         return self

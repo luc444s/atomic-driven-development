@@ -6,6 +6,7 @@ from uuid import uuid4
 from sqlalchemy.orm import Session
 
 from apps.api.app.kernel.events.models import EventLog, EventOutbox
+from apps.api.app.kernel.tenants.service import resolve_tenant_scope
 from packages.contracts.events import EventContract
 
 
@@ -32,17 +33,23 @@ def record_event(
     metadata_json: dict,
     version: str = "1",
 ) -> EventLog:
+    effective_tenant_id, effective_branch_id = resolve_tenant_scope(
+        db,
+        tenant_id=tenant_id,
+        branch_id=branch_id,
+        actor_user_id=actor_user_id,
+    )
     event = EventLog(
         event_name=event_name,
         version=version,
         module=module,
-        tenant_id=tenant_id,
-        branch_id=branch_id,
+        tenant_id=effective_tenant_id,
+        branch_id=effective_branch_id,
         actor_user_id=actor_user_id,
         actor_type=actor_type,
         entity_type=entity_type,
         entity_id=entity_id,
-        correlation_id=correlation_id,
+        correlation_id=correlation_id or str(uuid4()),
         causation_id=causation_id,
         payload=payload,
         metadata_json=metadata_json,

@@ -13,11 +13,16 @@ from apps.api.app.kernel.events.models import EventLog, EventOutbox
 from apps.api.app.kernel.plugins.manifest import PluginManifest
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
 from packages.contracts.events import EventContract
+from packages.sdk import PluginRegistration
 
 
 def _write_plugin(plugin_root: Path, *, plugin_id: str, requires: list[str] | None = None) -> None:
     plugin_root.mkdir(parents=True, exist_ok=True)
     (plugin_root / "backend").mkdir(exist_ok=True)
+    (plugin_root / "frontend").mkdir(exist_ok=True)
+    (plugin_root / "migrations").mkdir(exist_ok=True)
+    (plugin_root / "permissions").mkdir(exist_ok=True)
+    (plugin_root / "events").mkdir(exist_ok=True)
     manifest = {
         "id": plugin_id,
         "name": plugin_id.title(),
@@ -31,6 +36,11 @@ def _write_plugin(plugin_root: Path, *, plugin_id: str, requires: list[str] | No
         "description": f"Plugin {plugin_id}",
     }
     (plugin_root / "plugin.json").write_text(json.dumps(manifest), encoding="utf-8")
+    (plugin_root / "frontend" / "register.ts").write_text(
+        "export function registerPlugin() { return {}; }\n",
+        encoding="utf-8",
+    )
+    (plugin_root / "README.md").write_text(f"# {plugin_id}\n", encoding="utf-8")
     (plugin_root / "backend" / "plugin.py").write_text(
         "from packages.sdk import PluginContext\n\n"
         "def register(context: PluginContext) -> None:\n"
@@ -154,7 +164,7 @@ def test_dispatcher_marks_outbox_failed_and_audits_listener_error(
 
 
 def test_plugin_manifest_validation_rejects_invalid_permission() -> None:
-    with pytest.raises(ValueError, match="permissions"):
+    with pytest.raises(ValueError, match="plugin id namespace"):
         PluginManifest.model_validate(
             {
                 "id": "broken",
@@ -164,7 +174,7 @@ def test_plugin_manifest_validation_rejects_invalid_permission() -> None:
                 "requires": [],
                 "backend_entrypoint": "backend.plugin:register",
                 "frontend_entrypoint": "frontend/register.ts",
-                "permissions": ["invalid"],
+                "permissions": ["other.sample.read"],
                 "events": [],
                 "description": "Broken plugin",
             }
@@ -181,21 +191,89 @@ def test_plugin_runtime_marks_missing_dependency_as_failed(tmp_path: Path) -> No
 
     result = runtime.list_results()[0]
 
+    assert result.manifest is not None
     assert result.manifest.id == "billing"
     assert result.status == "failed"
     assert result.error_message == "missing dependency: customers"
 
 
+def test_plugin_runtime_marks_invalid_manifest_as_failed_without_blocking_valid_plugin(
+    tmp_path: Path,
+) -> None:
+    plugins_dir = tmp_path / "plugins"
+    _write_plugin(plugins_dir / "customers", plugin_id="customers")
+    _write_plugin(plugins_dir / "broken", plugin_id="broken")
+    (plugins_dir / "broken" / "plugin.json").write_text(
+        json.dumps(
+            {
+                "id": "broken",
+                "name": "Broken",
+                "version": "0.1.0",
+                "api_version": "1",
+                "requires": [],
+                "backend_entrypoint": "backend.plugin:register",
+                "frontend_entrypoint": "frontend/register.ts",
+                "permissions": ["wrong.sample.read"],
+                "events": [],
+                "description": "Broken plugin",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    registry = PluginManifestRegistry(plugins_dir)
+    registry.discover()
+    runtime = PluginRuntime(registry)
+    runtime.load()
+
+    results = {result.plugin_id: result for result in runtime.list_results()}
+
+    assert results["customers"].status == "enabled"
+    assert results["broken"].status == "failed"
+    assert results["broken"].error_message is not None
+
+
+def test_plugin_runtime_accepts_register_returning_plugin_registration(tmp_path: Path) -> None:
+    plugins_dir = tmp_path / "plugins"
+    plugin_root = plugins_dir / "billing"
+    _write_plugin(plugin_root, plugin_id="billing")
+    (plugin_root / "backend" / "plugin.py").write_text(
+        "from packages.sdk import PluginContext, PluginRegistration\n\n"
+        "def register(context: PluginContext) -> PluginRegistration:\n"
+        "    return PluginRegistration(\n"
+        "        plugin_id='billing',\n"
+        "        permissions=['billing.sample.read'],\n"
+        "        events=['billing.sample.created'],\n"
+        "    )\n",
+        encoding="utf-8",
+    )
+
+    registry = PluginManifestRegistry(plugins_dir)
+    registry.discover()
+    runtime = PluginRuntime(registry)
+    runtime.load()
+
+    result = runtime.list_results()[0]
+
+    assert result.status == "enabled"
+    assert result.registration is not None
+    assert result.registration == PluginRegistration(
+        plugin_id="billing",
+        permissions=["billing.sample.read"],
+        events=["billing.sample.created"],
+    )
+
+
 def test_plugin_runtime_loads_logistics_plugin(app) -> None:
     runtime = app.state.plugin_runtime
     logistics = next(
-        result for result in runtime.list_results() if result.manifest.id == "logistics"
+        result
+        for result in runtime.list_results()
+        if result.manifest is not None and result.manifest.id == "logistics"
     )
 
-    assert logistics.status == "enabled"
-    assert logistics.registration is not None
-    assert logistics.registration.permissions == ["logistics.delivery.read"]
-    assert logistics.registration.events == ["logistics.delivery.created"]
+    assert logistics.status == "disabled"
+    assert logistics.registration is None
 
 
 def test_dispatcher_is_testable_without_redis(

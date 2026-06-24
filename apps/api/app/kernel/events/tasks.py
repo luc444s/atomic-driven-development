@@ -4,20 +4,46 @@ import importlib
 
 from apps.api.app.core.config import get_settings
 from apps.api.app.core.database import build_session_factory
+from apps.api.app.kernel.audit.service import record_audit
 from apps.api.app.kernel.events.bus import EventBus, dispatch_pending_outbox_events
+from apps.api.app.kernel.plugins.persistent import build_persistent_plugin_runtime
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
 from apps.api.app.kernel.tasks.broker import configure_dramatiq_broker
+from packages.sdk import PluginContext
 
 settings = get_settings()
 configure_dramatiq_broker(settings)
 
 
 def build_runtime_event_bus() -> EventBus:
+    session_factory = build_session_factory(settings)
     registry = PluginManifestRegistry(settings.plugins_dir)
     registry.discover()
-    runtime = PluginRuntime(registry)
-    runtime.load()
     event_bus = EventBus()
+
+    def context_builder(manifest):
+        return PluginContext(
+            manifest,
+            config=settings,
+            router_registry=None,
+            event_bus=event_bus,
+            audit_service=record_audit,
+            db_session_provider=session_factory,
+            task_dispatcher=None,
+        )
+
+    try:
+        with session_factory() as db:
+            runtime = build_persistent_plugin_runtime(
+                db,
+                registry=registry,
+                context_builder=context_builder,
+            )
+            db.commit()
+    except Exception:  # pragma: no cover - same fallback semantics as app bootstrap
+        runtime = PluginRuntime(registry, context_builder=context_builder)
+        runtime.load()
+
     for plugin_id, handlers in runtime.collect_event_handlers().items():
         event_bus.register_handlers(handlers, source=plugin_id)
     return event_bus

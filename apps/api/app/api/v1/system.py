@@ -10,11 +10,17 @@ from apps.api.app.api.deps import get_db_session, get_plugin_registry, get_setti
 from apps.api.app.core.config import Settings
 from apps.api.app.core.database import check_database_connection
 from apps.api.app.core.lifecycle import ensure_session_factory
-from apps.api.app.kernel.auth.dependencies import require_permission
+from apps.api.app.kernel.auth.dependencies import (
+    get_current_tenant_context,
+    require_any_permission,
+    require_permission,
+)
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.plugins.manifest import PluginManifest
 from apps.api.app.kernel.plugins.persistent import list_plugin_registry_records
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from apps.api.app.kernel.plugins.service import get_plugin_registry_record_by_plugin_id
+from apps.api.app.kernel.tenants.context import TenantContext
 
 router = APIRouter(prefix="/system", tags=["system"])
 
@@ -127,9 +133,40 @@ def list_plugins(
 @router.get("/plugin-runtime", response_model=list[PluginRuntimeRecordResponse])
 def list_plugin_runtime(
     db: Session = Depends(get_db_session),
-    _: User = Depends(require_permission("core.plugin.read")),
+    _: User = Depends(
+        require_any_permission(
+            "core.plugin.read",
+            "core.plugin.runtime.read",
+            "core.plugin.manage",
+        )
+    ),
+    tenant_context: TenantContext = Depends(get_current_tenant_context),
 ) -> list[PluginRuntimeRecordResponse]:
+    can_read_full_runtime = tenant_context.is_superadmin or any(
+        permission in tenant_context.current_permissions
+        for permission in ("core.plugin.runtime.read", "core.plugin.manage")
+    )
+
+    records = list_plugin_registry_records(db)
+    if not can_read_full_runtime:
+        records = [record for record in records if record.state == "enabled" and record.is_enabled]
+
     return [
         PluginRuntimeRecordResponse.model_validate(record, from_attributes=True)
-        for record in list_plugin_registry_records(db)
+        for record in records
     ]
+
+
+@router.get("/plugin-runtime/{plugin_id}", response_model=PluginRuntimeRecordResponse)
+def get_plugin_runtime(
+    plugin_id: str,
+    db: Session = Depends(get_db_session),
+    _: User = Depends(require_any_permission("core.plugin.runtime.read", "core.plugin.manage")),
+) -> PluginRuntimeRecordResponse:
+    record = get_plugin_registry_record_by_plugin_id(db, plugin_id=plugin_id)
+    if record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Plugin runtime not found",
+        )
+    return PluginRuntimeRecordResponse.model_validate(record, from_attributes=True)

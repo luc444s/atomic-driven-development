@@ -20,5 +20,9 @@
     "build:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web build",
     "lint:web": "echo \"frontend lint no configurado todavia\"",
     "test:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web test"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3"
   }
 }

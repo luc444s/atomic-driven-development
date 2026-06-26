@@ -25,12 +25,12 @@ export function AppLayout() {
   }
 
   return (
-    <div className="grid min-h-screen lg:grid-cols-[280px_1fr]">
-      <div className="hidden lg:block">
+    <div className="flex min-h-screen">
+      <div className="w-72 shrink-0">
         <Sidebar />
       </div>
 
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
         <header className="flex items-center justify-between border-b border-slate-800 bg-slate-950/70 px-4 py-4 backdrop-blur lg:px-6">
           <ShellHeader
             tenantName={currentTenant?.name ?? null}
@@ -50,10 +50,6 @@ export function AppLayout() {
             </Button>
           </div>
         </header>
-
-        <div className="border-b border-slate-800 bg-slate-950/60 p-4 lg:hidden">
-          <Sidebar />
-        </div>
 
         <main className="flex-1 px-4 py-6 lg:px-6">
           <Outlet />

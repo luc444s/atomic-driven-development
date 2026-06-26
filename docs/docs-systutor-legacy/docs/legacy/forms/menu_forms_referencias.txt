@@ -1,0 +1,67 @@
+﻿
+'                        objM.SetParameterValue("almacen", sucursal)
+'                objM.SetParameterValue("almacen", sucursal)
+'    If Dr.Read = True Then
+'    objM.SetDatabaseLogon("sa", "Gi123456789#2024#")
+Dim f As New FrmCatBombonas
+Else
+f.MostrarReporte(objM)
+FrmCatBombonas.Visible = True
+FrmMovCompras.Visible = True
+'FrmOrdenPlus.vb
+''FrmOrdenPlus.vb
+FrmRegOCproveedor.Visible = True
+FrmRegVentasgOC.Visible = True
+If Dr.Read = True Then
+If TextBox1.Text = "1" Then
+'If TextBox2.Text = "1" Then
+If valor = "CENTRO DE REPORTE OPERATIVO" Then
+If valor = "CIERRE CAJA TIENDA - NUEVO" Then
+If valor = "CONFIGURAR PARAMETROS" Then
+If valor = "ESTADO OPERATIVO" Then
+If valor = "MODULO DE REPARTO" Then
+If valor = "REGISTRAR COMISIONES" Then
+If valor = "REPORTE BANCOS X MONEDA" Then
+If valor = "REPORTE DE BANCOS" Then
+If valor = "REPORTE DE COMISIONES" Then
+If valor = "REPORTE DE ENTREGAS/TRASLADOS" Then
+If valor = "REPORTE DE FACTURACION" Then
+If valor = "REPORTE DE MOVIMIENTOS - NUEVO" Then
+If valor = "REPORTE DE VALORIZADO ULTIMO PC" Then
+If valor = "REPORTE DE VENTAS - DETALLADO" Then
+objM.SetParameterValue("almacen", sucursal)
+'objM.SetParameterValue("almacen", sucursal)
+Private Sub BTNlogistica_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles BTNlogistica.Click
+Private Sub btnVentaPrestamos_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnVentaPrestamos.Click
+Private Sub btnVentaRapida_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnVentaRapida.Click
+Private Sub Button24_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button24.Click
+Private Sub Button30_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button30.Click
+Private Sub Button38_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button38.Click
+Private Sub Button8_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button8.Click
+Private Sub cmdmodificar_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles cmdmodificar.Click
+Private Sub ConsultarReniecToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ConsultarReniecToolStripMenuItem.Click
+Private Sub ImpriToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ImpriToolStripMenuItem.Click
+Private Sub InventariosToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles InventariosToolStripMenuItem.Click
+Private Sub MenuItem89_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles MenuItem89.Click
+Private Sub PruebasTls12ToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles PruebasTls12ToolStripMenuItem.Click
+Private Sub RegClientePlusToolStripMenuItem_Click(sender As Object, e As EventArgs) Handles RegClientePlusToolStripMenuItem.Click
+Private Sub ToolStripMenuItem2_Click(ByVal sender As Object, ByVal e As System.EventArgs) Handles ToolStripMenuItem2.Click
+Public Sub btnLinea_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnLinea.Click
+Public Sub btnmarca_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnmarca.Click
+Public Sub btnPresentacion_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnPresentacion.Click
+Public Sub btnRubro_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles btnRubro.Click
+Public Sub Button10_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button10.Click
+Public Sub Button11_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button11.Click
+Public Sub Button12_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button12.Click
+Public Sub Button15_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button15.Click
+Public Sub Button2_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button2.Click
+Public Sub Button21_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button21.Click
+Public Sub Button22_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button22.Click
+Public Sub Button23_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button23.Click
+Public Sub Button3_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button3.Click
+Public Sub Button4_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button4.Click
+Public Sub Button5_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button5.Click
+Public Sub Button9_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles Button9.Click
+Public Sub ReporteDeVentasXClienteToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs) Handles ReporteDeVentasXClienteToolStripMenuItem.Click
+reporte.CrystalReportViewer1.Zoom(100%)
+reporte.FormulaSeleccion = "{Valmacen_envases.ubicacion} = ""CLIENTE"""

@@ -1,0 +1,12 @@
+﻿Private Sub Conectar()
+Public Function Buscardescuentoxsucursal(ByVal Cod_Producto As Integer, ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function BuscarDescxSuc(ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function BuscarSucSubFe(ByVal codsublinea As Integer, ByVal Desc_Almacen As String, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function BuscarSucSubFe01(ByVal codsublinea As Integer, ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function eliminarDescuento(ByVal CODDESC As Integer) As Boolean
+Public Function eliminardetalledesc(ByVal coddesc As Integer, ByVal codsublinea As Integer) As Boolean
+Public Function InsertarDescuento(ByRef codigo As Integer, ByVal codsuc As Integer, ByVal inicio As Date, ByVal fin As Date, ByVal estado As String) As Integer
+Public Function Insertardetalle(ByRef coddesc As Integer, ByVal codsublinea As Integer, ByVal porcentaje As Double, ByVal porcentaje_min As Double) As Integer
+Public Function ModificarDescuento(ByVal codigo As Integer, ByVal codsuc As Integer, ByVal inicio As Date, ByVal fin As Date, ByVal estado As String) As Boolean
+Public Function ModificarDetalleDescuento(ByVal coddesc As Integer, ByVal codsublinea As Integer, ByVal porcentaje As Double) As Boolean
+Public Sub DesConnectar()

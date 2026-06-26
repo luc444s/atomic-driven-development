@@ -80,8 +80,8 @@ Si una tarea contradice un ADR aceptado, no implementarla sin proponer un nuevo 
 - Zustand
 - TanStack Query
 - React Router
-- Tailwind CSS
-- shadcn/ui
+- Tailwind CSS (utility-first)
+- shadcn/ui (componentes sobre Tailwind)
 
 ### Infraestructura
 
@@ -382,6 +382,28 @@ Modulo piloto recomendado:
 ## Regla final
 
 Si una decision parece rapida pero rompe modularidad, trazabilidad, migracion controlada o claridad arquitectonica, no debe implementarse como atajo permanente.
+
+## Minimal CSS
+
+Reglas para mantener el CSS generado pequeno y evitable:
+
+- no usar valores arbitrarios (`h-[...]`, `w-[...]`, `text-[...]`, etc); extender `theme.extend` si un valor se repite;
+- no usar `@apply` en componentes; poner las utility classes directamente en JSX para que Tailwind pueda purgar;
+- no agregar plugins Tailwind que no se usen (`forms`, `typography`, `daisyui`, etc);
+- mantener `content` apuntando solo a archivos fuente del frontend;
+- preferir colores del theme (`bg-slate-900`) sobre valores literales (`bg-[#0f172a]`);
+- los colores CSS variables de shadcn/ui van en `index.css`, no en clases inline.
+
+## Component Minimal
+
+Reglas para mantener los componentes React reutilizables y evitar duplicacion:
+
+- los componentes de UI (tablas, formularios, modales, selects, tooltips, paginacion, etc) deben vivir en `packages/ui/` o `apps/web/src/components/`, no duplicados en cada modulo o plugin;
+- un plugin o feature NO debe crear su propia implementacion de tabla, modal o formulario; debe importar la version compartida;
+- si un componente compartido no cubre el caso, extenderlo con props en lugar de clonarlo;
+- los componentes de `shadcn/ui` son la fuente de verdad para componentes base; ante la duda, usar los de shadcn;
+- no crear "variantes por modulo" de un mismo componente (ej. `LogisticsTable`, `InvoiceTable`, `InventoryTable`); una sola `Table` configurable por props;
+- las excepciones requieren justificacion escrita en el README del modulo.
 
 ## Limites de modificacion
 

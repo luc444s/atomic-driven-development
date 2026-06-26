@@ -1,16 +1,21 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from typing import cast
 
-from fastapi import FastAPI
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 
 from apps.api.app.core.config import get_settings
 from apps.api.app.core.database import build_session_factory
 from apps.api.app.core.logging import get_logger
 from apps.api.app.kernel.audit.service import record_audit
 from apps.api.app.kernel.events.bus import EventBus
-from apps.api.app.kernel.plugins.persistent import build_persistent_plugin_runtime
+from apps.api.app.kernel.plugins.persistent import (
+    build_persistent_plugin_runtime,
+    get_plugin_registry_record_by_plugin_id,
+)
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
+from apps.api.app.kernel.tasks.dispatcher import build_task_dispatcher
 from packages.sdk import PluginContext
 
 logger = get_logger(__name__)
@@ -23,6 +28,7 @@ def bootstrap_app_state(app: FastAPI, settings=None) -> None:
     plugin_registry = PluginManifestRegistry(effective_settings.plugins_dir)
     plugin_registry.discover()
     event_bus = EventBus()
+    task_dispatcher = build_task_dispatcher(effective_settings)
 
     def context_builder(manifest):
         return PluginContext(
@@ -32,7 +38,7 @@ def bootstrap_app_state(app: FastAPI, settings=None) -> None:
             event_bus=event_bus,
             audit_service=record_audit,
             db_session_provider=session_factory,
-            task_dispatcher=None,
+            task_dispatcher=task_dispatcher,
         )
 
     try:
@@ -57,11 +63,14 @@ def bootstrap_app_state(app: FastAPI, settings=None) -> None:
     for plugin_id, handlers in plugin_runtime.collect_event_handlers().items():
         event_bus.register_handlers(handlers, source=plugin_id)
 
+    _mount_plugin_routes(app, plugin_runtime, effective_settings.api_prefix)
+
     app.state.settings = effective_settings
     app.state.plugin_registry = plugin_registry
     app.state.plugin_runtime = plugin_runtime
     app.state.event_bus = event_bus
     app.state.session_factory = session_factory
+    app.state.task_dispatcher = task_dispatcher
 
 
 def ensure_session_factory(app: FastAPI):
@@ -93,3 +102,37 @@ async def lifespan(app: FastAPI):
     )
     yield
     logger.info("application_stopped", extra={"app_name": settings.app_name, "env": settings.env})
+
+
+def _mount_plugin_routes(app: FastAPI, plugin_runtime: PluginRuntime, api_prefix: str) -> None:
+    plugin_prefix = f"{api_prefix}/plugins/"
+    app.router.routes = [
+        route
+        for route in app.router.routes
+        if not getattr(route, "path", "").startswith(plugin_prefix)
+    ]
+
+    for result in plugin_runtime.list_results():
+        if result.status != "enabled" or result.registration is None:
+            continue
+
+        for router in result.registration.routers:
+            app.include_router(
+                cast(APIRouter, router),
+                prefix=f"{api_prefix}/plugins/{result.plugin_id}",
+                dependencies=[Depends(_require_enabled_plugin(result.plugin_id))],
+            )
+
+
+def _require_enabled_plugin(plugin_id: str):
+    def dependency(request: Request) -> None:
+        session_factory = ensure_session_factory(request.app)
+        with session_factory() as db:
+            record = get_plugin_registry_record_by_plugin_id(db, plugin_id=plugin_id)
+            if record is None or record.state != "enabled" or not record.is_enabled:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="Plugin route not available",
+                )
+
+    return dependency

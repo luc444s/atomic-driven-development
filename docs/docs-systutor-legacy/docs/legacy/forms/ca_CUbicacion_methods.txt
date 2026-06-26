@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarUbicacionxNombre(ByVal Desc_Ubic As String) As SqlClient.SqlDataReader
+Public Function BuscarUbicacionxNombreCB(ByVal Desc_Ubic As String) As SqlClient.SqlDataReader
+Public Function BuscarUbicacionxSuc(ByVal sucursal As Integer) As SqlClient.SqlDataReader
+Public Function InsertarUbicacion(ByRef Cod_Ubic As Integer, ByVal Desc_Ubic As String, ByVal sucursal As Integer) As Integer
+Public Function ModificarUbicacion(ByVal Cod_Ubic As Integer, ByVal Desc_Ubic As String, ByVal sucursal As Integer) As Boolean
+Public Sub DesConnectar()

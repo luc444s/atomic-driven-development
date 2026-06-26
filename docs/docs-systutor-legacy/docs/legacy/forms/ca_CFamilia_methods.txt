@@ -1,0 +1,24 @@
+﻿Private Sub Conectar()
+Public Function ActestadopromXfecha(ByVal cod_producto As Integer) As Boolean
+Public Function ActualizarEstPromProducto(ByVal cod_producto As Integer) As Boolean
+Public Function Actualizarprecios(ByVal Cod_Producto As Integer, ByVal Precio_Producto As Double, ByVal PrecioCja_Producto As Double) As Boolean
+Public Function ActualizarPromo(ByVal cod_prod As Integer, ByVal Cantidad As Integer, ByVal PrecioUni As Double, ByVal FechaVenc As Date, ByVal Oferta As String, ByVal FechaIni As Date, ByVal PrecioCaja As Double) As Boolean
+Public Function BuscarConFamiliaxDesc(ByVal cod_familia As Integer) As SqlClient.SqlDataReader
+Public Function BuscarFamiliaxCod(ByVal Cod_Familia As Integer) As SqlClient.SqlDataReader
+Public Function BuscarFamiliaxDesc(ByVal Desc_Familia As String) As SqlClient.SqlDataReader
+Public Function BuscarPromoxProducto(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarSinFamiliaxDesc(ByVal cod_linea As Integer) As SqlClient.SqlDataReader
+Public Function EliminarProdFamilia(ByVal cod_Familia As Integer, ByVal cod_Producto As Integer) As Boolean
+Public Function InsertarFamilia(ByRef cod_Familia As Integer, ByVal desc_Familia As String, ByVal P_Unid As Double, ByVal P_Caja As Double) As Integer
+Public Function Insertarprofamilia(ByVal Cod_Familia As Integer, ByVal Cod_Producto As Integer) As Boolean
+Public Function InsertarPromocion(ByRef cod_id As Integer, ByVal Cantidad As Integer, ByVal PrecioUni As Double, ByVal FechaVenc As Date, ByVal Porcentaje As Double, ByVal Oferta As String, ByVal cod_prod As Integer, ByVal FechaIni As Date, ByVal estadoPromo As Integer, ByVal PrecioCaja As Double) As Integer
+Public Function InsertarTicketDescuento(ByRef cod_id As Integer, ByVal Cantidad As Integer, ByVal Pedido As Integer, ByVal descuento As Double, ByVal grupo As Integer) As Integer
+Public Function InsertarTicketDescuento(ByRef Id_Cod As Integer, ByVal Pedido As Integer, ByVal Cantidad As Double, ByVal descuento As Double, ByVal grupo As Integer) As Integer
+Public Function ModificarFamilia(ByVal cod_Familia As Integer, ByVal desc_Familia As String) As Boolean
+Public Function Modificarpromocion(ByVal cod_id As Integer, ByVal Cantidad As Integer, ByVal PrecioUni As Double, ByVal FechaVenc As Date, ByVal Porcentaje As Double, ByVal Oferta As String, ByVal cod_prod As Integer, ByVal FechaIni As Date, ByVal estadoPromo As Integer, ByVal PrecioCaja As Double) As Boolean
+Public Function mostrar_promociones(ByVal Desc_Familia As String) As SqlClient.SqlDataReader
+Public Function mostrarprodfam(ByVal cod_familia As Integer, ByVal cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function mostrarprodfamxProd(ByVal cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function mostrarpromoactiva(ByVal grupo As Integer) As SqlClient.SqlDataReader
+Public Function mostrarpromociones() As SqlClient.SqlDataReader
+Public Sub DesConnectar()

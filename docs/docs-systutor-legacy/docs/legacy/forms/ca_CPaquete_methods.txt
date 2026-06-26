@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function EliminarPaquete(ByVal AnalisisPrinc As Integer, ByVal AnalisisSec As Integer) As Boolean
+Public Function InsertarPaquete(ByVal AnalisisPrinc As Integer, ByVal AnalisisSec As Integer) As Boolean
+Public Function ModificarPaquete(ByVal AnalisisPrinc As Integer, ByVal AnalisisSec As Integer) As Boolean
+Public Sub DesConnectar()

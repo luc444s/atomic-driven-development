@@ -1,0 +1,9 @@
+﻿Public Sub DesConnectar()
+Public Sub DesConectar()
+Private Sub Conectar()
+Public Function InsertarUsuario(ByRef Id As Integer, ByVal Login As String, ByVal Password As String, ByVal Iniciales As String, ByVal FechaIng As DateTime, ByVal ApeNom As String, ByVal Direccion As String, ByVal Dni As String, ByVal Estado As Integer, ByVal Cargo As Integer, ByVal Telefono As String) As Integer
+Public Function ModificarUsuario(ByVal Id As Integer, ByVal Login As String, ByVal Password As String, ByVal Iniciales As String, ByVal FechaIng As DateTime, ByVal ApeNom As String, ByVal Direccion As String, ByVal Dni As String, ByVal Estado As Integer, ByVal Cargo As Integer, ByVal Telefono As String) As Boolean
+Public Function BuscarUsuario(ByVal Id As Integer) As SqlClient.SqlDataReader
+Public Function BuscarUsuarioxDesc(ByVal ApeNom As String) As SqlClient.SqlDataReader
+Public Function igv() As SqlClient.SqlDataReader
+Public Function ValidarUsuario(ByVal Login As String, ByVal Password As String) As SqlClient.SqlDataReader

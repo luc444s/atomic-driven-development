@@ -1,0 +1,9 @@
+﻿Private Sub Connectar()
+Public Function BuscarAseguradora(ByVal CodEmpreAseg As Integer) As SqlClient.SqlDataReader
+Public Function BuscarAseguradoraxDesc(ByVal RazonSocial As String) As SqlClient.SqlDataReader
+Public Function BuscarEmpresaAseguradoraxRazonSocial(ByVal Razonsocial As String) As SqlClient.SqlDataReader
+Public Function InsertarAseguradora(ByRef CodEmpreAseg As Integer, ByVal RazonSocial As String, ByVal factor As Double) As Integer
+Public Function ListarAseguradora() As SqlClient.SqlDataReader
+Public Function ModificarAseguradora(ByVal CodEmpreAseg As Integer, ByVal RazonSocial As String, ByVal factor As Double) As Boolean
+Public Function mostrarcoberturas(ByVal Razonsocial As String) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

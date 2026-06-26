@@ -15,7 +15,7 @@ export function Sidebar() {
   });
 
   return (
-    <aside className="flex h-full w-full flex-col border-r border-slate-800 bg-slate-950/80 p-4">
+    <aside className="flex min-h-screen w-full flex-col border-r border-slate-800 bg-slate-950/80 p-4">
       <div className="mb-8 space-y-1">
         <h1 className="text-lg font-semibold text-white">SYSTUTOR OSS</h1>
         <p className="text-sm text-slate-400">Core Frontend v0.2</p>

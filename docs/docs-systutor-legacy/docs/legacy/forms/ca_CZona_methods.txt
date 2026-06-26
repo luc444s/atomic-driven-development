@@ -1,0 +1,10 @@
+﻿Private Sub Conectar()
+Public Function BuscarZona(ByVal Cod_Zona As Integer) As SqlClient.SqlDataReader
+Public Function BuscarZonaxDist(ByVal Cod_Distrito As Integer) As SqlClient.SqlDataReader
+Public Function BuscarZonaxNom(ByVal Zona As String) As SqlClient.SqlDataReader
+Public Function EliminarZona(ByVal Cod_Zona As Integer) As Boolean
+Public Function InsertarZona(ByRef Cod_Zona As Integer, ByVal Zona As String, ByVal cod_Distrito As Integer) As Integer
+Public Function Listar_Zona(ByVal Zona As String) As SqlClient.SqlDataReader
+Public Function ModificarZona(ByVal Cod_Zona As Integer, ByVal Zona As String, ByVal cod_Distrito As Integer) As Boolean
+Public Function Mostrar_zona_persona(ByVal Cod_Persona As Integer) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

@@ -1,0 +1,15 @@
+﻿Private Sub Conectar()
+Public Function Buscardescuento(ByVal codsuc As Integer) As SqlClient.SqlDataReader
+Public Function BuscarprecioContado(ByVal Descripcion As String) As SqlClient.SqlDataReader
+Public Function BuscarprecioContadoxcod(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function Buscarpreciocredito(ByVal Empresa As Integer, ByVal Analisis As Integer) As SqlClient.SqlDataReader
+Public Function BuscarprecioCreditoxAnalisis(ByVal Descripcion As String, ByVal CodEmpreAseg As Integer) As SqlClient.SqlDataReader
+Public Function Buscarpreciocreditoxcod(ByVal Codanalisis As Integer, ByVal CodEmpreAseg As Integer) As SqlClient.SqlDataReader
+Public Function BuscarprecioServTerxAnalisis(ByVal Descripcion As String, ByVal CodServicioT As Integer) As SqlClient.SqlDataReader
+Public Function BuscarprecioServTerxcod(ByVal Codanalisis As Integer, ByVal CodServicioT As Integer) As SqlClient.SqlDataReader
+Public Function EliminarTarifario(ByVal CodSucursal As Integer, ByVal CodAnalisis As Integer) As Boolean
+Public Function Insertardescuento(ByRef codigo As Integer, ByVal codsuc As Integer, ByVal inicio As Date, ByVal fin As Date, ByVal estado As String, ByVal mayorista As String, ByVal tipo As String) As Integer
+Public Function InsertarTarifario(ByVal Tcontado As Integer, ByVal CodAnalisis As Integer, ByVal Precio As Double, ByVal Usuario As String) As Boolean
+Public Function Modificardescuento(ByVal codigo As Integer, ByVal codsuc As Integer, ByVal mayorista As Double, ByVal tipo As String) As Boolean
+Public Function ModificarTarifario(ByVal CodSucursal As Integer, ByVal CodAnalisis As Integer, ByVal Precio As Double, ByVal Usuario As String) As Boolean
+Public Sub DesConnectar()

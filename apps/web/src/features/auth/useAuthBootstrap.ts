@@ -23,7 +23,10 @@ export function useAuthBootstrap() {
   });
 
   const effectivePermissions = currentUserQuery.data?.permissions ?? permissions;
-  const canReadPluginRuntime = effectivePermissions.includes("core.plugin.read");
+  const canReadPluginRuntime =
+    effectivePermissions.includes("core.plugin.read") ||
+    effectivePermissions.includes("core.plugin.runtime.read") ||
+    effectivePermissions.includes("core.plugin.manage");
 
   const pluginRuntimeQuery = useQuery({
     queryKey: ["system", "plugin-runtime", token],

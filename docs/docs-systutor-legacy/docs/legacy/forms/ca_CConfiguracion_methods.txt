@@ -1,0 +1,21 @@
+﻿Public Sub DesConectar()
+Public Sub DesConnectar()
+Private Sub Conectar()
+Public Function InsertarConfiguracion(ByRef CodConfiguracion As Integer, ByVal NroSerie As String, ByVal Agencia As Integer, ByVal Equipo As String, ByVal caja As String, ByVal maquina As String, ByVal impresora As String, ByVal snc As Integer, ByVal snd As Integer, ByVal sr As Integer, ByVal autorden As String) As Integer
+Public Function ModificarConfiguracion(ByVal CodConfiguracion As Integer, ByVal NroSerie As String, ByVal Agencia As Integer, ByVal Equipo As String, ByVal caja As String, ByVal maquina As String, ByVal impresora As String, ByVal snc As Integer, ByVal snd As Integer, ByVal sr As Integer, ByVal autorden As String) As Boolean
+Public Function ModificarConfiguracionImpresora(ByVal CodConfiguracion As Integer, ByVal impresora As String) As Boolean
+Public Function BuscarxEquipo(ByVal equipo As String) As SqlClient.SqlDataReader
+Public Function buscarcajaxusuario(ByVal usuario As Integer) As SqlClient.SqlDataReader
+Public Function BuscarConfiguracion(ByVal CodConfiguracion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarConfiguracionxDesc(ByVal Equipo As String) As SqlClient.SqlDataReader
+Public Function BuscarConfiguracionxAgencia(ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function Buscarserieagencia(ByVal Nombre_Agencia As String, ByVal equipo As String) As SqlClient.SqlDataReader
+Public Function BuscarConfiguracionxnom(ByVal Equipo As String) As SqlClient.SqlDataReader
+Public Function BuscarEquipoxCiudad(ByVal NomCiudad As String) As SqlClient.SqlDataReader
+Public Function BuscarConfagencia(ByVal codciudad As Integer, ByVal recepcion As Integer) As SqlClient.SqlDataReader
+Public Function Listarxsucursal() As SqlClient.SqlDataReader
+Public Function BuscarConfiguracionxRaz(ByVal empresa As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_parametros() As SqlClient.SqlDataReader
+Public Function modificar_parametros(ByVal IGV As Integer, ByVal conver_puntos As Double, ByVal linksunat As String, ByVal limite_credito As Double) As Boolean
+Public Function ModificarConfiguracionRuta(ByVal CodConfiguracion As Integer, ByVal ruta As String) As Boolean
+Public Function CargarConfiguracionRegional(pais As String) As SqlClient.SqlDataReader

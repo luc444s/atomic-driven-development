@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
@@ -17,7 +18,7 @@ from apps.api.app.kernel.plugins.persistent import (
     rollback_plugin,
     upgrade_plugin,
 )
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntimeError
 from apps.api.app.main import create_app
 from packages.sdk import PluginContext
 
@@ -219,7 +220,8 @@ def test_plugin_runtime_marks_failed_plugin(tmp_path: Path, test_settings: Setti
 
     with session_factory() as db:
         registry.discover()
-        enable_plugin(db, registry=registry, plugin_id="broken")
+        with pytest.raises(PluginRuntimeError, match="undeclared plugin permissions"):
+            enable_plugin(db, registry=registry, plugin_id="broken")
         _load_runtime(db, registry)
         db.commit()
 

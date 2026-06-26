@@ -1,40 +1,18 @@
-import type { ComponentType } from "react";
+import type {
+  PluginFrontendContext,
+  PluginFrontendRegistration,
+  PluginNavigationItem,
+  PluginRoute,
+  PluginWidget,
+} from "@systutor/sdk/frontend";
 
 import { useAuthStore } from "../auth/store";
 import { hasRequiredPermissions } from "../shell/permissions";
 import type { PluginRuntimeRecord } from "../../shared/api/client";
 
-export type PluginFrontendRoute = {
-  path: string;
-  title: string;
-  component: ComponentType;
-  requiredPermissions?: string[];
-};
-
-export type PluginSidebarEntry = {
-  to: string;
-  label: string;
-  requiredPermissions?: string[];
-};
-
-export type PluginWidget = {
-  id: string;
-  slot: "system.dashboard";
-  title: string;
-  component: ComponentType;
-  requiredPermissions?: string[];
-};
-
-export type PluginFrontendRegistration = {
-  pluginId: string;
-  routes: PluginFrontendRoute[];
-  navigation: PluginSidebarEntry[];
-  widgets: PluginWidget[];
-};
-
-export type PluginFrontendContext = {
-  appBasePath: string;
-};
+export type PluginFrontendRoute = PluginRoute;
+export type PluginSidebarEntry = PluginNavigationItem;
+export type { PluginFrontendContext, PluginFrontendRegistration, PluginWidget };
 
 type FrontendPluginModule = {
   registerPlugin: (ctx: PluginFrontendContext) => PluginFrontendRegistration;
@@ -66,8 +44,8 @@ export function buildFrontendPluginRuntime({
 }: FrontendRuntimeInput) {
   const recordsById = new Map(records.map((record) => [record.plugin_id, record]));
 
-  const routes: Array<PluginFrontendRoute & { pluginId: string }> = [];
-  const navigation: Array<PluginSidebarEntry & { pluginId: string }> = [];
+  const routes: Array<PluginRoute & { pluginId: string }> = [];
+  const navigation: Array<PluginNavigationItem & { pluginId: string }> = [];
   const widgets: Array<PluginWidget & { pluginId: string }> = [];
 
   for (const registration of registrations) {

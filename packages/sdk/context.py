@@ -66,3 +66,44 @@ class PluginContext:
 
     def set_metadata(self, key: str, value: Any) -> None:
         self.registration.metadata[key] = value
+
+    def publish_event(
+        self,
+        event_name: str,
+        payload: dict,
+        tenant_id: str | None = None,
+        branch_id: str | None = None,
+        actor_user_id: str | None = None,
+        entity_type: str | None = None,
+        entity_id: str | None = None,
+        correlation_id: str | None = None,
+        causation_id: str | None = None,
+    ) -> Any:
+        if not event_name.startswith(f"{self.manifest.id}."):
+            raise ValueError("plugin events must use the plugin id namespace")
+        if event_name not in self.manifest.events:
+            raise ValueError("plugin event must be declared in plugin.json")
+        if self.event_bus is None:
+            raise RuntimeError("plugin event bus is not available")
+        if self.db_session_provider is None:
+            raise RuntimeError("plugin db_session_provider is not available")
+
+        event = EventContract(
+            event_name=event_name,
+            module=self.manifest.id,
+            tenant_id=tenant_id,
+            branch_id=branch_id,
+            actor_user_id=actor_user_id,
+            actor_type="user" if actor_user_id else "system",
+            entity_type=entity_type,
+            entity_id=entity_id,
+            correlation_id=correlation_id,
+            causation_id=causation_id,
+            payload=dict(payload),
+            metadata={"plugin_id": self.manifest.id},
+        )
+
+        with self.db_session_provider() as db:
+            event_log = self.event_bus.publish(db, event=event)
+            db.commit()
+            return event_log

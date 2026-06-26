@@ -5,7 +5,9 @@ import { PluginRouteBoundary } from "../features/plugins/PluginRouteBoundary";
 import { listFrontendPluginRegistrations } from "../features/plugins/runtime";
 import { RequireAuth } from "../features/auth/RequireAuth";
 import { PermissionBoundary } from "../features/shell/PermissionBoundary";
-import { SettingsPage } from "../features/settings/SettingsPage";
+import { BranchesPage } from "../features/settings/BranchesPage";
+import { RolesPage } from "../features/settings/RolesPage";
+import { UsersPage } from "../features/settings/UsersPage";
 import { PluginsPage } from "../features/system/PluginsPage";
 import { SystemDashboardPage } from "../features/system/SystemDashboardPage";
 import { AppLayout } from "../shared/layout/AppLayout";
@@ -61,7 +63,7 @@ export const appRouter = createBrowserRouter([
           {
             path: "plugins",
             element: (
-              <PermissionBoundary requiredPermissions={["core.plugin.read"]}>
+              <PermissionBoundary anyPermissions={["core.plugin.runtime.read", "core.plugin.manage"]}>
                 <PluginsPage />
               </PermissionBoundary>
             ),
@@ -70,32 +72,23 @@ export const appRouter = createBrowserRouter([
             path: "settings/users",
             element: (
               <PermissionBoundary requiredPermissions={["core.users.read"]}>
-                <SettingsPage
-                  title="Users"
-                  description="Administracion tenant-aware de usuarios del core."
-                />
+                <UsersPage />
               </PermissionBoundary>
             ),
           },
           {
             path: "settings/roles",
             element: (
-              <PermissionBoundary requiredPermissions={["core.roles.read"]}>
-                <SettingsPage
-                  title="Roles"
-                  description="Administracion tenant-aware de roles y permisos efectivos."
-                />
+              <PermissionBoundary anyPermissions={["core.roles.read", "core.roles.manage"]}>
+                <RolesPage />
               </PermissionBoundary>
             ),
           },
           {
             path: "settings/branches",
             element: (
-              <PermissionBoundary requiredPermissions={["core.branches.manage"]}>
-                <SettingsPage
-                  title="Branches"
-                  description="Administracion tenant-aware de sucursales disponibles."
-                />
+              <PermissionBoundary anyPermissions={["core.branches.read", "core.branches.manage"]}>
+                <BranchesPage />
               </PermissionBoundary>
             ),
           },

@@ -132,5 +132,5 @@ Debe quedar trazable como minimo:
 - no inventar modulos de negocio;
 - mantener el frontend simple y extensible;
 - usar el stack aprobado: React, Vite, TypeScript, React Router, TanStack Query, Zustand, Tailwind, pnpm;
-- si `shadcn/ui` no esta preparado, dejar base compatible sin introducir dependencias innecesarias;
+- usar componentes de `shadcn/ui` sobre Tailwind; si un componente no existe en shadcn, construirlo con Tailwind utility classes;
 - documentar variables de entorno y flujo demo de login.

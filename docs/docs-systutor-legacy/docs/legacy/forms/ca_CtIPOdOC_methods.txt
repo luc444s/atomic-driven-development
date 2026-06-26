@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarTipoDocxNombre(ByVal Desc_TipoDoc As String) As SqlClient.SqlDataReader
+Public Function BuscarTipoDocxNombreCB(ByVal Desc_TipoDoc As String) As SqlClient.SqlDataReader
+Public Function InsertarTipoDoc(ByRef Cod_TipoDoc As Integer, ByVal Desc_serie As String) As Integer
+Public Function ModificarTipoDoc(ByVal Cod_TipoDoc As Integer, ByVal Desc_TipoDoc As String) As Boolean
+Public Sub DesConnectar()

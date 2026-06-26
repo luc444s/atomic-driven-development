@@ -1,0 +1,9 @@
+﻿Private Sub Conectar()
+Public Function BuscarDistrito(ByVal Cod_Distrito As Integer) As SqlClient.SqlDataReader
+Public Function BuscarDistritoxdistrito(ByVal Cod_Distrito As Integer) As SqlClient.SqlDataReader
+Public Function BuscarDistritoxNom(ByVal Desc_Distrito As String) As SqlClient.SqlDataReader
+Public Function BuscarDistritoxprovincia(ByVal Cod_Provincia As Integer) As SqlClient.SqlDataReader
+Public Function InsertarDistrito(ByRef Cod_Distrito As Integer, ByVal Cod_Provincia As Integer, ByVal Desc_Distrito As String) As Integer
+Public Function Listar_Distrito(ByVal Desc_Distrito As String) As SqlClient.SqlDataReader
+Public Function ModificarDistrito(ByVal Cod_Distrito As Integer, ByVal Cod_Provincia As Integer, ByVal Desc_Distrito As String) As Boolean
+Public Sub DesConnectar()

@@ -1,0 +1,108 @@
+﻿Public Sub DesConnectar()
+Public Sub DesConectar()
+Private Sub Conectar()
+Public Function InsertarPaciente(ByRef Cod_Persona As Integer, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal FNac_Personal As Date, ByVal Sexo_Persona As String, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Direccion_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal cmp_Persona As String, ByVal Contacto As String, ByVal Nextel As String, ByVal celular As String, ByVal nrocuenta As String, ByVal banco As String, ByVal r As String, ByVal v1 As String, ByVal v2 As String, ByVal DNIS As String, ByVal DNIR As String, ByVal DNIV1 As String, ByVal DNIV2 As String, ByVal TELEFONOS As String, ByVal TELEFONOR As String, ByVal TELEFONOV1 As String, ByVal TELEFONOV2 As String, ByVal dvisita As String, ByVal dreparto As String, ByVal puntos_acumulados As Integer, ByVal tarjeta As String, ByVal hijos As Integer, ByVal profesion As String, ByVal urbanizacion As Integer, ByVal LineaCredito_Persona As Double, ByVal descurb As String, ByVal dir_envio As String, ByVal responsable As String, ByVal garantia As String, ByVal diascred As Integer) As Integer
+Public Function InsertarClienteProveedor(ByRef Cod_Persona As Integer, ByVal Nro_Persona As String, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal FNac_Personal As Date, ByVal Sexo_Persona As String, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Activo As Boolean, ByVal Login_Persona As String, ByVal Pass_Persona As String, ByVal Nick_Persona As String, ByVal Fotografia As String, ByVal id_clave_Operacion As Integer, ByVal clave_op_intracomunitaria As Boolean, ByVal nombre_comercial As String, ByVal observaciones As String) As Integer
+Public Function Personal_Insertar(ByRef Cod_Persona As Integer, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal FNac_Personal As Date, ByVal Sexo_Persona As String, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Direccion_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal nick_Persona As String, ByVal Login_Persona As String, ByVal Pass_Persona As String) As Integer
+Public Function Modificarmozo(ByVal Cod_Persona As Integer, ByVal Nro_MOZO As String) As Boolean
+Public Function ModificarPaciente(ByVal Cod_Persona As Integer, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal FNac_Personal As Date, ByVal Sexo_Persona As String, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Direccion_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal cmp_Persona As String, ByVal Contacto As String, ByVal Nextel As String, ByVal celular As String, ByVal nrocuenta As String, ByVal banco As String, ByVal r As String, ByVal v1 As String, ByVal v2 As String, ByVal DNIS As String, ByVal DNIR As String, ByVal DNIV1 As String, ByVal DNIV2 As String, ByVal TELEFONOS As String, ByVal TELEFONOR As String, ByVal TELEFONOV1 As String, ByVal TELEFONOV2 As String, ByVal dvisita As String, ByVal dreparto As String, ByVal puntos_acumulados As Integer, ByVal tarjeta As String, ByVal hijos As Integer, ByVal profesion As String, ByVal urbanizacion As Integer, ByVal LineaCredito_Persona As Double, ByVal descurb As String, ByVal dir_envio As String, ByVal responsable As String, ByVal garantia As String, ByVal diascred As Integer) As Boolean
+Public Function InsertarLineaCredito(ByVal Cod_VehiculoCliente As Integer, ByVal Linea_Credito As Decimal, ByVal Dias_Credito As Integer, ByVal Fecha_Registro As Date, ByVal Activo As Boolean) As Boolean
+Public Function ModificarLineaCred(ByVal Cod_Persona As Integer, ByVal LineaCredito_Persona As Double, ByVal DIASCRED As Integer, ByVal Fecha_Registro As Date, ByVal Activo As Boolean) As Boolean
+Public Function ModificarPersonal(ByVal Cod_Persona As Integer, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal FNac_Personal As Date, ByVal Sexo_Persona As String, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Direccion_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal nick_Persona As String, ByVal Login_Persona As String, ByVal Pass_Persona As String) As Boolean
+Public Function ModificarEdad(ByVal codpaciente As Integer, ByVal Edad As Integer, ByVal IdEdad As Integer) As Boolean
+Public Function BuscarMOZO(ByVal Nro_MOZO As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombre(ByVal Cod_TipoPersona As Integer, ByVal Paciente As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombregasguia(ByVal Cod_TipoPersona As Integer, ByVal Nom_Persona As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombregasguia2(ByVal Cod_TipoPersona As Integer, ByVal contacto As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombreCLIPROV(ByVal contacto As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombreCLIPROV2(ByVal contacto As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxNombregasguiaContacto(ByVal contacto As String) As SqlClient.SqlDataReader
+Public Function MOSTRAR_PERSONA(ByVal Paciente As String) As SqlClient.SqlDataReader
+Public Function MOSTRAR_PERSONAResponsable(ByVal Paciente As String) As SqlClient.SqlDataReader
+Public Function BuscarPersonaxCM(ByVal Paciente As String) As SqlClient.SqlDataReader
+Public Function BuscarPaciente(ByVal Cod_Persona As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPacientegasxcod(ByVal Codigo As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPacientextelefono(ByVal Telefono_Persona As String) As SqlClient.SqlDataReader
+Public Function BuscarPacientexDesc2(ByVal Nom_Persona As String) As SqlClient.SqlDataReader
+Public Function BuscarDNI(ByVal Dni_Persona As String) As SqlClient.SqlDataReader
+Public Function BuscarRUC(ByVal Ruc_Persona As String) As SqlClient.SqlDataReader
+Public Function BuscarRUCxTipo(ByVal Ruc_Persona As String, ByVal Cod_tipoPersona As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPacientexDesc(ByVal Paciente As String) As SqlClient.SqlDataReader
+Public Function Listardemo() As SqlClient.SqlDataReader
+Public Function BuscarPermisosAdministrador(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosCaja(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosContabilidad(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosSistemas(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosservicios(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosrecepcion(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarPermisosprogramacion(ByVal opcion As Integer) As SqlClient.SqlDataReader
+Public Function ModificarPermisoAdministrador(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function ModificarPermisocaja(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function ModificarPermisoContabilidad(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function ModificarPermisoSistemas(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function ModificarPermisoServicios(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function Modificardemo(ByVal demo As Integer) As Boolean
+Public Function ModificarPermisoRecepcion(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function ModificarPermisoProgramacion(ByVal codigo As Integer, ByVal opcion As Integer) As Boolean
+Public Function Buscarlogin() As SqlClient.SqlDataReader
+Public Function Mostrar_dia_visita(ByVal Dvisita As String) As SqlClient.SqlDataReader
+Public Function Mostrar_dia_reparto(ByVal dreparto As String) As SqlClient.SqlDataReader
+Public Function InsertardETALLEOrdenPago(ByRef CODIGO As Integer, ByVal OP As Integer, ByVal tipodoc As String, ByVal nrodoc As String, ByVal importe As Double, ByVal observacion As String) As Integer
+Public Function InsertarOrdenPago(ByRef Cod_Persona As Integer, ByVal fecha As Date, ByVal trabajador As String, ByVal NROCTA As String, ByVal importe As Double, ByVal observacion As String, ByVal estado As String) As Integer
+Public Function ModificarOrdenPago(ByVal op As Integer, ByVal fecha As Date, ByVal trabajador As String, ByVal NROCTA As String, ByVal importe As Double, ByVal observacion As String, ByVal estado As String) As Boolean
+Public Function ModificarEstadoOrdenPago(ByVal op As Integer, ByVal estado As String) As Boolean
+Public Function ListarPago() As SqlClient.SqlDataReader
+Public Function Busarxnropago(ByVal op As Integer) As SqlClient.SqlDataReader
+Public Function Busarxdetalleop(ByVal op As Integer) As SqlClient.SqlDataReader
+Public Function Mostrarhuellas(ByVal dni As String) As SqlClient.SqlDataReader
+Public Function Insertar_persona_alm(ByVal empleado As Integer, ByVal almacen As Integer) As Boolean
+Public Function Eliminar_persona_almXCargo(ByVal codPersona As Integer, ByVal codSucursal As Integer, ByVal cargoFuncion As String) As Boolean
+Public Function Mostraremplalm(ByVal empleado As String) As SqlClient.SqlDataReader
+Public Function Mostrardispemp(ByVal fecha As Date, ByVal fecha1 As Date, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_personal_disp(ByVal fecha As Date, ByVal fecha1 As Date, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_personal_disponible(ByVal celular As String) As SqlClient.SqlDataReader
+Public Function vehiculo_Insertar(ByRef codigo As Integer, ByVal direccion As String, ByVal telefono As String, ByVal contacto As String, ByVal cliente As String, ByVal ubigeo As String, ByVal correoresp As String, ByVal zonaresp As Integer) As Integer
+Public Function Modificarvehiculo_Insertar(ByRef codigo As Integer, ByVal direccion As String, ByVal telefono As String, ByVal contacto As String, ByVal cliente As Integer, ByVal ubigeo As String, ByVal correoresp As String, ByVal zonaresp As Integer, ByVal NombrePunto As String) As Integer
+Public Function Mostrar_cliente_vehiculo(ByVal Id_ClientePersona As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_cliente_vehiculoxcodigo(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_PLACA(ByVal PLACA As String) As SqlClient.SqlDataReader
+Public Function Mostrar_cliente_PLACA(ByVal PLACA As String) As SqlClient.SqlDataReader
+Public Function Eliminar_persona_vehiculo(ByVal CODIGO As Integer) As Boolean
+Public Function Comision_personal_Insertar(ByRef codigo As Integer, ByVal fecha As Date, ByVal personal As Integer, ByVal comision As Double, ByVal almacen As Integer, ByVal observacion As String, ByVal f_cancelacion As Date, ByVal proforma As Integer) As Integer
+Public Function Historial(ByVal PLACA As String) As SqlClient.SqlDataReader
+Public Function Total_movimiento(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function Total_movimientoBanco(ByVal movimiento As Integer, ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function BuscarPacientemozo(ByVal Cod_Persona As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_mozo(ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function Actualizar_estado_envnuevo(ByVal cod_producto As Integer, ByVal servicio As Integer) As Boolean
+Public Function Mostrarresponsables(ByVal responsable As Integer) As SqlClient.SqlDataReader
+Public Function Mostrarresponsablesxnom(ByVal nom_persona As String) As SqlClient.SqlDataReader
+Public Function Eliminar_resp(ByVal PERSONA_FACTURA As Integer, ByVal PERSONA_RESPONSABLE As Integer) As Boolean
+Public Function Insertar_persona_resp(ByVal PERSONA_FACTURA As Integer, ByVal PERSONA_RESPONSABLE As Integer) As Boolean
+Public Function Mostrar_filtro(ByVal Paciente As String, ByVal filtro1 As Integer, ByVal filtro2 As Integer) As SqlClient.SqlDataReader
+Public Function Actualizar_ubigeo(ByVal codigo As Integer, ByVal ubigeo As String) As Boolean
+Public Function Cliente_Retencion_modificar(ByVal Cod_Persona As Integer, ByVal retencion As Integer) As Boolean
+Public Function MOSTRAR_Nrousuario(ByVal Cod_TipoPersona As Integer) As SqlClient.SqlDataReader
+Public Function Persona_ProcesoAlmacen(ByVal Cod_Almacen As Integer, ByVal PROCESO As String) As SqlClient.SqlDataReader
+Public Function Obtener_personas_por_cargo(ByVal cargoFuncion As String) As SqlClient.SqlDataReader
+Public Function BuscarClientProvxnom(ByVal Cod_TipoPersona As Integer, ByVal Nom_Persona As String) As SqlClient.SqlDataReader
+Public Function ModificarEstablecimiento(ByVal Codigo As Integer, ByVal idClientePersona As Integer, ByVal direccion As String, ByVal contacto As String, ByVal telefono As String, ByVal correoresp As String, ByVal enlaceGPS As String, ByVal idZona As Integer, ByVal dreparto As String, ByVal idAgenteAsignado As Integer, ByVal idDatoBancario As Integer, ByVal observResponsable As String, ByVal principal As Boolean, ByVal activo As Boolean, ByVal fechaRegistro As Date, ByVal ubigeo As String, ByVal dvisita As String, ByVal garantia As String, ByVal envio As Integer, ByVal idSucursal As Integer) As Boolean
+Public Function InsertarEstablecimiento(ByRef codigo As Integer, ByVal idClientePersona As Integer, ByVal direccion As String, ByVal contacto As String, ByVal telefono As String, ByVal correoresp As String, ByVal enlaceGPS As String, ByVal idZona As Integer, ByVal dreparto As String, ByVal idAgenteAsignado As Integer, ByVal idDatoBancario As Integer, ByVal observResponsable As String, ByVal principal As Boolean, ByVal activo As Boolean, ByVal fechaRegistro As Date, ByVal ubigeo As String, ByVal dvisita As String, ByVal garantia As String, ByVal Envio As Integer, ByVal Id_Sucursal As Integer) As Integer
+Public Function Mostrar_persona_xcargo(ByVal Desc_Almacen As String) As SqlClient.SqlDataReader
+Public Function Mostrar_persona_xfiltro(ByVal Filtro As String) As SqlClient.SqlDataReader
+Public Function Registro_Coordenadas_Insertar(ByRef idRegistro As Integer, ByVal Id_SucursalCliente As Integer, ByVal idRepartidor As Integer, ByVal latitud As Double, ByVal longitud As Double, ByVal observaciones As String) As Integer
+Public Function Registro_Coordenadas_Buscar(ByVal Id_SucursalCliente As Integer?, ByVal idRepartidor As Integer?) As DataTable
+Public Function Registro_Coordenadas_Modificar(ByVal idRegistro As Integer, ByVal latitud As Double, ByVal longitud As Double, ByVal observaciones As String) As Boolean
+Public Function Modificar_ClienteProveedor(ByVal codPersona As Integer, ByVal nroPersona As String, ByVal nomPersona As String, ByVal dniPersona As String, ByVal rucPersona As String, ByVal codTipoPersona As Integer, ByVal sexoPersona As String, ByVal fnacPersona As Date, ByVal mailPersona As String, ByVal telefonoPersona As String, ByVal activo As Boolean, ByVal loginPersona As String, ByVal passPersona As String, ByVal nickPersona As String, ByVal fotografia As String, ByVal idClaveOperacion As Integer?, ByVal claveOpIntracomunitaria As Boolean, ByVal nombreComercial As String, ByVal observaciones As String, ByVal documentoPrincipal As String, ByVal tipoFacturacion As String, ByVal direccion As String, ByVal Id_FormaPago? As Integer) As Boolean
+Public Function InsertarClienteSucursal(ByRef Id_Cliente As Integer, ByVal Id_Sucursal As Integer, ByVal Creado_Por As String) As Integer
+Public Function InsertarEcargoFuncion(ByRef Id_CargoFuncion As Integer, ByVal Cod_Persona As Integer, ByVal Cod_Sucursal As Integer, ByVal CargoFuncion As String, ByVal Fecha_Asignacion As Date, ByVal Fecha_Inactivo As Object) As Integer
+Public Function ModificarEcargoFuncion(ByVal idCargoFuncion As Integer, ByVal codPersona As Integer, ByVal codSucursal As Integer, ByVal cargoFuncion As String, ByVal fechaAsignacion As Object, ByVal fechaInactivo As Object, ByVal activo As Boolean) As Boolean
+Public Function InsertarPersonaNuevo(ByRef Cod_Persona As Integer, ByVal Nro_Persona As String, ByVal Nom_Persona As String, ByVal Dni_Persona As String, ByVal Ruc_Persona As String, ByVal Cod_TipoPersona As Integer, ByVal Sexo_Persona As String, ByVal FNac_Personal As Date, ByVal mail_Persona As String, ByVal Telefono_Persona As String, ByVal Activo As Boolean, ByVal Login_Persona As String, ByVal Pass_Persona As String, ByVal Nick_Persona As String, ByVal Fotografia As String, ByVal id_clave_Operacion As Integer, ByVal clave_op_intracomunitaria As Boolean, ByVal nombre_comercial As String, ByVal observaciones As String, ByVal Documento_Principal As String, ByVal Tipo_facturacion As String, ByVal Id_FormaPago As Integer) As Integer
+Public Function ModificarPersonaNuevo(ByVal codPersona As Integer, ByVal nroPersona As String, ByVal nomPersona As String, ByVal dniPersona As String, ByVal rucPersona As String, ByVal codTipoPersona As Integer, ByVal sexoPersona As String, ByVal fnacPersonal As Date, ByVal mailPersona As String, ByVal telefonoPersona As String, ByVal activo As Boolean, ByVal loginPersona As String, ByVal passPersona As String, ByVal nickPersona As String, ByVal fotografia As String, ByVal idClaveOperacion As Integer, ByVal claveOpIntracomunitaria As Boolean, ByVal nombreComercial As String, ByVal observaciones As String, ByVal documentoPrincipal As String, ByVal tipoFacturacion As String, ByVal idFormaPago As Integer) As Boolean
+Public Function InsertarDireccion(ByRef idDireccion As Integer, ByVal codPersona As Integer, ByVal direccion1 As String, ByVal direccion2 As String, ByVal idZona As Integer, ByVal codigoPostal As String, ByVal enlaceGPS As String, ByVal tipoDireccion As String) As Boolean
+Public Function ModificarDireccion(ByVal idDireccion As Integer, ByVal codPersona As Integer, ByVal direccion1 As String, ByVal direccion2 As String, ByVal idZona As Integer, ByVal codigoPostal As String, ByVal enlaceGPS As String, ByVal tipoDireccion As String) As Boolean
+Public Function BuscarPersonaPorNombre(ByVal Nom_Persona As String) As SqlClient.SqlDataReader
+Public Function Agentes_Sucursal_Insertar(ByRef idAgenteSucursal As Integer, ByVal codResponsable As Integer, ByVal idCargoFuncion As Integer, ByVal comision As Decimal, ByVal activo As Boolean, ByVal fechaAsignacion As Date) As Integer
+Public Function ObtenerProcesoActivo(ByVal Cod_Almacen As Integer) As String
+Public Function ObtenerProcesosSucursal(ByVal Cod_Almacen As Integer, ByVal Grupo As String) As List(Of String)
+Public Function BuscarClientexnomFiscal(ByVal Cod_TipoPersona As Integer, ByVal Nom_Persona As String) As SqlClient.SqlDataReader

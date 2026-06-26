@@ -1,0 +1,8 @@
+﻿Private Sub Conectar()
+Public Function BuscarDepartamento(ByVal Cod_Departamento As Integer) As SqlClient.SqlDataReader
+Public Function BuscarDepartamentoxNom(ByVal Desc_Departamento As String) As SqlClient.SqlDataReader
+Public Function filtrarDepartamentoxNom(ByVal Desc_Departamento As String) As SqlClient.SqlDataReader
+Public Function InsertarDepartamento(ByRef Cod_Departamento As Integer, ByVal Desc_Departamento As String) As Integer
+Public Function ModificarDepartamento(ByVal Cod_Departamento As Integer, ByVal Desc_Departamento As String) As Boolean
+Public Function Mostrar_Departamento(ByVal Desc_Departamento As String) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

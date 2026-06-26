@@ -1,0 +1,4 @@
+﻿Private Sub Conectar()
+Public Function backup(ByVal nombre As String) As SqlClient.SqlDataReader
+Public Function CrearBackup(ByVal Rut As String) As String
+Public Sub DesConnectar()

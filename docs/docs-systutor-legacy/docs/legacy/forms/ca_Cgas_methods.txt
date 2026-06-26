@@ -1,0 +1,96 @@
+﻿Private Sub Conectar()
+Public Function act_detalleEnvaseICL(ByVal cod_envase As Integer, ByVal detalle_IR As Integer) As Boolean
+Public Function act_detalleEnvaseRP(ByVal cod_envase As Integer, ByVal detalle_I As Integer, ByVal conti As Double) As Boolean
+Public Function act_detalleEnvasesc(ByVal cod_envase As Integer, ByVal detalle_SV As Integer, ByVal conts As Double) As Boolean
+Public Function actualizar_AlmacenTransfEnv(ByVal Almacen As Integer, ByVal cod_cpedido As Integer) As Boolean
+Public Function actualizar_edetalle_pedido(ByVal id_detalle As Integer, ByVal descripcion As String, ByVal motivo As String, ByVal total As Double) As Boolean
+Public Function actualizar_estado(ByVal id_detalle As Integer, ByVal estado As Integer) As Boolean
+Public Function actualizar_garantia(ByVal cod_garantia As Integer, ByVal fecha_garantia As Date, ByVal cliente As Integer, ByVal tipo_garantia As String, ByVal detalle As String, ByVal estado As String, ByVal fecha_devolucion As Date, ByVal Nro_Seriegar As Integer, ByVal Nro_Docgar As Integer) As Boolean
+Public Function actualizar_REPORTEDETENVASE(ByVal id_items As Integer, ByVal cliente As String, ByVal detalle_SV As Integer, ByVal contS As Double, ByVal ESTADO As Integer) As Boolean
+Public Function actualizar_REPORTEDETENVASE1(ByVal id_items As Integer, ByVal detalle_IR As Integer) As Boolean
+Public Function actualizar_REPORTEDETENVASE2(ByVal id_items As Integer, ByVal detalle_sp As Integer, ByVal proveedor1 As String, ByVal estado As Integer) As Boolean
+Public Function actualizar_retimbrado(ByVal id As Integer, ByVal cod_producto As Integer, ByVal Codigo_fabricacion As String, ByVal Anio_fabricacion As Integer, ByVal Nro_Bombona As String, ByVal Peso_origen As Decimal, ByVal Peso_actual As Decimal, ByVal Presion_servicio As Decimal, ByVal Presion_prueba As Decimal, ByVal Nro_aprobacion As String, ByVal Clase_peligro As String, ByVal Marcado1 As String, ByVal Marcado2 As String, ByVal Formato_Bulto As String, ByVal Transporte As Integer, ByVal Etiqueta As String, ByVal Tuneles As String, ByVal Nro_ONU As String, ByVal Regist_Alimentario As String) As Boolean
+Public Function ActualizarEquipoPorMovimiento(ByVal IdEquipoMovimiento As Integer, ByVal Cod_Movimiento As Integer, ByVal PlacaEquipo As String, ByVal FechaAsignacion As Date, ByVal FechaCambio As Date) As Boolean
+Public Function ActualizarEquipoTransporte(ByVal codEquipo As Integer, ByVal placaEquipo As String, ByVal tipoEquipo As String, ByVal marca As String, ByVal modelo As String, ByVal año As Integer, ByVal capacidad As Decimal, ByVal estado As String, ByVal codAlmacen As Integer) As Boolean
+Public Function ActualizarEstadoMovimiento(ByVal Cod_Movimiento As Integer, ByVal NuevoEstado As String, ByVal Responsable As String, ByVal Comentarios As String, ByVal Cod_Movimiento_Modificacion As Integer) As Boolean
+Public Function ActualizarReporteCargaPeligrosa(ByVal cod_movimiento As Integer, ByVal peso_total As Decimal, ByVal fecha_carga As Date, ByVal lugar_carga As String, ByVal fecha_descarga As Date, ByVal lugar_descarga As String) As Boolean
+Public Function ActualizarServicio(ByVal id_cilindro_servicio As Integer, ByVal cod_pedido As Integer, ByVal id_detalle As Integer, ByVal cod_movimiento As Integer, ByVal cod_producto As Integer, ByVal id_servicio As Integer, ByVal estado_servicio As String, ByVal fecha_inicio As DateTime, Optional ByVal fecha_fin As DateTime = Nothing, Optional ByVal observaciones As String = "") As Boolean
+Public Function Buscar_ClientesAnotificar(ByVal fechai As Date, ByVal fechaf As Date, ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function Buscar_garantia(ByVal cliente As Integer) As SqlClient.SqlDataReader
+Public Function Buscar_Prestamosvencidos(ByVal Cliente_Empresa As Integer, ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function Buscar_SalidaRecojo_Pro(ByVal serie As String, ByVal NRO As String, ByVal tipo_movimiento As String, ByVal forma_mov As String) As SqlClient.SqlDataReader
+Public Function BuscarEnvase_dias_Arriendo(ByVal Nro_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarPesoRealCilindro(ByVal codProducto As Integer) As SqlClient.SqlDataReader
+Public Function Buscarproductos_pendientes(ByVal cliente As Integer, ByVal tipo_movimiento As String, ByVal cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function BuscarSubCategoriaxNombre(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function BuscarSubLineaPorCod(ByVal cod_sublinea As Integer) As SqlClient.SqlDataReader
+Public Function BuscarTarifaCliente(
+    ByVal codCliente As Integer,
+    ByVal codProducto As Integer)  As SqlClient.SqlDataReader
+Public Function cambiar_envases(ByVal id_detalle As Integer, ByVal cod_producto As Integer, ByVal condicion As String, ByVal descripcion As String) As Boolean
+Public Function CBSubCategoriaxNombre(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function ConfirmarCargaChofer(ByVal Cod_Movimiento As Integer, ByVal Cod_Persona As Integer, ByVal FechaConfirmacion As Date) As Boolean
+Public Function consulta_detalle_envase(ByVal cod_envase As Integer) As SqlClient.SqlDataReader
+Public Function consultar_detalle_envase(ByVal cod_envase As Integer) As SqlClient.SqlDataReader
+Public Function consultar_detalle_envaseUltimoId(ByVal cod_envase As Integer) As SqlClient.SqlDataReader
+Public Function consultar_envase_venta(ByVal nro_producto As String) As SqlClient.SqlDataReader
+Public Function consultar_envase_ventaBlanco(ByVal cod_envase As Integer) As SqlClient.SqlDataReader
+Public Function consultar_envase_ventaReal(ByVal cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function ConsultarEquiposPorMovimiento(ByVal Cod_Movimiento As Integer) As DataTable
+Public Function ConsultarEquipoTransporte(ByVal codEquipo As Integer) As DataTable
+Public Function ContenidoBuscarxNomProd(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function eliminar_detalle(ByVal id_detalle As Integer) As Boolean
+Public Function eliminar_detalle_ENVASE(ByVal id_items As Integer) As Boolean
+Public Function eliminar_detalleEnvase(ByVal cod_envase As Integer, ByVal detalle_I As Integer) As Boolean
+Public Function eliminar_detalleEnvaseIR(ByVal cod_envase As Integer, ByVal detalle_IR As Integer) As Boolean
+Public Function eliminar_detalleEnvaseRP(ByVal cod_envase As Integer, ByVal detalle_I As Integer, ByVal conti As Double) As Boolean
+Public Function ELIMINAR_EPROV(ByVal cod_envase As Integer, ByVal detalle_SP As Integer, ByVal PROVEEDOR1 As String, ByVal ESTADO As Integer) As Boolean
+Public Function ELIMINAR_SCLI(ByVal cod_envase As Integer, ByVal detalle_sv As Integer, ByVal cliente As String, ByVal conts As Double) As Boolean
+Public Function EliminarChoferPorMovimiento(ByVal Cod_Movimiento As Integer, ByVal Cod_Persona As Integer) As Boolean
+Public Function EliminarEquipoPorMovimiento(ByVal IdEquipoMovimiento As Integer) As Boolean
+Public Function EliminarEquipoTransporte(ByVal codEquipo As Integer) As Boolean
+Public Function EliminarHistorialDeMovimiento(ByVal Cod_Movimiento As Integer) As Boolean
+Public Function EliminarHistorialEstadoTraslado(ByVal Id_HistorialTraslado As Integer) As Boolean
+Public Function EliminarServicio(ByVal id_cilindro_servicio As Integer) As Boolean
+Public Function InsertarCambios(ByRef cod_cambios As Integer, ByVal fecha_cambios As Date, ByVal cliente As Integer, ByVal Documento As String, ByVal producto As Integer, ByVal reempleadox As Integer, ByVal observacion As String) As Integer
+Public Function InsertarChoferPorMovimiento(ByVal Cod_Movimiento As Integer, ByVal Cod_Persona As Integer, ByVal FechaAsignacion As Date) As Integer
+Public Function InsertardetallePedido(ByRef id_detalle As Integer, ByVal cod_pedido As Integer, ByVal cod_producto As Integer, ByVal motivo As String, ByVal condicion As String, ByVal total As Double, ByVal estado As Integer, ByVal detalle_asoc As String, ByVal descripcion As String, ByVal ubicacion As String) As Integer
+Public Function InsertarECabeceraPedido(ByRef cod_cpedido As Integer, ByVal fecha_pedido As Date, ByVal persona As Integer, ByVal tipo_movimiento As String, ByVal serie As String, ByVal nro As Integer, ByVal forma_mov As String, ByVal motivo As String, ByVal documento_asoc As String, ByVal Almacen As Integer, ByVal Transportista As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal observa As String, ByVal ocompra As String, ByVal dnichofer As String, ByVal ubigeopartida As String, ByVal ubigeollegada As String, ByVal cbultos As String, ByVal Nom_usuario As String, ByVal ObservacionesDetalladas As String, ByVal EstadoEnvio As String, ByVal UsuarioResponsable As String, ByVal IDSeguimiento As String) As Integer
+Public Function InsertarEcilDuenio(ByRef id_cambio As Integer, ByVal id_persona As Integer, ByVal id_producto As Integer, ByVal edet_movimiento As Integer, ByVal estado_condicion As String) As Integer
+Public Function InsertarEquipoPorMovimiento(ByRef IdEquipoMovimiento As Integer, ByVal Cod_Movimiento As Integer, ByVal PlacaEquipo As String, ByVal FechaAsignacion As Date, ByVal FechaCambio As Date) As Integer
+Public Function InsertarEquipoTransporte(ByRef codEquipo As Integer, ByVal placaEquipo As String, ByVal tipoEquipo As String, ByVal marca As String, ByVal modelo As String, ByVal año As Integer, ByVal capacidad As Decimal, ByVal estado As String, ByVal codAlmacen As Integer) As Integer
+Public Function InsertarGarantia(ByRef cod_garantia As Integer, ByVal fecha_garantia As Date, ByVal cliente As Integer, ByVal tipo_garantia As String, ByVal detalle As String, ByVal estado As String, ByVal fecha_devolucion As Date, ByVal Nro_Seriegar As Integer, ByVal Nro_Docgar As Integer) As Integer
+Public Function InsertarHistorialEstadoTraslado(ByRef IdHistorialTraslado As Integer, ByVal Cod_Movimiento As Integer, ByVal EstadoNuevo As String, ByVal Responsable As String, ByVal Comentarios As String, ByVal Cod_Movimiento_Modificacion As Integer) As Integer
+Public Function Insertarrepdetenv(ByRef id_items As Integer, ByVal cod_envase As Integer, ByVal detalle_I As Integer, ByVal proveedor As String, ByVal estado As Integer, ByVal contI As Double) As Integer
+Public Function InsertarReporteCargaPeligrosa(ByRef cod_reporte As Integer, ByVal cod_movimiento As Integer, ByVal peso_total As Decimal, ByVal tipo_carga As String, ByVal ubicacion_carga As String, ByVal fecha_carga As Date, ByVal cantidad_carga As Decimal, ByVal responsable As String, ByVal observaciones As String, ByVal estado As String) As Integer
+Public Function InsertarRetimbrado(ByRef id As Integer, ByRef Cod_producto As Integer, ByVal Codigo_fabricacion As String, ByVal Anio_fabricacion As Integer, ByVal Nro_Bombona As String, ByVal Peso_origen As Decimal, ByVal Peso_actual As Decimal, ByVal Presion_servicio As Decimal, ByVal Presion_prueba As Decimal, ByVal Nro_aprobacion As String, ByVal Clase_peligro As String, ByVal Marcado1 As String, ByVal Marcado2 As String, ByVal Formato_Bulto As String, ByVal Transporte As Integer, ByVal Etiqueta As String, ByVal Tuneles As String, ByVal Nro_ONU As String, ByVal Regist_Alimentario As String) As Integer
+Public Function InsertarServicio(ByRef id_cilindro_servicio As Integer, ByVal cod_pedido As Integer, ByVal id_detalle As Integer, ByVal cod_movimiento As Integer, ByVal cod_producto As Integer, ByVal id_servicio As Integer, ByVal estado_servicio As String, ByVal fecha_inicio As DateTime, Optional ByVal fecha_fin As DateTime = Nothing, Optional ByVal observaciones As String = "") As Integer
+Public Function ListarHistorialEstados(ByVal Cod_Movimiento As Integer?, ByVal EstadoNuevo As String, ByVal Responsable As String) As DataTable
+Public Function ModificarChoferPorMovimiento(ByVal Cod_Movimiento As Integer, ByVal Cod_Persona As Integer, ByVal FechaAsignacion As Date, ByVal FechaCambio As Date) As Boolean
+Public Function ModificarDocAfect(ByVal cod_cpedido As Integer, ByVal documento_asoc As String) As Boolean
+Public Function ModificarEcilDuenio(ByVal id_cambio As Integer, ByVal id_persona As Integer?, ByVal id_producto As Integer?, ByVal edet_movimiento As Integer?, ByVal estado_condicion As String) As Boolean
+Public Function modificarfecha_ph(ByVal id_items As Integer, ByVal Fecha_PH_Nueva As Date, ByVal Modificado_por As String, ByVal Fecha_PH_Antigua As Date) As Boolean
+Public Function ModificarSubCategoria(ByVal codigo As Integer, ByVal descripcion As String) As Boolean
+Public Function MOSTRAR_CATEGORIA() As SqlClient.SqlDataReader
+Public Function mostrar_DETALLEnrodoc(ByVal serie As String, ByVal NRO As String, ByVal tipo_movimiento As String, ByVal forma_mov As String) As SqlClient.SqlDataReader
+Public Function mostrar_DETALLEnrodocEnvase(ByVal serie As String, ByVal NRO As String, ByVal tipo_movimiento As String, ByVal forma_mov As String) As SqlClient.SqlDataReader
+Public Function mostrar_DETALLEnrodocEnvaseSalida(ByVal serie As String, ByVal NRO As String, ByVal tipo_movimiento As String, ByVal forma_mov As String) As SqlClient.SqlDataReader
+Public Function mostrar_DETALLEnrodocEnvaseTrasl(ByVal serie As String, ByVal NRO As String, ByVal motivo As String) As SqlClient.SqlDataReader
+Public Function mostrar_edetalle(ByVal cod_pedido As Integer, ByVal cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_envases_disponibles(ByVal Almacen) As SqlClient.SqlDataReader
+Public Function mostrar_envases_disponiblesTraslado(ByVal Almacen) As SqlClient.SqlDataReader
+Public Function mostrar_envases_VACIO(ByVal Almacen) As SqlClient.SqlDataReader
+Public Function mostrar_equiposTransp_por_tipo(ByVal tipoequipo As String) As SqlClient.SqlDataReader
+Public Function mostrar_ingresos_pendientes(ByVal cliente As Integer, ByVal tipo_movimiento As String, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_mostrarPHvencidos(ByVal Almacen) As SqlClient.SqlDataReader
+Public Function mostrar_nrodoc(ByVal serie As String, ByVal tipo_movimiento As String, ByVal forma_mov As String) As SqlClient.SqlDataReader
+Public Function mostrar_ObtenerEnvasesPorServicio(ByVal cod_servicio As Integer, ByVal cod_movimiento As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_ServiciosXproducto(ByVal Cod_producto As Integer) As SqlClient.SqlDataReader
+Public Function MostrarHistorialEstadosTraslados(ByVal Cod_Movimiento As Integer) As DataTable
+Public Function mostrarProductoxns(ByVal Nro_Producto As String) As SqlClient.SqlDataReader
+Public Function MostrarReporteCargaPeligrosa(ByVal cod_movimiento As Integer) As SqlClient.SqlDataReader
+Public Function MostrarServiciosPendientes(ByVal cod_pedido As Integer) As SqlClient.SqlDataReader
+Public Function MostrarUltimoEcilDuenioPorProducto(ByVal id_producto As Integer) As DataTable
+Public Function ObtenerTodosServicios() As SqlClient.SqlDataReader
+Public Function Retimbrado_BuscarUltimoPorCodProducto(ByVal Cod_producto As Integer) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

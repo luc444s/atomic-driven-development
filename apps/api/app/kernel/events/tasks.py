@@ -9,6 +9,7 @@ from apps.api.app.kernel.events.bus import EventBus, dispatch_pending_outbox_eve
 from apps.api.app.kernel.plugins.persistent import build_persistent_plugin_runtime
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
 from apps.api.app.kernel.tasks.broker import configure_dramatiq_broker
+from apps.api.app.kernel.tasks.dispatcher import build_task_dispatcher
 from packages.sdk import PluginContext
 
 settings = get_settings()
@@ -20,6 +21,7 @@ def build_runtime_event_bus() -> EventBus:
     registry = PluginManifestRegistry(settings.plugins_dir)
     registry.discover()
     event_bus = EventBus()
+    task_dispatcher = build_task_dispatcher(settings)
 
     def context_builder(manifest):
         return PluginContext(
@@ -29,7 +31,7 @@ def build_runtime_event_bus() -> EventBus:
             event_bus=event_bus,
             audit_service=record_audit,
             db_session_provider=session_factory,
-            task_dispatcher=None,
+            task_dispatcher=task_dispatcher,
         )
 
     try:

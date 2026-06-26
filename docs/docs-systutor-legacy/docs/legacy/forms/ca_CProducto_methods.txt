@@ -1,0 +1,109 @@
+﻿Public Sub DesConnectar()
+Private Sub Conectar()
+Public Function Insertarkardex(ByRef codigo As Integer, ByVal fecha As Date, ByVal factped As String, ByVal proveedor As String, ByVal costo As Double, ByVal ingreso As Double, ByVal salida As Double, ByVal saldo As Double, ByVal lote As String, ByVal fechav As String, ByVal insumo As String, ByVal desde As Date, ByVal hasta As Date, ByVal AREA As String) As Integer
+Public Function InsertarTC(v As Integer, ByVal fecha As Date, ByVal TCventasunat As Double, ByVal TCVentaComercial As Double) As Integer
+Public Function Eliminarkardex() As Boolean
+Public Function BuscarKardex(ByVal codigo As Integer, ByVal FECHAI As Date, ByVal FECHAF As Date, ByVal almacen As Integer) As SqlDataReader
+Public Function TcBuscarPorDia(ByVal dia As Integer, ByVal mes As Integer, ByVal año As Integer) As SqlDataReader
+Public Function BuscarKARDEX01(ByVal codigo As Integer, ByVal FECHAI As Date, ByVal FECHAF As Date, ByVal Cod_RazonS As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProductoxkardex(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function MOSTRAR_ULTIMO_CODIGO_GEN(ByVal Cod_Linea As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRAR_CODE_BARR_GEN(ByVal Nro_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxPRECIOS(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function Eliminar_DistCaotica(ByVal CodProducto As Integer, ByVal codalmacen As Integer, ByVal codUbicacion As Integer) As Boolean
+Public Function Insertar_discaotica(ByVal CodProducto As Integer, ByVal codalmacen As Integer, ByVal codUbicacion As Integer) As Boolean
+Public Function InsertarProducto(ByRef Cod_Producto As Integer, ByVal Desc_Producto As String, ByVal Nro_Producto As String, ByVal StockMin_Producto As Double, ByVal Cod_Linea As Integer, ByVal Cod_TipoInsumo As Integer, ByVal Cod_Unidad As Integer, ByVal Precio_Producto As Double, ByVal Costo_Producto As Double, ByVal peso_producto As Double, ByVal Marca_Producto As Integer, ByVal Estado_Producto As Integer, ByVal PrecioCja_Producto As Double, ByVal Cod_UnidadCja As Integer, ByVal cigv As Integer, ByVal Costo_rep As Double, ByVal UtilidadxUnid As Double, ByVal Utilidadxcja As Double, ByVal Precio_Interm As Double, ByVal Cant As Double, ByVal Utilidadxint As Double, ByVal UtilidadEstxunid As Double, ByVal UtilidadEstxInterm As Double, ByVal UtilidadEstxCja As Double, ByVal MargAct As Integer, ByVal MargEst As Integer, ByVal DifPrecios As Integer, ByVal costo_Ant As Double, ByVal Nro_cja As String, ByVal percepcion As Integer, ByVal porc_ce As Double, ByVal cod_subcategoria As Integer, ByVal tiempoi As String, ByVal servicio As Integer, ByVal barcode1 As String, ByVal barcode2 As String, ByVal estadoPromo As Integer, ByVal condicion As String) As Integer
+Public Function ModificarProducto(ByVal Cod_Producto As Integer, ByVal Desc_Producto As String, ByVal Nro_Producto As String, ByVal StockMin_Producto As Double, ByVal Cod_Linea As Integer, ByVal Cod_TipoInsumo As Integer, ByVal Cod_Unidad As Integer, ByVal Precio_Producto As Double, ByVal Costo_Producto As Double, ByVal peso_producto As Double, ByVal Marca_Producto As Integer, ByVal Estado_Producto As Integer, ByVal PrecioCja_Producto As Double, ByVal Cod_UnidadCja As Integer, ByVal cigv As Integer, ByVal Costo_rep As Double, ByVal UtilidadxUnid As Double, ByVal Utilidadxcja As Double, ByVal Precio_Interm As Double, ByVal Cant As Double, ByVal Utilidadxint As Double, ByVal UtilidadEstxunid As Double, ByVal UtilidadEstxInterm As Double, ByVal UtilidadEstxCja As Double, ByVal MargAct As Integer, ByVal MargEst As Integer, ByVal DifPrecios As Integer, ByVal costo_Ant As Double, ByVal Nro_cja As String, ByVal percepcion As Integer, ByVal porc_ce As Double, ByVal cod_subcategoria As Integer, ByVal tiempoi As String, ByVal servicio As Integer, ByVal barcode1 As String, ByVal barcode2 As String, ByVal estadoPromo As Integer, ByVal condicion As String) As Boolean
+Public Function Modificarcodigo(ByVal Cod_Producto As Integer, ByVal Nro_Producto As String) As Boolean
+Public Function Modificargrupo(ByVal Cod_Producto As Integer, ByVal cod_grupo As Integer) As Boolean
+Public Function Modificarletra(ByVal Cod_Producto As Integer, ByVal letra As String) As Boolean
+Public Function DiferenciaPrecios(ByVal Cod_Producto As Integer, ByVal DifPrecios As Integer) As Boolean
+Public Function Actcont(ByVal Cod_Producto As Integer, ByVal cont As Double) As Boolean
+Public Function Codrapido(ByVal Cod_Producto As Integer, ByVal crapido As Integer) As Boolean
+Public Function ActualizarUtilidad(ByVal Cod_Producto As Integer, ByVal UtilidadxUnid As Double, ByVal Utilidadxcja As Double, ByVal Utilidadxint As Double) As Boolean
+Public Function ActualizarCosto(ByVal Cod_Producto As Integer, ByVal Costo_Producto As Double, ByVal Costo_Rep As Double, ByVal costo_Ant As Double) As Boolean
+Public Function ActualizarPrecio(ByVal Cod_Producto As Integer, ByVal Precio_Producto As Double, ByVal precio_interm As Double, ByVal PrecioCja_Producto As Double) As Boolean
+Public Function Cambiarnombre(ByVal Cod_Producto As Integer, ByVal Desc_Producto As String) As Boolean
+Public Function ActualizarPreciosEst(ByVal Cod_Producto As Integer, ByVal peso_producto As Double, ByVal Precio_Producto As Double, ByVal Costo_Producto As Double) As Boolean
+Public Function Mostrarcodrapido(ByVal crapido As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProducto(ByVal Cod_Producto As Integer) As SqlDataReader
+Public Function BuscarProductoxgrupo(ByVal Cod_grupo As Integer) As SqlClient.SqlDataReader
+Public Function ProductoBuscargrupoxcod(ByVal Cod_Producto As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProductoUnid(ByVal Cod_Producto As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_catalogo_nuevo(ByVal Cod_Almacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProducto_DistCao(ByVal CodProducto As Integer) As SqlClient.SqlDataReader
+Public Function BuscarAnalisisxarea(ByVal area As Integer) As SqlClient.SqlDataReader
+Public Function Buscarformula(ByVal desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarrECETA(ByVal desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProdxTipo(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProdxTipoxsubl(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String, ByVal cod_sublinea As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProdxTipoxsubl1(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String, ByVal cod_sublinea As Integer, ByVal Desc_Producto1 As String) As SqlClient.SqlDataReader
+Public Function BuscarProdxTipoxsubl12(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String, ByVal Desc_Producto1 As String) As SqlClient.SqlDataReader
+Public Function Mostrarstocksxfecha(ByVal CodProducto As Integer, ByVal CodALMACEN As Integer, ByVal FechaI As Date, ByVal FechaF As Date) As SqlClient.SqlDataReader
+Public Function Mostrarstocksxentrega(ByVal CodProducto As Integer, ByVal CodALMACEN As Integer, ByVal FechaI As Date, ByVal FechaF As Date) As SqlClient.SqlDataReader
+Public Function BuscarProdxlinea(ByVal cod_linea As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProdxsublinea(ByVal cod_Sublinea As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProdxMARCA(ByVal cod_MARCA As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProdxPROV(ByVal Cod_Persona As Integer) As SqlClient.SqlDataReader
+Public Function Generarcodigobarra(ByVal cod_linea As Integer, ByVal cod_Sublinea As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProductoxDesc(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function Mostrar_cant_prod(ByVal cod_Producto As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProductoxDesc1(ByVal nro_cja As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxCODEBARR(ByVal Nro_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxDescCB(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function Mostrarformulas(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxns(ByVal nroserie As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxns02(ByVal nroserie As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoxns01(ByVal nroserie As String) As SqlClient.SqlDataReader
+Public Function ListarAnalisis() As SqlClient.SqlDataReader
+Public Function Mostrarcompras(ByVal codproducto As Integer, ByVal ALMACEN As Integer, ByVal Fecha1 As Date, ByVal Fecha2 As Date) As SqlClient.SqlDataReader
+Public Function Mostrarstockg(ByVal USUARIO As Integer, ByVal Cod_Almacen As Integer) As SqlClient.SqlDataReader
+Public Function Mostrarubicacion(ByVal codproducto As Integer, ByVal codALMACEN As Integer) As SqlClient.SqlDataReader
+Public Function MostrarkARDEX(ByVal codproducto As Integer, ByVal ALMACEN As Integer, ByVal Fecha1 As Date, ByVal Fecha2 As Date) As SqlClient.SqlDataReader
+Public Function MostrarkARDEXcerveza(ByVal ALMACEN As Integer, ByVal Fecha1 As Date, ByVal Fecha2 As Date) As SqlClient.SqlDataReader
+Public Function Mostrarprueba() As SqlClient.SqlDataReader
+Public Function Actualizarprueba(ByVal ids As Integer, ByVal CodProducto As Integer, ByVal CodGrupo As Integer) As Boolean
+Public Function EliminarProducto(ByVal cod_producto As Integer) As Boolean
+Public Function Mostrar_ubicaciones(ByVal codproducto As Integer) As SqlClient.SqlDataReader
+Public Function Registrar_nuevoscostos(ByVal Cod_Producto As Integer, ByVal cgi As Double, ByVal costo_total As Double, ByVal costo_Producto As Double, ByVal costo_rep As Double) As Boolean
+Public Function MostrarProdxsublinea(ByVal dsublinea As String) As SqlClient.SqlDataReader
+Public Function Inventario(ByVal Nro_Producto As String, ByVal Desc_Producto As String, ByVal SOTCK As Integer, ByVal pRECIO_INV As String, ByVal COSTO_INV As String) As Boolean
+Public Function MOSTRAR_CATALOGO_INV() As SqlClient.SqlDataReader
+Public Function PRODUCTO_INVENTARIO_COSTOS_(ByVal CodProducto As Integer, ByVal Costo_Producto As Double, ByVal Costo_Rep As Double, ByVal costo_total As Double, ByVal Precio_Producto As Double, ByVal Precio_Interm As Double, ByVal PrecioCja_Producto As Double, ByVal UtilidadxUnid As Double, ByVal Utilidadxint As Double, ByVal Utilidadxcja As Double, ByVal UtilidadEstxunid As Double, ByVal UtilidadEstxInterm As Double, ByVal UtilidadEstxCja As Double) As Boolean
+Public Function PRODUCTO_INVENTARIO_Cerrar(ByVal CodProducto As Integer, ByVal stock As Double, ByVal pRECIO_INV As Double, ByVal COSTO_INV As Double) As Boolean
+Public Function BuscarKARDEX_mens(ByVal año As Integer, ByVal fant As Date, ByVal fdesp As Date, ByVal almacen As Integer, ByVal mes As String) As SqlClient.SqlDataReader
+Public Function MostrarProdfavoritos(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function Mostrarequivalenciascod(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function Actualizar_precios(ByVal Cod_Producto As Integer, ByVal Precio_Producto As Double, ByVal Costo_Producto As Double, ByVal PrecioCja_Producto As Double, ByVal UtilidadxUnid As Double, ByVal Utilidadxcja As Double, ByVal Precio_Interm As Double, ByVal Cant As Double, ByVal Utilidadxint As Double, ByVal costo_total As Double) As Boolean
+Public Function Cambiarestadoproducto(ByVal cod_producto As Integer, ByVal Estado_Producto As Integer) As Boolean
+Public Function Comprobante_cambiarestado(ByVal CodComprobante As Integer, ByVal Estado As Integer) As Boolean
+Public Function Mostrar_cantidades(ByVal name As Integer, ByVal sucu As Integer) As SqlClient.SqlDataReader
+Public Function Modificar_listaprecios(ByVal Cod_Producto As Integer, ByVal lista2 As Double, ByVal lista3 As Double, ByVal lista4 As Double) As Boolean
+Public Function BuscarProdxTipoMultiple(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String, ByVal Desc_Producto1 As String, ByVal Desc_Producto2 As String) As SqlClient.SqlDataReader
+Public Function MilBuscarPromProducto(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function Mostrarequivalenciascod1(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function Actualiza_estadoPromo(ByVal cod_producto As Integer) As Boolean
+Public Function Mostrar_faltantesprov(ByVal prov As Integer, ByVal sucu As Integer) As SqlClient.SqlDataReader
+Public Function Actualizar_estado_envnuevo(ByVal cod_producto As Integer, ByVal servicio As Integer) As Boolean
+Public Function ACT_CONDENVASE(ByVal Cod_Producto As Integer, ByVal condicion As String) As Boolean
+Public Function BuscarProductoxnsCilindro(ByVal nroserie As String) As SqlClient.SqlDataReader
+Public Function UPDATE_InventarioEstado(ByVal CodComprobante As Integer, ByVal Estado As Integer) As Boolean
+Public Function SHOW_ValidarStockProductoMovimiento(ByVal codMovimiento As Integer) As DataTable
+Public Function SHOW_ValidarStockProductoMovimientoCOMPRA(ByVal codMovimiento As Integer) As DataTable
+Public Function UPDATE_StockProducto(ByVal Tipoingreso As Integer, ByVal CodProducto As Integer, ByVal cantidad As Integer, ByVal codMovimiento As Integer) As Boolean
+Public Function CompraSerie_Insertar(ByRef codigo As Integer, ByVal serie As String, ByVal documento As String, ByVal estado As Integer, ByVal Proveedor As Integer, ByVal ContenidoReal As Double) As Boolean
+Public Function ModificarComprasSerie_Insertar(ByRef codigo As Integer, ByVal serie As String, ByVal documento As String, ByVal estado As Integer) As Integer
+Public Function MostrarCompra_series(ByVal codigo As Integer, ByVal documento As String, ByVal estado As Integer, ByVal proveedor As Integer) As SqlClient.SqlDataReader
+Public Function ComprasSeries_Eliminar(ByRef codigo As Integer, ByVal serie As String, ByVal documento As String, ByRef Proveedor As Integer) As Boolean
+Public Function Actualizar_ProductoCodGrupo(ByVal cod_producto As Integer) As Boolean
+Public Function Actualiza_ProductoCodGrupo(ByVal Cod_Producto As Integer, ByVal Cod_grupo As Integer) As Boolean
+Public Function BuscarGrupoxcod(ByVal Cod_Grupo As Integer) As SqlClient.SqlDataReader
+Public Function PHInsertar(ByVal Id_Cilindro As Integer, ByVal Fecha_PH As Date, ByVal Estado As String, ByVal Modificado_por As String) As Boolean
+Public Function Buscar_ultimo_ph(ByVal Id_Cilindro As Integer) As SqlClient.SqlDataReader
+Public Function Insertar_CorreoProgramado(ByVal ID_Detalle As Integer, ByVal ID As Integer, ByVal Motivo As String, ByVal Condicion As String, ByVal Cod_Producto As Integer, ByVal Nro_Producto As String, ByVal Desc_Producto As String, ByVal Detalle_Asoc As String, ByVal Tipo_Movimiento As String, ByVal Forma_Mov As String, ByVal Ubicacion As String, ByVal Total As Decimal, ByVal Fecha_Pedido As Date, ByVal Dias As Integer, ByVal Fecha_Hoy As Date, ByVal Documento_Asoc As String, ByVal Nro As Integer, ByVal Serie As String, ByVal Desc_Unidad As String, ByVal Tiempoi As String, ByVal Dueño As String, ByVal Nvo_IDDetalle As Integer, ByVal Desc_Almacen As String, ByVal Desc_SubLinea As String, ByVal Direccion_Almacen As String, ByVal Persona As String, ByVal Almacen As String, ByVal Motivo2 As String, ByVal Cod_Persona As Integer, ByVal Nom_Persona As String, ByVal Mail_Persona As String, ByVal FechaInsercion As Date, ByVal UsuarioResponsable As String, ByVal EstadoProcesamiento As String, ByVal FechaUltimaActualizacion As Date, ByVal UsuarioUltimaActualizacion As String) As Boolean
+Public Function Buscar_ProductoXMatricula(ByVal barcode2 As String) As SqlClient.SqlDataReader
+Public Function Producto_BuscarDeModprodxNom(ByVal Desc_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProductosPorCondicionServicio() As SqlClient.SqlDataReader
+Public Function BuscarProductoxCODEBARRproberton(ByVal Nro_Producto As String) As SqlClient.SqlDataReader
+Public Function BuscarProdxTipoMultipleGAS(ByVal Cod_TipoInsumo As Integer, ByVal Desc_Producto As String, ByVal Desc_Producto1 As String, ByVal Desc_Producto2 As String) As SqlClient.SqlDataReader
+Public Function BuscarProductoPorCondicionYCadena(ByVal Condicion As String, ByVal Cadena As String) As SqlClient.SqlDataReader

@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function Actualizar_Costo(ByVal porcentaje As Double) As Boolean
+Public Function InsertartipoCambio(ByRef codigo As Integer, ByVal fecha As Date, ByVal valor As Double, ByVal porcent As Double, ByVal estado As String) As Integer
+Public Function Listartipocambio() As SqlClient.SqlDataReader
+Public Sub DesConnectar()

@@ -1,0 +1,128 @@
+﻿Public Sub DesConnectar()
+Private Sub Conectar()
+Public Function InsertarComprobante(ByRef CodComprobante As Integer, ByVal Nroserie As String, ByVal nrodoc As Integer, ByVal cliente As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal DescMes As String, ByVal a�o As Integer, ByVal Total As Double, ByVal TipoComprobante As Integer, ByVal Estado As Integer, ByVal usuario As String, ByVal detalle As String, ByVal pago As Integer, ByVal condicion As Integer, ByVal referencia As Integer, ByVal nommonto As String, ByVal CODALMACEN As Integer, ByVal caja As String, ByVal maquina As String, ByVal REDONDEO As Double, ByVal acuenta As Integer, ByVal autorden As String, ByVal igv As Double, ByVal moneda As String) As Integer
+Public Function Insertarletra_impresion(ByRef codigo As Integer, ByVal cliente As Integer, ByVal documento As String, ByVal nro As Integer, ByVal monto As Double, ByVal fecha As Date, ByVal fecha_pago As Date, ByVal monto_recibo As Double, ByVal letra As Integer, ByVal comprobante As Integer, ByVal serie As String) As Integer
+Public Function ComprobanteNC(ByVal CodComprobante As Integer, ByVal COD_NC As Integer, ByVal nro_Pago_nc As Integer) As Boolean
+Public Function docNotaCred(ByVal Cod_Movimiento As Integer) As SqlClient.SqlDataReader
+Public Function InsertarPago(ByRef NroPago As Integer, ByVal Efectivo As Double, ByVal medio_Pago As String, ByVal cliente As Integer, ByVal Fecha As Date) As Integer
+Public Function ModificarComprobanteC(ByVal CodComprobante As Integer, ByVal cliente As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal DescMes As String, ByVal a�o As Integer, ByVal Nroserie As String, ByVal nrodoc As Integer, ByVal Total As Double, ByVal TipoComprobante As Integer, ByVal Estado As Integer, ByVal usuario As String, ByVal detalle As String, ByVal pago As Integer, ByVal condicion As Integer, ByVal referencia As Integer, ByVal nommonto As String, ByVal CODALMACEN As Integer, ByVal caja As String, ByVal maquina As String, ByVal REDONDEO As Double, ByVal acuenta As Integer, ByVal autorden As String, ByVal igv As Double, ByVal moneda As String) As Boolean
+Public Function ANULARVENTAS(ByVal ESTADO As Integer) As Boolean
+Public Function ANULARVENTAS_DETALLE(ByVal CodMovimiento As Integer) As Boolean
+Public Function AnularComprobante(ByVal CodComprobante As Integer, ByVal cliente As Integer, ByVal Total As Double, ByVal Estado As Integer, ByVal pago As Integer, ByVal anuladorpor As String) As Boolean
+'Public Function AnularComprobanteUsuario(ByVal CodComprobante As Integer, ByVal anuladorpor As Integer) As Boolean
+Public Function darvuelto(ByVal CodComprobante As Integer, ByVal efectivo As Double, ByVal vuelto As Double) As Boolean
+Public Function BuscarTipoDocxnom(ByVal Desc_TipoDoc As String) As SqlClient.SqlDataReader
+Public Function buscardocxid(ByVal CodComprobante As Integer) As SqlClient.SqlDataReader
+Public Function buscarpedido(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function correlativo(ByVal CODALMACEN As Integer) As SqlClient.SqlDataReader
+Public Function tcorrelativo(ByVal CodComprobante As Integer, ByVal COD_INT As Integer) As Boolean
+Public Function buscarpedidoxComprobante(ByVal CodComprobante As Integer) As SqlClient.SqlDataReader
+Public Function ModificarComprobanteDesc(ByVal CodComprobante As Integer, ByVal Venta_Bruta As Double, ByVal Descuento As Double, ByVal Igv_Total As Double, ByVal imp_bolsas As Double) As Boolean
+Public Function ModificarCargo(ByVal CodCargo As Integer, ByVal DescCargo As String) As Boolean
+Public Function BuscarCargo(ByVal CodCargo As Integer) As SqlClient.SqlDataReader
+Public Function mostrarcomprobante(ByVal Desc_TipoDoc As String) As SqlClient.SqlDataReader
+Public Function detallepago(ByVal pago As Integer, ByVal Movimiento As Integer) As Boolean
+Public Function crearcomprobantepedido(ByVal Codcomprobante As Integer, ByVal codpedido As Integer) As Boolean
+Public Function ListarCargo() As SqlClient.SqlDataReader
+Public Function ListarFlujo(ByVal desc_TipoMov As String) As SqlClient.SqlDataReader
+Public Function Buscarnrodoc(ByVal nroserie As String, ByVal TipoComprobante As Integer, ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarnrodocxEmpresa(ByVal nroserie As String, ByVal TipoComprobante As Integer) As SqlClient.SqlDataReader
+Public Function comprarepetida(ByVal cliente As Integer, ByVal nroserie As String, ByVal NroDoc As Integer, ByVal TipoComprobante As Integer) As SqlClient.SqlDataReader
+Public Function buscardocumento(ByVal nroserie As String, ByVal NroDoc As Integer, ByVal TipoComprobante As Integer) As SqlClient.SqlDataReader
+Public Function InsertarCancelacion(ByRef Nro_voucher As Integer, ByVal documento As Integer, ByVal Fecha As Date, ByVal IdMes As Integer, ByVal DMes As String, ByVal A�o As Integer, ByVal Concepto As String, ByVal MedioPago As String, ByVal Tarjeta As String, ByVal Operacion As String, ByVal monto As Double, ByVal Estado As Integer, ByVal tipomovimiento As Integer, ByVal almacen As Integer, ByVal usuario As Integer, ByVal CAJA As String, ByVal equipo As String, ByVal moneda As String, ByVal tc As Double, ByVal tcsunat As Double) As Integer
+Public Function anularcancelacion(ByVal Nro_Voucher As Integer, ByVal estado As Integer, ByVal MONTO As Integer) As Boolean
+Public Function PagarComprobante(ByVal CodComprobante As Integer, ByVal pago As Integer) As Boolean
+Public Function Comprobantesaldo(ByVal CodComprobante As Integer, ByVal saldo As Double) As Boolean
+Public Function nccomprobante(ByVal CodComprobante As Integer, ByVal nota_c As String) As Boolean
+Public Function Insertarcuadrecaja(ByRef Codcaja As Integer, ByVal sucursal As String, ByVal usuario As String, ByVal fecha As Date, ByVal ma As Double, ByVal bv As Double, ByVal ec As Double, ByVal e As Double, ByVal g As Double, ByVal pxc As Double, ByVal te As Double, ByVal c1 As Integer, ByVal e1 As Double, ByVal c2 As Integer, ByVal e2 As Double, ByVal c3 As Integer, ByVal e3 As Double, ByVal c4 As Integer, ByVal e4 As Double, ByVal c5 As Integer, ByVal e5 As Double, ByVal c6 As Integer, ByVal e6 As Double, ByVal c7 As Integer, ByVal e7 As Double, ByVal c8 As Integer, ByVal e8 As Double, ByVal c9 As Integer, ByVal e9 As Double, ByVal c10 As Integer, ByVal e10 As Double, ByVal c11 As Integer, ByVal e11 As Double, ByVal total As Double, ByVal diferencia As Double, ByVal cerrado As Integer, ByVal CAJA As String) As Integer
+Public Function Modificarcuadrecaja(ByVal Codcaja As Integer, ByVal usuario As String, ByVal ma As Double, ByVal bv As Double, ByVal ec As Double, ByVal e As Double, ByVal g As Double, ByVal pxc As Double, ByVal te As Double, ByVal c1 As Integer, ByVal e1 As Double, ByVal c2 As Integer, ByVal e2 As Double, ByVal c3 As Integer, ByVal e3 As Double, ByVal c4 As Integer, ByVal e4 As Double, ByVal c5 As Integer, ByVal e5 As Double, ByVal c6 As Integer, ByVal e6 As Double, ByVal c7 As Integer, ByVal e7 As Double, ByVal c8 As Integer, ByVal e8 As Double, ByVal c9 As Integer, ByVal e9 As Double, ByVal c10 As Integer, ByVal e10 As Double, ByVal c11 As Integer, ByVal e11 As Double, ByVal total As Double, ByVal diferencia As Double, ByVal cerrado As Integer) As Boolean
+Public Function CANCELACIONEScuadrecaja(ByVal Cod_Caja As Integer, ByVal Nro_Voucher As Integer) As Boolean
+'Public Function mostrarcaja(ByVal almacen As Integer, ByVal usuario As Integer) As SqlClient.SqlDataReader
+Public Function mostrartotalesdoc(ByVal almacen As Integer, ByVal usuario As Integer) As SqlClient.SqlDataReader
+Public Function mostrarmonedas(ByVal usuario As String, ByVal sucursal As Integer) As SqlClient.SqlDataReader
+Public Function BuscarCUADRECAJA(ByVal CodCAJA As Integer) As SqlClient.SqlDataReader
+Public Function mostrarvoucher(ByVal Nro_Voucher As Integer, ByVal fechai As Date, ByVal fechaf As Date) As SqlClient.SqlDataReader
+Public Function mostrarvoucherOCcliente(ByVal Persona As Integer) As SqlClient.SqlDataReader
+Public Function mostrardeudacli(ByVal cliente As Integer) As SqlClient.SqlDataReader
+Public Function mostrardeudacliDolar(ByVal cliente As Integer) As SqlClient.SqlDataReader
+Public Function anularcancelacionxdoc(ByVal documento As Integer, ByVal estado As Integer, ByVal monto As Double) As Boolean
+Public Function Buscarnumdevxcomprobante(ByVal codcomprobante As Integer) As SqlClient.SqlDataReader
+Public Function mostrarcancelacionesxdoc(ByVal documento As Integer) As SqlClient.SqlDataReader
+Public Function mostrarcaja(ByVal caja As String, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrarcajanvo(ByVal caja As String, ByVal almacen As Integer, ByVal usuario As Integer, ByVal equipo As String) As SqlClient.SqlDataReader
+Public Function mostrarcajatotal(ByVal CAJA As String, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrarDXC() As SqlClient.SqlDataReader
+Public Function mostrar_datos_caja(ByVal sucursal As Integer, ByVal caja As String, ByVal Fecha1 As Date, ByVal Fecha2 As Date) As SqlClient.SqlDataReader
+Public Function Comprobanteletra(ByVal CodComprobante As Integer, ByVal letra As Integer, ByVal comprobantevta As Integer) As Boolean
+Public Function cancelaciones_medio(ByVal almacen As Integer, ByVal usuario As Integer, ByVal caja As String, ByVal medio As String, ByVal medio1 As String) As SqlClient.SqlDataReader
+Public Function cancelaciones_apertura(ByVal almacen As Integer, ByVal usuario As Integer, ByVal caja As String, ByVal medio As String, ByVal medio1 As String) As SqlClient.SqlDataReader
+Public Function caja_administrativa(ByRef Nro_Voucher As Integer, ByVal Fecha As Date, ByVal Documento As Integer, ByVal IdMes As Integer, ByVal dmes As String, ByVal a�o As Integer, ByVal Concepto As String, ByVal MedioPago As String, ByVal Tarjeta As String, ByVal Operacion As String, ByVal Monto As Double, ByVal Estado As Integer, ByVal TipoMovimiento As Integer, ByVal Almacen As Integer, ByVal usuario As Integer, ByVal moneda As String, ByVal TC As Double, ByVal TCsunat As Double) As Integer
+Public Function generar_facturacion(ByRef codigo As Integer, ByVal Fecha As Date, ByVal serie As String, ByVal tipo_doc As String, ByVal nrodoc As Integer, ByVal total As Double, ByVal cliente As String, ByVal ruc As String, ByVal dni As String, ByVal cant As Integer, ByVal descripcion As String, ByVal direccion As String, ByVal precio As Double, ByVal Almacen As Integer, ByVal usuario As Integer, ByVal movimiento As Integer) As Integer
+Public Function MOSTRAR_DOC_FACT(ByVal TIPO_DOC As String, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_caja_estab(ByVal almacen As Integer, ByVal flujo As Integer, ByVal flujo1 As Integer, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function mostrar_ventas(ByVal almacen As Integer, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function EFECTIVO(ByVal almacen As Integer, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function CREDITO(ByVal almacen As Integer, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function CANCELACIONES(ByVal almacen As Integer, ByVal fecha As Date) As SqlClient.SqlDataReader
+Public Function REP_VENTAS(ByVal almacen As Integer, ByVal fechaI As Date, ByVal fechaF As Date) As SqlClient.SqlDataReader
+Public Function REP_VENTASCLIPLACA(ByVal almacen As Integer, ByVal fechaI As Date, ByVal fechaF As Date, ByVal Nro_producto As String) As SqlClient.SqlDataReader
+Public Function ver_amortizaciones(ByVal comprobante As Integer) As SqlClient.SqlDataReader
+Public Function ActualizarComprobante_detalle(ByVal CodComprobante As Integer, ByVal detalle As String) As Boolean
+Public Function CORRELATIVO_BAJA() As SqlClient.SqlDataReader
+Public Function baja_documento(ByVal CodComprobante As Integer, ByVal mensaje As String, ByVal correlativo_baja As Integer) As Boolean
+Public Function mostrarcajaXCAJAXUSUARIO(ByVal caja As String, ByVal almacen As String, ByVal usuario As Integer, ByVal MedioPago As String) As SqlClient.SqlDataReader
+Public Function mostrarcajaXCAJAXUSUARIOmoneda(ByVal caja As String, ByVal almacen As String, ByVal usuario As Integer, ByVal MedioPago As String, ByVal moneda As String) As SqlClient.SqlDataReader
+Public Function Insertarpuntoscli(ByRef cod_int As Integer, ByVal cod_comprobante As Integer, ByVal equivalencia As Integer, ByVal movimiento As String, ByVal puntos As Double, ByVal monto_convertido As Double, ByVal estado As String) As Integer
+Public Function Modificarpuntoscli(ByVal cod_int As Integer, ByVal cod_comprobante As Integer, ByVal equivalencia As Integer, ByVal movimiento As String, ByVal puntos As Double, ByVal monto_convertido As Double, ByVal estado As String) As Boolean
+Public Function mostrarpuntosacum(ByVal cliente As Integer) As SqlClient.SqlDataReader
+Public Function ELIMINARPUNTOSCLI(ByVal cod_comprobante As Integer) As Boolean
+Public Function cbmostrardoc() As SqlClient.SqlDataReader
+Public Function mostrar_gestor(ByVal codcomprobante As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_prepedido(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function [mostrar_detalle_prepedidoAlmacen](ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_oc(ByVal oc As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_prepedidoAlmacenGUIA(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_productosxGUIA(ByVal codMov As Integer, ByVal tipoConsulta As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_prepedidoAlmacenOC(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_prepedidoVEROC(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function eliminar_prepedido(ByVal CodMovimiento As Integer) As Boolean
+Public Function VALIDAR_GARANTIA(ByVal GARANTIA As Integer) As SqlClient.SqlDataReader
+Public Function ACTUALIZAR_GARANTIA(ByVal CODCOMPROBANTE As Integer, ByVal GARANTIA As Integer) As Boolean
+Public Function MOSTRAR_DESTINO() As SqlClient.SqlDataReader
+Public Function ACTUALIZA_DESTINO(ByVal Nro_Voucher As Integer, ByVal COD_DESTINO As Integer) As Boolean
+Public Function ACTUALIZA_TARIFARIOPERSONA(ByVal CODCLIENTE As Integer, ByVal CODPRODUCTO As Integer, ByVal precio As Integer) As Boolean
+Public Function CREAR_TARIFARIOPERSONA(ByVal CODCLIENTE As Integer, ByVal CODPRODUCTO As Integer, ByVal precio As Double, ByVal PrecioBase As Double, ByVal PorcentajeDescuento As Double, ByVal PrecioFinal As Double, ByVal FechaCotizacion As DateTime, ByVal CodDetalleMov As Integer) As Boolean
+Public Function CONSULTA_TARIFARIO(ByVal CODCLIENTE As Integer, ByVal CODPRODUCTO As Integer) As SqlClient.SqlDataReader
+Public Function BUSCARNROCUENTA(ByVal NROCUENTA As String) As SqlClient.SqlDataReader
+Public Function BUSCARNROCUENTAcategoria(ByVal categoria As String, ByVal moneda As String) As SqlClient.SqlDataReader
+Public Function mostrar_dudaxcobrar() As SqlClient.SqlDataReader
+Public Function BuscarnroGUIA(ByVal codalmacen As Integer, ByVal NroSerie As String) As SqlClient.SqlDataReader
+Public Function CARGAR_sunatmensajes(ByVal CodComprobante As Integer, ByVal sunat As Integer, ByVal estado_sunat As Integer, ByVal mensaje As String) As Boolean
+Public Function mostrarlventas(ByVal fechai As Date, ByVal fechaf As Date, ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrarlventasenv(ByVal fechai As Date, ByVal fechaf As Date, ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function dETComprobante_masivo(ByVal codCOMPROBANTE As Integer) As SqlClient.SqlDataReader
+Public Function REP_VENTAS(ByVal almacen As Integer, ByVal fechaI As Date, ByVal fechaF As Date, ByVal persona As Integer) As SqlClient.SqlDataReader
+Public Function InsertarComprobanteTransf(ByRef CodComprobante As Integer, ByVal Nroserie As String, ByVal nrodoc As Integer, ByVal cliente As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal DescMes As String, ByVal a�o As Integer, ByVal Total As Double, ByVal TipoComprobante As Integer, ByVal Estado As Integer, ByVal usuario As String, ByVal detalle As String, ByVal pago As Integer, ByVal condicion As Integer, ByVal referencia As Integer, ByVal nommonto As String, ByVal CODALMACEN As Integer, ByVal caja As String, ByVal maquina As String, ByVal REDONDEO As Double, ByVal acuenta As Integer, ByVal autorden As String, ByVal cod_int As Integer, ByVal igv As Double) As Integer
+Public Function ACTUALIZAR_ESTADORECEP(ByVal CODCOMPROBANTE As Integer, ByVal estado As Integer) As Boolean
+Public Function InsertarComprobanteRefactorizado(ByVal Nroserie As String, ByVal nrodoc As Integer, ByVal cliente As Integer, ByVal Fecha As Date, ByVal Total As Double, ByVal TipoComprobante As Integer, ByVal usuario As String, ByVal detalle As String, ByVal referencia As Integer, ByVal nommonto As String, ByVal CODALMACEN As Integer, ByVal maquina As String, ByVal acuenta As Integer, ByVal moneda As String, ByVal idGarantia As Integer) As Integer
+Public Function InsertarComprobanteRefactorizadoCOMPRA(ByVal Nroserie As String, ByVal nrodoc As Integer, ByVal cliente As Integer, ByVal Fecha As Date, ByVal Total As Double, ByVal TipoComprobante As Integer, ByVal usuario As String, ByVal detalle As String, ByVal referencia As Integer, ByVal nommonto As String, ByVal CODALMACEN As Integer, ByVal maquina As String, ByVal acuenta As Integer, ByVal moneda As String, ByVal idGarantia As Integer) As Integer
+Public Function MostrarPagoPendienteRealizados(ByVal codMovimiento As Integer) As DataTable
+Public Function mostrarGuiaxTipo(ByVal idTexto As Integer, ByVal idTipoConsulta As Integer) As DataTable
+Public Function MostrarCotizacionesOrdenDeCompra(ByVal idPersona As Integer, ByVal idTipoConsulta As Integer) As DataTable
+Public Function MostrarPagos(ByVal codMovimiento As Integer, ByVal codGuia As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_AnticiposCompras(ByVal codMovimiento As Integer, ByVal codGuia As Integer) As SqlClient.SqlDataReader
+Public Function Mostrar_FactuXocCompras(ByVal entrega As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_PedidoDetallePendiente(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_PedidoDetallePendienteCOMPRA(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function MostrarProductosPorFacturarTodo(ByVal cadena As String) As SqlClient.SqlDataReader
+Public Function MostrarProductosPorFacturarTodoCOMPRA(ByVal cadena As String) As SqlClient.SqlDataReader
+Public Function ShowPagosFacturarTodo(ByVal cadena As String) As SqlClient.SqlDataReader
+Public Function mostrar_nrodocIngresoP(ByVal Nroserie As String, ByVal tipocomprobante As Integer) As SqlClient.SqlDataReader
+Public Function Buscar_MovimientoxCodFactura(ByVal CodFactura As Integer) As SqlClient.SqlDataReader
+Public Function ACTUALIZAR_ReferenciaCodFactura(ByVal CODCOMPROBANTE As Integer, ByVal referencia As Integer) As Boolean
+Public Function ActualizarCancelacion_Concepto(ByVal CodComprobante As Integer, ByVal detalle As String) As Boolean
+Public Function BUSCAR_UltimoTCcompra(ByVal CODPRODUCTO As Integer) As SqlClient.SqlDataReader
+Public Function TCcompra_Insertar(ByVal CODPRODUCTO As Integer, ByVal TipoCambio As Double) As Boolean
+Public Function Comprobante_ActualizarDatosCR(
+Public Function ObtenerNumeroDocumento(ByVal CodTipoDoc As Integer,
+Public Function ObtenerConfiguracionDocumento(ByVal codTipoDoc As Integer, ByVal pais As String) As DataTable

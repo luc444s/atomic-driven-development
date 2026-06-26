@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass
 
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 
 from apps.api.app.core.errors import AppError
+from apps.api.app.kernel.audit.service import record_audit
+from apps.api.app.kernel.events.service import emit_event
+from apps.api.app.kernel.permissions.service import ensure_permission
+from apps.api.app.kernel.plugins.manifest import PluginManifest
 from apps.api.app.kernel.plugins.migrations import (
     PluginMigrationError,
     downgrade_plugin_migrations,
@@ -18,7 +23,10 @@ from apps.api.app.kernel.plugins.runtime import (
     DiscoveredPlugin,
     PluginManifestRegistry,
     PluginRuntime,
+    get_plugin_lifecycle_hook,
+    load_plugin_backend,
 )
+from packages.contracts.events import EventContract
 from packages.sdk import PluginContext
 
 PLUGIN_STATES = {
@@ -35,6 +43,16 @@ PLUGIN_STATES = {
 class PluginStateError(AppError):
     def __init__(self, message: str, *, status_code: int = 400) -> None:
         super().__init__(message, status_code=status_code, code="plugin_state_error")
+
+
+@dataclass(slots=True)
+class PluginOperationContext:
+    actor_user_id: str | None = None
+    actor_type: str = "system"
+    tenant_id: str | None = None
+    branch_id: str | None = None
+    correlation_id: str | None = None
+    request_id: str | None = None
 
 
 def build_persistent_plugin_runtime(
@@ -101,22 +119,52 @@ def install_plugin(
     *,
     registry: PluginManifestRegistry,
     plugin_id: str,
+    context_builder: Callable[[PluginManifest], PluginContext] | None = None,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
     sync_plugin_registry_state(db, registry=registry)
     discovered = _require_valid_discovered_plugin(registry, plugin_id)
     record = _require_plugin_record(db, plugin_id)
     _ensure_dependency_exists(registry, discovered)
+    previous_state = record.state
+    should_run_install_hook = previous_state in {
+        "discovered",
+        "validated",
+        "failed",
+        "uninstalled",
+    } or record.installed_at is None
+    if previous_state == "enabled":
+        raise PluginStateError("disable plugin before installing again", status_code=409)
 
     try:
+        binding = load_plugin_backend(
+            discovered,
+            context_builder=_effective_context_builder(context_builder),
+        )
         migration_version = upgrade_plugin_migrations(db, record=record, discovered=discovered)
+        _sync_plugin_permissions(db, plugin_id=plugin_id, permissions=binding.manifest.permissions)
+        if should_run_install_hook:
+            _run_lifecycle_hook(binding, "on_install")
     except Exception as exc:
-        _set_plugin_state(record, "failed", error=str(exc))
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=previous_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
         db.add(record)
         db.flush()
         raise
 
     record.migration_version = migration_version
-    _set_plugin_state(record, "installed")
+    _transition_plugin_state(
+        db,
+        record,
+        "installed",
+        previous_state=previous_state,
+        operation_context=operation_context,
+    )
     db.add(record)
     db.flush()
     return record
@@ -127,12 +175,47 @@ def enable_plugin(
     *,
     registry: PluginManifestRegistry,
     plugin_id: str,
+    context_builder: Callable[[PluginManifest], PluginContext] | None = None,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
-    record = install_plugin(db, registry=registry, plugin_id=plugin_id)
+    record = install_plugin(
+        db,
+        registry=registry,
+        plugin_id=plugin_id,
+        context_builder=context_builder,
+        operation_context=operation_context,
+    )
     discovered = _require_valid_discovered_plugin(registry, plugin_id)
     _ensure_dependency_enabled(db, discovered)
+    previous_state = record.state
 
-    _set_plugin_state(record, "enabled")
+    try:
+        binding = load_plugin_backend(
+            discovered,
+            context_builder=_effective_context_builder(context_builder),
+        )
+        _sync_plugin_permissions(db, plugin_id=plugin_id, permissions=binding.manifest.permissions)
+        if previous_state != "enabled":
+            _run_lifecycle_hook(binding, "on_enable")
+    except Exception as exc:
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=previous_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
+        db.add(record)
+        db.flush()
+        raise
+
+    _transition_plugin_state(
+        db,
+        record,
+        "enabled",
+        previous_state=previous_state,
+        operation_context=operation_context,
+    )
     db.add(record)
     db.flush()
     return record
@@ -143,11 +226,88 @@ def disable_plugin(
     *,
     registry: PluginManifestRegistry,
     plugin_id: str,
+    context_builder: Callable[[PluginManifest], PluginContext] | None = None,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
     sync_plugin_registry_state(db, registry=registry)
     _ensure_no_enabled_dependents(db, registry=registry, plugin_id=plugin_id)
     record = _require_plugin_record(db, plugin_id)
-    _set_plugin_state(record, "disabled")
+    previous_state = record.state
+
+    try:
+        discovered = _require_valid_discovered_plugin(registry, plugin_id)
+        binding = load_plugin_backend(
+            discovered,
+            context_builder=_effective_context_builder(context_builder),
+        )
+        if previous_state == "enabled":
+            _run_lifecycle_hook(binding, "on_disable")
+    except Exception as exc:
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=previous_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
+        db.add(record)
+        db.flush()
+        raise
+
+    _transition_plugin_state(
+        db,
+        record,
+        "disabled",
+        previous_state=previous_state,
+        operation_context=operation_context,
+    )
+    db.add(record)
+    db.flush()
+    return record
+
+
+def uninstall_plugin(
+    db: Session,
+    *,
+    registry: PluginManifestRegistry,
+    plugin_id: str,
+    context_builder: Callable[[PluginManifest], PluginContext] | None = None,
+    operation_context: PluginOperationContext | None = None,
+) -> PluginRegistry:
+    sync_plugin_registry_state(db, registry=registry)
+    _ensure_no_enabled_dependents(db, registry=registry, plugin_id=plugin_id)
+    record = _require_plugin_record(db, plugin_id)
+    if record.state == "enabled":
+        raise PluginStateError("disable plugin before uninstalling", status_code=409)
+    previous_state = record.state
+
+    try:
+        discovered = _require_valid_discovered_plugin(registry, plugin_id)
+        binding = load_plugin_backend(
+            discovered,
+            context_builder=_effective_context_builder(context_builder),
+        )
+        if previous_state != "uninstalled":
+            _run_lifecycle_hook(binding, "on_uninstall")
+    except Exception as exc:
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=previous_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
+        db.add(record)
+        db.flush()
+        raise
+
+    _transition_plugin_state(
+        db,
+        record,
+        "uninstalled",
+        previous_state=previous_state,
+        operation_context=operation_context,
+    )
     db.add(record)
     db.flush()
     return record
@@ -159,10 +319,12 @@ def upgrade_plugin(
     registry: PluginManifestRegistry,
     plugin_id: str,
     target_revision: str | None = None,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
     sync_plugin_registry_state(db, registry=registry)
     discovered = _require_valid_discovered_plugin(registry, plugin_id)
     record = _require_plugin_record(db, plugin_id)
+    previous_state = record.state
 
     try:
         record.migration_version = upgrade_plugin_migrations(
@@ -172,13 +334,25 @@ def upgrade_plugin(
             target_revision=target_revision,
         )
     except Exception as exc:
-        _set_plugin_state(record, "failed", error=str(exc))
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=previous_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
         db.add(record)
         db.flush()
         raise
 
     if record.state in {"validated", "discovered", "failed"}:
-        _set_plugin_state(record, "installed")
+        _transition_plugin_state(
+            db,
+            record,
+            "installed",
+            previous_state=previous_state,
+            operation_context=operation_context,
+        )
     else:
         record.last_error = None
     db.add(record)
@@ -192,6 +366,7 @@ def downgrade_plugin(
     registry: PluginManifestRegistry,
     plugin_id: str,
     target_revision: str | None = None,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
     sync_plugin_registry_state(db, registry=registry)
     discovered = _require_valid_discovered_plugin(registry, plugin_id)
@@ -206,14 +381,26 @@ def downgrade_plugin(
             target_revision=target_revision,
         )
     except Exception as exc:
-        _set_plugin_state(record, "failed", error=str(exc))
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=current_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
         db.add(record)
         db.flush()
         raise
 
     record.last_error = None
     if current_state not in {"enabled", "disabled"}:
-        _set_plugin_state(record, "installed")
+        _transition_plugin_state(
+            db,
+            record,
+            "installed",
+            previous_state=current_state,
+            operation_context=operation_context,
+        )
     db.add(record)
     db.flush()
     return record
@@ -224,6 +411,7 @@ def rollback_plugin(
     *,
     registry: PluginManifestRegistry,
     plugin_id: str,
+    operation_context: PluginOperationContext | None = None,
 ) -> PluginRegistry:
     sync_plugin_registry_state(db, registry=registry)
     discovered = _require_valid_discovered_plugin(registry, plugin_id)
@@ -237,14 +425,26 @@ def rollback_plugin(
             discovered=discovered,
         )
     except Exception as exc:
-        _set_plugin_state(record, "failed", error=str(exc))
+        _mark_plugin_failed(
+            db,
+            record,
+            previous_state=current_state,
+            error=str(exc),
+            operation_context=operation_context,
+        )
         db.add(record)
         db.flush()
         raise
 
     record.last_error = None
     if current_state not in {"enabled", "disabled"}:
-        _set_plugin_state(record, "installed")
+        _transition_plugin_state(
+            db,
+            record,
+            "installed",
+            previous_state=current_state,
+            operation_context=operation_context,
+        )
     db.add(record)
     db.flush()
     return record
@@ -273,6 +473,7 @@ def reconcile_loaded_plugins(db: Session, *, runtime: PluginRuntime) -> None:
         record = get_plugin_registry_record_by_plugin_id(db, plugin_id=result.plugin_id)
         if record is None or result.manifest is None:
             continue
+        previous_state = record.state
 
         record.version = result.manifest.version
         record.api_version = result.manifest.api_version
@@ -290,9 +491,14 @@ def reconcile_loaded_plugins(db: Session, *, runtime: PluginRuntime) -> None:
             )
             if latest_migration_version is not None:
                 record.migration_version = latest_migration_version
-            _set_plugin_state(record, "enabled")
+            _transition_plugin_state(db, record, "enabled", previous_state=previous_state)
         elif result.status == "failed":
-            _set_plugin_state(record, "failed", error=result.error_message)
+            _mark_plugin_failed(
+                db,
+                record,
+                previous_state=previous_state,
+                error=result.error_message,
+            )
         elif record.state == "discovered":
             _set_plugin_state(record, "validated")
 
@@ -329,7 +535,7 @@ def _apply_discovered_plugin(record: PluginRegistry, discovered: DiscoveredPlugi
         _set_plugin_state(record, "validated")
     elif record.state == "failed" and record.last_error == "plugin not found on filesystem":
         _set_plugin_state(record, "validated")
-    elif record.state != "enabled":
+    elif record.state not in {"enabled", "failed"}:
         record.last_error = None
 
 
@@ -395,9 +601,17 @@ def _upgrade_enabled_plugin_migrations(db: Session, *, registry: PluginManifestR
         if record.state != "enabled":
             continue
 
+        previous_state = record.state
+
         discovered = registry.get(record.plugin_id)
         if discovered is None:
-            _set_plugin_state(record, "uninstalled", error="plugin not found on filesystem")
+            _transition_plugin_state(
+                db,
+                record,
+                "uninstalled",
+                previous_state=previous_state,
+                error="plugin not found on filesystem",
+            )
             db.add(record)
             continue
 
@@ -412,10 +626,20 @@ def _upgrade_enabled_plugin_migrations(db: Session, *, registry: PluginManifestR
             record.last_error = None
             db.add(record)
         except PluginMigrationError as exc:
-            _set_plugin_state(record, "failed", error=exc.message)
+            _mark_plugin_failed(
+                db,
+                record,
+                previous_state=previous_state,
+                error=exc.message,
+            )
             db.add(record)
         except Exception as exc:
-            _set_plugin_state(record, "failed", error=str(exc))
+            _mark_plugin_failed(
+                db,
+                record,
+                previous_state=previous_state,
+                error=str(exc),
+            )
             db.add(record)
 
 
@@ -452,6 +676,156 @@ def _latest_migration_version_for_result(runtime: PluginRuntime, plugin_id: str)
     if discovered is None:
         return None
     return get_latest_plugin_migration_version(discovered)
+
+
+def _effective_context_builder(
+    context_builder: Callable[[PluginManifest], PluginContext] | None,
+) -> Callable[[PluginManifest], PluginContext]:
+    if context_builder is None:
+        return PluginContext
+    return context_builder
+
+
+def _sync_plugin_permissions(db: Session, *, plugin_id: str, permissions: list[str]) -> None:
+    namespace = f"{plugin_id}."
+    for permission_name in permissions:
+        if not permission_name.startswith(namespace):
+            raise PluginStateError(
+                f"plugin permission outside namespace: {permission_name}",
+                status_code=409,
+            )
+        ensure_permission(
+            db,
+            permission_name=permission_name,
+            description=f"Plugin permission {permission_name}",
+        )
+
+
+def _run_lifecycle_hook(binding, hook_name: str) -> None:
+    hook = get_plugin_lifecycle_hook(binding, hook_name)
+    if hook is None:
+        return
+    hook(binding.context)
+
+
+def _transition_plugin_state(
+    db: Session,
+    record: PluginRegistry,
+    state: str,
+    *,
+    previous_state: str,
+    operation_context: PluginOperationContext | None = None,
+    error: str | None = None,
+) -> None:
+    _set_plugin_state(record, state, error=error)
+    if state not in {"installed", "enabled", "disabled", "uninstalled", "failed"}:
+        return
+    if previous_state == state and error is None:
+        return
+    _emit_plugin_lifecycle_event(
+        db,
+        record,
+        previous_state=previous_state,
+        new_state=state,
+        operation_context=operation_context,
+        error=record.last_error if state == "failed" else error,
+    )
+
+
+def _mark_plugin_failed(
+    db: Session,
+    record: PluginRegistry,
+    *,
+    previous_state: str,
+    error: str | None,
+    operation_context: PluginOperationContext | None = None,
+) -> None:
+    previous_error = record.last_error
+    _set_plugin_state(record, "failed", error=error)
+    if previous_state == "failed" and previous_error == record.last_error:
+        return
+    _emit_plugin_lifecycle_event(
+        db,
+        record,
+        previous_state=previous_state,
+        new_state="failed",
+        operation_context=operation_context,
+        error=record.last_error,
+    )
+    _record_plugin_failure_audit(
+        db,
+        record,
+        previous_state=previous_state,
+        operation_context=operation_context,
+    )
+
+
+def _emit_plugin_lifecycle_event(
+    db: Session,
+    record: PluginRegistry,
+    *,
+    previous_state: str,
+    new_state: str,
+    operation_context: PluginOperationContext | None = None,
+    error: str | None = None,
+) -> None:
+    event_name = f"core.plugin.{new_state}"
+    payload: dict[str, object] = {
+        "plugin_id": record.plugin_id,
+        "version": record.version,
+        "previous_state": previous_state,
+        "state": new_state,
+    }
+    if error:
+        payload["error"] = error
+
+    emit_event(
+        db,
+        event=EventContract(
+            event_name=event_name,
+            module="core",
+            tenant_id=operation_context.tenant_id if operation_context else None,
+            branch_id=operation_context.branch_id if operation_context else None,
+            actor_user_id=operation_context.actor_user_id if operation_context else None,
+            actor_type=operation_context.actor_type if operation_context else "system",
+            entity_type="plugin",
+            entity_id=record.plugin_id,
+            correlation_id=operation_context.correlation_id if operation_context else None,
+            payload=payload,
+            metadata={"plugin_id": record.plugin_id},
+        ),
+    )
+
+
+def _record_plugin_failure_audit(
+    db: Session,
+    record: PluginRegistry,
+    *,
+    previous_state: str,
+    operation_context: PluginOperationContext | None,
+) -> None:
+    actor_type = operation_context.actor_type if operation_context else "system"
+    record_audit(
+        db,
+        tenant_id=operation_context.tenant_id if operation_context else None,
+        branch_id=operation_context.branch_id if operation_context else None,
+        actor_user_id=operation_context.actor_user_id if operation_context else None,
+        actor_type=actor_type,
+        module="core",
+        action="plugin.failed",
+        entity_type="plugin",
+        entity_id=record.plugin_id,
+        result="failure",
+        correlation_id=operation_context.correlation_id if operation_context else None,
+        request_id=operation_context.request_id if operation_context else None,
+        details={
+            "plugin_id": record.plugin_id,
+            "version": record.version,
+            "previous_state": previous_state,
+            "state": record.state,
+            "error": record.last_error,
+        },
+    )
 
 
 def _set_plugin_state(record: PluginRegistry, state: str, *, error: str | None = None) -> None:

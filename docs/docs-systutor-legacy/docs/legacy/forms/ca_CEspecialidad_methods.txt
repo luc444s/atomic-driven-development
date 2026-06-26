@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarEspecialidad(ByVal CodEspecialidad As Integer) As SqlClient.SqlDataReader
+Public Function BuscarEspecxDesc(ByVal NomEspecialidad As String) As SqlClient.SqlDataReader
+Public Function InsertarEspecialidad(ByRef codespecialidad As Integer, ByVal Nomespecialidad As String) As Integer
+Public Function ListarEspecialidad() As SqlClient.SqlDataReader
+Public Function ModificarEspecialidad(ByVal codespecialidad As Integer, ByVal Nomespecialidad As String) As Boolean
+Public Sub DesConnectar()

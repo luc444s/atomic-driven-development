@@ -1,0 +1,27 @@
+﻿Private Sub Conectar()
+Public Function ActualizarDireccionFiscal(
+    ByVal idDireccion As Integer,
+    ByVal linea1 As String,
+    ByVal linea2 As String,
+    ByVal codigoPostal As String,
+    ByVal idLocalidad As Integer,
+    ByVal ubigeo As String,
+    ByVal latitud As Double,
+    ByVal longitud As Double,
+    ByVal observaciones As String,
+    ByVal streetName As String,
+    ByVal streetNumber As String,
+    ByVal adminArea1 As String,
+    ByVal adminArea2 As String,
+    ByVal localidad As String
+) As Boolean
+Public Function ActualizarEnvioEstablecimiento(ByVal codigo As Integer, ByVal envio As Boolean) As Boolean
+Public Function contrato_anular(ByVal Cod_Contrato As Integer, ByVal Usuario_Registro As String)
+Public Function contrato_cambiar_archivo(ByVal Cod_Contrato As Integer, ByVal rutaArchivo As String, ByVal usuario As String) As Boolean
+Public Function contrato_historial_insertar(ByVal Cod_Contrato As Integer, ByVal Tipo_Evento As String, ByVal Detalle_Evento As String, ByVal Usuario_Evento As String)
+Public Function contrato_Insertar(ByRef Codigo_Contrato As Integer, ByVal Cod_Cliente As Integer, ByVal Cod_Sucursal As Integer, ByVal Tipo_Contrato As String, ByVal Fecha_Firma As Date, ByVal Fecha_Inicio As Date, ByVal Fecha_Vencimiento As Date, ByVal Ruta_Archivo_Contrato As String, ByVal Firmado_Digital As Boolean, ByVal Observaciones As String, ByVal Usuario_Registro As String)
+Public Function contrato_modificar(ByVal Cod_Contrato As Integer, ByVal Cod_Cliente As Integer, ByVal Cod_Sucursal As Integer, ByVal Tipo_Contrato As String, ByVal Fecha_Firma As Date, ByVal Fecha_Inicio As Date, ByVal Fecha_Vencimiento As Date, ByVal Ruta_Archivo_Contrato As String, ByVal Firmado_Digital As Boolean, ByVal Estado As String, ByVal Observaciones As String, ByVal Usuario_Registro As String)
+Public Function contratos_activos_por_cliente(ByVal Cod_Cliente As Integer) As SqlClient.SqlDataReader
+Public Function ObtenerActividadParaFactura(ByVal CodPersona As Integer) As String
+Public Function ObtenerPuntoEntregaCompleto(ByVal idVehiculo As Integer) As DataTable
+Public Sub DesConnectar()

@@ -1,0 +1,4 @@
+﻿Private Sub Conectar()
+Public Function InsertarDEdad(ByRef Idedad As Integer, ByVal descedad As String) As Integer
+Public Function ModificarDEdad(ByVal Idedad As Integer, ByVal descedad As String) As Boolean
+Public Sub DesConnectar()

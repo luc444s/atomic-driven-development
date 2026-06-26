@@ -1,0 +1,10 @@
+﻿Public Sub DesConnectar()
+Public Sub DesConectar()
+Private Sub Conectar()
+Public Function mostrar_denegada(ByVal login As String) As SqlClient.SqlDataReader
+Public Function mostrar_permitida(ByVal login As String) As SqlClient.SqlDataReader
+Public Function mostrarsubmenu01(ByVal cod_sbm As Integer, ByVal usuario As String) As SqlClient.SqlDataReader
+Public Function mostrarsubmenu(ByVal cod_menu As Integer) As SqlClient.SqlDataReader
+Public Function ListarMenuPrincipal() As SqlClient.SqlDataReader
+Public Function insertar_permiso(ByVal grupo As String, ByVal opcion As Integer) As Boolean
+Public Function eliminar_permiso(ByVal grupo As String) As Boolean

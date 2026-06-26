@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarLineaxNombrexRubro(ByVal cod_rubro As Integer) As SqlClient.SqlDataReader
+Public Function BuscarSubCategoriaxNombre(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function CBSubCategoriaxNombre(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function InsertarSubcategoria(ByRef codigo As Integer, ByVal descripcion As String) As Integer
+Public Function ModificarSubCategoria(ByVal codigo As Integer, ByVal descripcion As String) As Boolean
+Public Sub DesConnectar()

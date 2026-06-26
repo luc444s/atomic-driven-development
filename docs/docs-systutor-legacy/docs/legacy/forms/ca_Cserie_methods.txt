@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarseriexNombre(ByVal Desc_serie As String) As SqlClient.SqlDataReader
+Public Function BuscarseriexNombreCB(ByVal Desc_serie As String) As SqlClient.SqlDataReader
+Public Function Insertarserie(ByRef Cod_serie As Integer, ByVal Desc_serie As String) As Integer
+Public Function Modificarserie(ByVal Cod_serie As Integer, ByVal Desc_serie As String) As Boolean
+Public Sub DesConnectar()

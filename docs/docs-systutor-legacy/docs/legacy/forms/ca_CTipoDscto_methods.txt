@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarTipoDscto(ByVal CodDscto As Integer) As SqlClient.SqlDataReader
+Public Function BuscarTipoDsctoxDesc(ByVal Descripcion As String) As SqlClient.SqlDataReader
+Public Function InsertarTipoDscto(ByRef CodDscto As Integer, ByVal Descripcion As String, ByVal Descuento As Double) As Integer
+Public Function ListarTipoDscto() As SqlClient.SqlDataReader
+Public Function ModificarTipoDscto(ByVal CodDscto As Integer, ByVal Descripcion As String, ByVal Descuento As Double) As Boolean
+Public Sub DesConnectar()

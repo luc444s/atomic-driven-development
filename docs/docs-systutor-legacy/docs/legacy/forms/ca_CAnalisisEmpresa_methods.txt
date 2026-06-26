@@ -1,0 +1,8 @@
+﻿Private Sub Conectar()
+Public Function Buscarpreciocredito(ByVal CodAnalisis As Integer, ByVal Codigo As Integer) As SqlClient.SqlDataReader
+Public Function Eliminaranalisisempresa(ByVal Empresa As Integer, ByVal Analisis As Integer) As Boolean
+Public Function InsertarAnalisisEmpresa(ByVal Empresa As Integer, ByVal Analisis As Integer, ByVal unidadref As Double, ByVal Estado As String, ByVal CodigoAseg As String) As Boolean
+Public Function Listaranalisisunidad() As SqlClient.SqlDataReader
+Public Function ModificarAnalisisEmpresa(ByVal Empresa As Integer, ByVal Analisis As Integer, ByVal unidadref As Double, ByVal Estado As String, ByVal CodigoAseg As String) As Boolean
+Public Sub DesConectar()
+Public Sub DesConnectar()

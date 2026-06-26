@@ -38,7 +38,7 @@ El stack oficial base de SYSTUTOR OSS será:
 - Zustand para estado local
 - TanStack Query para server state
 - React Router para routing
-- Tailwind CSS
+- Tailwind CSS (utility-first)
 - shadcn/ui como base de componentes
 
 ### Infraestructura

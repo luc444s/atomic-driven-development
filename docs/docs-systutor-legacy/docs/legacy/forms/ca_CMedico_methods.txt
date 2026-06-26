@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarCMP(ByVal CMP As String) As SqlClient.SqlDataReader
+Public Function BuscarMedico(ByVal Codmedico As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMedicoxDesc(ByVal ApeNom As String) As SqlClient.SqlDataReader
+Public Function InsertarMedico(ByRef CodMedico As Integer, ByVal ApeNom As String, ByVal dirmedico As String, ByVal telmedico As String, ByVal fechnacmedico As DateTime, ByVal CMP As String, ByVal email As String, ByVal especialidad As Integer, ByVal EstadoMed As Integer, ByVal CelMedico As String) As Integer
+Public Function ModificarMedico(ByVal CodMedico As Integer, ByVal ApeNom As String, ByVal dirmedico As String, ByVal telmedico As String, ByVal fechnacmedico As DateTime, ByVal CMP As String, ByVal email As String, ByVal especialidad As Integer, ByVal EstadoMed As Integer, ByVal CelMedico As String) As Boolean
+Public Sub DesConnectar()

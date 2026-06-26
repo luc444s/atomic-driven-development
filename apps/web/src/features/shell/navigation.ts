@@ -1,4 +1,4 @@
-import type { PluginSidebarEntry } from "../plugins/runtime";
+import type { PluginNavigationItem } from "@systutor/sdk/frontend";
 
 export type ShellNavLinkItem = {
   kind: "link";
@@ -19,7 +19,7 @@ export type ShellNavSection = {
 
 type BuildShellSidebarSectionsInput = {
   permissions: string[];
-  pluginNavigation: PluginSidebarEntry[];
+  pluginNavigation: PluginNavigationItem[];
 };
 
 export function buildShellSidebarSections({
@@ -33,7 +33,10 @@ export function buildShellSidebarSections({
     },
   ];
 
-  if (permissions.includes("core.plugin.read")) {
+  if (
+    permissions.includes("core.plugin.runtime.read") ||
+    permissions.includes("core.plugin.manage")
+  ) {
     sections[0].items.push({ kind: "link", label: "Plugins", to: "/app/plugins" });
   }
 
@@ -41,10 +44,13 @@ export function buildShellSidebarSections({
   if (permissions.includes("core.users.read")) {
     settingsItems.push({ kind: "link", label: "Users", to: "/app/settings/users" });
   }
-  if (permissions.includes("core.roles.read")) {
+  if (permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")) {
     settingsItems.push({ kind: "link", label: "Roles", to: "/app/settings/roles" });
   }
-  if (permissions.includes("core.branches.manage")) {
+  if (
+    permissions.includes("core.branches.read") ||
+    permissions.includes("core.branches.manage")
+  ) {
     settingsItems.push({ kind: "link", label: "Branches", to: "/app/settings/branches" });
   }
   if (settingsItems.length > 0) {

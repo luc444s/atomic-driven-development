@@ -1,0 +1,6 @@
+﻿Public Sub DesConnectar()
+Private Sub Conectar()
+Public Function InsertarEmpresa(ByRef CodEmpresa As Integer, ByVal NomEmpresa As String) As Integer
+Public Function ModificarEmpresa(ByVal CodEmpresa As Integer, ByVal NomEmpresa As String) As Boolean
+Public Function BuscarEmpresa(ByVal CodEmpresa As Integer) As SqlClient.SqlDataReader
+Public Function BuscarEmpresaxDesc(ByVal NomEmpresa As String) As SqlClient.SqlDataReader

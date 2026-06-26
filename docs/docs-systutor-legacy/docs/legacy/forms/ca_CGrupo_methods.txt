@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarDescGrupo(ByVal DescGrupo As String) As SqlClient.SqlDataReader
+Public Function BuscarGrupo(ByVal IdGrupo As Integer) As SqlClient.SqlDataReader
+Public Function BuscarGrupoxNombre(ByVal Desc_Grupo As String) As SqlClient.SqlDataReader
+Public Function ListarGrupo() As SqlClient.SqlDataReader
+Public Sub DesConnectar()

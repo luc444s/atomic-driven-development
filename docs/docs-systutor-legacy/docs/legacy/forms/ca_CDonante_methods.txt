@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function EliminarDonante(ByVal CodPaciente As Integer, ByVal CodDonante As Integer) As Boolean
+Public Function InsertarDonante(ByVal CodPaciente As Integer, ByVal CodDonante As Integer, ByVal NroFicha As String) As Boolean
+Public Function ModificarDonante(ByVal CodPaciente As Integer, ByVal CodDonante As Integer, ByVal NroFicha As String) As Boolean
+Public Sub DesConnectar()

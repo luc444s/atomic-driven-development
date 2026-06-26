@@ -1,0 +1,3 @@
+﻿Private Sub Conectar()
+Public Function Insertarbarr(ByRef Cod As Integer, ByVal barcode As String) As Integer
+Public Sub DesConnectar()

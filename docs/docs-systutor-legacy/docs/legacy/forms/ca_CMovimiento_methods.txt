@@ -1,0 +1,136 @@
+﻿Public Sub Desconnectar()
+Private Sub Conectar()
+Private Sub Connectar_Sunar()
+Public Function Insertarorden(ByRef codmovimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal tarjeta As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal anio_fab As Integer, ByVal tipovehiculo As String, ByVal fecha_atencion As Date, ByVal fecha_entrega_estimada As Date, ByVal tecnico As Integer) As Integer
+Public Function actualizar_gastos_envio(ByVal cod_movimiento As Integer, ByVal flete As Double, ByVal seguro As Double, ByVal advalorem As Double, ByVal descarga As Double, ByVal gastosadm As Double, ByVal manipuleo As Double, ByVal comision As Double, ByVal gastosagenteadmin As Double, ByVal gastostotal As Double) As Boolean
+Public Function Insertarmovimiento(ByRef codmovimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal tarjeta As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal percepcion As Double, ByVal detraccion As Double, ByVal ocompra As String, ByVal dnichofer As String, ByVal ubigeopartida As String, ByVal ubigeollegada As String, ByVal cbultos As Integer, ByVal inventario As Integer, ByVal entrega As Integer, ByVal codguia As String, ByVal NroDocCorrelativo As Integer, ByVal IdMovimientoPadre As Integer) As Integer
+Public Function insertarMovimientoRefactorizado(ByVal codMov As Integer, ByVal Fecha As Date, ByVal Tipomovimiento As Integer, ByVal FechaVenc As Date, ByVal TipoRegistro As Integer) As String
+Public Function insertarMovimientoDetalladoRefactorizado(ByVal idMovimiento As Integer, ByVal Fecha As Date, ByVal FechaEmision As Date, ByVal Tipomovimiento As Integer, ByVal TipoTransaccion As Integer, ByVal FechaVenc As Date, ByVal TipoMoneda As String, ByVal idPersona As Integer, ByVal montoTotal As Double, ByVal idSucursal As Integer, ByVal lugarInicio As String, ByVal idUsuario As Integer, ByVal observaciones As String, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal idResponsable As Integer, ByVal OrdenCompra As String) As String
+Public Function insertarMovimientoDetalladoRefactorizadoCOMPRA(ByVal idMovimiento As Integer, ByVal Fecha As Date, ByVal FechaEmision As Date, ByVal Tipomovimiento As Integer, ByVal TipoTransaccion As Integer, ByVal FechaVenc As Date, ByVal TipoMoneda As String, ByVal idPersona As Integer, ByVal montoTotal As Double, ByVal idSucursal As Integer, ByVal lugarInicio As String, ByVal idUsuario As Integer, ByVal observaciones As String, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal idResponsable As Integer, ByVal OrdenCompra As String) As String
+Public Function control_mesas(ByRef id As Integer, ByVal Mesa_Princ As Integer, ByVal Mesa_sec As Integer, ByVal atencion As Integer, ByVal estado As Integer, ByVal juntas As Integer) As Integer
+Public Function control_mesa_modificar(ByRef id As Integer, ByVal Mesa_Princ As Integer, ByVal Mesa_sec As Integer, ByVal atencion As Integer, ByVal estado As Integer, ByVal juntas As Integer) As Boolean
+Public Function control_ESTADO_PLATO(ByRef idS As Integer, ByVal ESTADO_PLATO As Integer, ByVal FR As Date, ByVal obs As String) As Boolean
+Public Function control_ESTADO_PLATO01(ByRef idS As Integer, ByVal ESTADO_PLATO As Integer, ByVal FD As Date) As Boolean
+Public Function Modificarorden(ByVal cod_orden As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal anio_fab As Integer, ByVal tipovehiculo As String, ByVal fecha_atencion As Date, ByVal fecha_entrega_estimada As Date, ByVal tecnico As Integer) As Boolean
+Public Function Modificarmovimiento(ByVal cod_movimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal percepcion As Double, ByVal detraccion As Double, ByVal ocompra As String, ByVal dnichofer As String, ByVal ubigeopartida As String, ByVal ubigeollegada As String, ByVal cbultos As Integer) As Boolean
+Public Function DIASVISITA(ByVal cod_movimiento As Integer, ByVal VISITA As Date) As Boolean
+Public Function CERRAR_ORDENCOMPRA(ByVal ESTADOPAGO As Integer, ByVal COD_MOVIMIENTO As Integer) As Boolean
+Public Function actualizar_fechaemision(ByVal cod_movimiento As Integer, ByVal fecha_emision As Date) As Boolean
+Public Function Actualizarobservacion(ByVal cod_movimiento As Integer, ByVal observacion As String) As Boolean
+Public Function actualizaorden(ByVal cod_movimiento As Integer, ByVal tipovehiculo As String) As Boolean
+Public Function Cancelarmovimiento(ByVal cod_movimiento As Integer, ByVal saldo As Double, ByVal estadopago As Integer) As Boolean
+Public Function aCTUALIZARmovimiento(ByVal cod_movimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Tipomovimiento As Integer, ByVal Estado As Integer) As Boolean
+Public Function ModificarSALDO(ByVal codmovimiento As Integer, ByVal saldo As Double, ByVal estado As Integer) As Boolean
+Public Function Modificaratencion(ByVal cod_movimiento As Integer, ByVal atencion As Integer) As Boolean
+Public Function ModificarTipoatencion(ByVal cod_movimiento As Integer, ByVal Tipoatencion As Integer) As Boolean
+Public Function INSERTARTicketsAlimentacio(ByVal codmovimiento As Integer, ByVal estado As Integer, ByVal empresa As String, ByVal nrovales As String, ByVal valorref As String, ByVal estadoenvio As String) As Boolean
+Public Function Insertarcomprobante(ByRef codcomprobante As Integer, ByVal nroserie As String, ByVal nrodocumento As String, ByVal fecha As Date, ByVal idmes As Integer, ByVal descmes As String, ByVal año As Integer, ByVal igv As Double, ByVal atencion As Integer, ByVal monto As Double, ByVal tipocomprobante As Integer, ByVal estado As String, ByVal efectivo As Double, ByVal vuelto As Double) As Integer
+Public Function Insertarserie(ByRef idserie As Integer, ByVal descserie As String) As Integer
+Public Function Modificarserie(ByVal idserie As Integer, ByVal descserie As String) As Boolean
+Public Function mostrar_traslado(ByVal Cod_Movimiento As Integer) As SqlClient.SqlDataReader
+Public Function Buscardocumento(ByVal codtipo As Integer, ByVal nrodoc As String) As SqlClient.SqlDataReader
+Public Function Contro_mesa_mostrar(ByVal Mesa_Princ As Integer) As SqlClient.SqlDataReader
+Public Function Contro_mesa_actualizar_mesa(ByVal id As Integer, ByVal estado As Integer) As Boolean
+Public Function Buscarpedidomesa(ByVal Mesa_Princ As Integer) As SqlClient.SqlDataReader
+Public Function DISPMESA(ByVal MESA As Integer) As SqlClient.SqlDataReader
+Public Function mesas_juntas(ByVal Mesa_Princ As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_mesa_junta() As SqlClient.SqlDataReader
+Public Function mostrar_mesas() As SqlClient.SqlDataReader
+Public Function actualizar_reservacion(ByVal id As Integer, ByVal cliente As Integer, ByVal fecha_hora_reserva As Date) As Boolean
+Public Function actualizar_mesa(ByVal idmesa As Integer, ByVal estado As Integer) As Boolean
+Public Function Buscardocumentoxmov(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARSTOCKALMACENES(ByVal CodProducto As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_guiasxcanjeOC(ByVal persona As Integer, ByVal ocompra As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_guiasxcanjeOCCOMPRA(ByVal persona As Integer, ByVal ocompra As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_FacturadoTotal(ByVal codMov As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARinventario(ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARinventarioxSUBlinea(ByVal codalmacen As Integer, ByVal codlinea As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARinventarioxlinea(ByVal codalmacen As Integer, ByVal codlinea As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARSTOCKALMACENESXSUC(ByVal CodProducto As Integer, ByVal Cod_Almacen As Integer) As SqlClient.SqlDataReader
+Public Function PRODUCTO_MOSTRAR_soloSTOCKXSUC(ByVal CodProducto As Integer, ByVal Almacen As Integer) As SqlClient.SqlDataReader
+Public Function PRODUCTO_MOSTRAR_soloSTOCK(ByVal CodProducto As Integer) As SqlClient.SqlDataReader
+Public Function Buscarseriexnom(ByVal descserie As String) As SqlClient.SqlDataReader
+Public Function MONITOREO_PLATOS() As SqlClient.SqlDataReader
+Public Function Buscarseriexcod(ByVal idserie As Integer) As SqlClient.SqlDataReader
+Public Function Buscarnrodoc(ByVal Codtipo As Integer, ByVal nroserie As String) As SqlClient.SqlDataReader
+Public Function ListarPendientes() As SqlClient.SqlDataReader
+Public Function MostrarMovimiento(ByVal tipo As Integer, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function MostrarMovimientoxpedido(ByVal codPedido As Integer) As SqlClient.SqlDataReader
+Public Function BuscarordenxMesAño(ByVal Mes As String, ByVal Año As Integer, ByVal tipo As Integer, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxMesAño(ByVal Mes As String, ByVal Año As Integer, ByVal tipo As Integer, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxMesAñoRS(ByVal Mes As String, ByVal Año As Integer, ByVal Cod_RazonSocial As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxAPENOM(ByVal nom_persona As String, ByVal tipo As Integer, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxdia(ByVal fechai As Date, ByVal fechaf As Date, ByVal tipo As Integer, ByVal almacen As Integer, ByVal CAJA As String) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxMesAñoSalidas(ByVal Mes As String, ByVal Año As Integer, ByVal tipo As Integer, ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function BuscarMovimientoxdetalle(ByVal CodMovimiento As Integer) As SqlClient.SqlDataReader
+Public Function migrar() As SqlClient.SqlDataReader
+Public Function proforma_disp() As SqlClient.SqlDataReader
+Public Function Buscarordenxdetalle(ByVal Cod_orden As Integer) As SqlClient.SqlDataReader
+Public Function Buscarordenxdetalle1(ByVal Cod_orden As Integer) As SqlClient.SqlDataReader
+Public Function Buscarordenxdetalle3(ByVal Cod_orden As Integer) As SqlClient.SqlDataReader
+Public Function eliminarMovimiento(ByVal cod_movimiento As Integer) As Boolean
+'Public Function EliminarMovimiento(ByVal CodMovimiento As Integer, ByVal estado As Integer) As Boolean
+Public Function cerrar_orden(ByVal cod_orden As Integer, ByVal estado As Integer) As Boolean
+Public Function EliminarOrden(ByVal Cod_orden As Integer, ByVal estado As Integer) As Boolean
+Public Function RecuperaEnvio(ByVal CodMovimiento As Integer, ByVal estado As Integer, ByVal tipomovimiento As Integer) As Boolean
+Public Function BuscarMovimientoxdetalle1(ByVal CodMovimiento As Integer) As SqlClient.SqlDataReader
+Public Function ListarrECEPCION(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrarNroEnvio(ByVal NroDocumento As String, ByVal Almacen As Integer) As SqlClient.SqlDataReader
+Public Function buscarreq(ByVal condicion As String) As SqlClient.SqlDataReader
+Public Function InsertarrEQUERIMIENTO(ByRef Cod_requerimientos As Integer, ByVal Fecha As Date, ByVal pedido As String, ByVal Razon_Social As Integer, ByVal situacion As String, ByVal condicion As String) As Integer
+Public Function actualizarReq(ByVal Cod_requerimiento As Integer, ByVal condicion As String) As Boolean
+Public Function MATAR_GUIASOC(ByVal COD_MOVIMIENTO As Integer, ByVal NRODOCUMENTO As String) As Boolean
+Public Function crearreporte(ByRef barcode As String, ByVal descripcion As String, ByVal costo As Double, ByVal Precio As Double, ByVal Calif As Integer, ByVal alm As Integer, ByVal Total As Integer, ByVal lukas As Integer, ByVal alm_luk As Integer, ByVal total_luk As Integer, ByVal clinica As Integer, ByVal alm_clin As Integer, ByVal total_clin As Integer, ByVal dist As Integer, ByVal totalgen As Integer, ByVal linea As String, ByVal sublinea As String, ByVal marca As String, ByVal proveedor As String, ByVal razonsocial As String) As Integer
+Public Function Eliminarreporte() As Boolean
+Public Function cancelardeuda(ByVal cod_movimiento As Integer, ByVal EstadoCompra As Integer) As Boolean
+Public Function eliminarComprobante(ByVal Codcomprobante As Integer) As Boolean
+Public Function eliminarComprobantePedido(ByVal Codcomprobante As Integer) As Boolean
+Public Function eliminarordenCompra(ByVal cod_orden As Integer) As Boolean
+Public Function EliminarMovimiento(ByVal CodMovimiento As Integer, ByVal estado As Integer) As Boolean
+Public Function eliminardetalleMovimiento(ByVal codmovimiento As Integer) As Boolean
+Public Function eliminardetalleorden(ByVal ids As Integer) As Boolean
+Public Function mostrarConfPrecios() As SqlClient.SqlDataReader
+Public Function actualizavehiculo(ByVal cod_movimiento As Integer, ByVal anio_fab As Integer, ByVal nro_placa As String, ByVal tipovehiculo As String) As Boolean
+Public Function mostrar_atenciones(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_detalle_atenciones(ByVal almacen As Integer, ByVal codmovimiento As Integer) As SqlClient.SqlDataReader
+Public Function cerrar_despacho(ByVal cod_movimiento As Integer, ByVal atencion As Integer) As Boolean
+Public Function actualizar_despacho(ByVal ids As Integer, ByVal despachado As Integer) As Boolean
+Public Function actualizar_guia(ByRef codmovimiento As Integer, ByVal Nroguia As String, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String) As Boolean
+Public Function actualizar_nroguia(ByRef codmovimiento As Integer, ByVal Nroguia As String) As Boolean
+Public Function actualizar_facturado(ByRef codmovimiento As Integer, ByVal codfactura As Integer) As Boolean
+Public Function actualizar_TCmovi(ByVal CodMovimiento As Integer, ByVal tc As Double, ByVal tcsunat As Double) As Boolean
+Public Function mostrar_prepedido(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidodespacho(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoxOC(ByVal almacen As Integer, ByVal ocompra As Integer, ByVal persona As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoOC(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_Cotizaciones_OrdenCompra(ByVal idPersona As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoOCVenta(ByVal Persona As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoOCVentaCOMPRA(ByVal Persona As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoOCmesaño(ByVal almacen As Integer, ByVal mes As Integer, ByVal año As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_prepedidoOC_nro(ByVal almacen As Integer, ByVal oc As Integer) As SqlClient.SqlDataReader
+Public Function Buscarcomprobantexpedido(ByVal CodPedido As Integer) As SqlClient.SqlDataReader
+Public Function actualizar_ResponsableVenta(ByVal Cod_Movimiento As Integer, ByVal idresponsable As Integer) As Boolean
+Public Function CONSULTA_TipoRegistro(ByVal almacen As Integer, ByVal anio As Integer, ByVal mes As Integer, ByVal tipoRegistro As Integer, ByVal ordenCompra As String, ByVal idPersona As Integer) As SqlClient.SqlDataReader
+Public Function CONSULTA_TipoRegistro_Ventas(ByVal almacen As Integer, ByVal anio As Integer, ByVal mes As Integer, ByVal tipoRegistro As Integer, ByVal ordenCompra As String, ByVal idPersona As Integer) As SqlClient.SqlDataReader
+Public Function CONSULTA_TipoRegistroCOMPRA(ByVal almacen As Integer, ByVal anio As Integer, ByVal mes As Integer, ByVal tipoRegistro As Integer, ByVal ordenCompra As String, ByVal idPersona As Integer) As SqlClient.SqlDataReader
+Public Function InsertarMovimientoFacturarTodoCompra(ByRef codmovimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal tarjeta As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal percepcion As Double, ByVal detraccion As Double, ByVal ocompra As String, ByVal dnichofer As String, ByVal ubigeopartida As String, ByVal ubigeollegada As String, ByVal cbultos As Integer, ByVal inventario As Integer, ByVal entrega As Integer, ByVal cadena As String) As Integer
+Public Function InsertarMovimientoFacturarTodo(ByRef codmovimiento As Integer, ByVal Fecha As Date, ByVal idmes As Integer, ByVal mes As String, ByVal año As Integer, ByVal Nroguia As String, ByVal NroDocumento As String, ByVal Tipomovimiento As Integer, ByVal TipoDocumento As String, ByVal NrodocAfec As String, ByVal Tipotransaccion As String, ByVal Estado As Integer, ByVal FechaVenc As Date, ByVal descuento As Double, ByVal Igv As Double, ByVal moneda As String, ByVal persona As Integer, ByVal Total As Double, ByVal saldo As Double, ByVal almacen As Integer, ByVal Transportista As String, ByVal LugarDestino As String, ByVal DirDestino As String, ByVal EmpresaTrans As String, ByVal RucEmpresa As String, ByVal Placa As String, ByVal LugarInicio As String, ByVal DirInicio As String, ByVal atencion As String, ByVal Usuario As Integer, ByVal cod_medico As Integer, ByVal observacion As String, ByVal tarjeta As String, ByVal efectivo As Double, ByVal vuelto As Double, ByVal acuenta As Double, ByVal TipoAtencion As Integer, ByVal ValorIgv As Double, ByVal estadopago As Integer, ByVal autorizadox As String, ByVal serie As String, ByVal percepcion As Double, ByVal detraccion As Double, ByVal ocompra As String, ByVal dnichofer As String, ByVal ubigeopartida As String, ByVal ubigeollegada As String, ByVal cbultos As Integer, ByVal inventario As Integer, ByVal entrega As Integer, ByVal cadena As String) As Integer
+Public Function mostrarcomprasUltimoTC(ByVal codproducto As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_nroOrdenCprov(ByVal NroGuia As String) As SqlClient.SqlDataReader
+Public Function ATUALIZA_OCMOVIMIENTO(ByVal COD_MOVIMIENTO As Integer, ByVal NROguia As String, ByVal NRODOCUMENTO As String) As Boolean
+Public Function mostrarCompra_seriesxProd(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function actualizarMovimiento_NomMonto(ByVal Cod_Movimiento As Integer, ByVal tarjeta As String) As Boolean
+Public Function actualizarMovimiento_Vendedor(ByVal Cod_Movimiento As Integer, ByVal persona As Integer) As Boolean
+Public Function BuscarMovimientoxdetalleComprasG(ByVal CodMovimiento As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRARinventarioNegativo_Mov(ByVal codalmacen As Integer) As SqlClient.SqlDataReader
+Public Function Actu_MovdatosEnvases(ByVal cod_movimiento As Integer, ByVal Id_Cpedido As Integer) As Boolean
+Public Function MOSTRAR_ATENCIONES_descargas(ByVal almacen As Integer) As SqlClient.SqlDataReader
+Public Function MOSTRAR_detalle_ATENCIONESdescargas(ByVal almacen As Integer, ByVal codmovimiento As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_pedidosPRO(ByVal almacen As Integer, Optional ByVal CodCliente As Object = Nothing, Optional ByVal TipoAtencion As Object = Nothing) As SqlClient.SqlDataReader
+Public Function listar_pedidos_cliente_abiertos(ByVal ClienteId As Integer) As SqlClient.SqlDataReader
+Public Function Movimiento_AsignarPadre(ByVal CodMovimientoHijo As Integer, ByVal CodMovimientoPadre As Integer) As Boolean
+Public Function Pedido_CerrarPorFacturacion(ByVal CodPedido As Integer, ByVal CodMovimientoFactura As Integer, ByVal CodComprobante As Integer) As Boolean
+Public Function ObtenerCorrelativo(ByVal TipoAtencion As Integer, ByVal CodAlmacen As Integer) As Integer
+Public Function VerProximoCorrelativo(ByVal TipoAtencion As Integer, ByVal CodAlmacen As Integer) As Integer
+Public Function mostrar_pedidosPRO_Filtro(
+Public Sub Pedido_DevolverAVendedor(ByVal codMovimiento As Integer,

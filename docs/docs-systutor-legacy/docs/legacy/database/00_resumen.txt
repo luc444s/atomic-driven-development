@@ -1,0 +1,8 @@
+Tipo Cantidad
+---- --------
+TABLAS 184
+VISTAS 144
+PROCEDIMIENTOS 944
+FUNCIONES 22
+
+(4 rows affected)

@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarConversionxNombre(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Function CBConversionxNombre(ByVal UNIDAD As String) As SqlClient.SqlDataReader
+Public Function InsertarConversion(ByRef codigo As Integer, ByVal unidad As String, ByVal descripcion As String, ByVal valor As Double) As Integer
+Public Function ModificarConversion(ByVal codigo As Integer, ByVal unidad As String, ByVal descripcion As String, ByVal valor As Double) As Boolean
+Public Sub DesConnectar()

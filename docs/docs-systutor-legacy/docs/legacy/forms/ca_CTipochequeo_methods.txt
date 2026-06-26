@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarTipoChequeo(ByVal codtipochequeo As Integer) As SqlClient.SqlDataReader
+Public Function BuscarTipoChequeoxDesc(ByVal desctipochequeo As String) As SqlClient.SqlDataReader
+Public Function InsertarTipoChequeo(ByRef codtipochequeo As Integer, ByVal desctipochequeo As String) As Integer
+Public Function ListarTipo() As SqlClient.SqlDataReader
+Public Function ModificarTipoChequeo(ByVal codtipochequeo As Integer, ByVal desctipochequeo As String) As Boolean
+Public Sub DesConnectar()

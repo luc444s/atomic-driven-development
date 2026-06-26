@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarCargo(ByVal CodCargo As Integer) As SqlClient.SqlDataReader
+Public Function BuscarCargoxDesc(ByVal DescCargo As String) As SqlClient.SqlDataReader
+Public Function InsertarCargo(ByRef CodCargo As Integer, ByVal DescCargo As String) As Integer
+Public Function ListarCargo() As SqlClient.SqlDataReader
+Public Function ModificarCargo(ByVal CodCargo As Integer, ByVal DescCargo As String) As Boolean
+Public Sub DesConnectar()

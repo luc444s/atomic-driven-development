@@ -162,3 +162,39 @@ def require_permission(permission_name: str) -> Callable[..., User]:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
 
     return dependency
+
+
+def require_any_permission(*permission_names: str) -> Callable[..., User]:
+    def dependency(
+        request: Request,
+        db: Session = Depends(get_db_session),
+        current_user: User = Depends(get_current_user),
+        tenant_context: TenantContext = Depends(get_current_tenant_context),
+    ) -> User:
+        if tenant_context.is_superadmin or any(
+            tenant_context.has_permission(permission_name) for permission_name in permission_names
+        ):
+            return current_user
+
+        record_audit(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            branch_id=tenant_context.current_branch_id,
+            actor_user_id=tenant_context.current_user_id,
+            actor_type="user",
+            module="core",
+            action="permission.denied",
+            entity_type="permission",
+            entity_id=",".join(permission_names),
+            result="denied",
+            correlation_id=getattr(request.state, "correlation_id", None),
+            request_id=getattr(request.state, "request_id", None),
+            details={
+                "permissions": list(permission_names),
+                "tenant_id": tenant_context.current_tenant_id,
+            },
+        )
+        db.commit()
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied")
+
+    return dependency

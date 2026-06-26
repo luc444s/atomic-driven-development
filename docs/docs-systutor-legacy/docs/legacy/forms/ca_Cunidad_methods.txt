@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarLineaxNombre(ByVal Desc_Unidad As String) As SqlClient.SqlDataReader
+Public Function CBBuscarUnidadxNombre(ByVal Desc_Unidad As String) As SqlClient.SqlDataReader
+Public Function InsertarUnidad(ByRef Cod_Unidad As Integer, ByVal Desc_Unidad As String, ByVal Equivalencia As Integer) As Integer
+Public Function ModificarUnidad(ByVal Cod_Unidad As Integer, ByVal Desc_Unidad As String, ByVal equivalencia As Integer) As Boolean
+Public Sub DesConnectar()

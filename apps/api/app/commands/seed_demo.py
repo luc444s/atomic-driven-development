@@ -19,6 +19,7 @@ from apps.api.app.kernel.tenants.service import assign_branch_to_user
 BASE_PERMISSIONS = [
     "core.auth.me",
     "core.plugin.read",
+    "core.plugin.runtime.read",
     "core.plugin.manage",
     "core.audit.read",
     "core.event.read",
@@ -26,11 +27,13 @@ BASE_PERMISSIONS = [
     "core.users.read",
     "core.users.create",
     "core.users.update",
+    "core.users.disable",
     "core.users.delete",
     "core.role.manage",
     "core.roles.read",
     "core.roles.manage",
     "core.permission.manage",
+    "core.branches.read",
     "core.branches.manage",
 ]
 
@@ -143,6 +146,8 @@ def _get_or_create_admin_user(
     db.add(user)
     db.flush()
     return user
+
+
 def seed_demo_data(
     db: Session,
     settings: Settings,
@@ -153,9 +158,7 @@ def seed_demo_data(
     role = _get_or_create_role(db, tenant)
 
     plugin_permissions = [
-        plugin.manifest.permissions
-        for plugin in plugins
-        if plugin.manifest is not None
+        plugin.manifest.permissions for plugin in plugins if plugin.manifest is not None
     ]
     permission_names = sorted(set(BASE_PERMISSIONS).union(*plugin_permissions))
     for permission_name in permission_names:

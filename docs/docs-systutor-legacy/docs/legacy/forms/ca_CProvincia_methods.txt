@@ -1,0 +1,8 @@
+﻿Private Sub Conectar()
+Public Function BuscarProvincia(ByVal Cod_Provincia As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProvinciaxdpto(ByVal Cod_departamento As Integer) As SqlClient.SqlDataReader
+Public Function BuscarProvinciaxNom(ByVal Provincia As String) As SqlClient.SqlDataReader
+Public Function InsertarProvincia(ByRef COD_Provincia As Integer, ByVal Provincia As String, ByVal Cod_Departamento As Integer) As Integer
+Public Function ModificarProvincia(ByVal COD_Provincia As Integer, ByVal Provincia As String, ByVal Cod_Departamento As Integer) As Boolean
+Public Function Mostrar_Provincia(ByVal Provincia As String) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

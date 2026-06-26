@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function Eliminarreceta(ByVal Cod_Producto As Integer, ByVal Cod_Contenido As Integer) As Boolean
+Public Function InsertarChequeo(ByVal Cod_Producto As Integer, ByVal Cod_Contenido As Integer, ByVal Cantidad As Double) As Boolean
+Public Function ModificarChequeo(ByVal Cod_Producto As Integer, ByVal Cod_Contenido As Integer, ByVal Cantidad As Double) As Boolean
+Public Function mostrarxcod(ByVal Cod_Producto As Integer) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

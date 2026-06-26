@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function CBTipoABuscarxnom(ByVal Desc_TipoA As String) As SqlClient.SqlDataReader
+Public Function TipoABuscarxcod(ByVal cod_TipoA As Integer) As SqlClient.SqlDataReader
+Public Function TipoABuscarxnom(ByVal Desc_TipoA As String) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

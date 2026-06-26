@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function EliminarDetalleLibro(ByVal codLibro As Integer, ByVal codanalisis As Integer) As Boolean
+Public Function InsertarDetalleLibro(ByRef IdDetalleLibro As Integer, ByVal CodLibro As String, ByVal CodAnalisis As Double, ByVal Cantidad As String, ByVal Precio As String, ByVal UnidRef As String, ByVal UnidTotal As String, ByVal Muestra As String, ByVal fechaMuestra As String, ByVal Recepcion As String, ByVal FRecepcion As String, ByVal PersonalArea As String, ByVal SucesoTomaMuestra As String) As Integer
+Public Function ModificarDetalleLibro(ByVal IdDetalleLibro As Integer, ByVal CodLibro As String, ByVal CodAnalisis As Double, ByVal Cantidad As String, ByVal Precio As String, ByVal UnidRef As String, ByVal UnidTotal As String, ByVal Muestra As String, ByVal fechaMuestra As String, ByVal Recepcion As String, ByVal FRecepcion As String, ByVal PersonalArea As String, ByVal SucesoTomaMuestra As String) As Boolean
+Public Sub DesConnectar()

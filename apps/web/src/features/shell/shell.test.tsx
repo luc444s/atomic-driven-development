@@ -19,7 +19,13 @@ const demoUser: UserProfile = {
   full_name: "Admin Solygas",
   is_active: true,
   is_superadmin: false,
-  permissions: ["core.users.read", "core.plugin.read", "logistics.delivery.read"],
+  permissions: [
+    "core.users.read",
+    "core.roles.read",
+    "core.branches.read",
+    "core.plugin.runtime.read",
+    "logistics.delivery.read",
+  ],
 };
 
 const enabledPluginRecord: PluginRuntimeRecord = {
@@ -88,7 +94,7 @@ describe("tenant-specific shell", () => {
 
   it("hides sidebar items when permissions are missing", () => {
     const sections = buildShellSidebarSections({
-      permissions: ["core.plugin.read"],
+      permissions: ["core.plugin.runtime.read"],
       pluginNavigation: [],
     });
 

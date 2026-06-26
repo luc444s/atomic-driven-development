@@ -1,0 +1,7 @@
+CREATE PROCEDURE [dbo].[Producto_BuscarxNroSerie]
+	@Nro_Producto	        nvarchar(50)
+AS
+
+SELECT        TOP (1) dbo.Producto.cod_producto, dbo.Producto.Nro_Producto, dbo.Producto.Desc_Producto, dbo.Producto.StockMin_Producto, dbo.Producto.Cod_TipoInsum
+
+(1 rows affected)

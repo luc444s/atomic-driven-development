@@ -1,0 +1,38 @@
+﻿Private Sub Conectar()
+Public Function ActualizarPuntoEntrega(
+    ByVal idPuntoEntrega As Integer,
+    ByVal nombrePunto As String,
+    ByVal linea1 As String,
+    ByVal codigoPostal As String,
+    ByVal idZona As Integer,
+    ByVal ubigeo As String,
+    ByVal latitud As Double,
+    ByVal longitud As Double,
+    ByVal direccionLegacy As String,
+    ByVal contacto As String,
+    ByVal telefono As String,
+    ByVal ventanaHorario As String,
+    ByVal indicaciones As String,
+    ByVal idRuta As Integer,
+    ByVal esPrincipal As Nullable(Of Boolean)
+Public Function BuscarRazonSxDEsc(ByVal Desc_RazonS As String) As SqlClient.SqlDataReader
+Public Function BuscarRazxDesc(ByVal Desc_RazonS As String) As SqlClient.SqlDataReader
+Public Function BuscarSucursal(ByVal CodSucursal As Integer) As SqlClient.SqlDataReader
+Public Function BuscarSucursalxcb(ByVal DESC_ALMACEN As String) As SqlClient.SqlDataReader
+Public Function BuscarSucursalxDesc(ByVal DESC_ALMACEN As String) As SqlClient.SqlDataReader
+Public Function BuscarSucursalxnom(ByVal DESC_ALMACEN As String) As SqlClient.SqlDataReader
+Public Function BuscarSucursalxRaz(ByVal Cod_RazonS As Integer) As SqlClient.SqlDataReader
+Public Function Insertarrazsocial(ByRef Cod_RazonS As Integer, ByVal Desc_RazonS As String, ByVal Direcci�n_RazonS As String, ByVal Ruc_RazonS As String) As Integer
+Public Function InsertarSucursal(ByRef Cod_Almacen As Integer, ByVal desc_almacen As String, ByVal direccion_almacen As String, ByVal ruc_almacen As String, ByVal Telf_almacen As String, ByVal mostrar As Integer, ByVal Cod_RazonSocial As Integer) As Integer
+Public Function Listar_SucursalesPropias(ByVal Direccion_Almacen As String) As SqlClient.SqlDataReader
+Public Function ListarRazon() As SqlClient.SqlDataReader
+Public Function ListarSucursal() As SqlClient.SqlDataReader
+Public Function ModificarFormato_Precios(ByVal Cod_Almacen As Integer, ByVal Formato_Precios As Integer) As Boolean
+Public Function ModificarSucursal(ByVal Cod_Almacen As Integer, ByVal desc_almacen As String, ByVal direccion_almacen As String, ByVal ruc_almacen As String, ByVal Telf_almacen As String, ByVal mostrar As Integer, ByVal Cod_RazonSocial As Integer) As Boolean
+Public Function ModificarSucursal(ByVal Cod_RazonS As Integer, ByVal Desc_RazonS As String, ByVal Direcci�n_RazonS As String, ByVal Ruc_RazonS As String) As Boolean
+Public Function MOSTRAR_ANEXOS(ByVal DESC_ALMACEN As String) As SqlClient.SqlDataReader
+Public Function MOSTRAR_CPubigeo(ByVal Direccion_Almacen As String) As SqlClient.SqlDataReader
+Public Function mostrar_despacho(ByVal CodALMACEN As Integer) As SqlClient.SqlDataReader
+Public Function PuntoEntrega_Insertar(ByVal idCliente As Integer, ByVal nombrePto As String, ByVal linea1 As String, ByVal cp As String, ByVal idLocalidad As Object, ByVal ubigeo As String, ByVal lat As Object, ByVal lon As Object, ByVal contacto As String, ByVal telefono As String, ByVal correo As String, ByVal ventana As String, ByVal indicaciones As String, ByVal idRuta As Object, ByVal esPrincipal As Boolean, ByVal activo As Boolean, ByVal usuario As String) As Integer
+Public Sub DesConectar()
+Public Sub DesConnectar()

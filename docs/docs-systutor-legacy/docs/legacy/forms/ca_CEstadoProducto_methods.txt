@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarEstadoProductoxNombre(ByVal Desc_EstadoProd As String) As SqlClient.SqlDataReader
+Public Function CBEstadoProductoxNombre(ByVal Desc_EstadoProd As String) As SqlClient.SqlDataReader
+Public Function InsertarEstadoProducto(ByRef Cod_EstadoProd As Integer, ByVal Desc_EstadoProd As String) As Integer
+Public Function ModificarEstadoProducto(ByVal Cod_EstadoProd As Integer, ByVal Desc_EstadoProd As String) As Boolean
+Public Sub DesConnectar()

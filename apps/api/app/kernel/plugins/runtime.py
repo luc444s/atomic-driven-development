@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from types import ModuleType
+from typing import cast
 
 from apps.api.app.core.errors import AppError
 from apps.api.app.kernel.plugins.manifest import PluginManifest
@@ -42,6 +43,14 @@ class LoadedPlugin:
     registration: PluginRegistration | None = None
     error_message: str | None = None
     lifecycle: tuple[str, ...] = ()
+
+
+@dataclass(slots=True)
+class PluginBackendBinding:
+    manifest: PluginManifest
+    module: ModuleType
+    context: PluginContext
+    registration: PluginRegistration
 
 
 class PluginManifestRegistry:
@@ -323,35 +332,7 @@ class PluginRuntime:
         return [discovered[plugin_id] for plugin_id in ordered_ids], cyclic_plugins
 
     def _load_registration(self, discovered: DiscoveredPlugin) -> PluginRegistration:
-        manifest = discovered.manifest
-        if manifest is None:
-            raise PluginRuntimeError(f"plugin manifest not available: {discovered.plugin_id}")
-        module_name, function_name = manifest.backend_entrypoint.split(":", 1)
-        module = self._load_module(discovered, module_name)
-        register = getattr(module, function_name, None)
-        if register is None or not callable(register):
-            raise PluginRuntimeError(
-                "entrypoint invalido para plugin "
-                f"{manifest.id}: {manifest.backend_entrypoint}"
-            )
-
-        context = self.context_builder(manifest)
-        returned_registration = register(context)
-        registration = context.registration
-        if returned_registration is not None:
-            if not isinstance(returned_registration, PluginRegistration):
-                raise PluginRuntimeError(
-                    f"plugin register must return PluginRegistration or None: {manifest.id}"
-                )
-            registration = returned_registration
-
-        if not registration.permissions:
-            registration.permissions.extend(list(manifest.permissions))
-        if not registration.events:
-            registration.events.extend(list(manifest.events))
-
-        self._validate_registration(manifest, registration)
-        return registration
+        return load_plugin_backend(discovered, context_builder=self.context_builder).registration
 
     def _api_version_error(self, manifest: PluginManifest) -> str | None:
         plugin_major = manifest.api_version.split(".", 1)[0]
@@ -416,3 +397,58 @@ class PluginRuntime:
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module
+
+
+def load_plugin_backend(
+    discovered: DiscoveredPlugin,
+    *,
+    context_builder: Callable[[PluginManifest], PluginContext],
+) -> PluginBackendBinding:
+    manifest = discovered.manifest
+    if manifest is None:
+        raise PluginRuntimeError(f"plugin manifest not available: {discovered.plugin_id}")
+
+    module_name, function_name = manifest.backend_entrypoint.split(":", 1)
+    module = PluginRuntime._load_module(discovered, module_name)
+    register = getattr(module, function_name, None)
+    if register is None or not callable(register):
+        raise PluginRuntimeError(
+            f"entrypoint invalido para plugin {manifest.id}: {manifest.backend_entrypoint}"
+        )
+
+    context = context_builder(manifest)
+    returned_registration = register(context)
+    registration = context.registration
+    if returned_registration is not None:
+        if not isinstance(returned_registration, PluginRegistration):
+            raise PluginRuntimeError(
+                f"plugin register must return PluginRegistration or None: {manifest.id}"
+            )
+        registration = returned_registration
+
+    if not registration.permissions:
+        registration.permissions.extend(list(manifest.permissions))
+    if not registration.events:
+        registration.events.extend(list(manifest.events))
+
+    PluginRuntime._validate_registration(manifest, registration)
+    return PluginBackendBinding(
+        manifest=manifest,
+        module=module,
+        context=context,
+        registration=registration,
+    )
+
+
+def get_plugin_lifecycle_hook(
+    binding: PluginBackendBinding,
+    hook_name: str,
+) -> Callable[[PluginContext], None] | None:
+    hook = getattr(binding.module, hook_name, None)
+    if hook is None:
+        return None
+    if not callable(hook):
+        raise PluginRuntimeError(
+            f"plugin lifecycle hook must be callable: {binding.manifest.id}.{hook_name}"
+        )
+    return cast(Callable[[PluginContext], None], hook)

@@ -1,0 +1,8 @@
+﻿Private Sub Conectar()
+Public Function BuscarTipoAte(ByVal Codtipoatencion As Integer) As SqlClient.SqlDataReader
+Public Function BuscarTipoInsumoxDesc(ByVal Descripcion As String) As SqlClient.SqlDataReader
+Public Function CBTipoInsumoxDesc(ByVal Descripcion As String) As SqlClient.SqlDataReader
+Public Function InsertarTipoInsumo(ByRef cod_TipoInsumo As Integer, ByVal Desc_TipoInsumo As String) As Integer
+Public Function ListarTipoAtencion() As SqlClient.SqlDataReader
+Public Function ModificarTipoInsumo(ByVal cod_TipoInsumo As Integer, ByVal Desc_TipoInsumo As String) As Boolean
+Public Sub DesConnectar()

@@ -1,0 +1,35 @@
+﻿Private Sub Connectar()
+Public Function asignarHE(ByVal id As Integer, ByVal hextras As Integer) As Boolean
+Public Function BuscarAcumuladoTard(ByVal CodEmp As Integer, ByVal fi As Date, ByVal ff As Date) As SqlClient.SqlDataReader
+Public Function Buscarasistencia(ByVal empleado As Integer, ByVal horario As Integer) As SqlClient.SqlDataReader
+Public Function Buscarasistencia1(ByVal empleado As Integer) As SqlClient.SqlDataReader
+Public Function BuscarHORARIO(ByVal DNIPACIENTE As String) As SqlClient.SqlDataReader
+Public Function BuscarHORARIOdeldia(ByVal fecha1 As Date, ByVal fecha2 As Date) As SqlClient.SqlDataReader
+Public Function BuscarHORARIOdeldiapersonal(ByVal codigoh As Integer, ByVal codemp As Integer, ByVal fi As Date, ByVal ff As Date) As SqlClient.SqlDataReader
+Public Function BuscarHORARIOpamarcar(ByVal codemp As Integer) As SqlClient.SqlDataReader
+Public Function BuscarHORARIOxdni(ByVal DNIPACIENTE As String, ByVal Descripcionhorario As String) As SqlClient.SqlDataReader
+Public Function Confasistenciadia(ByRef id As Integer, ByVal Fecha As Date, ByVal hextras As Integer, ByVal codigoh As Integer, ByVal horarioe As Date, ByVal horarios As Date, ByVal horarioe1 As Date, ByVal horarios1 As Date, ByVal codemp As Integer, ByVal estadodia As Integer, ByVal año As Integer, ByVal idmes As Integer, ByVal dia As Integer) As Integer
+Public Function Confasistenciadia1(ByRef id As Integer, ByVal Fecha As Date, ByVal hextras As Integer, ByVal codigoh As Integer, ByVal horarioe As Date, ByVal horarios1 As Date, ByVal codemp As Integer, ByVal estadodia As Integer, ByVal año As Integer, ByVal idmes As Integer, ByVal dia As Integer) As Integer
+Public Function EliminarAsistencia(ByVal id As Integer) As Boolean
+Public Function Insertarhorario(ByRef Codhorario As Integer, ByVal DescripcionHorario As String, ByVal HoraEntrada As Date, ByVal HoraSalida As Date, ByVal HoraEntrada1 As Date, ByVal HoraSalida1 As Date, ByVal prioridad As Integer) As Integer
+Public Function Insertarhorario1(ByRef Codhorario As Integer, ByVal DescripcionHorario As String, ByVal HoraEntrada As Date, ByVal HoraSalida1 As Date, ByVal prioridad As Integer) As Integer
+Public Function Lista_Para_Corte() As SqlClient.SqlDataReader
+Public Function Listarhorarios() As SqlClient.SqlDataReader
+Public Function marcar_entrada1(ByVal id As Integer, ByVal mhs1 As Date, ByVal Tard As Double, ByVal minutos1 As Double) As Boolean
+Public Function marcarasistencia(ByRef CodAsistencia As Integer, ByVal Fecha As Date, ByVal Empleado As Integer, ByVal HT As Double, ByVal Estado As String, ByVal He As Date, ByVal año As Integer, ByVal mes As String, ByVal idmes As Integer, ByVal dia As Integer, ByVal Estadodia As Integer, ByVal horario As Integer) As Integer
+Public Function marcarentrada(ByVal id As Integer, ByVal he As Date, ByVal tard As Double, ByVal minutos As Double) As Boolean
+Public Function marcarfalta(ByVal id As Integer, ByVal EstadoDia As Integer, ByVal falta As Integer) As Boolean
+Public Function marcarfalta1(ByRef CodAsistencia As Integer, ByVal Fecha As Date, ByVal Empleado As Integer, ByVal HT As Double, ByVal f As Integer, ByVal año As Integer, ByVal mes As String, ByVal idmes As Integer, ByVal dia As Integer, ByVal Estadodia As Integer, ByVal horario As Integer) As Integer
+Public Function marcarMq1(ByVal id As Integer, ByVal Maquina_01 As String) As Boolean
+Public Function marcarMq2(ByVal id As Integer, ByVal Maquina_02 As String) As Boolean
+Public Function marcarsalida(ByVal id As Integer, ByVal Hs As Date, ByVal hext1 As Double) As Boolean
+Public Function marcarsalida1(ByVal id As Integer, ByVal Hs1 As Date, ByVal hext1 As Double, ByVal EstadoDia As Integer) As Boolean
+Public Function marcarsalida2(ByVal CodAsistencia As Integer, ByVal Hs As Date, ByVal Hex As Double) As Boolean
+Public Function modificarhorario(ByVal Codhorario As Integer, ByVal DescripcionHorario As String, ByVal HoraEntrada As Date, ByVal HoraSalida As Date, ByVal HoraEntrada1 As Date, ByVal HoraSalida1 As Date, ByVal prioridad As Integer) As Boolean
+Public Function modificarhorario1(ByVal Codhorario As Integer, ByVal DescripcionHorario As String, ByVal HoraEntrada As Date, ByVal HoraSalida1 As Date, ByVal prioridad As Integer, ByVal activo As Integer) As Boolean
+Public Function mostrar_vacaciones(ByVal persona As Integer) As SqlClient.SqlDataReader
+Public Function mostrar_vacaciones_FECHA(ByVal FECHA As Date) As SqlClient.SqlDataReader
+Public Function registrar_vacaciones(ByRef cod As Integer, ByVal PERSONA As Integer, ByVal FECHA_INICIO As Date, ByVal FECHA_FIN As Date, ByVal DIAS As Integer) As Integer
+Public Function RegistrarHorasextras(ByVal id As Integer, ByVal He1 As Integer, ByVal He As Integer, ByVal Hms1 As Date, ByVal Hms As Date) As Boolean
+Public Function RegistrarHorasextras01(ByVal id As Integer, ByVal He1 As Integer, ByVal Hms1 As Date) As Boolean
+Public Sub DesConnectar()

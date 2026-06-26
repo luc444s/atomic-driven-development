@@ -1,0 +1,7 @@
+﻿Private Sub Conectar()
+Public Function BuscarLineaxNombre(ByVal Desc_Linea As String) As SqlClient.SqlDataReader
+Public Function CBLineaxNombre(ByVal Desc_Linea As String) As SqlClient.SqlDataReader
+Public Function CBLineaxNombrexrubro(ByVal Desc_Linea As String, ByVal desc_rubro As String) As SqlClient.SqlDataReader
+Public Function InsertarLinea(ByRef cod_linea As Integer, ByVal desc_linea As String, ByVal cod_rubro As Integer) As Integer
+Public Function ModificarLinea(ByVal cod_linea As Integer, ByVal desc_linea As String, ByVal cod_rubro As Integer) As Boolean
+Public Sub DesConnectar()

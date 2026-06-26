@@ -1,0 +1,5 @@
+﻿Private Sub Conectar()
+Public Function BuscarTcontado(ByVal codigo As Integer) As SqlClient.SqlDataReader
+Public Function InsertarTarifarioCont(ByRef codigo As Integer, ByVal Descripcion As String, ByVal Estado As Integer) As Integer
+Public Function ListarTContado() As SqlClient.SqlDataReader
+Public Sub DesConnectar()

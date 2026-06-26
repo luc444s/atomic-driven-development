@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function BuscarmarcaxNombre(ByVal Desc_marca As String) As SqlClient.SqlDataReader
+Public Function CBmarcaxNombre(ByVal Desc_marca As String) As SqlClient.SqlDataReader
+Public Function Insertarmarca(ByRef cod_marca As Integer, ByVal desc_marca As String) As Integer
+Public Function Modificarmarca(ByVal cod_marca As Integer, ByVal desc_marca As String) As Boolean
+Public Sub DesConnectar()

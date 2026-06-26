@@ -1,25 +1,140 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+import {
+  coreManagementKeys,
+  disableManagedPlugin,
+  enableManagedPlugin,
+  installManagedPlugin,
+  invalidatePluginRuntimeCaches,
+  listManagedPlugins,
+  migrateManagedPlugin,
+  uninstallManagedPlugin,
+} from "../core-management/api";
 import { usePluginFrontendRuntime } from "../plugins/runtime";
 import { useAuthStore } from "../auth/store";
 import { Alert } from "../../shared/ui/alert";
 import { Badge } from "../../shared/ui/badge";
+import { Button } from "../../shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../shared/ui/card";
+import { DataTable } from "../../shared/ui/data-table";
+import type { PluginRuntimeRecord } from "../../shared/api/client";
 
 export function PluginsPage() {
+  const queryClient = useQueryClient();
   const frontendRuntime = usePluginFrontendRuntime();
-  const pluginRuntimeRecords = useAuthStore((state) => state.pluginRuntimeRecords);
+  const permissions = useAuthStore((state) => state.permissions);
+  const canManage = permissions.includes("core.plugin.manage");
 
+  const pluginsQuery = useQuery({
+    queryKey: [...coreManagementKeys.plugins],
+    queryFn: listManagedPlugins,
+  });
+
+  const pluginActionMutation = useMutation({
+    mutationFn: async ({ plugin, action }: { plugin: PluginRuntimeRecord; action: PluginAction }) => {
+      switch (action) {
+        case "install":
+          return installManagedPlugin(plugin.plugin_id);
+        case "enable":
+          return enableManagedPlugin(plugin.plugin_id);
+        case "disable":
+          return disableManagedPlugin(plugin.plugin_id);
+        case "uninstall":
+          return uninstallManagedPlugin(plugin.plugin_id);
+        case "migrate":
+          return migrateManagedPlugin(plugin.plugin_id);
+      }
+    },
+    onSuccess: async () => {
+      await invalidatePluginRuntimeCaches(queryClient);
+    },
+  });
+
+  return (
+    <PluginsPageContent
+      plugins={pluginsQuery.data ?? []}
+      frontendRuntime={frontendRuntime}
+      canManage={canManage}
+      hasError={Boolean(pluginsQuery.error)}
+      isMutating={pluginActionMutation.isPending}
+      onAction={(plugin, action) => pluginActionMutation.mutate({ plugin, action })}
+    />
+  );
+}
+
+type PluginAction = "install" | "enable" | "disable" | "uninstall" | "migrate";
+
+type PluginsPageContentProps = {
+  plugins: PluginRuntimeRecord[];
+  frontendRuntime: ReturnType<typeof usePluginFrontendRuntime>;
+  canManage: boolean;
+  hasError: boolean;
+  isMutating: boolean;
+  onAction: (plugin: PluginRuntimeRecord, action: PluginAction) => void;
+};
+
+export function PluginsPageContent({
+  plugins,
+  frontendRuntime,
+  canManage,
+  hasError,
+  isMutating,
+  onAction,
+}: PluginsPageContentProps) {
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Runtime de plugins</h1>
+        <h1 className="text-2xl font-semibold text-white">Plugins</h1>
         <p className="text-sm text-slate-400">
-          Estado persistente del runtime, incluyendo lifecycle, version de migracion y
-          capacidades frontend visibles para el usuario actual.
+          Management mínimo del runtime persistente, incluyendo lifecycle, errores y visibilidad frontend.
         </p>
       </div>
 
+      {hasError ? (
+        <Alert title="No se pudo cargar el runtime de plugins">
+          Revisa permisos o disponibilidad del backend.
+        </Alert>
+      ) : null}
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Plugin runtime</CardTitle>
+          <CardDescription>Estado técnico y acciones administrativas del runtime persistente.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={[
+              { key: "plugin_id", header: "Plugin ID", render: (plugin) => plugin.plugin_id },
+              { key: "version", header: "Version", render: (plugin) => plugin.version },
+              { key: "api_version", header: "API Version", render: (plugin) => plugin.api_version },
+              { key: "state", header: "State", render: (plugin) => <Badge>{plugin.state}</Badge> },
+              { key: "installed_at", header: "Installed at", render: (plugin) => plugin.installed_at ?? "-" },
+              { key: "enabled_at", header: "Enabled at", render: (plugin) => plugin.enabled_at ?? "-" },
+              {
+                key: "last_error",
+                header: "Last error",
+                render: (plugin) => plugin.last_error ?? "-",
+              },
+              {
+                key: "actions",
+                header: "Actions",
+                className: "w-72",
+                render: (plugin) => (
+                  <div className="flex flex-wrap gap-2">
+                    {canManage ? renderPluginActions(plugin, isMutating, onAction) : <span className="text-slate-500">Read only</span>}
+                  </div>
+                ),
+              },
+            ]}
+            rows={plugins}
+            rowKey={(plugin) => plugin.id}
+            emptyMessage="No hay plugins registrados en el runtime."
+          />
+        </CardContent>
+      </Card>
+
       <div className="grid gap-4 xl:grid-cols-2">
-        {pluginRuntimeRecords.map((plugin) => (
+        {plugins.map((plugin) => (
           <Card key={plugin.id}>
             <CardHeader>
               <div className="flex items-center justify-between gap-3">
@@ -32,60 +147,66 @@ export function PluginsPage() {
               <CardDescription>{plugin.description}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4 text-sm text-slate-300">
-              <div className="grid gap-2 rounded-md border border-slate-800 bg-slate-900/70 p-3">
-                <InfoLine label="Plugin ID" value={plugin.plugin_id} />
-                <InfoLine label="API version" value={plugin.api_version} />
-                <InfoLine label="Backend entrypoint" value={plugin.backend_entrypoint} />
-                <InfoLine label="Frontend entrypoint" value={plugin.frontend_entrypoint} />
-                <InfoLine label="Migration version" value={plugin.migration_version ?? "-"} />
-                <InfoLine label="Enabled" value={plugin.is_enabled ? "si" : "no"} />
-              </div>
-
-              <TagBlock label="Permisos" values={plugin.permissions_json} />
-              <TagBlock label="Eventos" values={plugin.events_json} />
-              <TagBlock
-                label="Dependencias"
-                values={plugin.requires_json}
-                emptyLabel="Sin dependencias"
+              <InfoLine label="Plugin ID" value={plugin.plugin_id} />
+              <InfoLine label="Enabled" value={plugin.is_enabled ? "si" : "no"} />
+              <InfoLine
+                label="Frontend routes visibles"
+                value={String(frontendRuntime.routes.filter((route) => route.pluginId === plugin.plugin_id).length)}
               />
-
-              <div className="grid gap-2 rounded-md border border-slate-800 bg-slate-900/70 p-3">
-                <InfoLine
-                  label="Rutas frontend visibles"
-                  value={String(
-                    frontendRuntime.routes.filter((route) => route.pluginId === plugin.plugin_id)
-                      .length
-                  )}
-                />
-                <InfoLine
-                  label="Entradas sidebar visibles"
-                  value={String(
-                    frontendRuntime.navigation.filter((entry) => entry.pluginId === plugin.plugin_id)
-                      .length
-                  )}
-                />
-                <InfoLine
-                  label="Widgets visibles"
-                  value={String(
-                    frontendRuntime.widgets.filter((widget) => widget.pluginId === plugin.plugin_id)
-                      .length
-                  )}
-                />
-              </div>
-
+              <InfoLine
+                label="Sidebar entries visibles"
+                value={String(frontendRuntime.navigation.filter((entry) => entry.pluginId === plugin.plugin_id).length)}
+              />
               {plugin.last_error ? <Alert title="Ultimo error">{plugin.last_error}</Alert> : null}
             </CardContent>
           </Card>
         ))}
       </div>
-
-      {pluginRuntimeRecords.length === 0 ? (
-        <Alert title="No se encontraron plugins declarados">
-          El contexto actual no expone plugins persistidos para esta sesion.
-        </Alert>
-      ) : null}
     </section>
   );
+}
+
+function renderPluginActions(
+  plugin: PluginRuntimeRecord,
+  isMutating: boolean,
+  onAction: (plugin: PluginRuntimeRecord, action: PluginAction) => void
+) {
+  const actions: PluginAction[] = [];
+
+  if (plugin.state !== "enabled") {
+    actions.push("install");
+  }
+  if (plugin.state !== "enabled") {
+    actions.push("enable");
+  }
+  if (plugin.state === "enabled") {
+    actions.push("disable");
+  }
+  if (plugin.state !== "enabled") {
+    actions.push("uninstall");
+  }
+  actions.push("migrate");
+
+  return actions.map((action) => (
+    <Button key={action} variant="secondary" disabled={isMutating} onClick={() => onAction(plugin, action)}>
+      {actionLabel(action)}
+    </Button>
+  ));
+}
+
+function actionLabel(action: PluginAction) {
+  switch (action) {
+    case "install":
+      return "Install";
+    case "enable":
+      return "Enable";
+    case "disable":
+      return "Disable";
+    case "uninstall":
+      return "Uninstall";
+    case "migrate":
+      return "Migrate";
+  }
 }
 
 function InfoLine({ label, value }: { label: string; value: string | null }) {
@@ -93,29 +214,6 @@ function InfoLine({ label, value }: { label: string; value: string | null }) {
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
       <span className="text-slate-400">{label}</span>
       <span className="break-all text-slate-200">{value ?? "-"}</span>
-    </div>
-  );
-}
-
-function TagBlock({
-  label,
-  values,
-  emptyLabel = "Sin datos",
-}: {
-  label: string;
-  values: string[];
-  emptyLabel?: string;
-}) {
-  return (
-    <div className="space-y-2">
-      <h2 className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</h2>
-      <div className="flex flex-wrap gap-2">
-        {values.length > 0 ? (
-          values.map((value) => <Badge key={value}>{value}</Badge>)
-        ) : (
-          <span className="text-sm text-slate-500">{emptyLabel}</span>
-        )}
-      </div>
     </div>
   );
 }

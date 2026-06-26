@@ -1,0 +1,6 @@
+﻿Private Sub Conectar()
+Public Function Actualizar_FormaPago(ByVal codPersona As String, ByVal idFormaPago As Integer) As Integer
+Public Function Buscar_ClavesIC(ByVal idClave As Integer?, ByVal codigoClave As String, ByVal activo As Boolean?) As DataTable
+Public Function Buscar_ClavesVentaEspa�a(ByVal idClave As Integer?, ByVal codigoClave As String, ByVal activo As Boolean?) As DataTable
+Public Function Buscar_FormasPago(ByVal descripcion As String) As SqlClient.SqlDataReader
+Public Sub DesConnectar()

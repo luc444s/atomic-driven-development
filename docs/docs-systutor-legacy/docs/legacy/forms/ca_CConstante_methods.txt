@@ -1,0 +1,3 @@
+﻿Private Sub Conectar()
+Public Function mostrar_Constantes(ByVal idGrupo As Integer) As DataTable
+Public Sub Desconnectar()

@@ -1,0 +1,332 @@
+TABLE_SCHEMA|TABLE_NAME|TABLE_TYPE
+------------|----------|----------
+dbo|ADR_Incompatibilidades|BASE TABLE
+dbo|ADR_Referencia|BASE TABLE
+dbo|AGENDA_PREPARACION_CARGA|BASE TABLE
+dbo|AGENDA_REPARTIDOR|BASE TABLE
+dbo|AGENDA_REPARTIDOR_HISTORIAL|BASE TABLE
+dbo|AGENDA_REPARTIDOR_LOG|BASE TABLE
+dbo|Agenda_Repartidor_Resp|BASE TABLE
+dbo|AGENDA_TIPO_TAREA|BASE TABLE
+dbo|Agentes_Sucursal|BASE TABLE
+dbo|Almacen|BASE TABLE
+dbo|Almacen_Geografia_Default|BASE TABLE
+dbo|Asistencia_vacaciones|BASE TABLE
+dbo|Banco|BASE TABLE
+dbo|borrador1|BASE TABLE
+dbo|borrar1|BASE TABLE
+dbo|Borrar2|BASE TABLE
+dbo|CAJA_ADM|BASE TABLE
+dbo|Camion|BASE TABLE
+dbo|Camion_Ruta_Restriccion|BASE TABLE
+dbo|Cancelaciones|BASE TABLE
+dbo|CFG_Parametros|BASE TABLE
+dbo|Cliente_Sucursal|BASE TABLE
+dbo|Compra_series|BASE TABLE
+dbo|Comprobante|BASE TABLE
+dbo|ComprobantePedido|BASE TABLE
+dbo|Configuracion|BASE TABLE
+dbo|ConfiguracionRegional|BASE TABLE
+dbo|Constantes|BASE TABLE
+dbo|CONTRATO_HISTORIAL|BASE TABLE
+dbo|CONTRATOS|BASE TABLE
+dbo|Contratos_Alertas|BASE TABLE
+dbo|Conversion|BASE TABLE
+dbo|CORRELATIVO_DOCUMENTO|BASE TABLE
+dbo|CorrelativosDocumento|BASE TABLE
+dbo|Correos|BASE TABLE
+dbo|CorreosProgramados|BASE TABLE
+dbo|CP COSTA RICA2|BASE TABLE
+dbo|CP_Codigo_Postal|BASE TABLE
+dbo|CP_Comunidad_Autonoma|BASE TABLE
+dbo|CP_Localidad|BASE TABLE
+dbo|CP_Municipio|BASE TABLE
+dbo|CP_Municipio_CP|BASE TABLE
+dbo|CP_Pais|BASE TABLE
+dbo|CP_Provincia|BASE TABLE
+dbo|CP_Stg_CA|BASE TABLE
+dbo|CP_Stg_CP|BASE TABLE
+dbo|CP_Stg_Muni_CP|BASE TABLE
+dbo|CP_Stg_Municipio|BASE TABLE
+dbo|CP_Stg_Provincia|BASE TABLE
+dbo|Creditos|BASE TABLE
+dbo|cuadrecaja|BASE TABLE
+dbo|cv|BASE TABLE
+dbo|Datos_Bancarios|BASE TABLE
+dbo|DB_Version|BASE TABLE
+dbo|Descuentos|BASE TABLE
+dbo|Destino|BASE TABLE
+dbo|Detalle_Desc|BASE TABLE
+dbo|detalle_documento|BASE TABLE
+dbo|Detalle_OP|BASE TABLE
+dbo|Detalle_orden|BASE TABLE
+dbo|Detalle_Pago|BASE TABLE
+dbo|DetalleMovimiento|BASE TABLE
+dbo|Direccion|BASE TABLE
+dbo|Direcciones_NoClientes|BASE TABLE
+dbo|Dist_Caotica|BASE TABLE
+dbo|ECabecera_pedido|BASE TABLE
+dbo|ECambios|BASE TABLE
+dbo|Ecargos_funciones|BASE TABLE
+dbo|EChoferesPorMovimiento|BASE TABLE
+dbo|Ecil_duenio|BASE TABLE
+dbo|ECilindroEstadoActual|BASE TABLE
+dbo|ECilindroEstadoCatalogo|BASE TABLE
+dbo|ECilindroEstadoLog|BASE TABLE
+dbo|ECilindroEstadoRegla|BASE TABLE
+dbo|ECilindroEstadoTransicion|BASE TABLE
+dbo|ECilindroEtiquetaHistorial|BASE TABLE
+dbo|ECilindros_Servicios|BASE TABLE
+dbo|Eclaves_operacion|BASE TABLE
+dbo|EComponentes_Gases|BASE TABLE
+dbo|EDetalle_cpedido|BASE TABLE
+dbo|EDetalle_Descargas|BASE TABLE
+dbo|Edetalle_Producto_Bombona|BASE TABLE
+dbo|Edetalle_Producto_Bombona_Backup_2025|BASE TABLE
+dbo|Edetalle_retimbrado|BASE TABLE
+dbo|EEquipos|BASE TABLE
+dbo|EEquiposPorMovimiento|BASE TABLE
+dbo|EGarantia|BASE TABLE
+dbo|ELIMINAR|BASE TABLE
+dbo|empleado_almacenAntes|BASE TABLE
+dbo|empresaresponsable|BASE TABLE
+dbo|Eph|BASE TABLE
+dbo|EReporte_Cargas_Peligrosas|BASE TABLE
+dbo|EstadoCancelacion|BASE TABLE
+dbo|EstadoMovimiento|BASE TABLE
+dbo|EstadoProducto|BASE TABLE
+dbo|EstadPago|BASE TABLE
+dbo|ExcepcionMotivo|BASE TABLE
+dbo|Familia|BASE TABLE
+dbo|Fiscal_ProveedorValidacion|BASE TABLE
+dbo|Formas_pago|BASE TABLE
+dbo|Formula|BASE TABLE
+dbo|Geocode_Cache|BASE TABLE
+dbo|Grupo|BASE TABLE
+dbo|grupo_user|BASE TABLE
+dbo|HistorialEstadosTraslados|BASE TABLE
+dbo|HistorialFacturacion|BASE TABLE
+dbo|HistorialMovimientoEstado|BASE TABLE
+dbo|Horarios|BASE TABLE
+dbo|importar|BASE TABLE
+dbo|Impresion_letras|BASE TABLE
+dbo|kardex|BASE TABLE
+dbo|Linea|BASE TABLE
+dbo|LogEscaneo|BASE TABLE
+dbo|Marca|BASE TABLE
+dbo|Menu|BASE TABLE
+dbo|Monedas|BASE TABLE
+dbo|Motivo_Reprogramacion|BASE TABLE
+dbo|Movimiento|BASE TABLE
+dbo|OffDEPARTAMENTO|BASE TABLE
+dbo|OffDISTRITO|BASE TABLE
+dbo|OFFPROVINCIA|BASE TABLE
+dbo|Orden_compra|BASE TABLE
+dbo|ORDEN_PAGO|BASE TABLE
+dbo|Pago|BASE TABLE
+dbo|Pais|BASE TABLE
+dbo|Parametros_Repartidor|BASE TABLE
+dbo|PedidoCompromisos_Hist|BASE TABLE
+dbo|Permiso|BASE TABLE
+dbo|Persona_ActividadFiscal|BASE TABLE
+dbo|Persona_Nuevo|BASE TABLE
+dbo|Persona_Proceso_Almacen|BASE TABLE
+dbo|PersonaAntes|BASE TABLE
+dbo|PLAN_PREPARACION_CARGA|BASE TABLE
+dbo|PLAN_PREPARACION_DETALLE|BASE TABLE
+dbo|Planificacion_DetalleMovimiento|BASE TABLE
+dbo|ProdFamilia|BASE TABLE
+dbo|Producto|BASE TABLE
+dbo|Producto_Backup_2025|BASE TABLE
+dbo|Promocion|BASE TABLE
+dbo|pruebaDigitalPersona|BASE TABLE
+dbo|RazonSocial|BASE TABLE
+dbo|RD_NCF|BASE TABLE
+dbo|Registro_Coordenadas|BASE TABLE
+dbo|Reporte_mov_envases|BASE TABLE
+dbo|reportes|BASE TABLE
+dbo|Requerimientos|BASE TABLE
+dbo|Ruta|BASE TABLE
+dbo|Ruta_DiaSemana|BASE TABLE
+dbo|Ruta_PuntoEntrega|BASE TABLE
+dbo|Serie|BASE TABLE
+dbo|SerieConfiguracion|BASE TABLE
+dbo|Stock_Actual|BASE TABLE
+dbo|SubCategoria|BASE TABLE
+dbo|SubCategoriaBack|BASE TABLE
+dbo|Sublinea|BASE TABLE
+dbo|SubMenu|BASE TABLE
+dbo|SUBMENU1|BASE TABLE
+dbo|sysdiagrams|BASE TABLE
+dbo|Tabla_configuracion|BASE TABLE
+dbo|Tarifa_cliente|BASE TABLE
+dbo|TBLIGV|BASE TABLE
+dbo|TCcompra|BASE TABLE
+dbo|Telefonos|BASE TABLE
+dbo|temporal|BASE TABLE
+dbo|TEstadoC|BASE TABLE
+dbo|TicketDescuento|BASE TABLE
+dbo|Tipo_Cambio|BASE TABLE
+dbo|TipoA|BASE TABLE
+dbo|TipoCambioDiario|BASE TABLE
+dbo|TipoDoc|BASE TABLE
+dbo|TipoDocAntes|BASE TABLE
+dbo|TipoFlulo|BASE TABLE
+dbo|TipoInsumo|BASE TABLE
+dbo|TipoPersona|BASE TABLE
+dbo|TiposDocumentoPais|BASE TABLE
+dbo|TMP_CR_Division|BASE TABLE
+dbo|Trazabilidad_puntos|BASE TABLE
+dbo|Ubicacion|BASE TABLE
+dbo|Unidad|BASE TABLE
+dbo|user_permisos|BASE TABLE
+dbo|Vehiculo_cliente_nuevo|BASE TABLE
+dbo|vehiculo_clienteAntes|BASE TABLE
+dbo|Xdemo|BASE TABLE
+dbo|ZONA|BASE TABLE
+dbo|AAA ayudaParacrearTablaGrupo|VIEW
+dbo|AGENDA_REPARTIDOR_VISTA|VIEW
+dbo|Borrar|VIEW
+dbo|chiki|VIEW
+dbo|crcUMPLEAÑOS|VIEW
+dbo|CRSotckMin|VIEW
+dbo|CRSotckMin01|VIEW
+dbo|CRstockCySMilton|VIEW
+dbo|CRVentas|VIEW
+dbo|crventastc|VIEW
+dbo|Estado_cuenta|VIEW
+dbo|EsubVista_EstadoTraslado|VIEW
+dbo|Guia_despacho|VIEW
+dbo|importa|VIEW
+dbo|INVENTARIADO|VIEW
+dbo|kardex_final|VIEW
+dbo|kardex_final1|VIEW
+dbo|Orden_compra_nollega|VIEW
+dbo|REPORTE GENERAL|VIEW
+dbo|v_Agenda_RutaDelDia|VIEW
+dbo|v_AgendaRepartidor_PedidosPendientes|VIEW
+dbo|v_AgendaRepartidor_ResumenPorProducto|VIEW
+dbo|v_AgendaRepartidor_ResumenPorProducto_Detalle|VIEW
+dbo|v_BombonasDiagnosticoPeso|VIEW
+dbo|v_CartaPorte_Detalle|VIEW
+dbo|v_Cilindro_UltimoEstado|VIEW
+dbo|v_Cilindros_Vacios_ALM_conPH|VIEW
+dbo|v_Cilindros_VaciosEnAlmacen|VIEW
+dbo|v_CilindrosDisponibles|VIEW
+dbo|v_CilindrosLlenos_Almacen_UltimoPH|VIEW
+dbo|v_CilindrosLlenosPorProductoAlmacen|VIEW
+dbo|v_ClientesEnRiesgo|VIEW
+dbo|v_DetalleAgrupadoFacturaMensual|VIEW
+dbo|v_MovimientosConCliente|VIEW
+dbo|v_PesoCilindroSerie|VIEW
+dbo|v_ProductosGas_Bombona|VIEW
+dbo|v_ResumenCarga_Repartidor|VIEW
+dbo|v_UltDet_porProducto|VIEW
+dbo|v_UltimoPH_porCilindro|VIEW
+dbo|v_UltPH_porCilindro|VIEW
+dbo|VACTUTIlidad|VIEW
+dbo|vAgenda_PendienteCarga|VIEW
+dbo|Valmacen_asoc|VIEW
+dbo|Valmacen_envases|VIEW
+dbo|Valmacen_Envases_traslados|VIEW
+dbo|Valmacen_envaseszzzz|VIEW
+dbo|Vcatalogo|VIEW
+dbo|Vcierrecaja|VIEW
+dbo|vCilindro_EstadoCompleto|VIEW
+dbo|vCilindroEstadoActualDet|VIEW
+dbo|vCilindroEstadoLog|VIEW
+dbo|vCilindroEstadoLogDet|VIEW
+dbo|vCilindroEstadoOperativoActual|VIEW
+dbo|vCilindrosLlenosActual|VIEW
+dbo|vClienteDireccionFiscal|VIEW
+dbo|VColegiadoxUbigeo|VIEW
+dbo|vcOMPROBANTEScAJA|VIEW
+dbo|Vconfprecios|VIEW
+dbo|VDETALLE_ENVASE|VIEW
+dbo|Vdetalle_EnvaseANTIGUO|VIEW
+dbo|VDETALLE_ENVASErecambio|VIEW
+dbo|Vdetalle_Pago|VIEW
+dbo|VdetalleCompraModProd|VIEW
+dbo|Vdetallecompras|VIEW
+dbo|VdetalleOrden|VIEW
+dbo|VdetVentas|VIEW
+dbo|VDistribucion|VIEW
+dbo|vECilindro_UbicacionActual|VIEW
+dbo|VENTREGAS|VIEW
+dbo|VESTADO_CUENTA_ADM|VIEW
+dbo|VExistencias|VIEW
+dbo|vGARANTIA|VIEW
+dbo|vguia_rem|VIEW
+dbo|Vimpresion_letra|VIEW
+dbo|vimprirbarcode|VIEW
+dbo|Vista_1|VIEW
+dbo|Vista_CodBar_Envases|VIEW
+dbo|Vista_Contratos_Alerta_Contacto|VIEW
+dbo|Vista_Contratos_ProximosAVencer|VIEW
+dbo|Vista_Contratos_RecientementeVencidos|VIEW
+dbo|Vista_Contratos_UltimoEvento|VIEW
+dbo|Vista_Envases_Servicios|VIEW
+dbo|Vista_Resumen_Contratos_PorCliente|VIEW
+dbo|VISTADETALLE_ENVASE|VIEW
+dbo|VistaEnvasesPorServicio|VIEW
+dbo|vkardex|VIEW
+dbo|Vlista_precios|VIEW
+dbo|VListaCodigos|VIEW
+dbo|VLISTACOMPRAS|VIEW
+dbo|VlistaOtros|VIEW
+dbo|VLISTAR01|VIEW
+dbo|Vlistarventas|VIEW
+dbo|VlistarVentasImpagas|VIEW
+dbo|VMASVEND|VIEW
+dbo|Vmigrar|VIEW
+dbo|VMOSTRAR_ESTENVASES|VIEW
+dbo|Vmostrardescuentos|VIEW
+dbo|vmostrarprodConfam|VIEW
+dbo|VmostrarProdsinfam|VIEW
+dbo|VMostrarVentasDetalladas|VIEW
+dbo|VmostrarVentasDetalladasUtil|VIEW
+dbo|VoucherPagos|VIEW
+dbo|VpagoReciboCaja|VIEW
+dbo|VPedido|VIEW
+dbo|vPreparacionCarga_Detalle|VIEW
+dbo|vPreparacionCarga_Resumen|VIEW
+dbo|VPRUEBASA|VIEW
+dbo|VRecepxtraslados|VIEW
+dbo|Vreporte_DocSalidaRecojoPro|VIEW
+dbo|Vreporte_Docu_Envase_Tiposervicio|VIEW
+dbo|Vreporte_Documento|VIEW
+dbo|Vreporte_Documentoenvase|VIEW
+dbo|Vreporte_Documentoenvase_SalidaRecojo|VIEW
+dbo|Vreporte_Documentoenvase_Traslado|VIEW
+dbo|Vreporte_persona|VIEW
+dbo|vReporteOperativoDocumentos|VIEW
+dbo|vReporteOperativoProducto|VIEW
+dbo|VReporteUtilidades|VIEW
+dbo|Vrequerimientos|VIEW
+dbo|VresponsableClienteProveedor|VIEW
+dbo|VResponsableEmpresa|VIEW
+dbo|VresponsablesxCliente|VIEW
+dbo|VresponsablesxClientePRO|VIEW
+dbo|vsaldo|VIEW
+dbo|vScan_LineasMovimiento|VIEW
+dbo|vStockProductos|VIEW
+dbo|VTICKET|VIEW
+dbo|VticketCtrolEnvases|VIEW
+dbo|VTicketDatosCLI|VIEW
+dbo|VticketGuia|VIEW
+dbo|VTraslados|VIEW
+dbo|VUtilidades|VIEW
+dbo|Vventaslinea|VIEW
+dbo|vventaslinea1|VIEW
+dbo|Vventaslineasublinea|VIEW
+dbo|vventassublinea1|VIEW
+dbo|VVentastotalesxsuc|VIEW
+dbo|vw_CP_Localidad_Activas|VIEW
+dbo|vw_DocLineasGas_ADR|VIEW
+dbo|vw_EdetPB_Vigente|VIEW
+dbo|vw_Historial_Servicios_Cilindro|VIEW
+dbo|vw_PuntoEntrega_UltimaCoord|VIEW
+dbo|vw_PuntosEntrega_Canonico|VIEW
+dbo|vw_Ruta_Centroides|VIEW
+
+(328 rows affected)

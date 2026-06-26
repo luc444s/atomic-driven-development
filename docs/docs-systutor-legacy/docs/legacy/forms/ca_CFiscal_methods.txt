@@ -1,0 +1,32 @@
+﻿Private Function GetHttp(ByVal url As String) As String
+Private Function GetHttpHacienda(ByVal url As String) As String
+Private Sub Conectar()
+Private Sub ConsultarActividadFiscal_ES(
+    ByVal identificacion As String,
+    ByRef codigo As String,
+    ByRef descripcion As String
+)
+Private Sub Desconectar()
+Private Sub ExecSP(ByVal NombreSP As String, ParamArray parametros() As SqlClient.SqlParameter)
+Public Function ObtenerActividadFiscalPrincipal(ByVal CodPersona As Integer) As DataTable
+Public Sub ConsultarActividadFiscal_CR(
+    ByVal identificacion As String,
+    ByRef codigo As String,
+    ByRef descripcion As String
+)
+Public Sub ConsultarActividadFiscalPersona(
+            ByVal CodPersona As Integer,
+            ByVal PaisCodigo As String,
+            ByVal TipoId As String,
+            ByVal NumeroId As String
+        )
+Public Sub GuardarActividadFiscalManual(
+    ByVal CodPersona As Integer,
+    ByVal PaisCodigo As String,
+    ByVal TipoId As String,
+    ByVal NumeroId As String,
+    ByVal CodigoActividad As String,
+    ByVal DescripcionActividad As String,
+    ByVal EsPrincipal As Boolean,
+    ByVal Fuente As String
+)

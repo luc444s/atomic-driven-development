@@ -2,17 +2,25 @@ import { ReactNode } from "react";
 import { Navigate } from "react-router-dom";
 
 import { useAuthStore } from "../auth/store";
-import { hasRequiredPermissions } from "./permissions";
+import { hasAnyPermission, hasRequiredPermissions } from "./permissions";
 
 type PermissionBoundaryProps = {
   requiredPermissions?: string[];
+  anyPermissions?: string[];
   children: ReactNode;
 };
 
-export function PermissionBoundary({ requiredPermissions, children }: PermissionBoundaryProps) {
+export function PermissionBoundary({
+  requiredPermissions,
+  anyPermissions,
+  children,
+}: PermissionBoundaryProps) {
   const permissions = useAuthStore((state) => state.permissions);
 
-  if (!hasRequiredPermissions(permissions, requiredPermissions)) {
+  const hasRequired = hasRequiredPermissions(permissions, requiredPermissions);
+  const hasAny = hasAnyPermission(permissions, anyPermissions);
+
+  if (!hasRequired || !hasAny) {
     return <Navigate replace to="/app/system" />;
   }
 

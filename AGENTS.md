@@ -330,6 +330,9 @@ Herramientas oficiales:
 - Pyright para typing;
 - Pytest para backend.
 
+En este repositorio `ruff` y `pyright` funcionan como validaciones reales del entorno de trabajo.
+No deben tratarse como herramientas opcionales, ausentes o "pendientes de instalar" al cerrar una tarea.
+
 Reglas:
 
 - toda logica nueva relevante requiere pruebas;
@@ -337,6 +340,7 @@ Reglas:
 - servicios y APIs criticos con pruebas de integracion;
 - migradores con pruebas de casos validos y rechazo;
 - permisos, auditoria y eventos deben probarse.
+- cuando el cambio toque backend o tests Python, correr `ruff check` y `pyright` como parte del cierre tecnico;
 
 No se considera terminado un cambio importante sin validacion suficiente para su riesgo.
 

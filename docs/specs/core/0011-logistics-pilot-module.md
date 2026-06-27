@@ -2,7 +2,7 @@
 
 ## Estado
 
-Propuesta
+En implementacion
 
 ## Contexto
 
@@ -46,6 +46,38 @@ Toca:
 - `docs/contracts/logistics-api.md`
 
 No debe romper kernel, plugin runtime, frontend shell, tenant isolation, RBAC, componentes compartidos.
+
+## Corte implementado actual
+
+La implementacion activa en el repositorio cubre:
+
+- catalogo de estados;
+- transiciones permitidas;
+- CRUD minimo de cilindros (crear, listar, detalle);
+- state machine de cilindros;
+- trazabilidad de cambios de estado;
+- revisiones PH y garantias basicas;
+- almacenes, zonas, vehiculos y puntos de entrega;
+- pedidos con lineas;
+- rutas con paradas;
+- carga por ruta;
+- movimientos con confirmacion de estado;
+- agenda manual y agenda generada desde ruta;
+- frontend multi-pantalla del plugin;
+- widget de resumen en dashboard del sistema.
+
+Siguen pendientes para iteraciones futuras:
+
+- retimbrado detallado;
+- reportes avanzados;
+- integracion con inventory/crm/billing;
+- automatizaciones async mas profundas;
+- importacion legacy del dominio logistics.
+
+Completado despues del corte original:
+
+- **envase completo (SPEC 0012)**: barcodes, ADR completo, gas product, marca, retimbrados,
+  custodia, servicios, escaneo movil y etiquetas
 
 ---
 
@@ -1133,38 +1165,30 @@ Logistica  (visible con cualquier permiso logistics.*)
 
 ## Orden de implementacion
 
-```
-Semana 1:
-  - Modelos PostgreSQL (20 tablas) + migracion
-  - Catalogo de estados + transiciones (seed)
-  - StateMachineService + ADR validation
-  - API CRUD cilindros + transiciones + trace
-  - Tests del state machine
+El corte actual cubre lo planificado originalmente. Ver SPEC 0012 para la siguiente fase (envase completo + escaneo movil).
 
-Semana 2:
+```
+Implementado:
+  - Modelos PostgreSQL (20 tablas) + migraciones (001, 002, 003)
+  - Catalogo de estados + transiciones (seed)
+  - StateMachineService + ADR/PH validation
+  - API CRUD cilindros + transiciones + trace
   - lg_warehouses, lg_vehicles, lg_delivery_points, lg_zones
   - API catalogos + CRUD almacenes/vehiculos/puntos
   - lg_orders + lg_order_items
-  - API pedidos
-  - Frontend: CylindersPage, CylinderDetailPage, CylinderTracePage
-  - Frontend: WarehousesPage, VehiclesPage, DeliveryPointsPage
-  - Frontend: OrdersPage, OrderDetailPage
-
-Semana 3:
+  - API pedidos + lineas
   - lg_routes + lg_route_stops + lg_loads
   - lg_movements + items + status_history
-  - lg_agenda_tasks
-  - API rutas, carga, movimientos, agenda
-  - Frontend: RoutesPage, RouteDetailPage, LoadsPage
-  - Frontend: MovementsPage, MovementDetailPage
-
-Semana 4:
-  - Frontend: AgendaPage, DashboardPage
+  - lg_agenda_tasks + lg_agenda_task_types
   - lg_hydrostatic_tests + lg_cylinder_warranties
-  - API PH, garantias
-  - Frontend: formularios restantes
-  - Tests de integracion (flujo completo)
-  - Bug fixing + ajustes
+  - Frontend: todas las paginas (cilindros, pedidos, rutas, carga,
+    movimientos, agenda, almacenes, vehiculos, puntos entrega)
+  - Widget dashboard + sidebar
+  - Tests de integracion (flujo cilindros + operaciones)
+
+Siguiente fase (SPEC 0012):
+  - Envase completo: barcodes, ADR, gas, marca, precio, etc.
+  - Retimbrados, custodia, servicios, escaneo movil, etiquetas
 ```
 
 ---
@@ -1191,6 +1215,11 @@ Semana 4:
 ---
 
 ## Plugins futuros
+
+| plugin | dominio | depende de |
+|--------|---------|-----------|
+Nota: Antes de iniciar nuevos plugins, logistics requiere completar su fase de envase (SPEC 0012)
+para cubrir barcodes, ADR completo, retimbrados, custodia, servicios, escaneo movil y etiquetas.
 
 | plugin | dominio | depende de |
 |--------|---------|-----------|

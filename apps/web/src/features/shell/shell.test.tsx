@@ -24,7 +24,7 @@ const demoUser: UserProfile = {
     "core.roles.read",
     "core.branches.read",
     "core.plugin.runtime.read",
-    "logistics.delivery.read",
+    "logistics.cylinder.read",
   ],
 };
 
@@ -39,8 +39,8 @@ const enabledPluginRecord: PluginRuntimeRecord = {
   backend_entrypoint: "backend.plugin:register",
   frontend_entrypoint: "frontend/register.ts",
   requires_json: [],
-  permissions_json: ["logistics.delivery.read"],
-  events_json: ["logistics.delivery.created"],
+  permissions_json: ["logistics.cylinder.read"],
+  events_json: ["logistics.cylinder.created"],
   description: "Plugin Logistics",
   migration_version: null,
   installed_at: null,

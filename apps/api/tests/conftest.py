@@ -9,6 +9,7 @@ from sqlalchemy import Engine
 from sqlalchemy.orm import Session
 
 import apps.api.app.kernel.models  # noqa: F401
+import plugins.logistics.backend.models  # noqa: F401
 from apps.api.app.commands.seed_demo import seed_demo_data
 from apps.api.app.core.config import Settings
 from apps.api.app.core.database import Base, build_engine, build_session_factory

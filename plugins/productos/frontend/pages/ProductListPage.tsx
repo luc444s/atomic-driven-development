@@ -1,17 +1,24 @@
 import { useState } from "react";
 
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
-import { Link } from "../../../../apps/web/src/lib/router";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { listProducts, productosKeys } from "../api";
+import { ModalCatalogo } from "../components/ModalCatalogo";
+import { ModalDetalleProducto } from "../components/ModalDetalleProducto";
+import { ModalNuevoProducto } from "../components/ModalNuevoProducto";
 import { ProductosSection } from "../components/ProductosSection";
 
 export function ProductListPage() {
   const [search, setSearch] = useState("");
+  const [showNew, setShowNew] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+  const [showCatalogo, setShowCatalogo] = useState(false);
+
   const productsQuery = useQuery({
     queryKey: productosKeys.products.list({ search }),
     queryFn: () =>
@@ -29,12 +36,8 @@ export function ProductListPage() {
       description="Catálogo maestro de productos, precios, costos, ADR y promociones."
       actions={
         <div className="flex gap-2">
-          <Link to="/app/productos/catalogs">
-            <Button variant="secondary">Catálogos</Button>
-          </Link>
-          <Link to="/app/productos/new">
-            <Button>Nuevo producto</Button>
-          </Link>
+          <Button variant="secondary" onClick={() => setShowCatalogo(true)}>Catálogos</Button>
+          <Button onClick={() => { setEditId(null); setShowNew(true); }}>Nuevo producto</Button>
         </div>
       }
     >
@@ -70,12 +73,8 @@ export function ProductListPage() {
                 header: "Acciones",
                 render: (row) => (
                   <div className="flex gap-2">
-                    <Link to={`/app/productos/${row.id}`}>
-                      <Button variant="secondary">Editar</Button>
-                    </Link>
-                    <Link to={`/app/productos/${row.id}/detail`}>
-                      <Button variant="secondary">Detalle</Button>
-                    </Link>
+                    <Button variant="secondary" onClick={() => { setEditId(row.id); setShowNew(true); }}>Editar</Button>
+                    <Button variant="secondary" onClick={() => setDetailId(row.id)}>Detalle</Button>
                   </div>
                 ),
               },
@@ -86,6 +85,36 @@ export function ProductListPage() {
           />
         </CardContent>
       </Card>
+
+      <ModalNuevoProducto
+        open={showNew}
+        productId={editId ?? undefined}
+        onClose={() => { setShowNew(false); setEditId(null); }}
+        onSaved={() => {
+          productsQuery.refetch();
+        }}
+        onOpenDetail={(id) => {
+          setShowNew(false);
+          setEditId(null);
+          setDetailId(id);
+        }}
+      />
+
+      <ModalDetalleProducto
+        open={detailId !== null}
+        productId={detailId ?? ""}
+        onClose={() => setDetailId(null)}
+        onEditProduct={(id) => {
+          setDetailId(null);
+          setEditId(id);
+          setShowNew(true);
+        }}
+      />
+
+      <ModalCatalogo
+        open={showCatalogo}
+        onClose={() => setShowCatalogo(false)}
+      />
     </ProductosSection>
   );
 }

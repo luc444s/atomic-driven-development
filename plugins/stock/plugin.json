@@ -1,0 +1,21 @@
+{
+  "id": "stock",
+  "name": "Stock",
+  "version": "0.1.0",
+  "api_version": "1",
+  "requires": ["logistics", "productos"],
+  "backend_entrypoint": "backend.plugin:register",
+  "frontend_entrypoint": "frontend/register.ts",
+  "permissions": [
+    "stock.balance.read",
+    "stock.balance.adjust",
+    "stock.transfer.create",
+    "stock.config.read",
+    "stock.config.manage"
+  ],
+  "events": [
+    "stock.balance.adjusted",
+    "stock.transfer.completed"
+  ],
+  "description": "Ledger de inventario por producto y almacen con balances sincronizados, configuracion minima/maxima y transferencias auditables"
+}

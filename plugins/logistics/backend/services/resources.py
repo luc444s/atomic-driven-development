@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from apps.api.app.kernel.tenants.service import get_branch_for_tenant
 from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
 from plugins.logistics.backend.models import (
@@ -48,8 +49,13 @@ def create_warehouse(
     payload: WarehouseCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsWarehouse:
+    branch_id = payload.branch_id if payload.branch_id is not None else action_context.branch_id
+    if branch_id is not None and get_branch_for_tenant(db, tenant_id, branch_id) is None:
+        raise ValueError("Branch does not belong to the tenant")
+
     warehouse = LogisticsWarehouse(
         tenant_id=tenant_id,
+        branch_id=branch_id,
         name=payload.name.strip(),
         code=payload.code.strip().upper(),
         address=payload.address,
@@ -63,7 +69,7 @@ def create_warehouse(
         action="warehouse.create",
         entity_type="warehouse",
         entity_id=warehouse.id,
-        details={"name": warehouse.name, "code": warehouse.code},
+        details={"name": warehouse.name, "code": warehouse.code, "branch_id": warehouse.branch_id},
     )
     return warehouse
 
@@ -79,6 +85,13 @@ def update_warehouse(
         warehouse.name = payload.name.strip()
     if payload.code is not None:
         warehouse.code = payload.code.strip().upper()
+    if "branch_id" in payload.model_fields_set:
+        if (
+            payload.branch_id is not None
+            and get_branch_for_tenant(db, warehouse.tenant_id, payload.branch_id) is None
+        ):
+            raise ValueError("Branch does not belong to the tenant")
+        warehouse.branch_id = payload.branch_id
     if payload.address is not None:
         warehouse.address = payload.address
     if payload.phone is not None:
@@ -93,7 +106,12 @@ def update_warehouse(
         action="warehouse.update",
         entity_type="warehouse",
         entity_id=warehouse.id,
-        details={"name": warehouse.name, "code": warehouse.code, "active": warehouse.is_active},
+        details={
+            "name": warehouse.name,
+            "code": warehouse.code,
+            "branch_id": warehouse.branch_id,
+            "active": warehouse.is_active,
+        },
     )
     return warehouse
 

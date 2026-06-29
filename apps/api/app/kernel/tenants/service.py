@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from sqlalchemy import Select, select
+from sqlalchemy import Select, delete, select
 from sqlalchemy.orm import Session
 
 from apps.api.app.kernel.audit.models import AuditLog
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.events.models import EventLog, EventOutbox
-from apps.api.app.kernel.tenants.models import Branch, Tenant
+from apps.api.app.kernel.tenants.models import Branch, Tenant, UserContextClaim
 
 
 class TenantScopeError(ValueError):
@@ -97,6 +97,72 @@ def assign_branch_to_user(db: Session, user: User, branch: Branch | None) -> Use
     db.add(user)
     db.flush()
     return user
+
+
+def list_user_claim_values(
+    db: Session,
+    *,
+    tenant_id: str,
+    user_id: str,
+    claim_type: str,
+) -> list[str]:
+    stmt: Select[tuple[str]] = (
+        select(UserContextClaim.claim_value)
+        .where(
+            UserContextClaim.tenant_id == tenant_id,
+            UserContextClaim.user_id == user_id,
+            UserContextClaim.claim_type == claim_type,
+        )
+        .order_by(UserContextClaim.claim_value.asc())
+    )
+    return list(db.scalars(stmt))
+
+
+def list_user_warehouse_ids(db: Session, *, tenant_id: str, user_id: str) -> list[str]:
+    return list_user_claim_values(
+        db,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        claim_type="warehouse_id",
+    )
+
+
+def replace_user_claim_values(
+    db: Session,
+    *,
+    user: User,
+    claim_type: str,
+    values: list[str],
+) -> list[str]:
+    normalized = sorted({value.strip() for value in values if value.strip()})
+    db.execute(
+        delete(UserContextClaim).where(
+            UserContextClaim.user_id == user.id,
+            UserContextClaim.claim_type == claim_type,
+        )
+    )
+    db.flush()
+
+    for value in normalized:
+        db.add(
+            UserContextClaim(
+                tenant_id=user.tenant_id,
+                user_id=user.id,
+                claim_type=claim_type,
+                claim_value=value,
+            )
+        )
+    db.flush()
+    return normalized
+
+
+def replace_user_warehouse_ids(db: Session, *, user: User, warehouse_ids: list[str]) -> list[str]:
+    return replace_user_claim_values(
+        db,
+        user=user,
+        claim_type="warehouse_id",
+        values=warehouse_ids,
+    )
 
 
 def resolve_tenant_scope(

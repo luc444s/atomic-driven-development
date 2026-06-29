@@ -47,3 +47,22 @@ class Branch(Base):
         default=utc_now,
         onupdate=utc_now,
     )
+
+
+class UserContextClaim(Base):
+    __tablename__ = "user_context_claims"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "claim_type",
+            "claim_value",
+            name="uq_user_context_claim",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    claim_type: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    claim_value: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)

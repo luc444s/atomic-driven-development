@@ -9,7 +9,11 @@ from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.auth.security import create_access_token, verify_password
 from apps.api.app.kernel.permissions.service import list_user_permissions
 from apps.api.app.kernel.tenants.models import Branch, Tenant
-from apps.api.app.kernel.tenants.service import assign_branch_to_user, validate_user_branch_scope
+from apps.api.app.kernel.tenants.service import (
+    assign_branch_to_user,
+    list_user_warehouse_ids,
+    validate_user_branch_scope,
+)
 
 
 def get_user_by_email(db: Session, email: str) -> User | None:
@@ -119,6 +123,7 @@ def build_user_profile(db: Session, user: User) -> dict[str, object]:
         "is_active": user.is_active,
         "is_superadmin": user.is_superadmin,
         "permissions": list_user_permissions(db, user_id=user.id, tenant_id=user.tenant_id),
+        "warehouse_ids": list_user_warehouse_ids(db, tenant_id=user.tenant_id, user_id=user.id),
     }
 
 

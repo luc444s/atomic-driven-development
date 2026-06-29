@@ -100,12 +100,14 @@ def test_core_users_crud_and_disable_blocks_auth(
             "password": "UserOne123!",
             "branch_id": seeded_demo["branch_id"],
             "role_ids": [role.id],
+            "warehouse_ids": ["warehouse-a", "warehouse-b"],
         },
     )
     assert create_response.status_code == 201
     payload = create_response.json()
     assert payload["name"] == "User One"
     assert payload["roles"] == ["operator-users"]
+    assert payload["warehouse_ids"] == ["warehouse-a", "warehouse-b"]
     assert "password_hash" not in payload
 
     user_id = payload["id"]
@@ -136,6 +138,18 @@ def test_core_users_crud_and_disable_blocks_auth(
         password="UserOne123!",
     )
     assert login_after_enable.status_code == 200
+    assert login_after_enable.json()["user"]["warehouse_ids"] == ["warehouse-a", "warehouse-b"]
+
+    me_response = client.get(
+        "/api/v1/auth/me",
+        headers=auth_headers(
+            client,
+            email="user-one-updated@example.com",
+            password="UserOne123!",
+        ),
+    )
+    assert me_response.status_code == 200
+    assert me_response.json()["warehouse_ids"] == ["warehouse-a", "warehouse-b"]
 
     audits = list(
         db_session.scalars(

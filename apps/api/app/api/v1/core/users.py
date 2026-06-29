@@ -94,6 +94,7 @@ def create_user(
                 branch_id=payload.branch_id,
             ),
             role_ids=payload.role_ids,
+            warehouse_ids=payload.warehouse_ids,
             action_context=build_action_context(request, tenant_context),
         )
         db.commit()
@@ -133,6 +134,7 @@ def update_user(
             else None,
             branch_was_provided=branch_was_provided,
             role_ids=payload.role_ids,
+            warehouse_ids=payload.warehouse_ids,
             action_context=build_action_context(request, tenant_context),
         )
         if item is None:

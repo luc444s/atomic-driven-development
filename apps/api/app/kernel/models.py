@@ -3,7 +3,7 @@ from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.events.models import EventLog, EventOutbox
 from apps.api.app.kernel.permissions.models import Permission, Role, RolePermission, UserRole
 from apps.api.app.kernel.plugins.models import PluginRegistry
-from apps.api.app.kernel.tenants.models import Branch, Tenant
+from apps.api.app.kernel.tenants.models import Branch, Tenant, UserContextClaim
 
 __all__ = [
     "AuditLog",
@@ -16,5 +16,6 @@ __all__ = [
     "RolePermission",
     "Tenant",
     "User",
+    "UserContextClaim",
     "UserRole",
 ]

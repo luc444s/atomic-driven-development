@@ -180,6 +180,7 @@ class WarehouseRead(BaseModel):
 
     id: str
     tenant_id: str
+    branch_id: str | None
     name: str
     code: str
     address: str | None
@@ -192,6 +193,7 @@ class WarehouseRead(BaseModel):
 class WarehouseCreateRequest(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     code: str = Field(min_length=1, max_length=20)
+    branch_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
 
@@ -199,6 +201,7 @@ class WarehouseCreateRequest(BaseModel):
 class WarehouseUpdateRequest(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     code: str | None = Field(default=None, min_length=1, max_length=20)
+    branch_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
     is_active: bool | None = None

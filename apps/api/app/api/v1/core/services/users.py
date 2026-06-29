@@ -17,6 +17,7 @@ from apps.api.app.kernel.permissions.service import (
     replace_user_roles,
 )
 from apps.api.app.kernel.tenants.models import Branch
+from apps.api.app.kernel.tenants.service import list_user_warehouse_ids, replace_user_warehouse_ids
 
 
 def serialize_core_user(db: Session, user: User) -> dict[str, object]:
@@ -28,6 +29,7 @@ def serialize_core_user(db: Session, user: User) -> dict[str, object]:
         "email": user.email,
         "active": user.is_active,
         "roles": list_user_role_names(db, tenant_id=user.tenant_id, user_id=user.id),
+        "warehouse_ids": list_user_warehouse_ids(db, tenant_id=user.tenant_id, user_id=user.id),
         "created_at": user.created_at,
         "updated_at": user.updated_at,
     }
@@ -54,6 +56,7 @@ def create_core_user(
     password: str,
     branch: Branch | None,
     role_ids: list[str],
+    warehouse_ids: list[str],
     action_context: CoreActionContext,
 ) -> dict[str, object]:
     roles = list_roles_by_ids_for_tenant(db, tenant_id=tenant_id, role_ids=role_ids)
@@ -72,13 +75,18 @@ def create_core_user(
         is_active=True,
     )
     replace_user_roles(db, user=user, roles=roles)
+    replace_user_warehouse_ids(db, user=user, warehouse_ids=warehouse_ids)
     audit_core_action(
         db,
         context=action_context,
         action="user.create",
         entity_type="user",
         entity_id=user.id,
-        details={"email": user.email, "role_ids": list(role_ids)},
+        details={
+            "email": user.email,
+            "role_ids": list(role_ids),
+            "warehouse_ids": list(warehouse_ids),
+        },
     )
     emit_core_event(
         db,
@@ -102,6 +110,7 @@ def update_core_user(
     branch: Branch | None,
     branch_was_provided: bool,
     role_ids: list[str] | None,
+    warehouse_ids: list[str] | None,
     action_context: CoreActionContext,
 ) -> dict[str, object] | None:
     user = get_user_for_tenant(db, tenant_id=tenant_id, user_id=user_id)
@@ -130,6 +139,8 @@ def update_core_user(
         db.flush()
     if roles is not None:
         replace_user_roles(db, user=user, roles=roles)
+    if warehouse_ids is not None:
+        replace_user_warehouse_ids(db, user=user, warehouse_ids=warehouse_ids)
 
     audit_core_action(
         db,
@@ -137,7 +148,7 @@ def update_core_user(
         action="user.update",
         entity_type="user",
         entity_id=user.id,
-        details={"email": user.email},
+        details={"email": user.email, "warehouse_ids": warehouse_ids},
     )
     emit_core_event(
         db,

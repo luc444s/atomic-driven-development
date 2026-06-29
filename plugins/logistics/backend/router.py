@@ -830,6 +830,9 @@ def create_warehouse_endpoint(
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return WarehouseRead.model_validate(warehouse)
 
 
@@ -856,6 +859,9 @@ def update_warehouse_endpoint(
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return WarehouseRead.model_validate(warehouse)
 
 

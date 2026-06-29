@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -60,11 +61,12 @@ def create_order(
     payload: OrderCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsOrder:
+    customer = require_customer(db, tenant_id=tenant_id, customer_id=payload.customer_id)
     order = LogisticsOrder(
         tenant_id=tenant_id,
         branch_id=payload.branch_id,
         customer_id=payload.customer_id,
-        customer_name=payload.customer_name.strip(),
+        customer_name=customer.legal_name,
         movement_type=payload.movement_type,
         document_series=payload.document_series,
         document_number=payload.document_number,
@@ -105,8 +107,10 @@ def update_order(
     payload: OrderUpdateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsOrder:
-    if payload.customer_name is not None:
-        order.customer_name = payload.customer_name.strip()
+    if payload.customer_id is not None and payload.customer_id != order.customer_id:
+        customer = require_customer(db, tenant_id=order.tenant_id, customer_id=payload.customer_id)
+        order.customer_id = customer.id
+        order.customer_name = customer.legal_name
     if payload.warehouse_id is not None:
         order.warehouse_id = payload.warehouse_id
     if payload.carrier is not None:

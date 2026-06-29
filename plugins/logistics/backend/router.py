@@ -18,6 +18,7 @@ from plugins.logistics.backend.schemas import (
     AgendaTaskTypeRead,
     AgendaTaskUpdateRequest,
     BrandRead,
+    CylinderConditionRead,
     CylinderCreateRequest,
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
@@ -89,6 +90,7 @@ from plugins.logistics.backend.services.agenda import (
 from plugins.logistics.backend.services.catalog import (
     list_agenda_task_types,
     list_brands_catalog,
+    list_conditions_catalog,
     list_cylinder_states,
     list_delivery_points_catalog,
     list_gas_products_catalog,
@@ -304,6 +306,17 @@ def get_zone_catalog(
     _: User = REQUIRE_WAREHOUSE_READ,
 ) -> list[ZoneRead]:
     return [ZoneRead.model_validate(item) for item in list_zones_catalog(db, tenant_id=tenant_context.current_tenant_id)]
+
+
+@router.get("/catalog/conditions", response_model=list[CylinderConditionRead])
+def get_condition_catalog(
+    db: Session = DB_SESSION,
+    _: User = REQUIRE_CYLINDER_READ,
+) -> list[CylinderConditionRead]:
+    return [
+        CylinderConditionRead.model_validate(item)
+        for item in list_conditions_catalog(db)
+    ]
 
 
 @router.get("/catalog/gas-products", response_model=list[GasProductRead])

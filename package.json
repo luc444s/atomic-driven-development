@@ -14,6 +14,8 @@
     "migrate:check": ".venv/bin/python -m alembic -c apps/api/alembic.ini check",
     "migrate:history": ".venv/bin/python -m alembic -c apps/api/alembic.ini history",
     "migrate:downgrade": ".venv/bin/python -m alembic -c apps/api/alembic.ini downgrade -1",
+    "migrate:plugins": ".venv/bin/python -m apps.api.app.commands.migrate_plugins",
+    "migrate:plugin": ".venv/bin/python -m apps.api.app.commands.migrate_plugins",
     "frontend": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web dev",
     "dev:web": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web dev",
     "build": "node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web build",

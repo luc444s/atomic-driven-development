@@ -1,0 +1,25 @@
+{
+  "id": "crm",
+  "name": "CRM",
+  "version": "1.0.0",
+  "api_version": "1",
+  "requires": [],
+  "backend_entrypoint": "backend.plugin:register",
+  "frontend_entrypoint": "frontend/register.ts",
+  "permissions": [
+    "crm.customer.read",
+    "crm.customer.create",
+    "crm.customer.update",
+    "crm.catalog.read",
+    "crm.geography.read",
+    "crm.geography.manage"
+  ],
+  "events": [
+    "crm.customer.created",
+    "crm.customer.updated",
+    "crm.customer.status_changed",
+    "crm.customer.address_added",
+    "crm.customer.address_removed"
+  ],
+  "description": "Modulo de clientes con datos fiscales, direcciones, contactos, catalogos y geografia"
+}

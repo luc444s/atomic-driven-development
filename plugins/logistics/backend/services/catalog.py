@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
     LogisticsBrand,
+    LogisticsCylinderCondition,
     LogisticsCylinderState,
     LogisticsDeliveryPoint,
     LogisticsGasProduct,
@@ -111,6 +112,13 @@ SERVICE_TYPE_DEFINITIONS: tuple[tuple[str, str], ...] = (
     ("INSPECCION", "Inspeccion"),
 )
 
+CONDITION_DEFINITIONS: tuple[tuple[str, str], ...] = (
+    ("CILPRO", "Cilindro propio"),
+    ("CILCLI", "Cilindro del cliente"),
+    ("CILPROV", "Cilindro del proveedor"),
+    ("CILGAR", "Cilindro en garantia"),
+)
+
 
 def list_cylinder_states(db: Session) -> list[LogisticsCylinderState]:
     return list(
@@ -171,7 +179,7 @@ def list_delivery_points_catalog(db: Session, *, tenant_id: str) -> list[Logisti
                 LogisticsDeliveryPoint.tenant_id == tenant_id,
                 LogisticsDeliveryPoint.is_active.is_(True),
             )
-            .order_by(LogisticsDeliveryPoint.customer_name, LogisticsDeliveryPoint.address)
+            .order_by(LogisticsDeliveryPoint.address)
         ).all()
     )
 
@@ -224,6 +232,17 @@ def list_service_types_catalog(db: Session, *, tenant_id: str) -> list[Logistics
     )
 
 
+def list_conditions_catalog(db: Session) -> list[LogisticsCylinderCondition]:
+    _ensure_condition_catalog(db)
+    return list(
+        db.scalars(
+            select(LogisticsCylinderCondition)
+            .where(LogisticsCylinderCondition.is_active.is_(True))
+            .order_by(LogisticsCylinderCondition.code)
+        ).all()
+    )
+
+
 def _ensure_tenant_envase_catalogs(db: Session, *, tenant_id: str) -> None:
     has_gases = db.scalar(
         select(LogisticsGasProduct.id).where(LogisticsGasProduct.tenant_id == tenant_id).limit(1)
@@ -255,3 +274,11 @@ def _ensure_tenant_envase_catalogs(db: Session, *, tenant_id: str) -> None:
             db.add(LogisticsServiceType(tenant_id=tenant_id, code=code, name=name))
 
     db.flush()
+
+
+def _ensure_condition_catalog(db: Session) -> None:
+    has_conditions = db.scalar(select(LogisticsCylinderCondition.code).limit(1))
+    if has_conditions is None:
+        for code, name in CONDITION_DEFINITIONS:
+            db.add(LogisticsCylinderCondition(code=code, name=name))
+        db.flush()

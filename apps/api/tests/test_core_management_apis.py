@@ -334,6 +334,11 @@ def test_core_plugins_management_permissions_and_lifecycle(
     )
     assert forbidden_enable.status_code == 403
 
+    crm_install_response = client.post("/api/v1/core/plugins/crm/install", headers=admin_headers)
+    assert crm_install_response.status_code == 200
+    crm_enable_response = client.post("/api/v1/core/plugins/crm/enable", headers=admin_headers)
+    assert crm_enable_response.status_code == 200
+
     install_response = client.post("/api/v1/core/plugins/logistics/install", headers=admin_headers)
     assert install_response.status_code == 200
 

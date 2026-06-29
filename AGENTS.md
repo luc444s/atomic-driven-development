@@ -28,10 +28,11 @@ SYSTUTOR OSS se construye con estas reglas base:
 Antes de trabajar, todo agente debe leer en este orden:
 
 1. `AGENTS.md`
-2. ADR relacionado con la tarea
-3. Spec de la feature
-4. Contrato de datos/API si existe
-5. Archivos afectados
+2. `docs/avances/<modulo>.md` — documento de avance del módulo afectado (si existe)
+3. ADR relacionado con la tarea
+4. Spec de la feature
+5. Contrato de datos/API si existe
+6. Archivos afectados
 
 No implementar únicamente a partir de una conversación o instrucción aislada.
 
@@ -125,6 +126,7 @@ systutor-oss/
 │   └── legacy-analyzer/
 ├── docs/
 │   ├── adr/
+│   ├── avances/
 │   ├── specs/
 │   └── contracts/
 ├── infra/
@@ -301,6 +303,9 @@ Si el cambio altera arquitectura o contrato base, tambien requiere ADR.
 Todo agente debe:
 
 - leer este archivo antes de modificar codigo;
+- leer el documento de avance en `docs/avances/` del modulo afectado antes de trabajar;
+- **leer la documentacion en `docs/` antes de hacer busquedas exhaustivas en el proyecto** — los documentos de avance contienen el estado detallado, los gaps y el historial de decisiones;
+- solo si la informacion en `docs/` es insuficiente, hacer busquedas en el codigo fuente;
 - leer la spec de la feature antes de implementarla;
 - tocar la menor cantidad de archivos posible;
 - respetar limites entre kernel, plugins, tools y docs;

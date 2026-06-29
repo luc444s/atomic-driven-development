@@ -4,6 +4,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -86,6 +87,11 @@ def create_movement(
     payload: MovementCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsMovement:
+    customer_name = None
+    customer_id = payload.customer_id
+    if customer_id is not None:
+        customer = require_customer(db, tenant_id=tenant_id, customer_id=customer_id)
+        customer_name = customer.legal_name
     movement = LogisticsMovement(
         tenant_id=tenant_id,
         branch_id=payload.branch_id,
@@ -99,8 +105,8 @@ def create_movement(
         ),
         order_id=payload.order_id,
         route_id=payload.route_id,
-        customer_id=payload.customer_id,
-        customer_name=payload.customer_name,
+        customer_id=customer_id,
+        customer_name=customer_name,
         warehouse_id=payload.warehouse_id,
         driver_id=payload.driver_id,
         vehicle_id=payload.vehicle_id,

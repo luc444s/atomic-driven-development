@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
+import type { CustomerBrief } from "../../../crm/frontend/types";
 
 import {
   createOrder,
@@ -9,6 +10,8 @@ import {
   listWarehouses,
   logisticsKeys,
 } from "../api";
+import { listCustomers } from "../../../crm/frontend/api";
+import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -18,6 +21,7 @@ import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 
 type OrderFormState = {
+  customer_id: string;
   customer_name: string;
   movement_type: string;
   warehouse_id: string;
@@ -31,7 +35,7 @@ type OrderItemFormState = {
   location: string;
 };
 
-const EMPTY_ORDER: OrderFormState = { customer_name: "", movement_type: "SC", warehouse_id: "", notes: "" };
+const EMPTY_ORDER: OrderFormState = { customer_id: "", customer_name: "", movement_type: "SC", warehouse_id: "", notes: "" };
 const EMPTY_ITEM: OrderItemFormState = {
   product_name: "",
   quantity_requested: "1",
@@ -45,6 +49,7 @@ export function OrdersPage() {
   const [itemForm, setItemForm] = useState<OrderItemFormState>(EMPTY_ITEM);
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isItemOpen, setIsItemOpen] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,6 +58,10 @@ export function OrdersPage() {
     queryFn: () => listOrders({}),
   });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const customersQuery = useQuery({
+    queryKey: ["crm", "customers", "logistics-lookup"],
+    queryFn: () => listCustomers({ limit: 200, offset: 0 }),
+  });
   const itemsQuery = useQuery({
     queryKey: logisticsKeys.orders.items(selectedOrderId ?? ""),
     queryFn: () => listOrderItems(selectedOrderId!),
@@ -91,7 +100,7 @@ export function OrdersPage() {
     setError(null);
     try {
       await createOrderMutation.mutateAsync({
-        customer_name: orderForm.customer_name,
+        customer_id: orderForm.customer_id,
         movement_type: orderForm.movement_type,
         warehouse_id: orderForm.warehouse_id || null,
         notes: orderForm.notes || null,
@@ -131,7 +140,12 @@ export function OrdersPage() {
           <CardContent>
             <DataTable
               columns={[
-                { key: "customer", header: "Cliente", render: (row) => row.customer_name },
+                {
+                  key: "customer",
+                  header: "Cliente",
+                  render: (row) =>
+                    customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_name,
+                },
                 { key: "type", header: "Tipo", render: (row) => row.movement_type },
                 { key: "status", header: "Estado", render: (row) => row.status },
                 {
@@ -194,10 +208,12 @@ export function OrdersPage() {
         onClose={() => setIsOrderOpen(false)}
       >
         <form className="space-y-4" onSubmit={submitOrder}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-slate-300">
             <span>Cliente</span>
-            <Input value={orderForm.customer_name} onChange={(event) => setOrderForm((current) => ({ ...current, customer_name: event.target.value }))} />
-          </label>
+            <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
+              {orderForm.customer_name ? `${orderForm.customer_name} (${orderForm.customer_id})` : "Seleccionar cliente"}
+            </Button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 text-sm text-slate-300">
               <span>Tipo</span>
@@ -241,6 +257,14 @@ export function OrdersPage() {
           </div>
         </form>
       </Dialog>
+
+      <CustomerSearchDialog
+        open={isCustomerSearchOpen}
+        onOpenChange={setIsCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setOrderForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+        }
+      />
 
       <Dialog
         open={isItemOpen}

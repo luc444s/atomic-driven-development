@@ -5,6 +5,7 @@ from datetime import timedelta
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -94,11 +95,12 @@ def create_warranty(
     payload: WarrantyCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinderWarranty:
+    customer = require_customer(db, tenant_id=tenant_id, customer_id=payload.customer_id)
     warranty = LogisticsCylinderWarranty(
         tenant_id=tenant_id,
         cylinder_id=cylinder.id,
-        customer_id=payload.customer_id,
-        customer_name=payload.customer_name.strip(),
+        customer_id=customer.id,
+        customer_name=customer.legal_name,
         warranty_type=payload.warranty_type,
         status=payload.status or "INGRESO",
         description=payload.description,

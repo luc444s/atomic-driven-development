@@ -26,12 +26,13 @@ export function Dialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4" onClick={onClose}>
       <div
         className={cn(
           "w-full rounded-xl border border-slate-800 bg-slate-950 shadow-xl",
           maxWidthClassName
         )}
+        onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-slate-800 p-5">
           <div className="space-y-1">

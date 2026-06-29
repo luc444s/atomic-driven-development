@@ -3,7 +3,7 @@
   "name": "Logistics",
   "version": "0.3.0",
   "api_version": "1",
-  "requires": [],
+  "requires": ["crm"],
   "backend_entrypoint": "backend.plugin:register",
   "frontend_entrypoint": "frontend/register.ts",
   "permissions": [

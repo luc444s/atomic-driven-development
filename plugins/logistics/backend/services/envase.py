@@ -4,6 +4,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -135,10 +136,15 @@ def register_ownership_change(
     if existing is not None:
         return existing
 
+    resolved_customer_name = customer_name
+    if customer_id is not None:
+        customer = require_customer(db, tenant_id=action_context.tenant_id, customer_id=customer_id)
+        resolved_customer_name = customer.legal_name
+
     ownership = LogisticsCylinderOwnership(
         cylinder_id=cylinder.id,
         customer_id=customer_id,
-        customer_name=customer_name,
+        customer_name=resolved_customer_name,
         movement_id=movement_id,
         condition=cylinder.condition,
         notes=notes,
@@ -152,7 +158,7 @@ def register_ownership_change(
         action="cylinder.ownership.change",
         entity_type="cylinder_ownership",
         entity_id=ownership.id,
-        details={"cylinder_id": cylinder.id, "customer_name": customer_name},
+        details={"cylinder_id": cylinder.id, "customer_name": resolved_customer_name},
     )
     emit_logistics_event(
         db,
@@ -160,7 +166,7 @@ def register_ownership_change(
         event_name="logistics.cylinder.ownership_changed",
         entity_type="cylinder_ownership",
         entity_id=ownership.id,
-        payload={"cylinder_id": cylinder.id, "customer_name": customer_name},
+        payload={"cylinder_id": cylinder.id, "customer_name": resolved_customer_name},
     )
     return ownership
 

@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
+import type { CustomerBrief } from "../../../crm/frontend/types";
 
 import { completeAgendaTask, createAgendaTask, listAgendaTasks, listTaskTypes, logisticsKeys } from "../api";
+import { listCustomers } from "../../../crm/frontend/api";
+import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -13,6 +16,7 @@ import { Input } from "../../../../apps/web/src/shared/ui/input";
 type TaskFormState = {
   task_type: string;
   scheduled_date: string;
+  customer_id: string;
   customer_name: string;
   description: string;
 };
@@ -20,6 +24,7 @@ type TaskFormState = {
 const EMPTY_FORM: TaskFormState = {
   task_type: "VISITA",
   scheduled_date: "",
+  customer_id: "",
   customer_name: "",
   description: "",
 };
@@ -28,10 +33,15 @@ export function AgendaPage() {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<TaskFormState>(EMPTY_FORM);
   const [isOpen, setIsOpen] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const tasksQuery = useQuery({ queryKey: logisticsKeys.agenda.list({}), queryFn: () => listAgendaTasks({}) });
   const taskTypesQuery = useQuery({ queryKey: logisticsKeys.taskTypes(), queryFn: listTaskTypes });
+  const customersQuery = useQuery({
+    queryKey: ["crm", "customers", "logistics-lookup"],
+    queryFn: () => listCustomers({ limit: 200, offset: 0 }),
+  });
 
   const createMutation = useMutation({
     mutationFn: createAgendaTask,
@@ -56,7 +66,7 @@ export function AgendaPage() {
       await createMutation.mutateAsync({
         task_type: formState.task_type,
         scheduled_date: formState.scheduled_date,
-        customer_name: formState.customer_name || null,
+        customer_id: formState.customer_id,
         description: formState.description || null,
       });
     } catch (cause) {
@@ -81,7 +91,12 @@ export function AgendaPage() {
             columns={[
               { key: "date", header: "Fecha", render: (row) => row.scheduled_date },
               { key: "type", header: "Tipo", render: (row) => row.task_type },
-              { key: "customer", header: "Cliente", render: (row) => row.customer_name ?? "-" },
+              {
+                key: "customer",
+                header: "Cliente",
+                render: (row) =>
+                  customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_name ?? "-",
+              },
               { key: "status", header: "Estado", render: (row) => row.status },
               {
                 key: "actions",
@@ -126,10 +141,12 @@ export function AgendaPage() {
             <span>Fecha</span>
             <Input type="date" value={formState.scheduled_date} onChange={(event) => setFormState((current) => ({ ...current, scheduled_date: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-slate-300">
             <span>Cliente</span>
-            <Input value={formState.customer_name} onChange={(event) => setFormState((current) => ({ ...current, customer_name: event.target.value }))} />
-          </label>
+            <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
+              {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
+            </Button>
+          </div>
           <label className="block space-y-2 text-sm text-slate-300">
             <span>Descripción</span>
             <Input value={formState.description} onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))} />
@@ -144,6 +161,14 @@ export function AgendaPage() {
           </div>
         </form>
       </Dialog>
+
+      <CustomerSearchDialog
+        open={isCustomerSearchOpen}
+        onOpenChange={setIsCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+        }
+      />
     </LogisticsSection>
   );
 }

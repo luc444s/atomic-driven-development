@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
+import type { CustomerBrief } from "../../../crm/frontend/types";
 
 import {
   createDeliveryPoint,
@@ -8,6 +9,8 @@ import {
   logisticsKeys,
   updateDeliveryPoint,
 } from "../api";
+import { listCustomers } from "../../../crm/frontend/api";
+import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -18,27 +21,40 @@ import { Input } from "../../../../apps/web/src/shared/ui/input";
 
 type DeliveryPointFormState = {
   id?: string;
+  customer_id: string;
   customer_name: string;
   contact_name: string;
+  contact_email: string;
   address: string;
   phone: string;
   zone_id: string;
+  warehouse_id: string;
   delivery_day: string;
+  visit_day: string;
+  time_window: string;
+  instructions: string;
 };
 
 const EMPTY_FORM: DeliveryPointFormState = {
+  customer_id: "",
   customer_name: "",
   contact_name: "",
+  contact_email: "",
   address: "",
   phone: "",
   zone_id: "",
+  warehouse_id: "",
   delivery_day: "",
+  visit_day: "",
+  time_window: "",
+  instructions: "",
 };
 
 export function DeliveryPointsPage() {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<DeliveryPointFormState>(EMPTY_FORM);
   const [isOpen, setIsOpen] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const deliveryPointsQuery = useQuery({
@@ -46,16 +62,25 @@ export function DeliveryPointsPage() {
     queryFn: listDeliveryPoints,
   });
   const zonesQuery = useQuery({ queryKey: logisticsKeys.zones(), queryFn: listZones });
+  const customersQuery = useQuery({
+    queryKey: ["crm", "customers", "logistics-lookup"],
+    queryFn: () => listCustomers({ limit: 200, offset: 0 }),
+  });
 
   const saveMutation = useMutation({
     mutationFn: async (payload: DeliveryPointFormState) => {
       const normalized = {
-        customer_name: payload.customer_name,
+        customer_id: payload.customer_id,
         contact_name: payload.contact_name || null,
+        contact_email: payload.contact_email || null,
         address: payload.address,
         phone: payload.phone || null,
         zone_id: payload.zone_id || null,
+        warehouse_id: payload.warehouse_id || null,
         delivery_day: payload.delivery_day || null,
+        visit_day: payload.visit_day || null,
+        time_window: payload.time_window || null,
+        instructions: payload.instructions || null,
       };
       if (payload.id) {
         return updateDeliveryPoint(payload.id, normalized);
@@ -96,7 +121,11 @@ export function DeliveryPointsPage() {
         <CardContent>
           <DataTable
             columns={[
-              { key: "customer", header: "Cliente", render: (row) => row.customer_name },
+              {
+                key: "customer",
+                header: "Cliente",
+                render: (row) => customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_id,
+              },
               { key: "address", header: "Dirección", render: (row) => row.address },
               { key: "contact", header: "Contacto", render: (row) => row.contact_name ?? "-" },
               {
@@ -114,12 +143,18 @@ export function DeliveryPointsPage() {
                     onClick={() => {
                       setFormState({
                         id: row.id,
-                        customer_name: row.customer_name,
+                        customer_id: row.customer_id,
+                        customer_name: customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_id,
                         contact_name: row.contact_name ?? "",
+                        contact_email: row.contact_email ?? "",
                         address: row.address,
                         phone: row.phone ?? "",
                         zone_id: row.zone_id ?? "",
+                        warehouse_id: row.warehouse_id ?? "",
                         delivery_day: row.delivery_day ?? "",
+                        visit_day: row.visit_day ?? "",
+                        time_window: row.time_window ?? "",
+                        instructions: row.instructions ?? "",
                       });
                       setIsOpen(true);
                     }}
@@ -146,13 +181,19 @@ export function DeliveryPointsPage() {
         }}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-slate-300">
             <span>Cliente</span>
-            <Input value={formState.customer_name} onChange={(event) => setFormState((current) => ({ ...current, customer_name: event.target.value }))} />
-          </label>
+            <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
+              {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
+            </Button>
+          </div>
           <label className="block space-y-2 text-sm text-slate-300">
             <span>Contacto</span>
             <Input value={formState.contact_name} onChange={(event) => setFormState((current) => ({ ...current, contact_name: event.target.value }))} />
+          </label>
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Email contacto</span>
+            <Input value={formState.contact_email} onChange={(event) => setFormState((current) => ({ ...current, contact_email: event.target.value }))} />
           </label>
           <label className="block space-y-2 text-sm text-slate-300">
             <span>Dirección</span>
@@ -168,6 +209,20 @@ export function DeliveryPointsPage() {
               <Input value={formState.delivery_day} onChange={(event) => setFormState((current) => ({ ...current, delivery_day: event.target.value }))} />
             </label>
           </div>
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block space-y-2 text-sm text-slate-300">
+              <span>Día de visita</span>
+              <Input value={formState.visit_day} onChange={(event) => setFormState((current) => ({ ...current, visit_day: event.target.value }))} />
+            </label>
+            <label className="block space-y-2 text-sm text-slate-300">
+              <span>Ventana horaria</span>
+              <Input value={formState.time_window} onChange={(event) => setFormState((current) => ({ ...current, time_window: event.target.value }))} />
+            </label>
+          </div>
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Indicaciones</span>
+            <Input value={formState.instructions} onChange={(event) => setFormState((current) => ({ ...current, instructions: event.target.value }))} />
+          </label>
           <label className="block space-y-2 text-sm text-slate-300">
             <span>Zona</span>
             <select
@@ -193,6 +248,14 @@ export function DeliveryPointsPage() {
           </div>
         </form>
       </Dialog>
+
+      <CustomerSearchDialog
+        open={isCustomerSearchOpen}
+        onOpenChange={setIsCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+        }
+      />
     </LogisticsSection>
   );
 }

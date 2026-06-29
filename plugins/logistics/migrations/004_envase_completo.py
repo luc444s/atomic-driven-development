@@ -29,7 +29,7 @@ def _drop_table(table: Table | Any, bind) -> None:
     table.drop(bind=bind, checkfirst=True)
 
 
-def _add_missing_column(bind, table: Table, column_name: str) -> None:
+def _add_missing_column(bind, table: Table | Any, column_name: str) -> None:
     existing_columns = {column["name"] for column in inspect(bind).get_columns(table.name)}
     if column_name in existing_columns:
         return

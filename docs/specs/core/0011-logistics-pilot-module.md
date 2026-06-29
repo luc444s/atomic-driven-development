@@ -79,6 +79,12 @@ Completado despues del corte original:
 - **envase completo (SPEC 0012)**: barcodes, ADR completo, gas product, marca, retimbrados,
   custodia, servicios, escaneo movil y etiquetas
 
+Nota posterior de arquitectura:
+
+- `gas product` y `marca` en este corte describen el estado implementado de `logistics`, no el destino final del catálogo maestro.
+- Desde ADR 0015 y SPEC 0015, `lg_gas_products` y `lg_brands` quedan como catálogos transitorios hasta migrar a `prod_products` y `prod_brands` del plugin `productos`.
+- Este documento no debe interpretarse como autorización para mantener pricing o catálogo maestro dentro de `logistics` a largo plazo.
+
 ---
 
 ## Arquitectura del plugin

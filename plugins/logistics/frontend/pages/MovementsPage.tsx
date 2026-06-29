@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
+import type { CustomerBrief } from "../../../crm/frontend/types";
 
 import {
   cancelMovement,
@@ -14,6 +15,8 @@ import {
   listWarehouses,
   logisticsKeys,
 } from "../api";
+import { listCustomers } from "../../../crm/frontend/api";
+import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -24,6 +27,7 @@ import { Input } from "../../../../apps/web/src/shared/ui/input";
 
 type MovementFormState = {
   movement_type: string;
+  customer_id: string;
   customer_name: string;
   warehouse_id: string;
   cylinder_id: string;
@@ -32,6 +36,7 @@ type MovementFormState = {
 
 const EMPTY_FORM: MovementFormState = {
   movement_type: "SC",
+  customer_id: "",
   customer_name: "",
   warehouse_id: "",
   cylinder_id: "",
@@ -43,11 +48,16 @@ export function MovementsPage() {
   const [formState, setFormState] = useState<MovementFormState>(EMPTY_FORM);
   const [selectedMovementId, setSelectedMovementId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const movementsQuery = useQuery({ queryKey: logisticsKeys.movements.list({}), queryFn: () => listMovements({}) });
   const movementTypesQuery = useQuery({ queryKey: logisticsKeys.movementTypes(), queryFn: listMovementTypes });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const customersQuery = useQuery({
+    queryKey: ["crm", "customers", "logistics-lookup"],
+    queryFn: () => listCustomers({ limit: 200, offset: 0 }),
+  });
   const cylindersQuery = useQuery({ queryKey: logisticsKeys.cylinders.list({ active: true }), queryFn: () => listCylinders({ active: true }) });
   const itemsQuery = useQuery({
     queryKey: logisticsKeys.movements.items(selectedMovementId ?? ""),
@@ -91,11 +101,11 @@ export function MovementsPage() {
     event.preventDefault();
     setError(null);
     try {
-      await createMutation.mutateAsync({
-        movement_type: formState.movement_type,
-        customer_name: formState.customer_name || null,
-        warehouse_id: formState.warehouse_id || null,
-        items: [
+        await createMutation.mutateAsync({
+          movement_type: formState.movement_type,
+          customer_id: formState.customer_id || null,
+          warehouse_id: formState.warehouse_id || null,
+          items: [
           {
             cylinder_id: formState.cylinder_id,
             quantity: Number(formState.quantity),
@@ -127,7 +137,14 @@ export function MovementsPage() {
             <DataTable
               columns={[
                 { key: "type", header: "Tipo", render: (row) => row.movement_type },
-                { key: "customer", header: "Cliente", render: (row) => row.customer_name ?? "-" },
+                {
+                  key: "customer",
+                  header: "Cliente",
+                  render: (row) =>
+                    (row.customer_id && customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name) ||
+                    row.customer_name ||
+                    "-",
+                },
                 { key: "status", header: "Estado", render: (row) => row.status },
                 {
                   key: "actions",
@@ -235,10 +252,12 @@ export function MovementsPage() {
               </select>
             </label>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-slate-300">
             <span>Cliente</span>
-            <Input value={formState.customer_name} onChange={(event) => setFormState((current) => ({ ...current, customer_name: event.target.value }))} />
-          </label>
+            <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
+              {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
+            </Button>
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 text-sm text-slate-300">
               <span>Envase</span>
@@ -270,6 +289,14 @@ export function MovementsPage() {
           </div>
         </form>
       </Dialog>
+
+      <CustomerSearchDialog
+        open={isCustomerSearchOpen}
+        onOpenChange={setIsCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+        }
+      />
     </LogisticsSection>
   );
 }

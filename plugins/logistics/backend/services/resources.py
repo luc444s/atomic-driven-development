@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
 from plugins.logistics.backend.models import (
     LogisticsDeliveryPoint,
@@ -233,11 +234,7 @@ def list_delivery_points(db: Session, *, tenant_id: str) -> list[LogisticsDelive
         db.scalars(
             select(LogisticsDeliveryPoint)
             .where(LogisticsDeliveryPoint.tenant_id == tenant_id)
-            .order_by(
-                LogisticsDeliveryPoint.is_primary.desc(),
-                LogisticsDeliveryPoint.customer_name,
-                LogisticsDeliveryPoint.address,
-            )
+            .order_by(LogisticsDeliveryPoint.is_primary.desc(), LogisticsDeliveryPoint.address)
         ).all()
     )
 
@@ -263,16 +260,29 @@ def create_delivery_point(
     payload: DeliveryPointCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsDeliveryPoint:
+    customer = require_customer(db, tenant_id=tenant_id, customer_id=payload.customer_id)
     delivery_point = LogisticsDeliveryPoint(
         tenant_id=tenant_id,
-        customer_id=payload.customer_id,
-        customer_name=payload.customer_name.strip(),
+        customer_id=customer.id,
+        customer_name=customer.legal_name,
         contact_name=payload.contact_name,
+        contact_email=payload.contact_email,
         address=payload.address.strip(),
         phone=payload.phone,
         zone_id=payload.zone_id,
+        warehouse_id=payload.warehouse_id,
+        address_id=payload.address_id,
         is_primary=payload.is_primary,
         delivery_day=payload.delivery_day,
+        visit_day=payload.visit_day,
+        time_window=payload.time_window,
+        instructions=payload.instructions,
+        service_time_min=payload.service_time_min,
+        demand_units=payload.demand_units,
+        demand_weight_kg=payload.demand_weight_kg,
+        agent_user_id=payload.agent_user_id,
+        fiscal_operation_document=payload.fiscal_operation_document,
+        fiscal_operation_type=payload.fiscal_operation_type,
         gps_link=payload.gps_link,
     )
     db.add(delivery_point)
@@ -283,7 +293,7 @@ def create_delivery_point(
         action="delivery_point.create",
         entity_type="delivery_point",
         entity_id=delivery_point.id,
-        details={"customer_name": delivery_point.customer_name, "address": delivery_point.address},
+        details={"customer_id": delivery_point.customer_id, "address": delivery_point.address},
     )
     return delivery_point
 
@@ -295,20 +305,50 @@ def update_delivery_point(
     payload: DeliveryPointUpdateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsDeliveryPoint:
-    if payload.customer_name is not None:
-        delivery_point.customer_name = payload.customer_name.strip()
+    if payload.customer_id is not None and payload.customer_id != delivery_point.customer_id:
+        customer = require_customer(
+            db,
+            tenant_id=delivery_point.tenant_id,
+            customer_id=payload.customer_id,
+        )
+        delivery_point.customer_id = customer.id
+        delivery_point.customer_name = customer.legal_name
     if payload.contact_name is not None:
         delivery_point.contact_name = payload.contact_name
+    if payload.contact_email is not None:
+        delivery_point.contact_email = payload.contact_email
     if payload.address is not None:
         delivery_point.address = payload.address.strip()
     if payload.phone is not None:
         delivery_point.phone = payload.phone
     if payload.zone_id is not None:
         delivery_point.zone_id = payload.zone_id
+    if payload.warehouse_id is not None:
+        delivery_point.warehouse_id = payload.warehouse_id
+    if payload.address_id is not None:
+        delivery_point.address_id = payload.address_id
     if payload.is_primary is not None:
         delivery_point.is_primary = payload.is_primary
     if payload.delivery_day is not None:
         delivery_point.delivery_day = payload.delivery_day
+    if payload.visit_day is not None:
+        delivery_point.visit_day = payload.visit_day
+    if payload.time_window is not None:
+        delivery_point.time_window = payload.time_window
+    if payload.instructions is not None:
+        delivery_point.instructions = payload.instructions
+    if payload.service_time_min is not None:
+        delivery_point.service_time_min = payload.service_time_min
+    if payload.demand_units is not None:
+        delivery_point.demand_units = payload.demand_units
+    if payload.demand_weight_kg is not None:
+        delivery_point.demand_weight_kg = payload.demand_weight_kg
+    if payload.agent_user_id is not None:
+        delivery_point.agent_user_id = payload.agent_user_id
+    if payload.fiscal_operation_document is not None:
+        delivery_point.fiscal_operation_document = payload.fiscal_operation_document
+    if payload.fiscal_operation_type is not None:
+        delivery_point.fiscal_operation_type = payload.fiscal_operation_type
     if payload.gps_link is not None:
         delivery_point.gps_link = payload.gps_link
     if payload.is_active is not None:
@@ -322,7 +362,7 @@ def update_delivery_point(
         entity_type="delivery_point",
         entity_id=delivery_point.id,
         details={
-            "customer_name": delivery_point.customer_name,
+            "customer_id": delivery_point.customer_id,
             "address": delivery_point.address,
             "active": delivery_point.is_active,
         },

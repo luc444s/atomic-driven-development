@@ -59,8 +59,9 @@ function buildUrl(path: string) {
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const token = useAuthStore.getState().token;
   const headers = new Headers(init?.headers);
+  const isFormData = typeof FormData !== "undefined" && init?.body instanceof FormData;
 
-  if (!headers.has("Content-Type") && init?.body) {
+  if (!headers.has("Content-Type") && init?.body && !isFormData) {
     headers.set("Content-Type", "application/json");
   }
 

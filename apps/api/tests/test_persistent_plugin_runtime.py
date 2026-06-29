@@ -163,6 +163,11 @@ def test_plugin_runtime_debug_endpoints_cover_install_enable_disable(
     assert disable_response.json()["state"] == "disabled"
     assert disable_response.json()["is_enabled"] is False
 
+    crm_install_response = client.post("/api/v1/plugin-runtime/crm/install", headers=headers)
+    assert crm_install_response.status_code == 200
+    crm_enable_response = client.post("/api/v1/plugin-runtime/crm/enable", headers=headers)
+    assert crm_enable_response.status_code == 200
+
     install_response = client.post("/api/v1/plugin-runtime/logistics/install", headers=headers)
     assert install_response.status_code == 200
     assert install_response.json()["state"] == "installed"
@@ -185,6 +190,8 @@ def test_plugin_runtime_state_persists_after_reboot(
     seeded_demo: dict[str, str],
 ) -> None:
     headers = auth_headers(client)
+    crm_enable_response = client.post("/api/v1/plugin-runtime/crm/enable", headers=headers)
+    assert crm_enable_response.status_code == 200
     enable_response = client.post("/api/v1/plugin-runtime/logistics/enable", headers=headers)
     assert enable_response.status_code == 200
 

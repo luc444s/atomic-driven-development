@@ -79,7 +79,9 @@ class LogisticsCylinder(Base):
     )
     content_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     volume_m3: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
-    condition: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    condition: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_cylinder_conditions.code"), nullable=True, index=True
+    )
     brand_id: Mapped[str | None] = mapped_column(ForeignKey("lg_brands.id"), nullable=True, index=True)
     cost: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
     price: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
@@ -163,6 +165,15 @@ class LogisticsBrand(Base):
     )
 
 
+class LogisticsCylinderCondition(Base):
+    __tablename__ = "lg_cylinder_conditions"
+
+    code: Mapped[str] = mapped_column(String(20), primary_key=True)
+    name: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+
+
 class LogisticsWarehouse(Base):
     __tablename__ = "lg_warehouses"
     __table_args__ = (UniqueConstraint("tenant_id", "code", name="uq_lg_warehouse_tenant_code"),)
@@ -222,14 +233,28 @@ class LogisticsDeliveryPoint(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("crm_customers.id"), nullable=False, index=True)
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    contact_email: Mapped[str | None] = mapped_column(String(100), nullable=True)
     address: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     zone_id: Mapped[str | None] = mapped_column(ForeignKey("lg_zones.id"), nullable=True, index=True)
+    warehouse_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_warehouses.id"), nullable=True, index=True
+    )
+    address_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     delivery_day: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    visit_day: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    time_window: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    instructions: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    service_time_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    demand_units: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    demand_weight_kg: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
+    agent_user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    fiscal_operation_document: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    fiscal_operation_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     gps_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -245,7 +270,7 @@ class LogisticsOrder(Base):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     branch_id: Mapped[str | None] = mapped_column(ForeignKey("branches.id"), nullable=True, index=True)
     order_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("crm_customers.id"), nullable=False, index=True)
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     movement_type: Mapped[str] = mapped_column(String(50), nullable=False)
     document_series: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -365,7 +390,7 @@ class LogisticsMovement(Base):
     full_document: Mapped[str | None] = mapped_column(String(27), nullable=True)
     order_id: Mapped[str | None] = mapped_column(ForeignKey("lg_orders.id"), nullable=True, index=True)
     route_id: Mapped[str | None] = mapped_column(ForeignKey("lg_routes.id"), nullable=True, index=True)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str | None] = mapped_column(ForeignKey("crm_customers.id"), nullable=True, index=True)
     customer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     warehouse_id: Mapped[str | None] = mapped_column(ForeignKey("lg_warehouses.id"), nullable=True, index=True)
     driver_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
@@ -439,7 +464,7 @@ class LogisticsAgendaTask(Base):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     route_id: Mapped[str | None] = mapped_column(ForeignKey("lg_routes.id"), nullable=True, index=True)
     driver_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("crm_customers.id"), nullable=False, index=True)
     customer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     delivery_point_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_delivery_points.id"), nullable=True, index=True
@@ -486,7 +511,7 @@ class LogisticsCylinderWarranty(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     cylinder_id: Mapped[str] = mapped_column(ForeignKey("lg_cylinders.id"), nullable=False, index=True)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str] = mapped_column(ForeignKey("crm_customers.id"), nullable=False, index=True)
     customer_name: Mapped[str] = mapped_column(String(120), nullable=False)
     warranty_type: Mapped[str] = mapped_column(String(50), nullable=False)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="INGRESO")
@@ -536,7 +561,7 @@ class LogisticsCylinderOwnership(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     cylinder_id: Mapped[str] = mapped_column(ForeignKey("lg_cylinders.id"), nullable=False, index=True)
-    customer_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    customer_id: Mapped[str | None] = mapped_column(ForeignKey("crm_customers.id"), nullable=True, index=True)
     customer_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     movement_id: Mapped[str | None] = mapped_column(ForeignKey("lg_movements.id"), nullable=True, index=True)
     change_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)

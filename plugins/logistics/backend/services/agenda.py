@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -56,12 +57,13 @@ def create_agenda_task(
     payload: AgendaTaskCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsAgendaTask:
+    customer = require_customer(db, tenant_id=tenant_id, customer_id=payload.customer_id)
     task = LogisticsAgendaTask(
         tenant_id=tenant_id,
         route_id=payload.route_id,
         driver_id=payload.driver_id or action_context.actor_user_id,
-        customer_id=payload.customer_id,
-        customer_name=payload.customer_name,
+        customer_id=customer.id,
+        customer_name=customer.legal_name,
         delivery_point_id=payload.delivery_point_id,
         task_type=payload.task_type,
         description=payload.description,

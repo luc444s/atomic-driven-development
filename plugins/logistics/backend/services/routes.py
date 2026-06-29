@@ -5,6 +5,7 @@ from datetime import UTC, date, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.services.customers import get_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -12,6 +13,7 @@ from plugins.logistics.backend.common import (
 )
 from plugins.logistics.backend.models import (
     LogisticsAgendaTask,
+    LogisticsDeliveryPoint,
     LogisticsLoad,
     LogisticsRoute,
     LogisticsRouteStop,
@@ -198,7 +200,9 @@ def update_route_stop(
     return stop
 
 
-def delete_route_stop(db: Session, *, stop: LogisticsRouteStop, action_context: LogisticsActionContext) -> None:
+def delete_route_stop(
+    db: Session, *, stop: LogisticsRouteStop, action_context: LogisticsActionContext
+) -> None:
     audit_logistics_action(
         db,
         context=action_context,
@@ -292,7 +296,9 @@ def get_load_by_id(db: Session, *, load_id: str) -> LogisticsLoad | None:
     return db.scalar(select(LogisticsLoad).where(LogisticsLoad.id == load_id))
 
 
-def delete_load(db: Session, *, load: LogisticsLoad, action_context: LogisticsActionContext) -> None:
+def delete_load(
+    db: Session, *, load: LogisticsLoad, action_context: LogisticsActionContext
+) -> None:
     audit_logistics_action(
         db,
         context=action_context,
@@ -376,7 +382,11 @@ def start_route(
         event_name="logistics.route.started",
         entity_type="route",
         entity_id=route.id,
-        payload={"route_id": route.id, "driver_id": route.driver_id, "vehicle_id": route.vehicle_id},
+        payload={
+            "route_id": route.id,
+            "driver_id": route.driver_id,
+            "vehicle_id": route.vehicle_id,
+        },
     )
     return route
 
@@ -476,10 +486,25 @@ def create_agenda_tasks_from_route(
     stops = list_route_stops(db, route_id=route.id)
     tasks: list[LogisticsAgendaTask] = []
     for stop in stops:
+        delivery_point = db.scalar(
+            select(LogisticsDeliveryPoint).where(
+                LogisticsDeliveryPoint.id == stop.delivery_point_id
+            )
+        )
+        if delivery_point is None:
+            raise ValueError("Delivery point not found for route stop")
+        customer = None
+        customer = get_customer(
+            db,
+            tenant_id=tenant_id,
+            customer_id=delivery_point.customer_id,
+        )
         task = LogisticsAgendaTask(
             tenant_id=tenant_id,
             route_id=route.id,
             driver_id=route.driver_id,
+            customer_id=delivery_point.customer_id,
+            customer_name=customer.legal_name if customer is not None else None,
             delivery_point_id=stop.delivery_point_id,
             task_type="ENTREGA",
             description=f"Entrega programada de la ruta {route.id}",

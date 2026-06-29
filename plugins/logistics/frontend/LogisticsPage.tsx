@@ -1,4 +1,5 @@
 import { FormEvent, useMemo, useState } from "react";
+import type { CustomerBrief } from "../../crm/frontend/types";
 
 import { useMutation, useQuery, useQueryClient } from "../../../apps/web/src/lib/react-query";
 import { useAuthStore } from "../../../apps/web/src/features/auth/store";
@@ -8,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../apps/web/src/shared/ui/input";
+import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
 import {
@@ -20,6 +22,7 @@ import {
   getAllowedTransitions,
   getCylinderLabelData,
   listBrands,
+  listConditions,
   listCylinderServices,
   listCylinders,
   listCylinderStates,
@@ -89,6 +92,7 @@ type HydrotestFormState = {
 };
 
 type WarrantyFormState = {
+  customer_id: string;
   customer_name: string;
   warranty_type: string;
   description: string;
@@ -155,7 +159,7 @@ const EMPTY_CYLINDER_FORM: CylinderFormState = {
   gas_group_id: "",
   content_kg: "",
   volume_m3: "",
-  condition: "NUEVO",
+  condition: "",
   brand_id: "",
   cost: "",
   price: "",
@@ -191,6 +195,7 @@ const EMPTY_HYDROTEST_FORM: HydrotestFormState = {
 };
 
 const EMPTY_WARRANTY_FORM: WarrantyFormState = {
+  customer_id: "",
   customer_name: "",
   warranty_type: "CAMBIO",
   description: "",
@@ -387,6 +392,7 @@ export function LogisticsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHydrotestOpen, setIsHydrotestOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
+  const [isWarrantyCustomerSearchOpen, setIsWarrantyCustomerSearchOpen] = useState(false);
   const [isRetimbradoOpen, setIsRetimbradoOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
@@ -415,6 +421,7 @@ export function LogisticsPage() {
   });
   const gasProductsQuery = useQuery({ queryKey: logisticsKeys.gasProducts(), queryFn: listGasProducts });
   const brandsQuery = useQuery({ queryKey: logisticsKeys.brands(), queryFn: listBrands });
+  const conditionsQuery = useQuery({ queryKey: logisticsKeys.conditions(), queryFn: listConditions });
   const serviceTypesQuery = useQuery({
     queryKey: logisticsKeys.serviceTypes(),
     queryFn: listServiceTypes,
@@ -564,7 +571,7 @@ export function LogisticsPage() {
   const warrantyMutation = useMutation({
     mutationFn: () =>
       createWarranty(selectedCylinderId, {
-        customer_name: warrantyForm.customer_name,
+        customer_id: warrantyForm.customer_id,
         warranty_type: warrantyForm.warranty_type,
         description: toNullable(warrantyForm.description),
       }),
@@ -929,6 +936,7 @@ export function LogisticsPage() {
         open={isCreateOpen}
         title="Nuevo envase"
         description="Registra la ficha completa del cilindro."
+        maxWidthClassName="max-w-[1600px]"
         onClose={() => { setIsCreateOpen(false); setPanelError(null); }}
       >
         <form className="space-y-4" onSubmit={handleCreateCylinder}>
@@ -936,6 +944,7 @@ export function LogisticsPage() {
             form={cylinderForm}
             gasProducts={gasProductsQuery.data ?? []}
             brands={brandsQuery.data ?? []}
+            conditions={conditionsQuery.data ?? []}
             onChange={setCylinderForm}
             includeActivation={false}
           />
@@ -955,6 +964,7 @@ export function LogisticsPage() {
         open={selectedCylinder !== null}
         title={selectedCylinder ? `Ficha del envase ${selectedCylinder.serial}` : "Ficha del envase"}
         description="Detalle completo del envase con trazabilidad y operación asociada."
+        maxWidthClassName="max-w-[1600px]"
         onClose={() => {
           setSelectedCylinder(null);
           setDetailError(null);
@@ -989,7 +999,7 @@ export function LogisticsPage() {
                 <CardTitle>Datos generales</CardTitle>
                 <CardDescription>Identidad física, atributos comerciales y datos ADR.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6 2xl:grid-cols-8">
                 <InfoBlock label="Serial" value={selectedCylinder.serial} />
                 <InfoBlock label="Descripción" value={selectedCylinder.description} />
                 <InfoBlock label="Barcode producto" value={selectedCylinder.barcode1} />
@@ -1036,7 +1046,7 @@ export function LogisticsPage() {
                 <CardTitle>Etiqueta operativa</CardTitle>
                 <CardDescription>Resumen para impresión y verificación rápida en campo.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-4 md:grid-cols-2">
+              <CardContent className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-6">
                 <InfoBlock label="Gas" value={labelDataQuery.data?.gas_product_name ?? null} />
                 <InfoBlock label="Marca" value={labelDataQuery.data?.brand_name ?? null} />
                 <InfoBlock label="Aprobación" value={labelDataQuery.data?.approval_number ?? null} />
@@ -1216,6 +1226,7 @@ export function LogisticsPage() {
         open={isEditOpen}
         title={selectedCylinder ? `Editar ${selectedCylinder.serial}` : "Editar envase"}
         description="Actualiza la ficha completa del envase."
+        maxWidthClassName="max-w-[1600px]"
         onClose={() => setIsEditOpen(false)}
       >
         <form className="space-y-4" onSubmit={handleUpdateCylinder}>
@@ -1223,6 +1234,7 @@ export function LogisticsPage() {
             form={cylinderForm}
             gasProducts={gasProductsQuery.data ?? []}
             brands={brandsQuery.data ?? []}
+            conditions={conditionsQuery.data ?? []}
             onChange={setCylinderForm}
             includeActivation
           />
@@ -1266,7 +1278,9 @@ export function LogisticsPage() {
         <form className="space-y-4" onSubmit={handleWarranty}>
           <div className="grid gap-3 md:grid-cols-2">
             <Field label="Cliente">
-              <Input value={warrantyForm.customer_name} onChange={(event) => setWarrantyForm((current) => ({ ...current, customer_name: event.target.value }))} />
+              <Button type="button" variant="secondary" onClick={() => setIsWarrantyCustomerSearchOpen(true)}>
+                {warrantyForm.customer_name ? `${warrantyForm.customer_name} (${warrantyForm.customer_id})` : "Seleccionar cliente"}
+              </Button>
             </Field>
             <Field label="Tipo">
               <Input value={warrantyForm.warranty_type} onChange={(event) => setWarrantyForm((current) => ({ ...current, warranty_type: event.target.value }))} />
@@ -1282,12 +1296,20 @@ export function LogisticsPage() {
         </form>
       </Dialog>
 
+      <CustomerSearchDialog
+        open={isWarrantyCustomerSearchOpen}
+        onOpenChange={setIsWarrantyCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setWarrantyForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+        }
+      />
+
       <Dialog open={isRetimbradoOpen} title="Registrar retimbrado" description="Carga la ficha técnica del retimbrado del envase." onClose={() => setIsRetimbradoOpen(false)}>
         <form className="space-y-4" onSubmit={handleRetimbrado}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Fecha"><Input type="date" value={retimbradoForm.retimbrado_date} onChange={(event) => setRetimbradoForm((current) => ({ ...current, retimbrado_date: event.target.value }))} /></Field>
             <Field label="Código fabricación"><Input value={retimbradoForm.manufacture_code} onChange={(event) => setRetimbradoForm((current) => ({ ...current, manufacture_code: event.target.value }))} /></Field>
-            <Field label="Año fabricación"><Input type="number" value={retimbradoForm.manufacture_year} onChange={(event) => setRetimbradoForm((current) => ({ ...current, manufacture_year: event.target.value }))} /></Field>
+            <Field label="Año"><Input type="number" value={retimbradoForm.manufacture_year} onChange={(event) => setRetimbradoForm((current) => ({ ...current, manufacture_year: event.target.value }))} /></Field>
             <Field label="Nro bombona"><Input value={retimbradoForm.serial_number} onChange={(event) => setRetimbradoForm((current) => ({ ...current, serial_number: event.target.value }))} /></Field>
             <Field label="Peso origen"><Input type="number" value={retimbradoForm.weight_origin} onChange={(event) => setRetimbradoForm((current) => ({ ...current, weight_origin: event.target.value }))} /></Field>
             <Field label="Peso actual"><Input type="number" value={retimbradoForm.weight_current} onChange={(event) => setRetimbradoForm((current) => ({ ...current, weight_current: event.target.value }))} /></Field>
@@ -1401,11 +1423,12 @@ type CylinderFormFieldsProps = {
   form: CylinderFormState;
   gasProducts: Array<{ id: string; name: string }>;
   brands: Array<{ id: string; name: string }>;
+  conditions: Array<{ code: string; name: string }>;
   includeActivation: boolean;
   onChange: (next: CylinderFormState) => void;
 };
 
-function CylinderFormFields({ form, gasProducts, brands, includeActivation, onChange }: CylinderFormFieldsProps) {
+function CylinderFormFields({ form, gasProducts, brands, conditions, includeActivation, onChange }: CylinderFormFieldsProps) {
   function updateField<Key extends keyof CylinderFormState>(key: Key, value: CylinderFormState[Key]) {
     onChange({ ...form, [key]: value });
   }
@@ -1413,25 +1436,25 @@ function CylinderFormFields({ form, gasProducts, brands, includeActivation, onCh
   return (
     <div className="space-y-4">
       <FormRow title="Identificación">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-2 xl:col-span-2" label="Serial"><Input value={form.serial} onChange={(event) => updateField("serial", event.target.value)} /></Field>
-        <Field className="md:col-span-4 xl:col-span-4" label="Descripción"><Input value={form.description} onChange={(event) => updateField("description", event.target.value)} /></Field>
-        <Field className="md:col-span-4 xl:col-span-4" label="Ubicación"><Input value={form.location} onChange={(event) => updateField("location", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Caja / lote"><Input value={form.box_number} onChange={(event) => updateField("box_number", event.target.value)} /></Field>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Serial"><Input value={form.serial} onChange={(event) => updateField("serial", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Descripción"><Input value={form.description} onChange={(event) => updateField("description", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Ubicación"><Input value={form.location} onChange={(event) => updateField("location", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Caja / lote"><Input value={form.box_number} onChange={(event) => updateField("box_number", event.target.value)} /></Field>
       </div>
       </FormRow>
 
       <FormRow title="Códigos y Clasificación">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-3 xl:col-span-3" label="Barcode producto"><Input value={form.barcode1} onChange={(event) => updateField("barcode1", event.target.value)} /></Field>
-        <Field className="md:col-span-3 xl:col-span-3" label="Matrícula etiqueta"><Input value={form.barcode2} onChange={(event) => updateField("barcode2", event.target.value)} /></Field>
-        <Field className="md:col-span-3 xl:col-span-3" label="Gas">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Barcode producto"><Input value={form.barcode1} onChange={(event) => updateField("barcode1", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Matrícula etiqueta"><Input value={form.barcode2} onChange={(event) => updateField("barcode2", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Gas">
         <select className={controlClassName} value={form.gas_group_id} onChange={(event) => updateField("gas_group_id", event.target.value)}>
           <option value="">Sin asignar</option>
           {gasProducts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
         </select>
       </Field>
-        <Field className="md:col-span-3 xl:col-span-3" label="Marca">
+        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Marca">
         <select className={controlClassName} value={form.brand_id} onChange={(event) => updateField("brand_id", event.target.value)}>
           <option value="">Sin asignar</option>
           {brands.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
@@ -1441,14 +1464,19 @@ function CylinderFormFields({ form, gasProducts, brands, includeActivation, onCh
       </FormRow>
 
       <FormRow title="Datos Comerciales y Uso">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-2 xl:col-span-2" label="Condición"><Input value={form.condition} onChange={(event) => updateField("condition", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Contenido kg"><Input type="number" value={form.content_kg} onChange={(event) => updateField("content_kg", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Volumen m3"><Input type="number" value={form.volume_m3} onChange={(event) => updateField("volume_m3", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="País"><Input value={form.country_code} onChange={(event) => updateField("country_code", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Costo"><Input type="number" value={form.cost} onChange={(event) => updateField("cost", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Precio"><Input type="number" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></Field>
-        <Field className="md:col-span-6 xl:col-span-5" label="Es servicio">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Condición">
+        <select className={controlClassName} value={form.condition} onChange={(event) => updateField("condition", event.target.value)}>
+          <option value="">Sin asignar</option>
+          {conditions.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
+        </select>
+      </Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Contenido kg"><Input type="number" value={form.content_kg} onChange={(event) => updateField("content_kg", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Volumen m3"><Input type="number" value={form.volume_m3} onChange={(event) => updateField("volume_m3", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="País"><Input value={form.country_code} onChange={(event) => updateField("country_code", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Costo"><Input type="number" value={form.cost} onChange={(event) => updateField("cost", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Precio"><Input type="number" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-6 xl:col-span-5" label="Es servicio">
         <label className="flex items-center gap-2 text-sm text-slate-200">
           <input type="checkbox" checked={form.is_service} onChange={(event) => updateField("is_service", event.target.checked)} />
           Producto de servicio
@@ -1458,35 +1486,35 @@ function CylinderFormFields({ form, gasProducts, brands, includeActivation, onCh
       </FormRow>
 
       <FormRow title="Fabricación y PH">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-2 xl:col-span-2" label="Fecha fabricación"><Input type="date" value={form.manufacturer_date} onChange={(event) => updateField("manufacturer_date", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-3" label="Código fabricación"><Input value={form.manufacturer_code} onChange={(event) => updateField("manufacturer_code", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-1" label="Año fabricación"><Input type="number" value={form.manufacture_year} onChange={(event) => updateField("manufacture_year", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Peso origen"><Input type="number" value={form.weight_origin} onChange={(event) => updateField("weight_origin", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Peso actual"><Input type="number" value={form.weight_current} onChange={(event) => updateField("weight_current", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Última PH"><Input type="date" value={form.last_hydrotest_date} onChange={(event) => updateField("last_hydrotest_date", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Siguiente PH"><Input type="date" value={form.next_hydrotest_date} onChange={(event) => updateField("next_hydrotest_date", event.target.value)} /></Field>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Fecha fabricación"><Input type="date" value={form.manufacturer_date} onChange={(event) => updateField("manufacturer_date", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-3" label="Código fabricación"><Input value={form.manufacturer_code} onChange={(event) => updateField("manufacturer_code", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-1" label="Año"><Input type="number" value={form.manufacture_year} onChange={(event) => updateField("manufacture_year", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso origen"><Input type="number" value={form.weight_origin} onChange={(event) => updateField("weight_origin", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso actual"><Input type="number" value={form.weight_current} onChange={(event) => updateField("weight_current", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Última PH"><Input type="date" value={form.last_hydrotest_date} onChange={(event) => updateField("last_hydrotest_date", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Siguiente PH"><Input type="date" value={form.next_hydrotest_date} onChange={(event) => updateField("next_hydrotest_date", event.target.value)} /></Field>
       </div>
       </FormRow>
 
       <FormRow title="ADR">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-1 xl:col-span-1" label="Categoría"><Input value={form.adr_category} onChange={(event) => updateField("adr_category", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="UN"><Input value={form.adr_un_number} onChange={(event) => updateField("adr_un_number", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Etiqueta"><Input value={form.adr_label} onChange={(event) => updateField("adr_label", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Tipo bulto"><Input value={form.adr_package_type} onChange={(event) => updateField("adr_package_type", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Peso kg"><Input type="number" value={form.adr_weight_kg} onChange={(event) => updateField("adr_weight_kg", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Túnel"><Input value={form.adr_tunnel} onChange={(event) => updateField("adr_tunnel", event.target.value)} /></Field>
-        <Field className="md:col-span-2 xl:col-span-2" label="Sublinea"><Input value={form.adr_subline} onChange={(event) => updateField("adr_subline", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Factor"><Input type="number" value={form.adr_factor} onChange={(event) => updateField("adr_factor", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Puntos"><Input type="number" value={form.adr_points} onChange={(event) => updateField("adr_points", event.target.value)} /></Field>
-        <Field className="md:col-span-1 xl:col-span-1" label="Unidad"><Input value={form.adr_unit_measure} onChange={(event) => updateField("adr_unit_measure", event.target.value)} /></Field>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Categoría"><Input value={form.adr_category} onChange={(event) => updateField("adr_category", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="UN"><Input value={form.adr_un_number} onChange={(event) => updateField("adr_un_number", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Etiqueta"><Input value={form.adr_label} onChange={(event) => updateField("adr_label", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Tipo bulto"><Input value={form.adr_package_type} onChange={(event) => updateField("adr_package_type", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso kg"><Input type="number" value={form.adr_weight_kg} onChange={(event) => updateField("adr_weight_kg", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Túnel"><Input value={form.adr_tunnel} onChange={(event) => updateField("adr_tunnel", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Sublinea"><Input value={form.adr_subline} onChange={(event) => updateField("adr_subline", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Factor"><Input type="number" value={form.adr_factor} onChange={(event) => updateField("adr_factor", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Puntos"><Input type="number" value={form.adr_points} onChange={(event) => updateField("adr_points", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Unidad"><Input value={form.adr_unit_measure} onChange={(event) => updateField("adr_unit_measure", event.target.value)} /></Field>
       </div>
       </FormRow>
 
       <FormRow title="Mercancía ADR">
-      <div className="grid gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="md:col-span-6 xl:col-span-12" label="Mercancía"><Input value={form.adr_merchandise} onChange={(event) => updateField("adr_merchandise", event.target.value)} /></Field>
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
+        <Field className="col-span-full md:col-span-6 xl:col-span-12" label="Mercancía"><Input value={form.adr_merchandise} onChange={(event) => updateField("adr_merchandise", event.target.value)} /></Field>
       </div>
       </FormRow>
       {includeActivation ? (

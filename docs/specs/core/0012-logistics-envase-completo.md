@@ -17,6 +17,15 @@ El analisis del legacy revelo:
 - El legacy tiene un sistema de escaneo movil en campo con GPS que valida ADR/PH al entregar/recojer
 - La impresion de etiquetas con `barcode2` (matricula) es parte del flujo de alta del cilindro
 
+### Nota de alineación posterior
+
+Esta spec describe el corte implementado de `logistics` al momento de construir el envase completo.
+
+- Las referencias a `lg_gas_products` y `lg_brands` describen el modelo implementado actual.
+- No representan el destino final del catálogo maestro de productos.
+- Desde ADR 0015 y SPEC 0015, ambos catálogos quedan definidos como transitorios y deberán migrarse a `prod_products` y `prod_brands` del plugin `productos`.
+- Esta spec no debe usarse como argumento para volver a centralizar precios, costos o catálogo maestro dentro de `logistics`.
+
 ## Objetivo
 
 Completar el modelo de datos del envase para cubrir el equivalente funcional de `frmMovBombonas`/`FrmCatBombonas`, e implementar el sistema de escaneo movil para trazabilidad en campo.
@@ -58,13 +67,13 @@ No debe romper endpoints existentes, el estado actual del plugin ni el kernel.
 | `description` | VARCHAR(200) | Desc_Producto | descripcion del envase |
 | `barcode1` | VARCHAR(150) | barcode1 | codigo de barras primario (producto) |
 | `barcode2` | VARCHAR(50) | barcode2 | matricula del cilindro (codigo en etiqueta) |
-| `gas_group_id` | VARCHAR(36) FK → lg_gas_products | cod_grupo | que producto gas contiene |
+| `gas_group_id` | VARCHAR(36) FK → lg_gas_products | cod_grupo | que producto gas contiene. FK actual transitoria; destino final: `prod_products` |
 | `content_kg` | NUMERIC(10, 2) | Cont | capacidad en kg de gas |
 | `volume_m3` | NUMERIC(10, 4) | M3 | volumen en metros cubicos |
 | `condition` | VARCHAR(50) | condicion | NUEVO, USADO |
-| `brand_id` | VARCHAR(36) FK → lg_brands | Marca_Producto | marca del envase |
-| `cost` | NUMERIC(19, 4) | Costo_Producto | costo del envase |
-| `price` | NUMERIC(19, 4) | Precio_Producto | precio de venta |
+| `brand_id` | VARCHAR(36) FK → lg_brands | Marca_Producto | marca del envase. FK actual transitoria; destino final: `prod_brands` |
+| `cost` | NUMERIC(19, 4) | Costo_Producto | costo capturado en el corte legacy del envase. No debe convertirse en fuente maestra de costos frente al plugin `productos` |
+| `price` | NUMERIC(19, 4) | Precio_Producto | precio capturado en el corte legacy del envase. No debe convertirse en fuente maestra de precios frente al plugin `productos` |
 | `country_code` | CHAR(2) | PaisCodigo | pais de origen |
 | `box_number` | VARCHAR(50) | Nro_cja | numero de caja/lote |
 | `is_service` | BOOLEAN | servicio | true si es servicio, false si es fisico |
@@ -91,9 +100,11 @@ Actualmente existen 3 campos ADR. Se agregan los 9 restantes:
 
 ## Nuevas tablas
 
-### `lg_gas_products` — catalogo de productos gas (cod_grupo legacy)
+### `lg_gas_products` — catalogo transitorio de productos gas (cod_grupo legacy)
 
 Cada envase contiene un tipo de gas (GLP, propano, butano, etc). En legacy `Producto.cod_grupo` se refiere a otro `Producto` que es el gas "padre".
+
+Este catálogo queda como compatibilidad transitoria en `logistics`. El destino final es `prod_products` con `condition_code = 'GAS'`.
 
 | columna | tipo | descripcion |
 |---------|------|-------------|
@@ -107,7 +118,9 @@ Cada envase contiene un tipo de gas (GLP, propano, butano, etc). En legacy `Prod
 | created_at | TIMESTAMP | |
 | updated_at | TIMESTAMP | |
 
-### `lg_brands` — marcas de envase
+### `lg_brands` — catálogo transitorio de marcas de envase
+
+Este catálogo queda como compatibilidad transitoria en `logistics`. El destino final es `prod_brands` del plugin `productos`.
 
 | columna | tipo | descripcion |
 |---------|------|-------------|
@@ -385,7 +398,7 @@ Al procesar un escaneo (`POST /scan`), el sistema debe:
 
 ### Backend unitarias
 
-- `CylinderService`: crear y actualizar cilindro con campos nuevos (`barcode1`, `barcode2`, gas, marca, ADR completo, precios, condicion)
+- `CylinderService`: crear y actualizar cilindro con campos nuevos (`barcode1`, `barcode2`, gas, marca, ADR completo, condicion)
 - `CylinderService`: unicidad de `serial`, `barcode1` y `barcode2` por tenant
 - `CylinderService`: busqueda por `serial`, `barcode1` y `barcode2`
 - `StateMachineService`: transiciones via escaneo para cada `service_type`
@@ -453,7 +466,7 @@ Semana 3:
 
 ## Criterios de aceptacion
 
-1. Usuario puede crear cilindro con todos los campos del legacy (barcode, gas, ADR completo, precio, etc.)
+1. Usuario puede crear cilindro con todos los campos del legacy relevantes al envase fisico (barcode, gas, ADR completo, etc.)
 2. Usuario puede registrar retimbrados con datos tecnicos completos
 3. Usuario puede ver historial de custodia del cilindro
 4. Usuario puede imprimir etiqueta y registrar la impresion

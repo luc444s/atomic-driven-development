@@ -82,7 +82,7 @@ class CylinderCreateRequest(BaseModel):
     brand_id: str | None = None
     cost: float | None = None
     price: float | None = None
-    country_code: str | None = Field(default=None, max_length=2)
+    country_code: str | None = Field(default=None, max_length=100)
     box_number: str | None = Field(default=None, max_length=50)
     is_service: bool = False
     manufacturer_date: date | None = None
@@ -119,7 +119,7 @@ class CylinderUpdateRequest(BaseModel):
     brand_id: str | None = None
     cost: float | None = None
     price: float | None = None
-    country_code: str | None = Field(default=None, max_length=2)
+    country_code: str | None = Field(default=None, max_length=100)
     box_number: str | None = Field(default=None, max_length=50)
     is_service: bool | None = None
     manufacturer_date: date | None = None
@@ -271,14 +271,25 @@ class DeliveryPointRead(BaseModel):
 
     id: str
     tenant_id: str
-    customer_id: str | None
-    customer_name: str
+    customer_id: str
     contact_name: str | None
+    contact_email: str | None
     address: str
     phone: str | None
     zone_id: str | None
+    warehouse_id: str | None
+    address_id: str | None
     is_primary: bool
     delivery_day: str | None
+    visit_day: str | None
+    time_window: str | None
+    instructions: str | None
+    service_time_min: int | None
+    demand_units: int | None
+    demand_weight_kg: float | None
+    agent_user_id: str | None
+    fiscal_operation_document: str | None
+    fiscal_operation_type: str | None
     gps_link: str | None
     is_active: bool
     created_at: datetime
@@ -286,25 +297,48 @@ class DeliveryPointRead(BaseModel):
 
 
 class DeliveryPointCreateRequest(BaseModel):
-    customer_id: str | None = None
-    customer_name: str = Field(min_length=1, max_length=120)
+    customer_id: str
     contact_name: str | None = Field(default=None, max_length=100)
+    contact_email: str | None = Field(default=None, max_length=100)
     address: str = Field(min_length=1, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
     zone_id: str | None = None
+    warehouse_id: str | None = None
+    address_id: str | None = None
     is_primary: bool = False
     delivery_day: str | None = Field(default=None, max_length=50)
+    visit_day: str | None = Field(default=None, max_length=50)
+    time_window: str | None = Field(default=None, max_length=50)
+    instructions: str | None = Field(default=None, max_length=200)
+    service_time_min: int | None = None
+    demand_units: int | None = None
+    demand_weight_kg: float | None = None
+    agent_user_id: str | None = None
+    fiscal_operation_document: str | None = Field(default=None, max_length=50)
+    fiscal_operation_type: str | None = Field(default=None, max_length=30)
     gps_link: str | None = Field(default=None, max_length=200)
 
 
 class DeliveryPointUpdateRequest(BaseModel):
-    customer_name: str | None = Field(default=None, min_length=1, max_length=120)
+    customer_id: str | None = None
     contact_name: str | None = Field(default=None, max_length=100)
+    contact_email: str | None = Field(default=None, max_length=100)
     address: str | None = Field(default=None, min_length=1, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
     zone_id: str | None = None
+    warehouse_id: str | None = None
+    address_id: str | None = None
     is_primary: bool | None = None
     delivery_day: str | None = Field(default=None, max_length=50)
+    visit_day: str | None = Field(default=None, max_length=50)
+    time_window: str | None = Field(default=None, max_length=50)
+    instructions: str | None = Field(default=None, max_length=200)
+    service_time_min: int | None = None
+    demand_units: int | None = None
+    demand_weight_kg: float | None = None
+    agent_user_id: str | None = None
+    fiscal_operation_document: str | None = Field(default=None, max_length=50)
+    fiscal_operation_type: str | None = Field(default=None, max_length=30)
     gps_link: str | None = Field(default=None, max_length=200)
     is_active: bool | None = None
 
@@ -352,8 +386,7 @@ class OrderItemRead(BaseModel):
 
 class OrderCreateRequest(BaseModel):
     branch_id: str | None = None
-    customer_id: str | None = None
-    customer_name: str = Field(min_length=1, max_length=120)
+    customer_id: str
     movement_type: str = Field(min_length=1, max_length=50)
     document_series: str | None = Field(default=None, max_length=50)
     document_number: int | None = None
@@ -367,7 +400,7 @@ class OrderCreateRequest(BaseModel):
 
 
 class OrderUpdateRequest(BaseModel):
-    customer_name: str | None = Field(default=None, min_length=1, max_length=120)
+    customer_id: str | None = None
     warehouse_id: str | None = None
     carrier: str | None = Field(default=None, max_length=100)
     commitment_date: datetime | None = None
@@ -582,7 +615,6 @@ class MovementCreateRequest(BaseModel):
     order_id: str | None = None
     route_id: str | None = None
     customer_id: str | None = None
-    customer_name: str | None = Field(default=None, max_length=120)
     warehouse_id: str | None = None
     driver_id: str | None = None
     vehicle_id: str | None = None
@@ -666,8 +698,7 @@ class AgendaTaskRead(BaseModel):
 class AgendaTaskCreateRequest(BaseModel):
     route_id: str | None = None
     driver_id: str | None = None
-    customer_id: str | None = None
-    customer_name: str | None = Field(default=None, max_length=120)
+    customer_id: str
     delivery_point_id: str | None = None
     task_type: str = Field(min_length=1, max_length=50)
     description: str | None = Field(default=None, max_length=500)
@@ -742,8 +773,7 @@ class WarrantyRead(BaseModel):
 
 
 class WarrantyCreateRequest(BaseModel):
-    customer_id: str | None = None
-    customer_name: str = Field(min_length=1, max_length=120)
+    customer_id: str
     warranty_type: str = Field(min_length=1, max_length=50)
     status: str | None = Field(default=None, max_length=50)
     description: str | None = None
@@ -786,6 +816,15 @@ class ServiceTypeRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
+
+
+class CylinderConditionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    name: str
+    is_active: bool
+    created_at: datetime
 
 
 class CylinderRetimbradoRead(BaseModel):

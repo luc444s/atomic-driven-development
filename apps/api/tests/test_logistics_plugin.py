@@ -40,6 +40,28 @@ def auth_headers(client: TestClient) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 
 
+def enable_crm_plugin(app, seeded_demo: dict[str, str]) -> None:
+    with app.state.session_factory() as db:
+        app.state.plugin_registry.discover()
+        sync_plugin_registry_state(db, registry=app.state.plugin_registry)
+        set_core_plugin_enabled(
+            db,
+            registry=app.state.plugin_registry,
+            plugin_id="crm",
+            context_builder=app.state.plugin_runtime.context_builder,
+            is_enabled=True,
+            action_context=CoreActionContext(
+                tenant_id=seeded_demo["tenant_id"],
+                branch_id=seeded_demo["branch_id"],
+                actor_user_id=seeded_demo["user_id"],
+                correlation_id="test-crm-enable",
+                request_id="test-crm-enable",
+            ),
+        )
+        db.commit()
+    bootstrap_app_state(app, app.state.settings)
+
+
 def enable_logistics_plugin(app, seeded_demo: dict[str, str]) -> None:
     with app.state.session_factory() as db:
         app.state.plugin_registry.discover()
@@ -99,7 +121,7 @@ def enable_logistics_plugin(app, seeded_demo: dict[str, str]) -> None:
             if code in existing_task_types:
                 continue
             db.add(LogisticsAgendaTaskType(code=code, description=description))
-        record.migration_version = "0004"
+        record.migration_version = "0006"
         db.flush()
         set_core_plugin_enabled(
             db,
@@ -119,11 +141,31 @@ def enable_logistics_plugin(app, seeded_demo: dict[str, str]) -> None:
     bootstrap_app_state(app, app.state.settings)
 
 
+def create_customer(
+    client: TestClient, headers: dict[str, str], *, name: str, document_number: str
+) -> dict[str, str]:
+    response = client.post(
+        "/api/v1/plugins/crm/customers",
+        headers=headers,
+        json={
+            "legal_name": name,
+            "document_type_code": "RUC",
+            "document_number": document_number,
+            "country_code": "PER",
+            "billing_type": "por_operacion",
+            "is_exempt": False,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def test_logistics_plugin_cylinder_flow(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
         )
+    enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
@@ -254,10 +296,17 @@ def test_logistics_plugin_operations_flow(app) -> None:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
         )
+    enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="GLP Norte SAC",
+            document_number="20100070970",
+        )
 
         warehouse_response = client.post(
             "/api/v1/plugins/logistics/warehouses",
@@ -292,7 +341,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
             "/api/v1/plugins/logistics/delivery-points",
             headers=headers,
             json={
-                "customer_name": "GLP Norte",
+                "customer_id": customer["id"],
                 "contact_name": "Ana Lopez",
                 "address": "Calle 1 #123",
                 "zone_id": zone["id"],
@@ -306,7 +355,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
             "/api/v1/plugins/logistics/orders",
             headers=headers,
             json={
-                "customer_name": "GLP Norte",
+                "customer_id": customer["id"],
                 "movement_type": "SC",
                 "warehouse_id": warehouse["id"],
                 "notes": "Pedido de prueba",
@@ -437,7 +486,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
             headers=headers,
             json={
                 "movement_type": "IC",
-                "customer_name": "GLP Norte",
+                "customer_id": customer["id"],
                 "warehouse_id": warehouse["id"],
                 "items": [{"cylinder_id": cylinder["id"], "quantity": 1, "quantity_in": 1}],
             },
@@ -464,7 +513,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
             json={
                 "task_type": "VISITA",
                 "scheduled_date": datetime.now(UTC).date().isoformat(),
-                "customer_name": "GLP Norte",
+                "customer_id": customer["id"],
                 "description": "Revision general",
             },
         )
@@ -488,10 +537,17 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
         )
+    enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="GLP Campo SAC",
+            document_number="10467793549",
+        )
 
         gas_products_response = client.get(
             "/api/v1/plugins/logistics/catalog/gas-products", headers=headers
@@ -622,7 +678,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
             headers=headers,
             json={
                 "movement_type": "SC",
-                "customer_name": "GLP Campo",
+                "customer_id": customer["id"],
                 "items": [{"cylinder_id": cylinder["id"], "quantity": 1, "quantity_out": 1}],
             },
         )
@@ -663,7 +719,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
             headers=headers,
         )
         assert ownership_response.status_code == 200, ownership_response.text
-        assert ownership_response.json()[0]["customer_name"] == "GLP Campo"
+        assert ownership_response.json()[0]["customer_name"] == "GLP Campo SAC"
 
         service_response = client.post(
             f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/services",

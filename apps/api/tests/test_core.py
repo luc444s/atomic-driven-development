@@ -154,5 +154,7 @@ def test_plugin_manifest_validation(app) -> None:
 
     manifests = registry.list()
     assert len(manifests) >= 1
-    assert manifests[0].id == "logistics"
-    assert manifests[0].description
+    manifest_ids = {manifest.id for manifest in manifests}
+    assert "logistics" in manifest_ids
+    assert "productos" in manifest_ids
+    assert all(manifest.description for manifest in manifests)

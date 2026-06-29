@@ -17,6 +17,7 @@ from plugins.logistics.backend.models import (
     LogisticsLoad,
     LogisticsRoute,
     LogisticsRouteStop,
+    LogisticsRouteWeekday,
 )
 from plugins.logistics.backend.schemas import (
     CylinderTransitionRequest,
@@ -28,6 +29,10 @@ from plugins.logistics.backend.schemas import (
     RouteUpdateRequest,
 )
 from plugins.logistics.backend.services.cylinders import get_cylinder, transition_cylinder
+from plugins.logistics.backend.services.extensions import (
+    validate_route_weight_limit,
+    validate_vehicle_for_route,
+)
 
 
 def list_routes(
@@ -37,6 +42,7 @@ def list_routes(
     status: str | None = None,
     driver_id: str | None = None,
     route_date: date | None = None,
+    weekday: int | None = None,
 ) -> list[LogisticsRoute]:
     stmt = select(LogisticsRoute).where(LogisticsRoute.tenant_id == tenant_id)
     if status:
@@ -45,6 +51,10 @@ def list_routes(
         stmt = stmt.where(LogisticsRoute.driver_id == driver_id)
     if route_date:
         stmt = stmt.where(LogisticsRoute.route_date == route_date)
+    if weekday is not None:
+        stmt = stmt.join(
+            LogisticsRouteWeekday, LogisticsRouteWeekday.route_id == LogisticsRoute.id
+        ).where(LogisticsRouteWeekday.weekday == weekday)
     stmt = stmt.order_by(LogisticsRoute.route_date.desc(), LogisticsRoute.created_at.desc())
     return list(db.scalars(stmt).all())
 
@@ -77,6 +87,9 @@ def create_route(
     )
     db.add(route)
     db.flush()
+    validate_vehicle_for_route(
+        db, tenant_id=tenant_id, vehicle_id=route.vehicle_id, route_id=route.id
+    )
     audit_logistics_action(
         db,
         context=action_context,
@@ -115,6 +128,12 @@ def update_route(
         route.notes = payload.notes
     db.add(route)
     db.flush()
+    validate_vehicle_for_route(
+        db,
+        tenant_id=route.tenant_id,
+        vehicle_id=route.vehicle_id,
+        route_id=route.id,
+    )
     audit_logistics_action(
         db,
         context=action_context,
@@ -231,6 +250,7 @@ def create_load(
     payload: LoadCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsLoad:
+    validate_route_weight_limit(db, route=route, cylinder_id=payload.cylinder_id)
     load = LogisticsLoad(
         route_id=route.id,
         cylinder_id=payload.cylinder_id,
@@ -267,6 +287,7 @@ def bulk_create_loads(
 ) -> list[LogisticsLoad]:
     loads = []
     for cylinder_id in payload.cylinder_ids:
+        validate_route_weight_limit(db, route=route, cylinder_id=cylinder_id)
         loads.append(
             create_load(
                 db,

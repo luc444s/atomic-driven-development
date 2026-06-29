@@ -16,6 +16,7 @@ from apps.api.app.kernel.plugins.persistent import (
     get_plugin_registry_record_by_plugin_id,
     sync_plugin_registry_state,
 )
+from apps.api.tests.test_productos_plugin import enable_productos_plugin
 from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
     LogisticsCylinderState,
@@ -141,6 +142,28 @@ def enable_logistics_plugin(app, seeded_demo: dict[str, str]) -> None:
     bootstrap_app_state(app, app.state.settings)
 
 
+def enable_stock_plugin(app, seeded_demo: dict[str, str]) -> None:
+    with app.state.session_factory() as db:
+        app.state.plugin_registry.discover()
+        sync_plugin_registry_state(db, registry=app.state.plugin_registry)
+        set_core_plugin_enabled(
+            db,
+            registry=app.state.plugin_registry,
+            plugin_id="stock",
+            context_builder=app.state.plugin_runtime.context_builder,
+            is_enabled=True,
+            action_context=CoreActionContext(
+                tenant_id=seeded_demo["tenant_id"],
+                branch_id=seeded_demo["branch_id"],
+                actor_user_id=seeded_demo["user_id"],
+                correlation_id="test-stock-enable",
+                request_id="test-stock-enable",
+            ),
+        )
+        db.commit()
+    bootstrap_app_state(app, app.state.settings)
+
+
 def create_customer(
     client: TestClient, headers: dict[str, str], *, name: str, document_number: str
 ) -> dict[str, str]:
@@ -158,6 +181,64 @@ def create_customer(
     )
     assert response.status_code == 201, response.text
     return response.json()
+
+
+def create_product(client: TestClient, headers: dict[str, str], *, sku: str, name: str) -> dict[str, str]:
+    category = client.post(
+        "/api/v1/plugins/productos/catalog/categories",
+        headers=headers,
+        json={"code": f"CAT-{sku}", "name": f"Categoria {sku}", "description": "Categoria test"},
+    ).json()
+    line = client.post(
+        "/api/v1/plugins/productos/catalog/lines",
+        headers=headers,
+        json={
+            "code": f"LIN-{sku}",
+            "name": f"Linea {sku}",
+            "category_id": category["id"],
+            "description": "Linea test",
+        },
+    ).json()
+    subline = client.post(
+        "/api/v1/plugins/productos/catalog/subline",
+        headers=headers,
+        json={"code": f"SUB-{sku}", "name": f"Sublinea {sku}", "line_id": line["id"]},
+    ).json()
+    brand = client.post(
+        "/api/v1/plugins/productos/catalog/brands",
+        headers=headers,
+        json={"code": f"BRA-{sku}", "name": f"Marca {sku}", "description": "Marca test"},
+    ).json()
+    unit = client.post(
+        "/api/v1/plugins/productos/catalog/units",
+        headers=headers,
+        json={
+            "code": f"U-{sku}",
+            "name": f"Unidad {sku}",
+            "equivalencia": 1,
+            "m3_factor": 0,
+            "liter_factor": 0,
+            "kg_factor": 1,
+        },
+    ).json()
+    product = client.post(
+        "/api/v1/plugins/productos/products",
+        headers=headers,
+        json={
+            "sku": sku,
+            "name": name,
+            "description": name,
+            "line_id": line["id"],
+            "subline_id": subline["id"],
+            "brand_id": brand["id"],
+            "unit_id": unit["id"],
+            "status_code": "ACTIVO",
+            "condition_code": "GAS",
+            "weight_kg": 10,
+        },
+    )
+    assert product.status_code == 201, product.text
+    return product.json()
 
 
 def test_logistics_plugin_cylinder_flow(app) -> None:
@@ -770,3 +851,478 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
     assert "logistics.cylinder.label_printed" in event_names
     assert "logistics.cylinder.scanned" in event_names
     assert "logistics.cylinder.service_registered" in event_names
+
+
+def test_logistics_plugin_spec_0014_flow(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="Operaciones GLP SAC",
+            document_number="20100070970",
+        )
+        warehouse = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Planta Central", "code": "PC", "address": "Av. Central 100"},
+        ).json()
+        zone = client.post(
+            "/api/v1/plugins/logistics/zones",
+            headers=headers,
+            json={"name": "Zona Norte", "code": "ZNORTE"},
+        ).json()
+        vehicle = client.post(
+            "/api/v1/plugins/logistics/vehicles",
+            headers=headers,
+            json={
+                "plate": "PLN-001",
+                "vehicle_type": "Camion",
+                "capacity_weight": 2000,
+                "useful_load": 2000,
+                "warehouse_id": warehouse["id"],
+            },
+        ).json()
+        delivery_point = client.post(
+            "/api/v1/plugins/logistics/delivery-points",
+            headers=headers,
+            json={
+                "customer_id": customer["id"],
+                "contact_name": "Jose Perez",
+                "address": "Calle Norte 123",
+                "zone_id": zone["id"],
+                "warehouse_id": warehouse["id"],
+                "is_primary": True,
+            },
+        ).json()
+        route = client.post(
+            "/api/v1/plugins/logistics/routes",
+            headers=headers,
+            json={
+                "route_date": datetime.now(UTC).date().isoformat(),
+                "vehicle_id": vehicle["id"],
+            },
+        ).json()
+        stop = client.post(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/stops",
+            headers=headers,
+            json={"delivery_point_id": delivery_point["id"], "stop_order": 1},
+        ).json()
+
+        weekdays_response = client.patch(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/weekly-schedule",
+            headers=headers,
+            json={"weekdays": [1, 3, 5]},
+        )
+        assert weekdays_response.status_code == 200, weekdays_response.text
+
+        filtered_routes = client.get(
+            "/api/v1/plugins/logistics/routes",
+            headers=headers,
+            params={"weekday": 1},
+        )
+        assert filtered_routes.status_code == 200
+        assert any(item["id"] == route["id"] for item in filtered_routes.json())
+
+        product = create_product(client, headers, sku="GLP10", name="GLP 10KG")
+
+        stock_config_response = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 5,
+                "max_quantity": 100,
+                "is_active": True,
+            },
+        )
+        assert stock_config_response.status_code == 200, stock_config_response.text
+
+        stock_adjust_response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 25,
+                "reason": "Stock inicial test logistics 0014",
+                "idempotency_key": "logistics-0014-initial",
+            },
+        )
+        assert stock_adjust_response.status_code == 201, stock_adjust_response.text
+
+        order = client.post(
+            "/api/v1/plugins/logistics/orders",
+            headers=headers,
+            json={
+                "customer_id": customer["id"],
+                "movement_type": "SC",
+                "warehouse_id": warehouse["id"],
+            },
+        ).json()
+        order_item = client.post(
+            f"/api/v1/plugins/logistics/orders/{order['id']}/items",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "product_name": product["name"],
+                "quantity_requested": 6,
+            },
+        ).json()
+
+        planning_stock = client.get(
+            "/api/v1/plugins/logistics/planning/stock",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"], "product_ids": product["id"]},
+        )
+        assert planning_stock.status_code == 200, planning_stock.text
+        assert planning_stock.json()[0]["stock_actual"] == 25
+
+        plan_order_response = client.post(
+            f"/api/v1/plugins/logistics/planning/plan-order/{order['id']}",
+            headers=headers,
+            json={"mode": "full", "permit_without_stock": False},
+        )
+        assert plan_order_response.status_code == 200, plan_order_response.text
+        assert plan_order_response.json()["updated_items"][0]["quantity_planned"] == 6
+
+        pending_orders = client.get(
+            "/api/v1/plugins/logistics/planning/pending-orders",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert pending_orders.status_code == 200
+        assert pending_orders.json()[0]["coverage_status"] == "green"
+
+        preload = client.post(
+            "/api/v1/plugins/logistics/planning/generate-preload",
+            headers=headers,
+            json={
+                "warehouse_id": warehouse["id"],
+                "preload_date": datetime.now(UTC).date().isoformat(),
+                "order_ids": [order["id"]],
+                "notes": "Preload test",
+            },
+        )
+        assert preload.status_code == 201, preload.text
+        preload_data = preload.json()
+
+        preload_detail = client.get(
+            f"/api/v1/plugins/logistics/planning/preloads/{preload_data['id']}",
+            headers=headers,
+        )
+        assert preload_detail.status_code == 200
+        assert preload_detail.json()["items"][0]["order_item_id"] == order_item["id"]
+
+        accepted_preload = client.post(
+            f"/api/v1/plugins/logistics/planning/preloads/{preload_data['id']}/accept",
+            headers=headers,
+        )
+        assert accepted_preload.status_code == 200, accepted_preload.text
+        preload_result = accepted_preload.json()
+        dispatch_movement = preload_result["movement"]
+
+        waybill_response = client.get(
+            f"/api/v1/plugins/logistics/waybill/{dispatch_movement['id']}",
+            headers=headers,
+        )
+        assert waybill_response.status_code == 200, waybill_response.text
+        assert waybill_response.json()["items"][0]["product_id"] == product["id"]
+
+        guide_response = client.patch(
+            f"/api/v1/plugins/logistics/movements/{dispatch_movement['id']}/guide",
+            headers=headers,
+            json={"document_series": "G001"},
+        )
+        assert guide_response.status_code == 200, guide_response.text
+        assert guide_response.json()["full_document"].startswith("G001-")
+
+        dispatch_close = client.post(
+            f"/api/v1/plugins/logistics/movements/{dispatch_movement['id']}/close-dispatch",
+            headers=headers,
+        )
+        assert dispatch_close.status_code == 200, dispatch_close.text
+        assert dispatch_close.json()["status"] == "DESPACHADO"
+
+        stock_after_dispatch = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert stock_after_dispatch.status_code == 200, stock_after_dispatch.text
+        assert stock_after_dispatch.json()["quantity"] == 19
+
+        dispatch_ticket = client.get(
+            f"/api/v1/plugins/logistics/reports/dispatch-ticket/{dispatch_movement['id']}",
+            headers=headers,
+        )
+        assert dispatch_ticket.status_code == 200
+
+        albaran = client.get(
+            f"/api/v1/plugins/logistics/reports/transfer-albaran/{dispatch_movement['id']}",
+            headers=headers,
+        )
+        assert albaran.status_code == 200
+
+        equipment = client.post(
+            "/api/v1/plugins/logistics/equipment",
+            headers=headers,
+            json={"name": "Manguera GLP", "equipment_type": "MANGUERA", "is_active": True},
+        )
+        assert equipment.status_code == 201, equipment.text
+        equipment_data = equipment.json()
+
+        assignment = client.post(
+            f"/api/v1/plugins/logistics/movements/{dispatch_movement['id']}/equipment",
+            headers=headers,
+            json={"equipment_id": equipment_data['id'], "notes": "Asignacion test"},
+        )
+        assert assignment.status_code == 201, assignment.text
+        assignment_data = assignment.json()
+
+        assignment_return = client.patch(
+            f"/api/v1/plugins/logistics/movements/{dispatch_movement['id']}/equipment/{assignment_data['id']}/return",
+            headers=headers,
+            json={"notes": "Devuelto"},
+        )
+        assert assignment_return.status_code == 200, assignment_return.text
+
+        restrictions = client.post(
+            f"/api/v1/plugins/logistics/vehicles/{vehicle['id']}/route-restrictions",
+            headers=headers,
+            json={"restrictions": [{"route_id": route['id'], "restriction_type": "ALLOW"}]},
+        )
+        assert restrictions.status_code == 200, restrictions.text
+
+        eligible_route_vehicles = client.get(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/eligible-vehicles",
+            headers=headers,
+        )
+        assert eligible_route_vehicles.status_code == 200
+        assert any(item["vehicle_id"] == vehicle["id"] and item["eligible"] for item in eligible_route_vehicles.json())
+
+        driver_params = client.put(
+            f"/api/v1/plugins/logistics/drivers/{seeded_demo['user_id']}/parameters",
+            headers=headers,
+            json={"parameters": {"max_weight_kg": "2500", "turno": "manana"}},
+        )
+        assert driver_params.status_code == 200, driver_params.text
+
+        linked_dp = client.post(
+            f"/api/v1/plugins/logistics/vehicles/{vehicle['id']}/delivery-points",
+            headers=headers,
+            json={"delivery_point_id": delivery_point['id']},
+        )
+        assert linked_dp.status_code == 201, linked_dp.text
+
+        route_agenda_tasks = client.post(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/agenda-tasks",
+            headers=headers,
+        )
+        assert route_agenda_tasks.status_code == 200, route_agenda_tasks.text
+        agenda_task = route_agenda_tasks.json()[0]
+
+        agenda_summary = client.get(
+            "/api/v1/plugins/logistics/agenda/daily-summary",
+            headers=headers,
+            params={"date": datetime.now(UTC).date().isoformat()},
+        )
+        assert agenda_summary.status_code == 200, agenda_summary.text
+        assert len(agenda_summary.json()) >= 1
+
+        adr_config = client.put(
+            f"/api/v1/plugins/logistics/adr/product-config/{product['id']}",
+            headers=headers,
+            json={
+                "adr_class": "2F",
+                "adr_points": 3,
+                "adr_tunnel": "B/D",
+                "max_quantity": 100,
+                "valid_from": datetime.now(UTC).date().isoformat(),
+            },
+        )
+        assert adr_config.status_code == 200, adr_config.text
+
+        adr_incompatibility = client.post(
+            "/api/v1/plugins/logistics/adr/incompatibilities",
+            headers=headers,
+            json={"product_id_1": product["id"], "product_id_2": product["id"] + "-X"},
+        )
+        assert adr_incompatibility.status_code == 201, adr_incompatibility.text
+
+        adr_points = client.get(
+            f"/api/v1/plugins/logistics/adr/points/{dispatch_movement['id']}",
+            headers=headers,
+        )
+        assert adr_points.status_code == 200, adr_points.text
+        assert adr_points.json()["total_adr_points"] >= 18
+
+        adr_eligible_vehicles = client.get(
+            f"/api/v1/plugins/logistics/adr/eligible-vehicles/{dispatch_movement['id']}",
+            headers=headers,
+        )
+        assert adr_eligible_vehicles.status_code == 200, adr_eligible_vehicles.text
+
+        route_gps = client.patch(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/gps-start",
+            headers=headers,
+            json={"gps_coordinates": {"lat": -12.04, "lng": -77.03}},
+        )
+        assert route_gps.status_code == 200, route_gps.text
+
+        stop_gps = client.patch(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/stops/{stop['id']}/gps",
+            headers=headers,
+            json={"gps_coordinates": {"lat": -12.05, "lng": -77.02}},
+        )
+        assert stop_gps.status_code == 200, stop_gps.text
+
+        task_gps = client.patch(
+            f"/api/v1/plugins/logistics/agenda/tasks/{agenda_task['id']}/gps",
+            headers=headers,
+            json={"gps_coordinates": {"lat": -12.06, "lng": -77.01}},
+        )
+        assert task_gps.status_code == 200, task_gps.text
+
+        cylinder = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=headers,
+            json={
+                "serial": "GLP-WEIGHT-01",
+                "location": "Planta Central",
+                "weight_origin": 12.5,
+                "weight_current": 22.5,
+                "content_kg": 10,
+            },
+        ).json()
+
+        available_with_weight = client.get(
+            "/api/v1/plugins/logistics/cylinders/available-with-weight",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert available_with_weight.status_code == 200, available_with_weight.text
+
+        cylinder_weight = client.get(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/weight",
+            headers=headers,
+        )
+        assert cylinder_weight.status_code == 200, cylinder_weight.text
+        assert cylinder_weight.json()["tara_weight_kg"] == 12.5
+
+        load = client.post(
+            "/api/v1/plugins/logistics/loads",
+            headers=headers,
+            json={"route_id": route["id"], "cylinder_id": cylinder["id"], "stop_id": stop["id"]},
+        )
+        assert load.status_code == 201, load.text
+
+        load_weight = client.get(
+            "/api/v1/plugins/logistics/loads/weight-summary",
+            headers=headers,
+            params={"route_id": route["id"]},
+        )
+        assert load_weight.status_code == 200, load_weight.text
+        assert load_weight.json()["total_weight_kg"] >= 22.5
+
+        route_agenda_report = client.get(
+            f"/api/v1/plugins/logistics/reports/route-agenda/{route['id']}",
+            headers=headers,
+        )
+        assert route_agenda_report.status_code == 200, route_agenda_report.text
+
+        load_summary_report = client.get(
+            f"/api/v1/plugins/logistics/reports/load-summary/{route['id']}",
+            headers=headers,
+        )
+        assert load_summary_report.status_code == 200, load_summary_report.text
+
+        product_content = client.get(
+            f"/api/v1/plugins/logistics/products/{product['id']}/content",
+            headers=headers,
+        )
+        assert product_content.status_code == 200, product_content.text
+        assert product_content.json()["content_kg"] == 10
+
+        reception_movement = client.post(
+            "/api/v1/plugins/logistics/movements",
+            headers=headers,
+            json={
+                "movement_type": "TR",
+                "warehouse_id": warehouse["id"],
+                "items": [
+                    {
+                        "product_id": product["id"],
+                        "product_name": product["name"],
+                        "quantity_in": 2,
+                    }
+                ],
+            },
+        )
+        assert reception_movement.status_code == 201, reception_movement.text
+        reception_movement_data = reception_movement.json()
+
+        movement_status_update = client.patch(
+            f"/api/v1/plugins/logistics/movements/{reception_movement_data['id']}",
+            headers=headers,
+            json={"status": "DESCARGADO_POR_RECEPCIONAR"},
+        )
+        assert movement_status_update.status_code == 200, movement_status_update.text
+
+        reception_pending = client.get(
+            "/api/v1/plugins/logistics/reception/pending",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert reception_pending.status_code == 200, reception_pending.text
+        assert any(item["id"] == reception_movement_data["id"] for item in reception_pending.json())
+
+        reception_items = client.get(
+            f"/api/v1/plugins/logistics/movements/{reception_movement_data['id']}/items",
+            headers=headers,
+        ).json()
+        reception_item = reception_items[0]
+
+        incident_reasons = client.get(
+            "/api/v1/plugins/logistics/reception/incident-reasons",
+            headers=headers,
+        )
+        assert incident_reasons.status_code == 200, incident_reasons.text
+
+        incident = client.post(
+            f"/api/v1/plugins/logistics/reception/{reception_movement_data['id']}/incident",
+            headers=headers,
+            json={"reason_code": "FALTANTE", "description": "Bulto incompleto"},
+        )
+        assert incident.status_code == 201, incident.text
+
+        receive = client.post(
+            f"/api/v1/plugins/logistics/reception/{reception_movement_data['id']}/receive",
+            headers=headers,
+            json={"items": [{"movement_item_id": reception_item['id'], "quantity_received": 1}]},
+        )
+        assert receive.status_code == 200, receive.text
+        assert receive.json()["movement"]["status"] == "RECEPCIONADO"
+        assert len(receive.json()["shortage_items"]) == 1
+
+        stock_after_reception = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert stock_after_reception.status_code == 200, stock_after_reception.text
+        assert stock_after_reception.json()["quantity"] == 20
+
+        unlink_delivery_point = client.delete(
+            f"/api/v1/plugins/logistics/vehicles/{vehicle['id']}/delivery-points/{delivery_point['id']}",
+            headers=headers,
+        )
+        assert unlink_delivery_point.status_code == 204, unlink_delivery_point.text

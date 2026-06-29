@@ -110,7 +110,10 @@ def list_ownership_history(db: Session, *, cylinder_id: str) -> list[LogisticsCy
         db.scalars(
             select(LogisticsCylinderOwnership)
             .where(LogisticsCylinderOwnership.cylinder_id == cylinder_id)
-            .order_by(LogisticsCylinderOwnership.change_date.desc(), LogisticsCylinderOwnership.created_at.desc())
+            .order_by(
+                LogisticsCylinderOwnership.change_date.desc(),
+                LogisticsCylinderOwnership.created_at.desc(),
+            )
         ).all()
     )
 
@@ -182,12 +185,19 @@ def list_label_history(db: Session, *, cylinder_id: str) -> list[LogisticsCylind
 
 
 def build_label_data(db: Session, *, cylinder: LogisticsCylinder) -> dict[str, object | None]:
-    brand_name = db.scalar(select(LogisticsBrand.name).where(LogisticsBrand.id == cylinder.brand_id))
-    gas_name = db.scalar(select(LogisticsGasProduct.name).where(LogisticsGasProduct.id == cylinder.gas_group_id))
+    brand_name = db.scalar(
+        select(LogisticsBrand.name).where(LogisticsBrand.id == cylinder.brand_id)
+    )
+    gas_name = db.scalar(
+        select(LogisticsGasProduct.name).where(LogisticsGasProduct.id == cylinder.gas_group_id)
+    )
     latest_retimbrado = db.scalar(
         select(LogisticsCylinderRetimbrado)
         .where(LogisticsCylinderRetimbrado.cylinder_id == cylinder.id)
-        .order_by(LogisticsCylinderRetimbrado.retimbrado_date.desc(), LogisticsCylinderRetimbrado.created_at.desc())
+        .order_by(
+            LogisticsCylinderRetimbrado.retimbrado_date.desc(),
+            LogisticsCylinderRetimbrado.created_at.desc(),
+        )
     )
     latest_label = db.scalar(
         select(LogisticsCylinderLabelHistory)

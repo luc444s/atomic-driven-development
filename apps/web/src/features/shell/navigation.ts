@@ -12,9 +12,16 @@ export type ShellNavActionItem = {
   action: "logout";
 };
 
+export type ShellNavGroupItem = {
+  kind: "group";
+  label: string;
+  to: string;
+  items: ShellNavLinkItem[];
+};
+
 export type ShellNavSection = {
   title: string;
-  items: Array<ShellNavLinkItem | ShellNavActionItem>;
+  items: Array<ShellNavLinkItem | ShellNavActionItem | ShellNavGroupItem>;
 };
 
 type BuildShellSidebarSectionsInput = {
@@ -58,14 +65,59 @@ export function buildShellSidebarSections({
   }
 
   if (pluginNavigation.length > 0) {
-    sections.push({
-      title: "Plugins Enabled",
-      items: pluginNavigation.map((entry) => ({
-        kind: "link",
-        label: entry.label,
-        to: entry.to,
-      })),
-    });
+    const grouped = new Map<string, { parent?: PluginNavigationItem; children: PluginNavigationItem[] }>();
+
+    for (const entry of pluginNavigation) {
+      if (entry.group) {
+        const g = grouped.get(entry.group) ?? { children: [] };
+        g.children.push(entry);
+        grouped.set(entry.group, g);
+      } else {
+        const g = grouped.get(entry.label) ?? { children: [] };
+        g.parent = entry;
+        grouped.set(entry.label, g);
+      }
+    }
+
+    for (const [, group] of grouped) {
+      if (group.parent && group.children.length > 0) {
+        sections.push({
+          title: group.parent.label,
+          items: [
+            { kind: "link", label: group.parent.label, to: group.parent.to },
+            {
+              kind: "group",
+              label: group.parent.label,
+              to: group.parent.to,
+              items: group.children.map((child) => ({
+                kind: "link" as const,
+                label: child.label,
+                to: child.to,
+              })),
+            },
+          ],
+        });
+      } else if (group.children.length > 0) {
+        sections.push({
+          title: group.children[0].group!,
+          items: [{
+            kind: "group",
+            label: group.children[0].group!,
+            to: "",
+            items: group.children.map((child) => ({
+              kind: "link" as const,
+              label: child.label,
+              to: child.to,
+            })),
+          }],
+        });
+      } else if (group.parent) {
+        sections.push({
+          title: group.parent.label,
+          items: [{ kind: "link", label: group.parent.label, to: group.parent.to }],
+        });
+      }
+    }
   }
 
   sections.push({

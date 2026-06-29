@@ -1,23 +1,26 @@
-# SPEC 0014 — Logistics: Módulos Pendientes
+# SPEC 0014 — Logistics: Módulos Pendientes (Actualizada)
 
 ## Estado
 
-Borrador
+**Versión actualizada** — 2026-06-29. Refleja la existencia de `plugins/stock/`, `plugins/productos/`, claims `warehouse_id` y `lg_warehouses.branch_id`. Pendiente de implementación.
 
 ## Contexto
 
-El plugin `logistics` (v0.3.0) implementa el núcleo operativo de logística: gestión de cilindros, movimientos, rutas, carga, agenda, escaneo y 6 catálogos. Sin embargo, el análisis comparativo contra el legacy (`docs/avances/logistics.md`) identificó **15 módulos faltantes** para alcanzar paridad funcional.
+El plugin `logistics` (v0.3.0) implementa el núcleo operativo de logística: gestión de cilindros, movimientos, rutas, carga, agenda, escaneo y catálogos. Sin embargo, el análisis comparativo contra el legacy (`docs/avances/logistics.md`) identificó **15 módulos faltantes** para alcanzar paridad funcional.
 
-El legacy (`modulo_logistica/`) opera sobre SQL Server con 27 tablas, 135 SP, 52 vistas, 24 formularios VB6 y Crystal Reports. El módulo actual corre sobre PostgreSQL con 18 tablas, ~84 endpoints REST, 22 eventos y frontend React.
+El legacy (`modulo_logistica/`) opera sobre SQL Server con 27 tablas, 135 SP, 52 vistas, 24 formularios VB6 y Crystal Reports. El módulo actual corre sobre PostgreSQL con **29 tablas**, **~89 endpoints REST**, **22 eventos** y frontend React.
 
 Esta spec describe **los 15 módulos pendientes** con especificaciones detalladas para cada uno. No son features opcionales — todos son necesarios para reemplazar el legacy en producción.
 
 ## Nota de estado
 
-- Esta spec sigue en borrador y no representa trabajo ya implementado.
-- Los módulos aquí descritos no deben asumirse como avanzados ni alineados automáticamente con decisiones arquitectónicas posteriores.
-- Antes de implementar cualquiera de estos módulos, hay que revalidarlos contra ADR 0015 y SPEC 0015 del plugin `productos`.
-- En particular, cualquier referencia a producto, marca, ADR de producto transportado o pricing debe considerar que el catálogo maestro futuro vive en `productos`, no en `logistics`.
+- Esta spec fue actualizada para reflejar el ecosistema actual del proyecto: `plugins/stock/` ya existe, `plugins/productos/` ya existe, claims `warehouse_id` están implementados en core, `lg_warehouses` tiene `branch_id`.
+- Cualquier referencia a producto debe usar `prod_products` (`plugins/productos/`), no `lg_gas_products`.
+- La planificación debe consumir `stk_balance` del plugin stock, no contar cilindros por estado manualmente.
+- Toda operación nueva debe respetar claims `warehouse_id` (alcance por almacén).
+- Toda tabla nueva multi-almacén debe considerar `branch_id` derivado.
+- Esta spec queda cerrada para implementación con una decisión explícita: `stk_balance` mantiene solo stock real; `StockComprometido` y `StockPlanificado` viven en `logistics` y se derivan por query, no por columnas nuevas en `stock`.
+- La integración `logistics` -> `stock` para cambios de stock real se hace por llamada directa de servicio Python con idempotencia, no por subscribers de eventos.
 
 ## No objetivos
 
@@ -32,56 +35,83 @@ Esta spec describe **los 15 módulos pendientes** con especificaciones detallada
 
 ### 1.1 Objetivo
 
-Implementar el módulo de planificación de operaciones que permita calcular stock disponible, asignar cantidades planificadas a pedidos, generar precargas y preparar la agenda del repartidor. Es el módulo más crítico del legacy (~20,000 líneas en FrmMovPlanificacionOperaciones).
+Implementar el módulo de planificación de operaciones que permita calcular stock disponible (consumiendo `stk_balance` del plugin stock), asignar cantidades planificadas a pedidos, generar precargas y preparar la agenda del repartidor. Es el módulo más crítico del legacy (~20,000 líneas en FrmMovPlanificacionOperaciones).
 
 ### 1.2 Alcance
 
-- Cálculo de stock disponible por producto y almacén
+- Cálculo de stock disponible por producto y almacén (desde `stk_balance`)
 - Tres modos de planificar: todo, completos, parciales
 - Modo overbooking (planificar sin stock suficiente)
-- Generación de precarga (PLAN_PREPARACION_CARGA + PLAN_PREPARACION_DETALLE)
+- Generación de precarga (cabecera + detalle)
 - Aceptar precarga y auto-generar traslado
 - Planificación CILPRO vs pedidos normales
 - Indicador visual de 3 colores (verde/amarillo/rojo) por nivel de stock
+- Respetar claims `warehouse_id` (alcance por almacén)
 
 ### 1.3 Riesgos
 
 - El legacy tiene 5 formularios de planificación duplicados; debe consolidarse en uno solo.
 - La lógica de stock es sensible: errores causan sobreventa o sub-asignación.
 - La generación de precarga debe validar que no exista una precarga activa para la misma fecha/almacén.
+- El cálculo de `StockComprometido` y `StockPlanificado` será derivado por query; requiere índices adecuados para no degradar listados masivos.
 
 ### 1.4 Reglas de negocio
 
-- Stock disponible = `StockActual - StockComprometido - StockPlanificado`
+- `StockDisponible = stk_balance.quantity - StockComprometido - StockPlanificado`
+- `StockComprometido` = suma de `lg_order_items.quantity_planned` donde order.status en (`PENDIENTE`, `PLANIFICADO`) y la línea aún no fue consumida por despacho
+- `StockPlanificado` = suma de `lg_plan_preload_items.quantity_planned` donde preload.status = `PENDIENTE`
 - `CantPlanificada` no puede exceder `CantPendiente` (salvo overbooking explícito)
 - Overbooking requiere flag explícito (`permitir_sin_stock`)
 - Solo una precarga activa por fecha y almacén
 - Precarga tiene estados: `PENDIENTE`, `ACEPTADA`, `CANCELADA`
 - Al aceptar precarga, auto-generar movimiento de traslado si aplica
+- Aceptar una precarga no modifica `stk_balance`; solo crea el movimiento logístico y reserva operativa en `logistics`
+- Todos los endpoints filtran por `allowed_warehouse_ids` del usuario autenticado
 
 ### 1.5 API endpoints propuestos
 
-| Método | Path | Descripción |
-|---|---|---|
-| `GET` | `/planning/stock?warehouse_id=&product_id=` | Stock disponible por almacén/producto |
-| `POST` | `/planning/stock/summary` | Resumen de stock para múltiples productos |
-| `GET` | `/planning/pending-orders` | Pedidos pendientes con estado de stock (verde/amarillo/rojo) |
-| `POST` | `/planning/plan-order/{order_id}` | Planificar cantidades para un pedido |
-| `POST` | `/planning/generate-preload` | Generar precarga a partir de pedidos planificados |
-| `GET` | `/planning/preloads` | Listar precargas (filtro por fecha, almacén, estado) |
-| `GET` | `/planning/preloads/{id}` | Detalle de precarga |
-| `POST` | `/planning/preloads/{id}/accept` | Aceptar precarga y generar traslado |
-| `POST` | `/planning/preloads/{id}/cancel` | Cancelar precarga |
+| Método | Path | Descripción | Claims |
+|---|---|---|---|
+| `GET` | `/planning/stock?warehouse_id=&product_id=` | Stock disponible (desde `stk_balance`) | Filtra por warehouse scope |
+| `POST` | `/planning/stock/summary` | Resumen de stock para múltiples productos | Filtra por warehouse scope |
+| `GET` | `/planning/pending-orders` | Pedidos pendientes con semáforo de stock | Filtra por warehouse scope |
+| `POST` | `/planning/plan-order/{order_id}` | Planificar cantidades para un pedido | Valida warehouse scope |
+| `POST` | `/planning/generate-preload` | Generar precarga | Valida warehouse scope |
+| `GET` | `/planning/preloads` | Listar precargas | Filtra por warehouse scope |
+| `GET` | `/planning/preloads/{id}` | Detalle de precarga | Valida warehouse scope |
+| `POST` | `/planning/preloads/{id}/accept` | Aceptar precarga y generar traslado | Valida warehouse scope |
+| `POST` | `/planning/preloads/{id}/cancel` | Cancelar precarga | Valida warehouse scope |
 
 ### 1.6 Tablas afectadas
 
-- `lg_order_items` — se agrega `quantity_planned` (ya existe), manejo de modos
-- Nueva `lg_plan_preloads` — cabecera de precarga (id, tenant_id, warehouse_id, date, status, created_by)
-- Nueva `lg_plan_preload_items` — detalle de precarga (id, preload_id, order_item_id, product_id, quantity_planned, quantity_loaded)
+- `lg_order_items` — campo `quantity_planned` (ya existe)
+- Nueva `lg_plan_preloads` — cabecera de precarga:
+  - `id`, `tenant_id`, `warehouse_id` (FK), **`branch_id`** (derivado del almacén), `date`, `status`, `created_by`, `created_at`
+- Nueva `lg_plan_preload_items` — detalle de precarga:
+  - `id`, `preload_id`, `order_item_id`, **`product_id` (FK a `prod_products.id`)**, `quantity_planned`, `quantity_loaded`
 
-### 1.7 Criterios de aceptación
+### 1.7 Decisiones de implementación
 
-- [ ] Stock disponible se calcula correctamente considerando cilindros por estado y almacén
+- `stk_balance` no recibe columnas `quantity_compromised` ni `quantity_planned`
+- `StockComprometido` y `StockPlanificado` se calculan en queries SQL agregadas dentro de `services/planning.py`
+- Crear índices para soportar esos agregados:
+  - `lg_order_items (product_id, order_id)`
+  - `lg_orders (warehouse_id, status)`
+  - `lg_plan_preloads (warehouse_id, status, date)`
+  - `lg_plan_preload_items (product_id, preload_id)`
+- Crear constraint de unicidad para impedir más de una precarga activa por almacén/fecha:
+  - unique parcial sobre `lg_plan_preloads (tenant_id, warehouse_id, date)` donde `status in ('PENDIENTE', 'ACEPTADA')`
+- Si la migración no puede expresar ese índice parcial con el helper actual, validar también dentro de una transacción con `SELECT ... FOR UPDATE`
+- La aceptación de precarga genera `lg_movements` y `lg_movement_items`, pero no toca stock real todavía
+
+### 1.8 Eventos
+
+- `logistics.planning.preload_generated` — emitido al crear precarga.
+- `logistics.planning.preload_accepted` — emitido al aceptar precarga (incluye movimiento generado).
+
+### 1.9 Criterios de aceptación
+
+- [ ] Stock disponible se calcula desde `stk_balance` correctamente
 - [ ] Modo completos solo planifica pedidos con stock total suficiente
 - [ ] Modo parciales planifica hasta agotar stock
 - [ ] Overbooking permite planificar más allá del stock disponible
@@ -89,6 +119,9 @@ Implementar el módulo de planificación de operaciones que permita calcular sto
 - [ ] Aceptar precarga cambia estado a ACEPTADA y genera movimiento de traslado si aplica
 - [ ] No se puede crear segunda precarga activa para misma fecha/almacén
 - [ ] Indicador de 3 colores refleja correctamente el nivel de cobertura
+- [ ] Endpoints filtran por warehouse scope del usuario
+- [ ] Eventos emitidos incluyen `branch_id` derivado del almacén
+- [ ] La planificación no modifica `stk_balance`
 
 ---
 
@@ -107,12 +140,14 @@ Implementar el proceso de recepción de movimientos: confirmar recepción de cil
 - Transición de cilindros de `DESCARGADO_POR_RECEPCIONAR` a `EN_ALMACEN_VACIO`
 - Registro de incidencias con catálogo de motivos
 - Historial de estado de traslado
+- Actualización de stock real por producto en almacén destino
 
 ### 2.3 Riesgos
 
 - El legacy hace SQL directo sobre `ECilindroEstadoLog` y `ECilindroEstadoActual` (bug R3). La nueva implementación debe usar el state machine existente.
 - Los faltantes mal manejados causan discrepancias de inventario.
 - La recepción parcial debe ser soportada (recibir menos de lo esperado).
+- Al recepcionar, debe actualizarse `stk_balance` del almacén destino con idempotencia por movimiento/etapa.
 
 ### 2.4 Reglas de negocio
 
@@ -121,6 +156,9 @@ Implementar el proceso de recepción de movimientos: confirmar recepción de cil
 - Los cilindros recibidos transicionan a `EN_ALMACEN_VACIO`
 - El movimiento cambia a estado `RECEPCIONADO`
 - Las incidencias registradas transicionan cilindros a `OBSERVADO` o `PARA_REPARACION` según el motivo
+- El delta de stock real se calcula agregando `lg_movement_items.quantity_in` por `product_id`
+- `lg_movement_items` debe conservar `product_id` como snapshot transaccional para evitar recalcular desde el cilindro en documentos y stock
+- La recepción ejecuta una llamada directa al servicio de stock con `idempotency_key = movement_id + ':reception'`
 
 ### 2.5 API endpoints propuestos
 
@@ -135,11 +173,25 @@ Implementar el proceso de recepción de movimientos: confirmar recepción de cil
 ### 2.6 Tablas afectadas
 
 - `lg_movements` — actualizar estado a `RECEPCIONADO`
-- `lg_movement_items` — agregar soporte para ítems "FALTANTE NO TRANSFERIDO"
+- `lg_movement_items` — agregar soporte para ítems "FALTANTE NO TRANSFERIDO" y snapshot `product_id` / `product_name`
 - `lg_cylinder_state_log` — transiciones de estado
+- `stk_balance` — incrementar stock del almacén destino al recepcionar (llamada directa idempotente)
 - Nueva `lg_reception_incidents` — incidencias de recepción (id, movement_id, cylinder_id, reason_code, description, created_by)
 
-### 2.7 Criterios de aceptación
+### 2.7 Eventos
+
+- `logistics.reception.completed` — emitido al recepcionar un movimiento. Payload: `{movement_id, warehouse_id, items_received, items_short, branch_id}`.
+
+### 2.8 Decisiones de implementación
+
+- `lg_movement_items.product_id` referencia `prod_products.id`
+- `lg_movement_items.product_name` queda como snapshot de lectura para documentos
+- Recepción actualiza stock real agregando por `product_id` y ejecutando ajustes idempotentes en stock
+- Se considera "stock controlado" a todo producto con registro activo en `stk_config` para el `warehouse_id` afectado
+- Si no existe `stk_config` para ese producto/almacén, recepción no altera `stk_balance` para esa línea
+- Los movimientos de solo vacíos no incrementan stock vendible; solo incrementan para productos configurados como stock controlado en `stock`
+
+### 2.9 Criterios de aceptación
 
 - [ ] Lista solo movimientos pendientes de recepción para el almacén destino
 - [ ] Recepción exitosa cambia estado del movimiento a RECEPCIONADO
@@ -148,6 +200,9 @@ Implementar el proceso de recepción de movimientos: confirmar recepción de cil
 - [ ] Recepción parcial funciona correctamente
 - [ ] Incidencias se registran con motivo del catálogo
 - [ ] Historial de estado se actualiza en cada paso
+- [ ] `stk_balance` se actualiza al recepcionar (incremento en almacén destino)
+- [ ] Evento `logistics.reception.completed` emitido con `branch_id` derivado
+- [ ] La operación es idempotente si se reintenta la misma recepción
 
 ---
 
@@ -161,9 +216,10 @@ Implementar la generación del documento Carta Porte, requisito legal para el tr
 
 - Generar datos estructurados de Carta Porte a partir de un movimiento
 - Cabecera: datos del movimiento, cliente, transportista, ruta, fechas
-- Detalle: productos, cantidades, pesos, bultos
+- Detalle: productos (desde `prod_products`), cantidades, pesos, bultos
 - Resumen: totales, peso bruto, puntos ADR
 - Endpoint que devuelve datos listos para renderizar (PDF u otro formato)
+- Respetar claims `warehouse_id` (solo movimientos de almacenes permitidos)
 
 ### 3.3 Riesgos
 
@@ -178,6 +234,7 @@ Implementar la generación del documento Carta Porte, requisito legal para el tr
 - Los datos del destinatario son el cliente (desde CRM)
 - Los datos del transportista son el chofer/vehículo asignado al movimiento
 - El detalle incluye cada producto con cantidad, peso unitario y peso total
+- El detalle se genera desde `lg_movement_items.product_id` + `product_name` snapshot, no recalculando desde cilindros en tiempo de lectura
 - El resumen incluye total de bultos, peso bruto total y puntos ADR si aplica
 
 ### 3.5 API endpoints propuestos
@@ -190,19 +247,26 @@ Implementar la generación del documento Carta Porte, requisito legal para el tr
 ### 3.6 Tablas afectadas
 
 - `lg_movements` — datos del movimiento
-- `lg_movement_items` — detalle de productos
+- `lg_movement_items` — detalle de productos con snapshot `product_id` / `product_name`
 - `crm_customers` — datos del cliente
 - `lg_warehouses` — datos del almacén origen
 - `lg_vehicles` — datos del vehículo/transportista
 - Ninguna tabla nueva; endpoint de solo lectura
 
-### 3.7 Criterios de aceptación
+### 3.7 Decisiones de implementación
+
+- Si un movimiento se crea desde cilindros, al persistir sus items se debe materializar `product_id` y `product_name`
+- Carta Porte y reportes consumen ese snapshot transaccional para evitar inconsistencias futuras si cambia el catálogo
+- El peso unitario se obtiene de `prod_products`; el nombre mostrado sale del snapshot del movimiento
+
+### 3.8 Criterios de aceptación
 
 - [ ] Carta Porte se genera para movimientos de tipo SC y SP
 - [ ] Cabecera contiene remitente, destinatario, transportista correctos
 - [ ] Detalle lista cada producto con cantidades y pesos
 - [ ] Resumen calcula totales correctamente (bultos, peso bruto, ADR)
 - [ ] Datos estructurados listos para renderizar
+- [ ] El detalle no depende de recalcular cilindro -> producto en tiempo de consulta
 
 ---
 
@@ -282,6 +346,9 @@ Implementar el flujo de despacho: asignación de número de guía, cierre de des
 - Una vez cerrado, un despacho no puede modificarse
 - El retorno de vehículo recibe cilindros y los transiciona a `DESCARGADO_POR_RECEPCIONAR`
 - El escáner debe soportar carga masiva sin duplicados
+- El descuento de stock real ocurre en `close-dispatch`, no en `vehicle-return`
+- El delta de stock de despacho se calcula agregando `lg_movement_items.quantity_out` por `product_id`
+- `vehicle-return` solo procesa retorno físico y estados de cilindros; no descuenta stock vendible adicional
 
 ### 5.5 API endpoints propuestos
 
@@ -295,13 +362,24 @@ Implementar el flujo de despacho: asignación de número de guía, cierre de des
 ### 5.6 Tablas afectadas
 
 - `lg_movements` — campos `document_series`, `document_number` (ya existen), nuevo campo `dispatched_at`
+- `lg_movement_items` — requiere snapshot `product_id` / `product_name` para descuento y documentos
 
-### 5.7 Criterios de aceptación
+### 5.7 Decisiones de implementación
+
+- `close-dispatch` ejecuta llamada directa al servicio de stock con `idempotency_key = movement_id + ':dispatch'`
+- El descuento se hace por `product_id`, agregando `quantity_out` de las líneas del movimiento
+- Solo participan líneas cuyo producto tenga configuración de stock controlado activa en `stk_config`
+- Reintentar `close-dispatch` no debe duplicar el descuento de stock
+
+### 5.8 Criterios de aceptación
 
 - [ ] Número de guía se asigna correctamente (serie + correlativo)
 - [ ] Despacho cerrado no puede modificarse
 - [ ] Retorno de vehículo transiciona cilindros a DESCARGADO_POR_RECEPCIONAR
 - [ ] Carga masiva con escáner no permite duplicados
+- [ ] Endpoints validan warehouse scope del usuario
+- [ ] `close-dispatch` descuenta stock real una sola vez por movimiento
+- [ ] `vehicle-return` no altera stock vendible
 
 ---
 
@@ -504,7 +582,7 @@ Implementar el módulo de Mercancías Peligrosas (ADR) completo: configuración 
 
 ### 13.2 Alcance
 
-- Configuración ADR por producto (clase, puntos, túnel, cantidad máxima)
+- Configuración ADR por producto (clase, puntos, túnel, cantidad máxima) — sobre `prod_products`
 - Cálculo de puntos ADR por movimiento/documento
 - Validación de incompatibilidades entre productos
 - Selección de vehículo con capacidad ADR suficiente
@@ -523,8 +601,8 @@ Implementar el módulo de Mercancías Peligrosas (ADR) completo: configuración 
 
 ### 13.4 Tablas nuevas
 
-- `lg_adr_product_config` (product_id, adr_class, adr_points, adr_tunnel, max_quantity, valid_from, valid_to)
-- `lg_adr_incompatibilities` (product_id_1, product_id_2)
+- `lg_adr_product_config` (**product_id** FK a `prod_products.id`, adr_class, adr_points, adr_tunnel, max_quantity, valid_from, valid_to)
+- `lg_adr_incompatibilities` (**product_id_1**, **product_id_2** FK a `prod_products.id`)
 
 ### 13.5 Criterios de aceptación
 
@@ -596,8 +674,44 @@ Implementar funciones de consulta de peso y contenido de cilindros: contenido en
 
 ---
 
+## Consideraciones transversales
+
+### Claims `warehouse_id`
+
+Todos los endpoints nuevos deben respetar el alcance por almacén del usuario autenticado (`TenantContext.current_warehouse_ids`). La validación sigue el mismo patrón que `plugins/stock/`:
+- Lectura (`GET`): filtrar resultados por `allowed_warehouse_ids`
+- Escritura (`POST`, `PATCH`): rechazar con 403 si el warehouse_id no está en el scope del usuario
+
+### `branch_id` derivado
+
+Toda tabla nueva que incluya `warehouse_id` debe también incluir `branch_id` derivado del almacén (`lg_warehouses.branch_id`). Esto garantiza trazabilidad de sucursal en eventos y auditoría.
+
+### Integración con stock
+
+Los módulos que afectan inventario deben integrarse con `plugins/stock/` por llamada directa de servicio Python, usando idempotencia:
+- **Planificación**: no modifica stock real; solo calcula contra `stk_balance`
+- **Recepción**: actualiza stock real con `idempotency_key = movement_id + ':reception'`
+- **Despacho**: descuenta stock real con `idempotency_key = movement_id + ':dispatch'`
+
+Los eventos se mantienen para auditoría e integración futura, pero no son el mecanismo primario de consistencia entre plugins.
+
+### Producto con stock controlado
+
+La condición para que una línea logística afecte stock real es:
+- existe `stk_config` activo para `(tenant_id, warehouse_id, product_id)`
+- la línea del movimiento tiene `product_id` materializado
+
+Esto evita que líneas no inventariables o productos sin configuración operativa alteren `stk_balance`.
+
+### Productos
+
+Toda referencia a producto (id, nombre, ADR, peso) debe usar `prod_products` del plugin `plugins/productos/`. Las tablas `lg_gas_products` y `lg_brands` son transitorias y no deben usarse en módulos nuevos.
+
+---
+
 ## Historial de cambios
 
 | Fecha | Cambio |
 |---|---|
+| 2026-06-29 | Actualización mayor: stock, productos, claims, branch_id, eventos integrados |
 | 2026-06-28 | Creación del documento con los 15 módulos pendientes de logistics |

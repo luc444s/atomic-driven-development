@@ -266,6 +266,7 @@ export type LogisticsMovement = {
   destination_place: string | null;
   destination_address: string | null;
   notes: string | null;
+  dispatched_at: string | null;
   parent_movement_id: string | null;
   created_by: string;
   created_at: string;
@@ -275,7 +276,9 @@ export type LogisticsMovement = {
 export type LogisticsMovementItem = {
   id: string;
   movement_id: string;
-  cylinder_id: string;
+  cylinder_id: string | null;
+  product_id: string | null;
+  product_name: string | null;
   quantity_in: number;
   quantity_out: number;
   quantity: number;
@@ -1127,4 +1130,622 @@ export function cancelAgendaTask(taskId: string) {
   return apiRequest<LogisticsAgendaTask>(`${API_PREFIX}/agenda/tasks/${taskId}/cancel`, {
     method: "POST",
   });
+}
+
+// ── Planning ─────────────────────────────────────────────
+export type PlanningStockSummaryItem = {
+  product_id: string;
+  product_name: string;
+  warehouse_id: string;
+  stock_actual: number;
+  stock_comprometido: number;
+  stock_planificado: number;
+  stock_disponible: number;
+  coverage_status: string;
+};
+
+export type PlanningPendingOrderItem = {
+  order_item_id: string;
+  product_id: string | null;
+  product_name: string;
+  quantity_requested: number;
+  quantity_planned: number;
+  quantity_pending: number;
+  stock_disponible: number;
+  coverage_status: string;
+};
+
+export type PlanningPendingOrder = {
+  order_id: string;
+  customer_id: string | null;
+  customer_name: string;
+  warehouse_id: string | null;
+  status: string;
+  coverage_status: string;
+  items: PlanningPendingOrderItem[];
+};
+
+export type PlanningPlanOrderResult = {
+  order_id: string;
+  mode: string;
+  updated_items: LogisticsOrderItem[];
+};
+
+export type PlanningPreloadItem = {
+  id: string;
+  tenant_id: string;
+  preload_id: string;
+  order_item_id: string;
+  product_id: string;
+  product_name: string | null;
+  quantity_planned: number;
+  quantity_loaded: number;
+  created_at: string;
+};
+
+export type PlanningPreload = {
+  id: string;
+  tenant_id: string;
+  warehouse_id: string;
+  branch_id: string | null;
+  preload_date: string;
+  status: string;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  items: PlanningPreloadItem[];
+};
+
+export type PlanningPreloadActionResult = {
+  preload: PlanningPreload;
+  movement: LogisticsMovement | null;
+};
+
+export const planningKeys = {
+  stock: (wh?: string) => [...logisticsKeys.all, "planning", "stock", wh] as const,
+  stockSummary: () => [...logisticsKeys.all, "planning", "stock-summary"] as const,
+  pendingOrders: () => [...logisticsKeys.all, "planning", "pending-orders"] as const,
+  preloads: {
+    all: () => [...logisticsKeys.all, "planning", "preloads"] as const,
+    list: () => [...planningKeys.preloads.all(), "list"] as const,
+    detail: (id: string) => [...planningKeys.preloads.all(), id] as const,
+  },
+};
+
+export function getPlanningStock(warehouse_id?: string) {
+  return apiRequest<PlanningStockSummaryItem[]>(
+    withQuery(`${API_PREFIX}/planning/stock`, { warehouse_id })
+  );
+}
+
+export function postPlanningStockSummary(payload: { warehouse_id: string; product_ids?: string[] }) {
+  return apiRequest<PlanningStockSummaryItem[]>(`${API_PREFIX}/planning/stock/summary`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listPlanningPendingOrders() {
+  return apiRequest<PlanningPendingOrder[]>(`${API_PREFIX}/planning/pending-orders`);
+}
+
+export function postPlanOrder(orderId: string, payload: { mode: string; permit_without_stock?: boolean }) {
+  return apiRequest<PlanningPlanOrderResult>(`${API_PREFIX}/planning/plan-order/${orderId}`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function generatePreload(payload: { warehouse_id: string; preload_date: string; order_ids?: string[]; notes?: string }) {
+  return apiRequest<PlanningPreload>(`${API_PREFIX}/planning/generate-preload`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listPreloads() {
+  return apiRequest<PlanningPreload[]>(`${API_PREFIX}/planning/preloads`);
+}
+
+export function getPreload(preloadId: string) {
+  return apiRequest<PlanningPreload>(`${API_PREFIX}/planning/preloads/${preloadId}`);
+}
+
+export function acceptPreload(preloadId: string) {
+  return apiRequest<PlanningPreloadActionResult>(`${API_PREFIX}/planning/preloads/${preloadId}/accept`, {
+    method: "POST",
+  });
+}
+
+export function cancelPreload(preloadId: string) {
+  return apiRequest<PlanningPreload>(`${API_PREFIX}/planning/preloads/${preloadId}/cancel`, {
+    method: "POST",
+  });
+}
+
+// ── Reception ────────────────────────────────────────────
+export type ReceptionIncident = {
+  id: string;
+  tenant_id: string;
+  movement_id: string;
+  cylinder_id: string | null;
+  reason_code: string;
+  description: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type ReceptionReceiveResult = {
+  movement: LogisticsMovement;
+  incidents: ReceptionIncident[];
+  shortage_items: LogisticsMovementItem[];
+};
+
+export type IncidentReason = {
+  code: string;
+  description: string;
+  target_state: string | null;
+};
+
+export const receptionKeys = {
+  pending: () => [...logisticsKeys.all, "reception", "pending"] as const,
+  detail: (id: string) => [...logisticsKeys.all, "reception", id] as const,
+  incidentReasons: () => [...logisticsKeys.all, "reception", "incident-reasons"] as const,
+};
+
+export function listPendingReceptions(warehouse_id?: string) {
+  return apiRequest<LogisticsMovement[]>(
+    withQuery(`${API_PREFIX}/reception/pending`, { warehouse_id })
+  );
+}
+
+export function getReceptionDetail(movementId: string) {
+  return apiRequest<LogisticsMovement>(`${API_PREFIX}/reception/${movementId}`);
+}
+
+export function receiveMovement(movementId: string, payload: { items: { movement_item_id: string; quantity_received: number }[]; notes?: string }) {
+  return apiRequest<ReceptionReceiveResult>(`${API_PREFIX}/reception/${movementId}/receive`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createReceptionIncident(movementId: string, payload: { cylinder_id?: string; reason_code: string; description?: string }) {
+  return apiRequest<ReceptionIncident>(`${API_PREFIX}/reception/${movementId}/incident`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listIncidentReasons() {
+  return apiRequest<IncidentReason[]>(`${API_PREFIX}/reception/incident-reasons`);
+}
+
+// ── Waybill / Carta Porte ────────────────────────────────
+export type WaybillDetailItem = {
+  product_id: string | null;
+  product_name: string | null;
+  quantity: number;
+  unit_weight_kg: number | null;
+  total_weight_kg: number | null;
+  adr_points: number | null;
+};
+
+export type Waybill = {
+  movement_id: string;
+  movement_type: string;
+  document: string | null;
+  warehouse_id: string | null;
+  warehouse_name: string | null;
+  customer_id: string | null;
+  customer_name: string | null;
+  vehicle_id: string | null;
+  vehicle_plate: string | null;
+  driver_id: string | null;
+  destination_place: string | null;
+  destination_address: string | null;
+  items: WaybillDetailItem[];
+  total_packages: number;
+  total_weight_kg: number;
+  total_adr_points: number;
+};
+
+export type WaybillSummary = {
+  movement_id: string;
+  total_packages: number;
+  total_weight_kg: number;
+  total_adr_points: number;
+};
+
+export function getWaybill(movementId: string) {
+  return apiRequest<Waybill>(`${API_PREFIX}/waybill/${movementId}`);
+}
+
+export function getWaybillSummary(movementId: string) {
+  return apiRequest<WaybillSummary>(`${API_PREFIX}/waybill/${movementId}/summary`);
+}
+
+// ── Dispatch ─────────────────────────────────────────────
+export function assignDispatchGuide(movementId: string, payload: { document_series: string }) {
+  return apiRequest<LogisticsMovement>(`${API_PREFIX}/movements/${movementId}/guide`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function closeDispatch(movementId: string) {
+  return apiRequest<LogisticsMovement>(`${API_PREFIX}/movements/${movementId}/close-dispatch`, {
+    method: "POST",
+  });
+}
+
+export function getDispatchReceipt(movementId: string) {
+  return apiRequest<LogisticsMovement>(`${API_PREFIX}/movements/${movementId}/dispatch-receipt`);
+}
+
+export function vehicleReturn(movementId: string, payload: { cylinder_ids: string[]; notes?: string }) {
+  return apiRequest<LogisticsMovement>(`${API_PREFIX}/movements/${movementId}/vehicle-return`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Reports ──────────────────────────────────────────────
+export type RouteAgendaReportStop = {
+  stop_id: string;
+  stop_order: number;
+  customer_name: string | null;
+  address: string | null;
+  scheduled_time: string | null;
+  status: string;
+};
+
+export type RouteAgendaReport = {
+  route_id: string;
+  route_date: string;
+  driver_id: string;
+  vehicle_id: string | null;
+  stops: RouteAgendaReportStop[];
+};
+
+export type DispatchTicket = Waybill;
+
+export type TransferAlbaran = Waybill;
+
+export type LoadSummaryItem = {
+  cylinder_id: string;
+  serial: string | null;
+  state: string | null;
+  weight_kg: number | null;
+};
+
+export type LoadSummaryReport = {
+  route_id: string;
+  driver_id: string;
+  vehicle_id: string | null;
+  total_weight_kg: number;
+  items: LoadSummaryItem[];
+};
+
+export type AdrPointsItem = {
+  product_id: string | null;
+  product_name: string | null;
+  quantity: number;
+  adr_points_per_unit: number;
+  total_adr_points: number;
+};
+
+export type AdrPointsSummary = {
+  movement_id: string;
+  total_adr_points: number;
+  items: AdrPointsItem[];
+};
+
+export function getRouteAgendaReport(routeId: string) {
+  return apiRequest<RouteAgendaReport>(`${API_PREFIX}/reports/route-agenda/${routeId}`);
+}
+
+export function getDispatchTicket(movementId: string) {
+  return apiRequest<DispatchTicket>(`${API_PREFIX}/reports/dispatch-ticket/${movementId}`);
+}
+
+export function getTransferAlbaran(movementId: string) {
+  return apiRequest<TransferAlbaran>(`${API_PREFIX}/reports/transfer-albaran/${movementId}`);
+}
+
+export function getLoadSummary(routeId: string) {
+  return apiRequest<LoadSummaryReport>(`${API_PREFIX}/reports/load-summary/${routeId}`);
+}
+
+export function getAdrSummary(movementId: string) {
+  return apiRequest<AdrPointsSummary>(`${API_PREFIX}/reports/adr-summary/${movementId}`);
+}
+
+// ── Equipment ────────────────────────────────────────────
+export type Equipment = {
+  id: string;
+  tenant_id: string;
+  name: string;
+  equipment_type: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MovementEquipment = {
+  id: string;
+  tenant_id: string;
+  movement_id: string;
+  equipment_id: string;
+  assigned_at: string;
+  returned_at: string | null;
+  notes: string | null;
+};
+
+export const equipmentKeys = {
+  all: () => [...logisticsKeys.all, "equipment"] as const,
+  list: () => [...equipmentKeys.all(), "list"] as const,
+  movementEquipment: (id: string) => [...logisticsKeys.all, "movements", id, "equipment"] as const,
+};
+
+export function listEquipment() {
+  return apiRequest<Equipment[]>(`${API_PREFIX}/equipment`);
+}
+
+export function createEquipment(payload: { name: string; equipment_type?: string; is_active?: boolean }) {
+  return apiRequest<Equipment>(`${API_PREFIX}/equipment`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listMovementEquipment(movementId: string) {
+  return apiRequest<MovementEquipment[]>(`${API_PREFIX}/movements/${movementId}/equipment`);
+}
+
+export function assignEquipmentToMovement(movementId: string, payload: { equipment_id: string; notes?: string }) {
+  return apiRequest<MovementEquipment>(`${API_PREFIX}/movements/${movementId}/equipment`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function returnMovementEquipment(movementId: string, eqId: string, payload?: { notes?: string }) {
+  return apiRequest<MovementEquipment>(
+    `${API_PREFIX}/movements/${movementId}/equipment/${eqId}/return`,
+    { method: "PATCH", body: payload ? JSON.stringify(payload) : undefined }
+  );
+}
+
+// ── Route Restrictions ───────────────────────────────────
+export type VehicleRouteRestriction = {
+  id: string;
+  tenant_id: string;
+  vehicle_id: string;
+  route_id: string;
+  restriction_type: string;
+  created_at: string;
+};
+
+export type VehicleEligibility = {
+  vehicle_id: string;
+  plate: string;
+  adr_class: string | null;
+  capacity_weight: number | null;
+  eligible: boolean;
+  reason: string | null;
+};
+
+export function listVehicleRouteRestrictions(vehicleId: string) {
+  return apiRequest<VehicleRouteRestriction[]>(`${API_PREFIX}/vehicles/${vehicleId}/route-restrictions`);
+}
+
+export function replaceVehicleRouteRestrictions(vehicleId: string, payload: { restrictions: { route_id: string; restriction_type: string }[] }) {
+  return apiRequest<VehicleRouteRestriction[]>(`${API_PREFIX}/vehicles/${vehicleId}/route-restrictions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listEligibleVehiclesForRoute(routeId: string) {
+  return apiRequest<VehicleEligibility[]>(`${API_PREFIX}/routes/${routeId}/eligible-vehicles`);
+}
+
+// ── Driver Parameters ────────────────────────────────────
+export type DriverParameter = {
+  id: string;
+  tenant_id: string;
+  driver_id: string;
+  param_key: string;
+  param_value: string | null;
+  updated_at: string;
+};
+
+export function listDriverParameters(driverId: string) {
+  return apiRequest<DriverParameter[]>(`${API_PREFIX}/drivers/${driverId}/parameters`);
+}
+
+export function upsertDriverParameters(driverId: string, payload: { parameters: Record<string, string | null> }) {
+  return apiRequest<DriverParameter[]>(`${API_PREFIX}/drivers/${driverId}/parameters`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Vehicle Delivery Points ──────────────────────────────
+export type VehicleDeliveryPoint = {
+  id: string;
+  tenant_id: string;
+  vehicle_id: string;
+  delivery_point_id: string;
+  created_at: string;
+};
+
+export function listVehicleDeliveryPoints(vehicleId: string) {
+  return apiRequest<VehicleDeliveryPoint[]>(`${API_PREFIX}/vehicles/${vehicleId}/delivery-points`);
+}
+
+export function linkVehicleDeliveryPoint(vehicleId: string, payload: { delivery_point_id: string }) {
+  return apiRequest<VehicleDeliveryPoint>(`${API_PREFIX}/vehicles/${vehicleId}/delivery-points`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function unlinkVehicleDeliveryPoint(vehicleId: string, dpId: string) {
+  return apiRequest<void>(`${API_PREFIX}/vehicles/${vehicleId}/delivery-points/${dpId}`, {
+    method: "DELETE",
+  });
+}
+
+// ── Agenda Daily Summary ─────────────────────────────────
+export type AgendaDailySummaryBucket = {
+  driver_id: string;
+  status: string;
+  total: number;
+};
+
+export function getAgendaDailySummary(date?: string) {
+  return apiRequest<AgendaDailySummaryBucket[]>(
+    withQuery(`${API_PREFIX}/agenda/daily-summary`, { date })
+  );
+}
+
+// ── Route Weekdays ───────────────────────────────────────
+export type RouteWeekday = {
+  id: string;
+  tenant_id: string;
+  route_id: string;
+  weekday: number;
+  created_at: string;
+};
+
+export function replaceRouteWeekdays(routeId: string, payload: { weekdays: number[] }) {
+  return apiRequest<RouteWeekday[]>(`${API_PREFIX}/routes/${routeId}/weekly-schedule`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Weight Summary ───────────────────────────────────────
+export type LoadWeightSummary = {
+  route_id: string;
+  weight_limit_kg: number;
+  total_weight_kg: number;
+  exceeds_limit: boolean;
+};
+
+export function getLoadWeightSummary(routeId: string) {
+  return apiRequest<LoadWeightSummary>(`${API_PREFIX}/loads/weight-summary?route_id=${routeId}`);
+}
+
+// ── ADR ──────────────────────────────────────────────────
+export type AdrProductConfig = {
+  id: string;
+  tenant_id: string;
+  product_id: string;
+  adr_class: string | null;
+  adr_points: number | null;
+  adr_tunnel: string | null;
+  max_quantity: number | null;
+  valid_from: string;
+  valid_to: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AdrIncompatibility = {
+  id: string;
+  tenant_id: string;
+  product_id_1: string;
+  product_id_2: string;
+  created_at: string;
+};
+
+export function getAdrProductConfig(productId: string) {
+  return apiRequest<AdrProductConfig | null>(`${API_PREFIX}/adr/product-config/${productId}`);
+}
+
+export function upsertAdrProductConfig(productId: string, payload: {
+  adr_class?: string; adr_points?: number; adr_tunnel?: string;
+  max_quantity?: number; valid_from: string; valid_to?: string;
+}) {
+  return apiRequest<AdrProductConfig>(`${API_PREFIX}/adr/product-config/${productId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listAdrIncompatibilities() {
+  return apiRequest<AdrIncompatibility[]>(`${API_PREFIX}/adr/incompatibilities`);
+}
+
+export function createAdrIncompatibility(payload: { product_id_1: string; product_id_2: string }) {
+  return apiRequest<AdrIncompatibility>(`${API_PREFIX}/adr/incompatibilities`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteAdrIncompatibility(id: string) {
+  return apiRequest<void>(`${API_PREFIX}/adr/incompatibilities/${id}`, { method: "DELETE" });
+}
+
+export function listEligibleVehiclesForMovement(movementId: string) {
+  return apiRequest<VehicleEligibility[]>(`${API_PREFIX}/adr/eligible-vehicles/${movementId}`);
+}
+
+// ── GPS ──────────────────────────────────────────────────
+export function updateRouteGpsStart(routeId: string, payload: { gps_coordinates: Record<string, unknown> }) {
+  return apiRequest<void>(`${API_PREFIX}/routes/${routeId}/gps-start`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateRouteStopGps(routeId: string, stopId: string, payload: { gps_coordinates: Record<string, unknown> }) {
+  return apiRequest<void>(`${API_PREFIX}/routes/${routeId}/stops/${stopId}/gps`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updateAgendaTaskGps(taskId: string, payload: { gps_coordinates: Record<string, unknown> }) {
+  return apiRequest<void>(`${API_PREFIX}/agenda/tasks/${taskId}/gps`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+// ── Cylinder Weight / Content ────────────────────────────
+export type CylinderWeight = {
+  cylinder_id: string;
+  serial: string;
+  product_id: string | null;
+  product_name: string | null;
+  tara_weight_kg: number | null;
+  current_weight_kg: number | null;
+  content_kg: number | null;
+  total_weight_kg: number | null;
+};
+
+export type ProductContent = {
+  product_id: string;
+  product_name: string;
+  content_kg: number | null;
+};
+
+export function listAvailableCylindersWithWeight(warehouse_id?: string) {
+  return apiRequest<CylinderWeight[]>(
+    withQuery(`${API_PREFIX}/cylinders/available-with-weight`, { warehouse_id })
+  );
+}
+
+export function getCylinderWeight(cylinderId: string) {
+  return apiRequest<CylinderWeight>(`${API_PREFIX}/cylinders/${cylinderId}/weight`);
+}
+
+export function getProductContent(productId: string) {
+  return apiRequest<ProductContent>(`${API_PREFIX}/products/${productId}/content`);
 }

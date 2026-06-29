@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Never
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -11,9 +13,17 @@ from apps.api.app.api.deps import get_db_session
 from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
-from plugins.logistics.backend.common import build_action_context
+from plugins.logistics.backend.common import audit_logistics_action, build_action_context
+from plugins.logistics.backend.models import LogisticsAdrIncompatibility, LogisticsMovementEquipment
 from plugins.logistics.backend.schemas import (
+    AdrIncompatibilityCreateRequest,
+    AdrIncompatibilityRead,
+    AdrPointsSummaryRead,
+    AdrProductConfigRead,
+    AdrProductConfigUpsertRequest,
+    AgendaDailySummaryBucket,
     AgendaTaskCreateRequest,
+    AgendaTaskGpsRequest,
     AgendaTaskRead,
     AgendaTaskTypeRead,
     AgendaTaskUpdateRequest,
@@ -35,18 +45,32 @@ from plugins.logistics.backend.schemas import (
     CylinderTransitionRead,
     CylinderTransitionRequest,
     CylinderUpdateRequest,
+    CylinderWeightRead,
     DeliveryPointCreateRequest,
     DeliveryPointRead,
     DeliveryPointUpdateRequest,
+    DispatchGuideAssignRequest,
+    DispatchTicketRead,
+    DispatchVehicleReturnRequest,
+    DriverParameterRead,
+    DriverParametersUpsertRequest,
+    EquipmentCreateRequest,
+    EquipmentRead,
     GasProductRead,
     HydrostaticTestCreateRequest,
     HydrostaticTestRead,
+    IncidentReasonRead,
     LoadBulkCreateRequest,
     LoadConfirmRequest,
     LoadCreateRequest,
     LoadRead,
+    LoadSummaryReportRead,
+    LoadWeightSummaryRead,
     MovementCancelRequest,
     MovementCreateRequest,
+    MovementEquipmentAssignRequest,
+    MovementEquipmentRead,
+    MovementEquipmentReturnRequest,
     MovementItemRead,
     MovementRead,
     MovementStatusHistoryRead,
@@ -58,24 +82,50 @@ from plugins.logistics.backend.schemas import (
     OrderItemUpdateRequest,
     OrderRead,
     OrderUpdateRequest,
+    PlanningGeneratePreloadRequest,
+    PlanningPendingOrderRead,
+    PlanningPlanOrderRequest,
+    PlanningPlanOrderResult,
+    PlanningPreloadActionResult,
+    PlanningPreloadRead,
+    PlanningStockSummaryItem,
+    PlanningStockSummaryRequest,
     PrintLabelRequest,
+    ProductContentRead,
+    ReceptionIncidentCreateRequest,
+    ReceptionIncidentRead,
+    ReceptionReceiveRequest,
+    ReceptionReceiveResult,
+    RouteAgendaReportRead,
     RouteCreateRequest,
+    RouteGpsStartRequest,
     RouteRead,
     RouteStopCreateRequest,
+    RouteStopGpsRequest,
     RouteStopRead,
     RouteStopUpdateRequest,
     RouteUpdateRequest,
+    RouteWeekdayRead,
+    RouteWeekdayUpdateRequest,
     ScanLogRead,
     ScanRequest,
     ServiceTypeRead,
+    TransferAlbaranRead,
     VehicleCreateRequest,
+    VehicleDeliveryPointCreateRequest,
+    VehicleDeliveryPointRead,
+    VehicleEligibilityRead,
     VehicleRead,
+    VehicleRouteRestrictionRead,
+    VehicleRouteRestrictionUpsertRequest,
     VehicleUpdateRequest,
     WarehouseCreateRequest,
     WarehouseRead,
     WarehouseUpdateRequest,
     WarrantyCreateRequest,
     WarrantyRead,
+    WaybillRead,
+    WaybillSummaryRead,
     ZoneCreateRequest,
     ZoneRead,
 )
@@ -111,6 +161,20 @@ from plugins.logistics.backend.services.cylinders import (
     transition_cylinder,
     update_cylinder,
 )
+from plugins.logistics.backend.services.dispatch import (
+    assign_dispatch_guide,
+    close_dispatch,
+    vehicle_return,
+)
+from plugins.logistics.backend.services.documents import (
+    build_adr_points_summary,
+    build_dispatch_ticket,
+    build_load_summary,
+    build_route_agenda_report,
+    build_transfer_albaran,
+    build_waybill,
+    build_waybill_summary,
+)
 from plugins.logistics.backend.services.envase import (
     build_label_data,
     create_cylinder_service,
@@ -123,6 +187,36 @@ from plugins.logistics.backend.services.envase import (
     list_retimbrados,
     print_label,
     update_cylinder_service,
+)
+from plugins.logistics.backend.services.extensions import (
+    assign_equipment_to_movement,
+    build_load_weight_summary,
+    create_adr_incompatibility,
+    create_equipment,
+    delete_adr_incompatibility,
+    get_adr_product_config,
+    get_agenda_daily_summary,
+    get_cylinder_weight,
+    get_product_content,
+    link_vehicle_delivery_point,
+    list_adr_incompatibilities,
+    list_available_cylinders_with_weight,
+    list_driver_parameters,
+    list_eligible_vehicles_for_movement,
+    list_eligible_vehicles_for_route,
+    list_equipment,
+    list_movement_equipment,
+    list_vehicle_delivery_points,
+    list_vehicle_route_restrictions,
+    replace_route_weekdays,
+    replace_vehicle_route_restrictions,
+    return_movement_equipment,
+    unlink_vehicle_delivery_point,
+    update_agenda_task_gps,
+    update_route_gps_start,
+    update_route_stop_gps,
+    upsert_adr_product_config,
+    upsert_driver_parameters,
 )
 from plugins.logistics.backend.services.extras import (
     create_hydrotest,
@@ -150,6 +244,26 @@ from plugins.logistics.backend.services.orders import (
     list_orders,
     update_order,
     update_order_item,
+)
+from plugins.logistics.backend.services.planning import (
+    accept_preload,
+    build_preload_read,
+    cancel_preload,
+    generate_preload,
+    get_preload,
+    list_preloads,
+    list_stock_summary,
+    plan_order,
+)
+from plugins.logistics.backend.services.planning import (
+    list_pending_orders as list_planning_pending_orders,
+)
+from plugins.logistics.backend.services.reception import (
+    create_reception_incident,
+    get_reception_detail,
+    list_incident_reasons,
+    list_pending_receptions,
+    receive_movement,
 )
 from plugins.logistics.backend.services.resources import (
     create_delivery_point,
@@ -239,6 +353,37 @@ def _not_found(entity_name: str) -> HTTPException:
     return HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"{entity_name} not found")
 
 
+def _ensure_warehouse_access(
+    db: Session,
+    *,
+    tenant_context: TenantContext,
+    request: Request,
+    warehouse_id: str,
+    action: str,
+) -> None:
+    if tenant_context.has_warehouse_access(warehouse_id):
+        return
+    audit_logistics_action(
+        db,
+        context=build_action_context(request, tenant_context),
+        action=action,
+        entity_type="warehouse",
+        entity_id=warehouse_id,
+        result="denied",
+        details={"warehouse_id": warehouse_id, "reason": "warehouse scope denied"},
+    )
+    db.commit()
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Warehouse access denied")
+
+
+def _raise_service_error(exc: Exception) -> Never:
+    if isinstance(exc, LookupError):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    if isinstance(exc, ValueError):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    raise exc
+
+
 @router.get("/catalog/cylinder-states", response_model=list[CylinderStateRead])
 def get_cylinder_states(
     db: Session = DB_SESSION,
@@ -305,7 +450,10 @@ def get_zone_catalog(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_WAREHOUSE_READ,
 ) -> list[ZoneRead]:
-    return [ZoneRead.model_validate(item) for item in list_zones_catalog(db, tenant_id=tenant_context.current_tenant_id)]
+    return [
+        ZoneRead.model_validate(item)
+        for item in list_zones_catalog(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.get("/catalog/conditions", response_model=list[CylinderConditionRead])
@@ -313,10 +461,7 @@ def get_condition_catalog(
     db: Session = DB_SESSION,
     _: User = REQUIRE_CYLINDER_READ,
 ) -> list[CylinderConditionRead]:
-    return [
-        CylinderConditionRead.model_validate(item)
-        for item in list_conditions_catalog(db)
-    ]
+    return [CylinderConditionRead.model_validate(item) for item in list_conditions_catalog(db)]
 
 
 @router.get("/catalog/gas-products", response_model=list[GasProductRead])
@@ -337,7 +482,10 @@ def get_brand_catalog(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_BRAND_CATALOG_READ,
 ) -> list[BrandRead]:
-    return [BrandRead.model_validate(item) for item in list_brands_catalog(db, tenant_id=tenant_context.current_tenant_id)]
+    return [
+        BrandRead.model_validate(item)
+        for item in list_brands_catalog(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.get("/catalog/service-types", response_model=list[ServiceTypeRead])
@@ -382,7 +530,23 @@ def get_cylinder_summary(
     return summarize_cylinders(db, tenant_id=tenant_context.current_tenant_id)
 
 
-@router.get("/cylinders/allowed-transitions/{cylinder_id}", response_model=list[CylinderTransitionRead])
+@router.get("/cylinders/available-with-weight", response_model=list[CylinderWeightRead])
+def get_available_cylinders_with_weight_endpoint(
+    warehouse_id: str | None = Query(default=None),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_READ,
+) -> list[CylinderWeightRead]:
+    return list_available_cylinders_with_weight(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        warehouse_id=warehouse_id,
+    )
+
+
+@router.get(
+    "/cylinders/allowed-transitions/{cylinder_id}", response_model=list[CylinderTransitionRead]
+)
 def get_cylinder_allowed_transitions(
     cylinder_id: str,
     db: Session = DB_SESSION,
@@ -498,7 +662,10 @@ def get_cylinder_retimbrados(
     cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
     if cylinder is None:
         raise _not_found("Cylinder")
-    return [CylinderRetimbradoRead.model_validate(item) for item in list_retimbrados(db, cylinder_id=cylinder_id)]
+    return [
+        CylinderRetimbradoRead.model_validate(item)
+        for item in list_retimbrados(db, cylinder_id=cylinder_id)
+    ]
 
 
 @router.post(
@@ -657,7 +824,9 @@ def update_cylinder_service_endpoint(
     return CylinderServiceRead.model_validate(service)
 
 
-@router.delete("/cylinders/{cylinder_id}/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete(
+    "/cylinders/{cylinder_id}/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 def delete_cylinder_service_endpoint(
     cylinder_id: str,
     service_id: str,
@@ -690,10 +859,17 @@ def get_cylinder_hydrotests(
     cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
     if cylinder is None:
         raise _not_found("Cylinder")
-    return [HydrostaticTestRead.model_validate(item) for item in list_hydrotests(db, cylinder_id=cylinder_id)]
+    return [
+        HydrostaticTestRead.model_validate(item)
+        for item in list_hydrotests(db, cylinder_id=cylinder_id)
+    ]
 
 
-@router.post("/cylinders/{cylinder_id}/hydrotests", response_model=HydrostaticTestRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/cylinders/{cylinder_id}/hydrotests",
+    response_model=HydrostaticTestRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_cylinder_hydrotest(
     cylinder_id: str,
     payload: HydrostaticTestCreateRequest,
@@ -727,7 +903,9 @@ def get_cylinder_warranties(
         raise _not_found("Cylinder")
     return [
         WarrantyRead.model_validate(item)
-        for item in list_warranties(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
+        for item in list_warranties(
+            db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id
+        )
     ]
 
 
@@ -753,7 +931,11 @@ def create_cylinder_endpoint(
     return CylinderRead.model_validate(cylinder)
 
 
-@router.post("/cylinders/{cylinder_id}/warranties", response_model=WarrantyRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/cylinders/{cylinder_id}/warranties",
+    response_model=WarrantyRead,
+    status_code=status.HTTP_201_CREATED,
+)
 def create_cylinder_warranty(
     cylinder_id: str,
     payload: WarrantyCreateRequest,
@@ -808,7 +990,10 @@ def get_warehouses(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_WAREHOUSE_READ,
 ) -> list[WarehouseRead]:
-    return [WarehouseRead.model_validate(item) for item in list_warehouses(db, tenant_id=tenant_context.current_tenant_id)]
+    return [
+        WarehouseRead.model_validate(item)
+        for item in list_warehouses(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.post("/warehouses", response_model=WarehouseRead, status_code=status.HTTP_201_CREATED)
@@ -845,7 +1030,9 @@ def update_warehouse_endpoint(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_WAREHOUSE_MANAGE,
 ) -> WarehouseRead:
-    warehouse = get_warehouse(db, tenant_id=tenant_context.current_tenant_id, warehouse_id=warehouse_id)
+    warehouse = get_warehouse(
+        db, tenant_id=tenant_context.current_tenant_id, warehouse_id=warehouse_id
+    )
     if warehouse is None:
         raise _not_found("Warehouse")
     try:
@@ -871,7 +1058,10 @@ def get_zones(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_WAREHOUSE_READ,
 ) -> list[ZoneRead]:
-    return [ZoneRead.model_validate(item) for item in list_zones(db, tenant_id=tenant_context.current_tenant_id)]
+    return [
+        ZoneRead.model_validate(item)
+        for item in list_zones(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.post("/zones", response_model=ZoneRead, status_code=status.HTTP_201_CREATED)
@@ -902,7 +1092,10 @@ def get_vehicles(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_VEHICLE_READ,
 ) -> list[VehicleRead]:
-    return [VehicleRead.model_validate(item) for item in list_vehicles(db, tenant_id=tenant_context.current_tenant_id)]
+    return [
+        VehicleRead.model_validate(item)
+        for item in list_vehicles(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.post("/vehicles", response_model=VehicleRead, status_code=status.HTTP_201_CREATED)
@@ -965,7 +1158,9 @@ def get_delivery_points(
     ]
 
 
-@router.post("/delivery-points", response_model=DeliveryPointRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/delivery-points", response_model=DeliveryPointRead, status_code=status.HTTP_201_CREATED
+)
 def create_delivery_point_endpoint(
     payload: DeliveryPointCreateRequest,
     request: Request,
@@ -1111,7 +1306,9 @@ def update_order_endpoint(
     return OrderRead.model_validate(order)
 
 
-@router.post("/orders/{order_id}/items", response_model=OrderItemRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/orders/{order_id}/items", response_model=OrderItemRead, status_code=status.HTTP_201_CREATED
+)
 def create_order_item_endpoint(
     order_id: str,
     payload: OrderItemCreateRequest,
@@ -1183,6 +1380,7 @@ def get_routes(
     route_date: str | None = Query(default=None, alias="date"),
     driver: str | None = Query(default=None),
     status_filter: str | None = Query(default=None, alias="status"),
+    weekday: int | None = Query(default=None, ge=1, le=7),
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_ROUTE_READ,
@@ -1198,6 +1396,7 @@ def get_routes(
             status=status_filter,
             driver_id=driver,
             route_date=parsed_date,
+            weekday=weekday,
         )
     ]
 
@@ -1236,15 +1435,19 @@ def create_route_endpoint(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_ROUTE_MANAGE,
 ) -> RouteRead:
-    route = create_route(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        created_by=tenant_context.current_user_id,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return RouteRead.model_validate(route)
+    try:
+        route = create_route(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            created_by=tenant_context.current_user_id,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return RouteRead.model_validate(route)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
 
 
 @router.patch("/routes/{route_id}", response_model=RouteRead)
@@ -1259,14 +1462,18 @@ def update_route_endpoint(
     route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
     if route is None:
         raise _not_found("Route")
-    route = update_route(
-        db,
-        route=route,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return RouteRead.model_validate(route)
+    try:
+        route = update_route(
+            db,
+            route=route,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return RouteRead.model_validate(route)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
 
 
 @router.post("/routes/{route_id}/start", response_model=RouteRead)
@@ -1305,7 +1512,9 @@ def complete_route_endpoint(
     route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
     if route is None:
         raise _not_found("Route")
-    route = complete_route(db, route=route, action_context=build_action_context(request, tenant_context))
+    route = complete_route(
+        db, route=route, action_context=build_action_context(request, tenant_context)
+    )
     db.commit()
     return RouteRead.model_validate(route)
 
@@ -1321,12 +1530,16 @@ def cancel_route_endpoint(
     route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
     if route is None:
         raise _not_found("Route")
-    route = cancel_route(db, route=route, action_context=build_action_context(request, tenant_context))
+    route = cancel_route(
+        db, route=route, action_context=build_action_context(request, tenant_context)
+    )
     db.commit()
     return RouteRead.model_validate(route)
 
 
-@router.post("/routes/{route_id}/stops", response_model=RouteStopRead, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/routes/{route_id}/stops", response_model=RouteStopRead, status_code=status.HTTP_201_CREATED
+)
 def create_route_stop_endpoint(
     route_id: str,
     payload: RouteStopCreateRequest,
@@ -1487,6 +1700,9 @@ def create_load_endpoint(
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
     return LoadRead.model_validate(load)
 
 
@@ -1512,6 +1728,9 @@ def bulk_create_load_endpoint(
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
     return [LoadRead.model_validate(item) for item in loads]
 
 
@@ -1604,7 +1823,10 @@ def get_movement_item_list(
     movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
     if movement is None:
         raise _not_found("Movement")
-    return [MovementItemRead.model_validate(item) for item in list_movement_items(db, movement_id=movement_id)]
+    return [
+        MovementItemRead.model_validate(item)
+        for item in list_movement_items(db, movement_id=movement_id)
+    ]
 
 
 @router.get("/movements/{movement_id}/history", response_model=list[MovementStatusHistoryRead])
@@ -1876,7 +2098,9 @@ def complete_agenda_task_endpoint(
     task = get_agenda_task(db, tenant_id=tenant_context.current_tenant_id, task_id=task_id)
     if task is None:
         raise _not_found("Agenda task")
-    task = complete_agenda_task(db, task=task, action_context=build_action_context(request, tenant_context))
+    task = complete_agenda_task(
+        db, task=task, action_context=build_action_context(request, tenant_context)
+    )
     db.commit()
     return AgendaTaskRead.model_validate(task)
 
@@ -1892,6 +2116,1212 @@ def cancel_agenda_task_endpoint(
     task = get_agenda_task(db, tenant_id=tenant_context.current_tenant_id, task_id=task_id)
     if task is None:
         raise _not_found("Agenda task")
-    task = cancel_agenda_task(db, task=task, action_context=build_action_context(request, tenant_context))
+    task = cancel_agenda_task(
+        db, task=task, action_context=build_action_context(request, tenant_context)
+    )
     db.commit()
     return AgendaTaskRead.model_validate(task)
+
+
+@router.get("/planning/stock", response_model=list[PlanningStockSummaryItem])
+def get_planning_stock_summary(
+    request: Request,
+    warehouse_id: str = Query(...),
+    product_ids: str | None = Query(default=None),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> list[PlanningStockSummaryItem]:
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=warehouse_id,
+        action="planning.stock.read",
+    )
+    return list_stock_summary(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        warehouse_id=warehouse_id,
+        product_ids=set(product_ids.split(",")) if product_ids else set(),
+    )
+
+
+@router.post("/planning/stock/summary", response_model=list[PlanningStockSummaryItem])
+def post_planning_stock_summary(
+    payload: PlanningStockSummaryRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> list[PlanningStockSummaryItem]:
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=payload.warehouse_id,
+        action="planning.stock.read",
+    )
+    orders = list_planning_pending_orders(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        allowed_warehouse_ids=tenant_context.current_warehouse_ids,
+        warehouse_id=payload.warehouse_id,
+    )
+    product_ids = {
+        item.product_id for order in orders for item in order.items if item.product_id is not None
+    }
+    return list_stock_summary(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        warehouse_id=payload.warehouse_id,
+        product_ids=product_ids,
+    )
+
+
+@router.get("/planning/pending-orders", response_model=list[PlanningPendingOrderRead])
+def get_planning_pending_orders(
+    request: Request,
+    warehouse_id: str | None = Query(default=None),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> list[PlanningPendingOrderRead]:
+    if warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=warehouse_id,
+            action="planning.pending_orders.read",
+        )
+    return list_planning_pending_orders(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        allowed_warehouse_ids=tenant_context.current_warehouse_ids,
+        warehouse_id=warehouse_id,
+    )
+
+
+@router.post("/planning/plan-order/{order_id}", response_model=PlanningPlanOrderResult)
+def post_plan_order(
+    order_id: str,
+    payload: PlanningPlanOrderRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_MANAGE,
+) -> PlanningPlanOrderResult:
+    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
+    if order is None:
+        raise _not_found("Order")
+    if order.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=order.warehouse_id,
+            action="planning.plan_order",
+        )
+    try:
+        result = plan_order(
+            db,
+            order=order,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/planning/generate-preload",
+    response_model=PlanningPreloadRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_generate_preload(
+    payload: PlanningGeneratePreloadRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_MANAGE,
+) -> PlanningPreloadRead:
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=payload.warehouse_id,
+        action="planning.generate_preload",
+    )
+    try:
+        preload = generate_preload(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            created_by=tenant_context.current_user_id,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return preload
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/planning/preloads", response_model=list[PlanningPreloadRead])
+def get_planning_preloads(
+    request: Request,
+    warehouse_id: str | None = Query(default=None),
+    preload_date: str | None = Query(default=None, alias="date"),
+    status_filter: str | None = Query(default=None, alias="status"),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> list[PlanningPreloadRead]:
+    if warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=warehouse_id,
+            action="planning.preload.read",
+        )
+    parsed_date = datetime.fromisoformat(preload_date).date() if preload_date else None
+    return list_preloads(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        allowed_warehouse_ids=tenant_context.current_warehouse_ids,
+        warehouse_id=warehouse_id,
+        preload_date=parsed_date,
+        status=status_filter,
+    )
+
+
+@router.get("/planning/preloads/{preload_id}", response_model=PlanningPreloadRead)
+def get_planning_preload_detail(
+    preload_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> PlanningPreloadRead:
+    preload = get_preload(db, tenant_id=tenant_context.current_tenant_id, preload_id=preload_id)
+    if preload is None:
+        raise _not_found("Preload")
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=preload.warehouse_id,
+        action="planning.preload.read",
+    )
+    return build_preload_read(db, preload)
+
+
+@router.post("/planning/preloads/{preload_id}/accept", response_model=PlanningPreloadActionResult)
+def post_accept_preload(
+    preload_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_MANAGE,
+) -> PlanningPreloadActionResult:
+    preload = get_preload(db, tenant_id=tenant_context.current_tenant_id, preload_id=preload_id)
+    if preload is None:
+        raise _not_found("Preload")
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=preload.warehouse_id,
+        action="planning.preload.accept",
+    )
+    try:
+        result = accept_preload(
+            db,
+            preload=preload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post("/planning/preloads/{preload_id}/cancel", response_model=PlanningPreloadRead)
+def post_cancel_preload(
+    preload_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_MANAGE,
+) -> PlanningPreloadRead:
+    preload = get_preload(db, tenant_id=tenant_context.current_tenant_id, preload_id=preload_id)
+    if preload is None:
+        raise _not_found("Preload")
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=preload.warehouse_id,
+        action="planning.preload.cancel",
+    )
+    try:
+        result = cancel_preload(
+            db,
+            preload=preload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/reception/pending", response_model=list[MovementRead])
+def get_pending_receptions_endpoint(
+    request: Request,
+    warehouse_id: str = Query(...),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> list[MovementRead]:
+    _ensure_warehouse_access(
+        db,
+        tenant_context=tenant_context,
+        request=request,
+        warehouse_id=warehouse_id,
+        action="reception.pending.read",
+    )
+    return [
+        MovementRead.model_validate(item)
+        for item in list_pending_receptions(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            warehouse_id=warehouse_id,
+        )
+    ]
+
+
+@router.get("/reception/incident-reasons", response_model=list[IncidentReasonRead])
+def get_reception_incident_reasons(_: User = REQUIRE_MOVEMENT_READ) -> list[IncidentReasonRead]:
+    return list_incident_reasons()
+
+
+@router.get("/reception/{movement_id}", response_model=MovementRead)
+def get_reception_detail_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> MovementRead:
+    movement = get_reception_detail(
+        db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id
+    )
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="reception.read",
+        )
+    return MovementRead.model_validate(movement)
+
+
+@router.post("/reception/{movement_id}/receive", response_model=ReceptionReceiveResult)
+def post_receive_movement(
+    movement_id: str,
+    payload: ReceptionReceiveRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> ReceptionReceiveResult:
+    movement = get_reception_detail(
+        db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id
+    )
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="reception.receive",
+        )
+    try:
+        result = receive_movement(
+            db,
+            movement=movement,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/reception/{movement_id}/incident",
+    response_model=ReceptionIncidentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_reception_incident(
+    movement_id: str,
+    payload: ReceptionIncidentCreateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> ReceptionIncidentRead:
+    movement = get_reception_detail(
+        db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id
+    )
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="reception.incident.create",
+        )
+    try:
+        incident = create_reception_incident(
+            db,
+            movement=movement,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return ReceptionIncidentRead.model_validate(incident)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/waybill/{movement_id}", response_model=WaybillRead)
+def get_waybill_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> WaybillRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="waybill.read",
+        )
+    return build_waybill(db, movement=movement)
+
+
+@router.get("/waybill/{movement_id}/summary", response_model=WaybillSummaryRead)
+def get_waybill_summary_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> WaybillSummaryRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="waybill.summary.read",
+        )
+    return build_waybill_summary(db, movement=movement)
+
+
+@router.get("/reports/route-agenda/{route_id}", response_model=RouteAgendaReportRead)
+def get_route_agenda_report_endpoint(
+    route_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> RouteAgendaReportRead:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    return build_route_agenda_report(db, route=route)
+
+
+@router.get("/reports/dispatch-ticket/{movement_id}", response_model=DispatchTicketRead)
+def get_dispatch_ticket_report_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> DispatchTicketRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="dispatch.ticket.read",
+        )
+    return build_dispatch_ticket(db, movement=movement)
+
+
+@router.get("/reports/transfer-albaran/{movement_id}", response_model=TransferAlbaranRead)
+def get_transfer_albaran_report_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> TransferAlbaranRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="transfer.albaran.read",
+        )
+    return build_transfer_albaran(db, movement=movement)
+
+
+@router.get("/reports/load-summary/{route_id}", response_model=LoadSummaryReportRead)
+def get_load_summary_report_endpoint(
+    route_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> LoadSummaryReportRead:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    return build_load_summary(db, route=route)
+
+
+@router.get("/reports/adr-summary/{movement_id}", response_model=AdrPointsSummaryRead)
+def get_adr_summary_report_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> AdrPointsSummaryRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="adr.summary.read",
+        )
+    return build_adr_points_summary(db, movement=movement)
+
+
+@router.patch("/movements/{movement_id}/guide", response_model=MovementRead)
+def patch_dispatch_guide_endpoint(
+    movement_id: str,
+    payload: DispatchGuideAssignRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> MovementRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    try:
+        movement = assign_dispatch_guide(
+            db,
+            movement=movement,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return MovementRead.model_validate(movement)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post("/movements/{movement_id}/close-dispatch", response_model=MovementRead)
+def post_close_dispatch_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> MovementRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="dispatch.close",
+        )
+    try:
+        movement = close_dispatch(
+            db,
+            movement=movement,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return MovementRead.model_validate(movement)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/movements/{movement_id}/dispatch-receipt", response_model=DispatchTicketRead)
+def get_dispatch_receipt_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> DispatchTicketRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="dispatch.receipt.read",
+        )
+    return build_dispatch_ticket(db, movement=movement)
+
+
+@router.post("/movements/{movement_id}/vehicle-return", response_model=MovementRead)
+def post_vehicle_return_endpoint(
+    movement_id: str,
+    payload: DispatchVehicleReturnRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> MovementRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="dispatch.vehicle_return",
+        )
+    try:
+        movement = vehicle_return(
+            db,
+            movement=movement,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return MovementRead.model_validate(movement)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/equipment", response_model=list[EquipmentRead])
+def get_equipment_endpoint(
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> list[EquipmentRead]:
+    return [
+        EquipmentRead.model_validate(item)
+        for item in list_equipment(db, tenant_id=tenant_context.current_tenant_id)
+    ]
+
+
+@router.post("/equipment", response_model=EquipmentRead, status_code=status.HTTP_201_CREATED)
+def post_equipment_endpoint(
+    payload: EquipmentCreateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CREATE,
+) -> EquipmentRead:
+    try:
+        equipment = create_equipment(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return EquipmentRead.model_validate(equipment)
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+
+
+@router.get("/movements/{movement_id}/equipment", response_model=list[MovementEquipmentRead])
+def get_movement_equipment_endpoint(
+    movement_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> list[MovementEquipmentRead]:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    return [
+        MovementEquipmentRead.model_validate(item)
+        for item in list_movement_equipment(db, movement_id=movement_id)
+    ]
+
+
+@router.post(
+    "/movements/{movement_id}/equipment",
+    response_model=MovementEquipmentRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_movement_equipment_endpoint(
+    movement_id: str,
+    payload: MovementEquipmentAssignRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> MovementEquipmentRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    assignment = assign_equipment_to_movement(
+        db,
+        movement=movement,
+        payload=payload,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return MovementEquipmentRead.model_validate(assignment)
+
+
+@router.patch(
+    "/movements/{movement_id}/equipment/{assignment_id}/return",
+    response_model=MovementEquipmentRead,
+)
+def patch_movement_equipment_return_endpoint(
+    movement_id: str,
+    assignment_id: str,
+    payload: MovementEquipmentReturnRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_CONFIRM,
+) -> MovementEquipmentRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    assignment = db.scalar(
+        select(LogisticsMovementEquipment).where(
+            LogisticsMovementEquipment.id == assignment_id,
+            LogisticsMovementEquipment.movement_id == movement_id,
+        )
+    )
+    if assignment is None:
+        raise _not_found("Movement equipment")
+    assignment = return_movement_equipment(
+        db,
+        assignment=assignment,
+        payload=payload,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return MovementEquipmentRead.model_validate(assignment)
+
+
+@router.get(
+    "/vehicles/{vehicle_id}/route-restrictions", response_model=list[VehicleRouteRestrictionRead]
+)
+def get_vehicle_route_restrictions_endpoint(
+    vehicle_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[VehicleRouteRestrictionRead]:
+    return [
+        VehicleRouteRestrictionRead.model_validate(item)
+        for item in list_vehicle_route_restrictions(
+            db, tenant_id=tenant_context.current_tenant_id, vehicle_id=vehicle_id
+        )
+    ]
+
+
+@router.post(
+    "/vehicles/{vehicle_id}/route-restrictions", response_model=list[VehicleRouteRestrictionRead]
+)
+def post_vehicle_route_restrictions_endpoint(
+    vehicle_id: str,
+    payload: VehicleRouteRestrictionUpsertRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> list[VehicleRouteRestrictionRead]:
+    try:
+        items = replace_vehicle_route_restrictions(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            vehicle_id=vehicle_id,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return [VehicleRouteRestrictionRead.model_validate(item) for item in items]
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+
+
+@router.get("/routes/{route_id}/eligible-vehicles", response_model=list[VehicleEligibilityRead])
+def get_route_eligible_vehicles_endpoint(
+    route_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[VehicleEligibilityRead]:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    return list_eligible_vehicles_for_route(
+        db, tenant_id=tenant_context.current_tenant_id, route_id=route_id
+    )
+
+
+@router.get("/drivers/{driver_id}/parameters", response_model=list[DriverParameterRead])
+def get_driver_parameters_endpoint(
+    driver_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[DriverParameterRead]:
+    return list_driver_parameters(
+        db, tenant_id=tenant_context.current_tenant_id, driver_id=driver_id
+    )
+
+
+@router.put("/drivers/{driver_id}/parameters", response_model=list[DriverParameterRead])
+def put_driver_parameters_endpoint(
+    driver_id: str,
+    payload: DriverParametersUpsertRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> list[DriverParameterRead]:
+    items = upsert_driver_parameters(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        driver_id=driver_id,
+        payload=payload,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return items
+
+
+@router.get("/vehicles/{vehicle_id}/delivery-points", response_model=list[VehicleDeliveryPointRead])
+def get_vehicle_delivery_points_endpoint(
+    vehicle_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[VehicleDeliveryPointRead]:
+    return list_vehicle_delivery_points(
+        db, tenant_id=tenant_context.current_tenant_id, vehicle_id=vehicle_id
+    )
+
+
+@router.post(
+    "/vehicles/{vehicle_id}/delivery-points",
+    response_model=VehicleDeliveryPointRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_vehicle_delivery_point_endpoint(
+    vehicle_id: str,
+    payload: VehicleDeliveryPointCreateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> VehicleDeliveryPointRead:
+    link = link_vehicle_delivery_point(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        vehicle_id=vehicle_id,
+        payload=payload,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return VehicleDeliveryPointRead.model_validate(link)
+
+
+@router.delete(
+    "/vehicles/{vehicle_id}/delivery-points/{delivery_point_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_vehicle_delivery_point_endpoint(
+    vehicle_id: str,
+    delivery_point_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> None:
+    unlink_vehicle_delivery_point(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        vehicle_id=vehicle_id,
+        delivery_point_id=delivery_point_id,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+
+
+@router.get("/agenda/daily-summary", response_model=list[AgendaDailySummaryBucket])
+def get_agenda_daily_summary_endpoint(
+    summary_date: str | None = Query(default=None, alias="date"),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_AGENDA_READ,
+) -> list[AgendaDailySummaryBucket]:
+    parsed_date = (
+        datetime.fromisoformat(summary_date).date() if summary_date else datetime.now().date()
+    )
+    return get_agenda_daily_summary(
+        db, tenant_id=tenant_context.current_tenant_id, scheduled_date=parsed_date
+    )
+
+
+@router.patch("/routes/{route_id}/weekly-schedule", response_model=list[RouteWeekdayRead])
+def patch_route_weekly_schedule_endpoint(
+    route_id: str,
+    payload: RouteWeekdayUpdateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> list[RouteWeekdayRead]:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    try:
+        items = replace_route_weekdays(
+            db,
+            route=route,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return items
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get("/loads/weight-summary", response_model=LoadWeightSummaryRead)
+def get_load_weight_summary_endpoint(
+    route_id: str = Query(...),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_LOAD_MANAGE,
+) -> LoadWeightSummaryRead:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    return build_load_weight_summary(db, route=route)
+
+
+@router.get("/adr/product-config/{product_id}", response_model=AdrProductConfigRead | None)
+def get_adr_product_config_endpoint(
+    product_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> AdrProductConfigRead | None:
+    item = get_adr_product_config(
+        db, tenant_id=tenant_context.current_tenant_id, product_id=product_id
+    )
+    return AdrProductConfigRead.model_validate(item) if item is not None else None
+
+
+@router.put("/adr/product-config/{product_id}", response_model=AdrProductConfigRead)
+def put_adr_product_config_endpoint(
+    product_id: str,
+    payload: AdrProductConfigUpsertRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> AdrProductConfigRead:
+    item = upsert_adr_product_config(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        product_id=product_id,
+        payload=payload,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return AdrProductConfigRead.model_validate(item)
+
+
+@router.get("/adr/points/{movement_id}", response_model=AdrPointsSummaryRead)
+def get_adr_points_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> AdrPointsSummaryRead:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="adr.points.read",
+        )
+    return build_adr_points_summary(db, movement=movement)
+
+
+@router.get("/adr/incompatibilities", response_model=list[AdrIncompatibilityRead])
+def get_adr_incompatibilities_endpoint(
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[AdrIncompatibilityRead]:
+    return [
+        AdrIncompatibilityRead.model_validate(item)
+        for item in list_adr_incompatibilities(db, tenant_id=tenant_context.current_tenant_id)
+    ]
+
+
+@router.post(
+    "/adr/incompatibilities",
+    response_model=AdrIncompatibilityRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_adr_incompatibility_endpoint(
+    payload: AdrIncompatibilityCreateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> AdrIncompatibilityRead:
+    try:
+        item = create_adr_incompatibility(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return AdrIncompatibilityRead.model_validate(item)
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.delete(
+    "/adr/incompatibilities/{incompatibility_id}", status_code=status.HTTP_204_NO_CONTENT
+)
+def delete_adr_incompatibility_endpoint(
+    incompatibility_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> None:
+    item = db.scalar(
+        select(LogisticsAdrIncompatibility).where(
+            LogisticsAdrIncompatibility.id == incompatibility_id,
+            LogisticsAdrIncompatibility.tenant_id == tenant_context.current_tenant_id,
+        )
+    )
+    if item is None:
+        raise _not_found("ADR incompatibility")
+    delete_adr_incompatibility(
+        db, item=item, action_context=build_action_context(request, tenant_context)
+    )
+    db.commit()
+
+
+@router.get("/adr/eligible-vehicles/{movement_id}", response_model=list[VehicleEligibilityRead])
+def get_adr_eligible_vehicles_endpoint(
+    movement_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[VehicleEligibilityRead]:
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    if movement.warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=movement.warehouse_id,
+            action="adr.eligible_vehicles.read",
+        )
+    summary = build_adr_points_summary(db, movement=movement)
+    return list_eligible_vehicles_for_movement(
+        db, movement=movement, total_adr_points=summary.total_adr_points
+    )
+
+
+@router.patch("/routes/{route_id}/gps-start", response_model=RouteRead)
+def patch_route_gps_start_endpoint(
+    route_id: str,
+    payload: RouteGpsStartRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> RouteRead:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    route = update_route_gps_start(
+        db,
+        route=route,
+        gps_coordinates=payload.gps_coordinates,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return RouteRead.model_validate(route)
+
+
+@router.patch("/routes/{route_id}/stops/{stop_id}/gps", response_model=RouteStopRead)
+def patch_route_stop_gps_endpoint(
+    route_id: str,
+    stop_id: str,
+    payload: RouteStopGpsRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> RouteStopRead:
+    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
+    if route is None:
+        raise _not_found("Route")
+    stop = get_route_stop(db, route_id=route_id, stop_id=stop_id)
+    if stop is None:
+        raise _not_found("Route stop")
+    stop = update_route_stop_gps(
+        db,
+        stop=stop,
+        gps_coordinates=payload.gps_coordinates,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return RouteStopRead.model_validate(stop)
+
+
+@router.patch("/agenda/tasks/{task_id}/gps", response_model=AgendaTaskRead)
+def patch_agenda_task_gps_endpoint(
+    task_id: str,
+    payload: AgendaTaskGpsRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_AGENDA_MANAGE,
+) -> AgendaTaskRead:
+    task = get_agenda_task(db, tenant_id=tenant_context.current_tenant_id, task_id=task_id)
+    if task is None:
+        raise _not_found("Agenda task")
+    task = update_agenda_task_gps(
+        db,
+        task=task,
+        gps_coordinates=payload.gps_coordinates,
+        action_context=build_action_context(request, tenant_context),
+    )
+    db.commit()
+    return AgendaTaskRead.model_validate(task)
+
+
+@router.get("/cylinders/{cylinder_id}/weight", response_model=CylinderWeightRead)
+def get_cylinder_weight_endpoint(
+    cylinder_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_READ,
+) -> CylinderWeightRead:
+    try:
+        return get_cylinder_weight(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            cylinder_id=cylinder_id,
+        )
+    except Exception as exc:
+        _raise_service_error(exc)
+
+
+@router.get("/products/{product_id}/content", response_model=ProductContentRead)
+def get_product_content_endpoint(
+    product_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ORDER_READ,
+) -> ProductContentRead:
+    try:
+        return get_product_content(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=product_id,
+        )
+    except Exception as exc:
+        _raise_service_error(exc)

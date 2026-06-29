@@ -6,25 +6,21 @@ import type {
 import { AgendaPage } from "./pages/AgendaPage";
 import { CylindersPage } from "./pages/CylindersPage";
 import { DeliveryPointsPage } from "./pages/DeliveryPointsPage";
+import { EquipmentPage } from "./pages/EquipmentPage";
 import { LoadsPage } from "./pages/LoadsPage";
 import { MovementsPage } from "./pages/MovementsPage";
 import { OrdersPage } from "./pages/OrdersPage";
+import { PlanningPage } from "./pages/PlanningPage";
+import { ReceptionPage } from "./pages/ReceptionPage";
 import { RoutesPage } from "./pages/RoutesPage";
 import { VehiclesPage } from "./pages/VehiclesPage";
 import { WarehousesPage } from "./pages/WarehousesPage";
-import { LogisticsPage } from "./LogisticsPage";
 import { LogisticsSummaryWidget } from "./LogisticsSummaryWidget";
 
 export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegistration {
   return {
     pluginId: "logistics",
     routes: [
-      {
-        path: "logistics",
-        title: "Logistics",
-        component: LogisticsPage,
-        requiredPermissions: ["logistics.cylinder.read"],
-      },
       {
         path: "logistics/cylinders",
         title: "Envases",
@@ -56,6 +52,24 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         requiredPermissions: ["logistics.movement.read"],
       },
       {
+        path: "logistics/planning",
+        title: "Planificación",
+        component: PlanningPage,
+        requiredPermissions: ["logistics.order.read"],
+      },
+      {
+        path: "logistics/reception",
+        title: "Recepción",
+        component: ReceptionPage,
+        requiredPermissions: ["logistics.movement.read"],
+      },
+      {
+        path: "logistics/equipment",
+        title: "Equipos",
+        component: EquipmentPage,
+        requiredPermissions: ["logistics.movement.read"],
+      },
+      {
         path: "logistics/agenda",
         title: "Agenda",
         component: AgendaPage,
@@ -81,11 +95,18 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
       },
     ],
     navigation: [
-      {
-        to: `${ctx.appBasePath}/logistics`,
-        label: "Logistics",
-        requiredPermissions: ["logistics.cylinder.read"],
-      },
+      { to: `${ctx.appBasePath}/logistics/cylinders`, label: "Envases", requiredPermissions: ["logistics.cylinder.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/planning`, label: "Planificacion", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/orders`, label: "Pedidos", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/routes`, label: "Rutas", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/loads`, label: "Carga", requiredPermissions: ["logistics.load.manage"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/movements`, label: "Movimientos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/reception`, label: "Recepcion", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/agenda`, label: "Agenda", requiredPermissions: ["logistics.agenda.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/equipment`, label: "Equipos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/warehouses`, label: "Almacenes", requiredPermissions: ["logistics.warehouse.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/vehicles`, label: "Vehiculos", requiredPermissions: ["logistics.vehicle.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/delivery-points`, label: "Entregas", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
     ],
     widgets: [
       {

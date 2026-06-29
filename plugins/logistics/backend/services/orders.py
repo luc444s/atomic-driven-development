@@ -9,7 +9,7 @@ from plugins.logistics.backend.common import (
     audit_logistics_action,
     emit_logistics_event,
 )
-from plugins.logistics.backend.models import LogisticsOrder, LogisticsOrderItem
+from plugins.logistics.backend.models import LogisticsOrder, LogisticsOrderItem, LogisticsWarehouse
 from plugins.logistics.backend.schemas import (
     OrderCreateRequest,
     OrderItemCreateRequest,
@@ -62,9 +62,18 @@ def create_order(
     action_context: LogisticsActionContext,
 ) -> LogisticsOrder:
     customer = require_customer(db, tenant_id=tenant_id, customer_id=payload.customer_id)
+    warehouse_branch_id = None
+    if payload.warehouse_id is not None:
+        warehouse = db.scalar(
+            select(LogisticsWarehouse).where(
+                LogisticsWarehouse.id == payload.warehouse_id,
+                LogisticsWarehouse.tenant_id == tenant_id,
+            )
+        )
+        warehouse_branch_id = warehouse.branch_id if warehouse is not None else None
     order = LogisticsOrder(
         tenant_id=tenant_id,
-        branch_id=payload.branch_id,
+        branch_id=payload.branch_id or warehouse_branch_id,
         customer_id=payload.customer_id,
         customer_name=customer.legal_name,
         movement_type=payload.movement_type,
@@ -113,6 +122,14 @@ def update_order(
         order.customer_name = customer.legal_name
     if payload.warehouse_id is not None:
         order.warehouse_id = payload.warehouse_id
+        warehouse = db.scalar(
+            select(LogisticsWarehouse).where(
+                LogisticsWarehouse.id == payload.warehouse_id,
+                LogisticsWarehouse.tenant_id == order.tenant_id,
+            )
+        )
+        if warehouse is not None:
+            order.branch_id = warehouse.branch_id
     if payload.carrier is not None:
         order.carrier = payload.carrier
     if payload.commitment_date is not None:

@@ -4,6 +4,12 @@
 
 Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente al legacy (`modulo_logistica/`), sus capacidades, gaps funcionales y plan de cierre.
 
+## Actualización 2026-06-29
+
+- `SPEC 0014` ya no debe leerse como trabajo pendiente: sus módulos fueron implementados en `plugins/logistics/`.
+- Este documento todavía conserva parte del inventario previo a esa implementación y requiere una pasada de normalización posterior para recalcular conteos, endpoints y cobertura exacta.
+- Para el estado funcional más reciente, tomar como referencia inmediata `plugins/logistics/README.md` y `docs/specs/core/0014-logistics-complete/index.md`.
+
 ## Nota de alineación con `productos`
 
 - `lg_gas_products` y `lg_brands` siguen existiendo en `logistics` porque forman parte del estado implementado actual.
@@ -15,7 +21,7 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
   - `product_id` será la referencia maestra futura a `prod_products`;
   - `product_name` puede sobrevivir solo como snapshot transaccional de lectura;
   - precios y costos no deben consolidarse en `logistics`, porque su ownership final vive en `productos`.
-- `SPEC 0014` sigue en borrador y no debe interpretarse como trabajo ya implementado.
+- `SPEC 0014` fue implementada; esta nota histórica describe el estado anterior del módulo antes de ese cierre.
 
 ---
 

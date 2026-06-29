@@ -15,6 +15,7 @@ from plugins.logistics.backend.models import (
     LogisticsMovementItem,
     LogisticsMovementStatusHistory,
     LogisticsMovementType,
+    LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import (
     CylinderTransitionRequest,
@@ -92,9 +93,18 @@ def create_movement(
     if customer_id is not None:
         customer = require_customer(db, tenant_id=tenant_id, customer_id=customer_id)
         customer_name = customer.legal_name
+    warehouse_branch_id = None
+    if payload.warehouse_id is not None:
+        warehouse = db.scalar(
+            select(LogisticsWarehouse).where(
+                LogisticsWarehouse.id == payload.warehouse_id,
+                LogisticsWarehouse.tenant_id == tenant_id,
+            )
+        )
+        warehouse_branch_id = warehouse.branch_id if warehouse is not None else None
     movement = LogisticsMovement(
         tenant_id=tenant_id,
-        branch_id=payload.branch_id,
+        branch_id=payload.branch_id or warehouse_branch_id,
         movement_type=payload.movement_type,
         document_series=payload.document_series,
         document_number=payload.document_number,
@@ -153,10 +163,14 @@ def create_movement_item(
     movement: LogisticsMovement,
     payload: MovementItemCreateRequest,
 ) -> LogisticsMovementItem:
-    cylinder = get_cylinder(db, tenant_id=movement.tenant_id, cylinder_id=payload.cylinder_id)
+    cylinder = None
+    if payload.cylinder_id is not None:
+        cylinder = get_cylinder(db, tenant_id=movement.tenant_id, cylinder_id=payload.cylinder_id)
     item = LogisticsMovementItem(
         movement_id=movement.id,
         cylinder_id=payload.cylinder_id,
+        product_id=payload.product_id,
+        product_name=payload.product_name,
         quantity_in=payload.quantity_in,
         quantity_out=payload.quantity_out,
         quantity=payload.quantity,
@@ -164,6 +178,7 @@ def create_movement_item(
         unit_price=payload.unit_price,
         total_item=payload.total_item,
         discount=payload.discount,
+        item_status=payload.item_status or "R",
         notes=payload.notes,
         state_before=cylinder.current_state if cylinder is not None else None,
     )
@@ -250,6 +265,8 @@ def confirm_movement(
     movement_type = get_movement_type(db, code=movement.movement_type)
     if movement_type is not None and movement_type.moves_cylinders and movement_type.target_state:
         for item in list_movement_items(db, movement_id=movement.id):
+            if item.cylinder_id is None:
+                continue
             cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=item.cylinder_id)
             if cylinder is None:
                 continue

@@ -43,18 +43,33 @@ describe("frontend plugin runtime", () => {
 
     expect(logistics).toBeDefined();
     expect(logistics?.routes.map((route) => route.path)).toEqual([
-      "logistics",
       "logistics/cylinders",
       "logistics/orders",
       "logistics/routes",
       "logistics/loads",
       "logistics/movements",
+      "logistics/planning",
+      "logistics/reception",
+      "logistics/equipment",
       "logistics/agenda",
       "logistics/warehouses",
       "logistics/vehicles",
       "logistics/delivery-points",
     ]);
-    expect(logistics?.navigation.map((item) => item.to)).toEqual(["/app/logistics"]);
+    expect(logistics?.navigation.map((item) => item.to)).toEqual([
+      "/app/logistics/cylinders",
+      "/app/logistics/planning",
+      "/app/logistics/orders",
+      "/app/logistics/routes",
+      "/app/logistics/loads",
+      "/app/logistics/movements",
+      "/app/logistics/reception",
+      "/app/logistics/agenda",
+      "/app/logistics/equipment",
+      "/app/logistics/warehouses",
+      "/app/logistics/vehicles",
+      "/app/logistics/delivery-points",
+    ]);
     expect(logistics?.widgets.map((widget) => widget.id)).toEqual([
       "logistics.runtime.summary",
     ]);

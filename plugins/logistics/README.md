@@ -1,147 +1,165 @@
 # logistics
 
-Plugin piloto real de negocio para SYSTUTOR OSS.
+Plugin piloto de negocio de SYSTUTOR OSS.
+
+Version actual: `0.4.0`
 
 ## Alcance implementado
 
-### Cilindros
+### Envases
 
-- catalogo de estados de cilindro;
-- transiciones validas;
-- alta de envases;
-- trazabilidad de cambios de estado;
-- validacion ADR/PH para carga a estado `LLENADO_OK`;
-- registro de revisiones PH;
-- registro de garantias.
+- alta, edicion y trazabilidad de cilindros;
+- validacion de transiciones;
+- PH, garantias, retimbrados, servicios y etiquetas;
+- escaneo con validacion ADR/PH;
+- historial de propiedad y custodia.
 
-### Operacion
+### Operacion base
 
-- almacenes;
-- zonas;
-- vehiculos;
-- puntos de entrega;
+- almacenes, zonas, vehiculos y puntos de entrega;
 - pedidos con lineas;
 - rutas con paradas;
 - carga por ruta;
-- movimientos con confirmacion;
+- movimientos con confirmacion y cancelacion;
 - agenda manual y agenda generada desde ruta.
 
-### Frontend
+### SPEC 0014 implementada
 
-- panel principal de envases;
-- paginas separadas para pedidos, rutas, carga, movimientos, agenda, almacenes, vehiculos y entregas;
-- widget de resumen en dashboard del sistema;
-- UI sobre componentes compartidos del shell (estilo shadcn/base del proyecto).
+- planificacion de pedidos contra `stk_balance`;
+- precargas por almacen y fecha;
+- aceptacion/cancelacion de precargas;
+- recepcion con faltantes e incidencias;
+- despacho con guia y cierre idempotente;
+- retorno de vehiculo;
+- carta porte y reportes JSON estructurados;
+- equipos por movimiento;
+- restricciones vehiculo-ruta;
+- parametros por repartidor;
+- vinculacion vehiculo-punto de entrega;
+- resumen diario de agenda;
+- schedule semanal de rutas;
+- control de peso de carga;
+- ADR por producto, incompatibilidades y elegibilidad de vehiculos;
+- tracking GPS en ruta, parada y agenda;
+- consultas de peso y contenido.
 
-## Endpoints disponibles
+## Integraciones
 
-### Catalogos
+### Productos
 
-- `GET /api/v1/plugins/logistics/catalog/cylinder-states`
-- `GET /api/v1/plugins/logistics/catalog/movement-types`
-- `GET /api/v1/plugins/logistics/catalog/task-types`
-- `GET /api/v1/plugins/logistics/catalog/warehouses`
-- `GET /api/v1/plugins/logistics/catalog/vehicles`
-- `GET /api/v1/plugins/logistics/catalog/delivery-points`
-- `GET /api/v1/plugins/logistics/catalog/zones`
+- las nuevas funciones operan con `prod_products` como catalogo maestro;
+- `lg_movement_items` materializa `product_id` y `product_name` como snapshot transaccional.
 
-### Cilindros
+### Stock
 
-- `GET /api/v1/plugins/logistics/cylinders`
-- `POST /api/v1/plugins/logistics/cylinders`
-- `GET /api/v1/plugins/logistics/cylinders/summary`
-- `GET /api/v1/plugins/logistics/cylinders/allowed-transitions/{id}`
-- `GET /api/v1/plugins/logistics/cylinders/{id}`
-- `GET /api/v1/plugins/logistics/cylinders/{id}/trace`
-- `POST /api/v1/plugins/logistics/cylinders/{id}/transition`
-- `GET /api/v1/plugins/logistics/cylinders/{id}/hydrotests`
-- `POST /api/v1/plugins/logistics/cylinders/{id}/hydrotests`
-- `GET /api/v1/plugins/logistics/cylinders/{id}/warranties`
-- `POST /api/v1/plugins/logistics/cylinders/{id}/warranties`
+- planificacion lee stock real desde `stk_balance`;
+- recepcion incrementa stock real por producto;
+- `close-dispatch` descuenta stock real por producto;
+- la integracion con stock se hace por llamada directa de servicio Python con idempotencia;
+- una linea logistica solo afecta stock real si existe `stk_config` activo para `(tenant_id, warehouse_id, product_id)`.
 
-### Recursos operativos
+## Endpoints principales
 
-- `GET|POST|PATCH /api/v1/plugins/logistics/warehouses`
-- `GET|POST /api/v1/plugins/logistics/zones`
-- `GET|POST|PATCH /api/v1/plugins/logistics/vehicles`
-- `GET|POST|PATCH /api/v1/plugins/logistics/delivery-points`
+### Planning
 
-### Pedidos
+- `GET /api/v1/plugins/logistics/planning/stock`
+- `POST /api/v1/plugins/logistics/planning/stock/summary`
+- `GET /api/v1/plugins/logistics/planning/pending-orders`
+- `POST /api/v1/plugins/logistics/planning/plan-order/{order_id}`
+- `POST /api/v1/plugins/logistics/planning/generate-preload`
+- `GET /api/v1/plugins/logistics/planning/preloads`
+- `GET /api/v1/plugins/logistics/planning/preloads/{preload_id}`
+- `POST /api/v1/plugins/logistics/planning/preloads/{preload_id}/accept`
+- `POST /api/v1/plugins/logistics/planning/preloads/{preload_id}/cancel`
 
-- `GET|POST /api/v1/plugins/logistics/orders`
-- `GET|PATCH /api/v1/plugins/logistics/orders/{id}`
-- `GET /api/v1/plugins/logistics/orders/pending`
-- `GET|POST /api/v1/plugins/logistics/orders/{id}/items`
-- `PATCH|DELETE /api/v1/plugins/logistics/orders/{id}/items/{item_id}`
+### Reception y despacho
 
-### Rutas y carga
+- `GET /api/v1/plugins/logistics/reception/pending`
+- `GET /api/v1/plugins/logistics/reception/{movement_id}`
+- `POST /api/v1/plugins/logistics/reception/{movement_id}/receive`
+- `POST /api/v1/plugins/logistics/reception/{movement_id}/incident`
+- `GET /api/v1/plugins/logistics/reception/incident-reasons`
+- `PATCH /api/v1/plugins/logistics/movements/{movement_id}/guide`
+- `POST /api/v1/plugins/logistics/movements/{movement_id}/close-dispatch`
+- `GET /api/v1/plugins/logistics/movements/{movement_id}/dispatch-receipt`
+- `POST /api/v1/plugins/logistics/movements/{movement_id}/vehicle-return`
 
-- `GET|POST /api/v1/plugins/logistics/routes`
-- `GET|PATCH /api/v1/plugins/logistics/routes/{id}`
-- `POST /api/v1/plugins/logistics/routes/{id}/start`
-- `POST /api/v1/plugins/logistics/routes/{id}/complete`
-- `POST /api/v1/plugins/logistics/routes/{id}/cancel`
-- `GET|POST /api/v1/plugins/logistics/routes/{id}/stops`
-- `PATCH|DELETE /api/v1/plugins/logistics/routes/{id}/stops/{stop_id}`
-- `POST /api/v1/plugins/logistics/routes/{id}/stops/{stop_id}/deliver`
-- `POST /api/v1/plugins/logistics/routes/{id}/agenda-tasks`
-- `GET|POST /api/v1/plugins/logistics/loads`
-- `POST /api/v1/plugins/logistics/loads/bulk`
-- `POST /api/v1/plugins/logistics/loads/confirm`
-- `DELETE /api/v1/plugins/logistics/loads/{id}`
+### Documentos y reportes
 
-### Movimientos y agenda
+- `GET /api/v1/plugins/logistics/waybill/{movement_id}`
+- `GET /api/v1/plugins/logistics/waybill/{movement_id}/summary`
+- `GET /api/v1/plugins/logistics/reports/route-agenda/{route_id}`
+- `GET /api/v1/plugins/logistics/reports/dispatch-ticket/{movement_id}`
+- `GET /api/v1/plugins/logistics/reports/transfer-albaran/{movement_id}`
+- `GET /api/v1/plugins/logistics/reports/load-summary/{route_id}`
+- `GET /api/v1/plugins/logistics/reports/adr-summary/{movement_id}`
 
-- `GET|POST /api/v1/plugins/logistics/movements`
-- `GET|PATCH /api/v1/plugins/logistics/movements/{id}`
-- `POST /api/v1/plugins/logistics/movements/{id}/confirm`
-- `POST /api/v1/plugins/logistics/movements/{id}/cancel`
-- `GET /api/v1/plugins/logistics/movements/{id}/items`
-- `GET /api/v1/plugins/logistics/movements/{id}/history`
-- `GET|POST /api/v1/plugins/logistics/agenda/tasks`
-- `GET /api/v1/plugins/logistics/agenda/tasks/by-driver/{driver_id}`
-- `GET|PATCH /api/v1/plugins/logistics/agenda/tasks/{id}`
-- `POST /api/v1/plugins/logistics/agenda/tasks/{id}/complete`
-- `POST /api/v1/plugins/logistics/agenda/tasks/{id}/cancel`
+### Modulos auxiliares
+
+- `GET|POST /api/v1/plugins/logistics/equipment`
+- `GET|POST|PATCH /api/v1/plugins/logistics/movements/{movement_id}/equipment`
+- `GET|POST /api/v1/plugins/logistics/vehicles/{vehicle_id}/route-restrictions`
+- `GET /api/v1/plugins/logistics/routes/{route_id}/eligible-vehicles`
+- `GET|PUT /api/v1/plugins/logistics/drivers/{driver_id}/parameters`
+- `GET|POST|DELETE /api/v1/plugins/logistics/vehicles/{vehicle_id}/delivery-points`
+- `GET /api/v1/plugins/logistics/agenda/daily-summary`
+- `PATCH /api/v1/plugins/logistics/routes/{route_id}/weekly-schedule`
+- `GET /api/v1/plugins/logistics/loads/weight-summary`
+- `GET|PUT /api/v1/plugins/logistics/adr/product-config/{product_id}`
+- `GET|POST|DELETE /api/v1/plugins/logistics/adr/incompatibilities`
+- `GET /api/v1/plugins/logistics/adr/points/{movement_id}`
+- `GET /api/v1/plugins/logistics/adr/eligible-vehicles/{movement_id}`
+- `PATCH /api/v1/plugins/logistics/routes/{route_id}/gps-start`
+- `PATCH /api/v1/plugins/logistics/routes/{route_id}/stops/{stop_id}/gps`
+- `PATCH /api/v1/plugins/logistics/agenda/tasks/{task_id}/gps`
+- `GET /api/v1/plugins/logistics/cylinders/available-with-weight`
+- `GET /api/v1/plugins/logistics/cylinders/{cylinder_id}/weight`
+- `GET /api/v1/plugins/logistics/products/{product_id}/content`
 
 ## Permisos
 
-- `logistics.cylinder.read`
-- `logistics.cylinder.create`
-- `logistics.cylinder.transition`
-- `logistics.cylinder.trace`
-- `logistics.order.read`
-- `logistics.order.create`
-- `logistics.order.manage`
-- `logistics.route.read`
-- `logistics.route.manage`
+El plugin sigue reutilizando el set actual de permisos:
+
+- `logistics.cylinder.*`
+- `logistics.order.*`
+- `logistics.route.*`
 - `logistics.load.manage`
 - `logistics.movement.read`
 - `logistics.movement.create`
 - `logistics.movement.confirm`
-- `logistics.warehouse.read`
-- `logistics.warehouse.manage`
-- `logistics.vehicle.read`
-- `logistics.vehicle.manage`
-- `logistics.agenda.read`
-- `logistics.agenda.manage`
-- `logistics.maintenance.read`
-- `logistics.maintenance.manage`
+- `logistics.warehouse.*`
+- `logistics.vehicle.*`
+- `logistics.agenda.*`
+- `logistics.maintenance.*`
+- `logistics.retimbrado.*`
+- `logistics.scan.*`
+- `logistics.label.*`
+- `logistics.ownership.read`
+- `logistics.service.*`
+- `logistics.gas.read`
+- `logistics.brand.read`
+
+Los endpoints nuevos respetan `warehouse_id` como claim contextual cuando operan contra almacenes.
 
 ## Eventos principales
 
-- `logistics.cylinder.created`
-- `logistics.cylinder.state_changed`
-- `logistics.cylinder.hydrotest_registered`
-- `logistics.order.created`
-- `logistics.order.updated`
+- `logistics.planning.preload_generated`
+- `logistics.planning.preload_accepted`
+- `logistics.reception.completed`
+- `logistics.dispatch.completed`
+- `logistics.dispatch.returned`
 - `logistics.route.created`
 - `logistics.route.started`
 - `logistics.route.completed`
-- `logistics.load.assigned`
-- `logistics.load.prepared`
 - `logistics.movement.created`
 - `logistics.movement.completed`
 - `logistics.movement.cancelled`
 - `logistics.agenda.task_completed`
-- `logistics.warranty.created`
+
+## Notas operativas
+
+- los reportes y carta porte exponen datos estructurados en JSON; el renderizado PDF queda fuera del plugin;
+- `close-dispatch` es el momento en que se descuenta stock real;
+- `vehicle-return` solo mueve estado fisico y prepara la recepcion;
+- recepcion crea lineas `FALTANTE NO TRANSFERIDO` cuando aplica;
+- la precarga activa es unica por tenant + almacen + fecha en estado `PENDIENTE`/`ACEPTADA`.

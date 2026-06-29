@@ -1,12 +1,17 @@
-import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
 import type { CustomerBrief } from "../../../crm/frontend/types";
+import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 
 import {
+  assignDispatchGuide,
   cancelMovement,
+  closeDispatch,
   confirmMovement,
   createMovement,
-  listCylinderSummary,
+  getDispatchTicket,
+  getTransferAlbaran,
+  getWaybill,
+  getWaybillSummary,
   listCylinders,
   listMovementHistory,
   listMovementItems,
@@ -14,6 +19,9 @@ import {
   listMovementTypes,
   listWarehouses,
   logisticsKeys,
+  LogisticsMovement,
+  vehicleReturn,
+  Waybill,
 } from "../api";
 import { listCustomers } from "../../../crm/frontend/api";
 import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
@@ -24,6 +32,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+
+const controlClassName =
+  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
 
 type MovementFormState = {
   movement_type: string;
@@ -51,6 +62,14 @@ export function MovementsPage() {
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
+  const [guideSeries, setGuideSeries] = useState("");
+  const [isVehicleReturnOpen, setIsVehicleReturnOpen] = useState(false);
+  const [returnCylinderIds, setReturnCylinderIds] = useState("");
+  const [returnNotes, setReturnNotes] = useState("");
+  const [isWaybillOpen, setIsWaybillOpen] = useState(false);
+  const [waybillData, setWaybillData] = useState<Waybill | null>(null);
+
   const movementsQuery = useQuery({ queryKey: logisticsKeys.movements.list({}), queryFn: () => listMovements({}) });
   const movementTypesQuery = useQuery({ queryKey: logisticsKeys.movementTypes(), queryFn: listMovementTypes });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
@@ -69,6 +88,7 @@ export function MovementsPage() {
     queryFn: () => listMovementHistory(selectedMovementId!),
     enabled: selectedMovementId !== null,
   });
+  const selectedMovement = movementsQuery.data?.find((m) => m.id === selectedMovementId);
 
   const createMutation = useMutation({
     mutationFn: createMovement,
@@ -96,6 +116,38 @@ export function MovementsPage() {
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() });
     },
   });
+  const guideMutation = useMutation({
+    mutationFn: () => assignDispatchGuide(selectedMovementId!, { document_series: guideSeries }),
+    onSuccess: async () => {
+      setIsGuideOpen(false);
+      setGuideSeries("");
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() });
+    },
+  });
+  const closeDispatchMutation = useMutation({
+    mutationFn: () => closeDispatch(selectedMovementId!),
+    onSuccess: async () => {
+      setError(null);
+      await queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() });
+    },
+  });
+  const vehicleReturnMutation = useMutation({
+    mutationFn: () => vehicleReturn(selectedMovementId!, {
+      cylinder_ids: returnCylinderIds.split(",").map((s) => s.trim()).filter(Boolean),
+      notes: returnNotes || undefined,
+    }),
+    onSuccess: async () => {
+      setIsVehicleReturnOpen(false);
+      setReturnCylinderIds("");
+      setReturnNotes("");
+      setError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.cylinders.all() }),
+      ]);
+    },
+  });
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -119,13 +171,24 @@ export function MovementsPage() {
     }
   }
 
+  async function loadWaybill() {
+    if (!selectedMovementId) return;
+    try {
+      const data = await getWaybill(selectedMovementId);
+      setWaybillData(data);
+      setIsWaybillOpen(true);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Error al cargar Carta Porte");
+    }
+  }
+
   return (
     <LogisticsSection
       title="Movimientos"
       description="Registra ingresos, salidas y devoluciones con trazabilidad sobre cada envase."
       actions={<Button onClick={() => setIsOpen(true)}>Nuevo movimiento</Button>}
     >
-      {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}
+      {error ? <Alert title="No se pudo completar la accion">{error}</Alert> : null}
 
       <div className="grid gap-6 xl:grid-cols-[1.2fr,1fr]">
         <Card>
@@ -164,7 +227,7 @@ export function MovementsPage() {
               ]}
               rows={movementsQuery.data ?? []}
               rowKey={(row) => row.id}
-              emptyMessage="Todavía no hay movimientos registrados."
+              emptyMessage="Todavia no hay movimientos registrados."
             />
           </CardContent>
         </Card>
@@ -174,12 +237,24 @@ export function MovementsPage() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <CardTitle>Detalle</CardTitle>
-                <CardDescription>Envases y cambios del movimiento seleccionado.</CardDescription>
+                <CardDescription>Items, cambios y acciones de despacho.</CardDescription>
               </div>
               {selectedMovementId ? (
-                <Button variant="secondary" onClick={() => cancelMutation.mutate(selectedMovementId)}>
-                  Cancelar
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="secondary" onClick={() => cancelMutation.mutate(selectedMovementId)}>
+                    Cancelar
+                  </Button>
+                  {selectedMovement?.status === "CONFIRMADO" ? (
+                    <>
+                      <Button variant="secondary" onClick={() => setIsGuideOpen(true)}>Asignar guia</Button>
+                      <Button onClick={() => closeDispatchMutation.mutate()}>Cerrar despacho</Button>
+                    </>
+                  ) : null}
+                  {selectedMovement?.status === "EN_RUTA" || selectedMovement?.status === "DESPACHADO" ? (
+                    <Button variant="secondary" onClick={() => setIsVehicleReturnOpen(true)}>Retorno vehiculo</Button>
+                  ) : null}
+                  <Button variant="secondary" onClick={loadWaybill}>Carta Porte</Button>
+                </div>
               ) : null}
             </div>
           </CardHeader>
@@ -188,9 +263,9 @@ export function MovementsPage() {
               <p className="mb-2 text-sm font-medium text-white">Items</p>
               <DataTable
                 columns={[
-                  { key: "cylinder", header: "Envase", render: (row) => row.cylinder_id },
+                  { key: "product", header: "Producto / Envase", render: (row) => row.product_name || row.cylinder_id || "-" },
                   { key: "before", header: "Antes", render: (row) => row.state_before ?? "-" },
-                  { key: "after", header: "Después", render: (row) => row.state_after ?? "-" },
+                  { key: "after", header: "Despues", render: (row) => row.state_after ?? "-" },
                 ]}
                 rows={itemsQuery.data ?? []}
                 rowKey={(row) => row.id}
@@ -214,40 +289,25 @@ export function MovementsPage() {
         </Card>
       </div>
 
-      <Dialog
-        open={isOpen}
-        title="Nuevo movimiento"
-        description="Crea una operación básica y asóciala a un envase."
-        onClose={() => setIsOpen(false)}
-      >
+      <Dialog open={isOpen} title="Nuevo movimiento" description="Crea una operacion basica." onClose={() => setIsOpen(false)}>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 text-sm text-slate-300">
               <span>Tipo</span>
-              <select
-                value={formState.movement_type}
-                onChange={(event) => setFormState((current) => ({ ...current, movement_type: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              >
+              <select value={formState.movement_type} onChange={(event) => setFormState((current) => ({ ...current, movement_type: event.target.value }))}
+                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
                 {(movementTypesQuery.data ?? []).map((type) => (
-                  <option key={type.code} value={type.code}>
-                    {type.name}
-                  </option>
+                  <option key={type.code} value={type.code}>{type.name}</option>
                 ))}
               </select>
             </label>
             <label className="block space-y-2 text-sm text-slate-300">
-              <span>Almacén</span>
-              <select
-                value={formState.warehouse_id}
-                onChange={(event) => setFormState((current) => ({ ...current, warehouse_id: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              >
+              <span>Almacen</span>
+              <select value={formState.warehouse_id} onChange={(event) => setFormState((current) => ({ ...current, warehouse_id: event.target.value }))}
+                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
                 <option value="">Sin definir</option>
                 {(warehousesQuery.data ?? []).map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}
-                  </option>
+                  <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
                 ))}
               </select>
             </label>
@@ -261,16 +321,11 @@ export function MovementsPage() {
           <div className="grid gap-4 md:grid-cols-2">
             <label className="block space-y-2 text-sm text-slate-300">
               <span>Envase</span>
-              <select
-                value={formState.cylinder_id}
-                onChange={(event) => setFormState((current) => ({ ...current, cylinder_id: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              >
+              <select value={formState.cylinder_id} onChange={(event) => setFormState((current) => ({ ...current, cylinder_id: event.target.value }))}
+                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
                 <option value="">Selecciona</option>
                 {(cylindersQuery.data ?? []).map((cylinder) => (
-                  <option key={cylinder.id} value={cylinder.id}>
-                    {cylinder.serial}
-                  </option>
+                  <option key={cylinder.id} value={cylinder.id}>{cylinder.serial}</option>
                 ))}
               </select>
             </label>
@@ -280,23 +335,78 @@ export function MovementsPage() {
             </label>
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              Guardar
-            </Button>
+            <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={createMutation.isPending}>Guardar</Button>
           </div>
         </form>
       </Dialog>
 
-      <CustomerSearchDialog
-        open={isCustomerSearchOpen}
-        onOpenChange={setIsCustomerSearchOpen}
-        onSelect={(customer: CustomerBrief) =>
-          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
-        }
-      />
+      <CustomerSearchDialog open={isCustomerSearchOpen} onOpenChange={setIsCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) => setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))} />
+
+      <Dialog open={isGuideOpen} title="Asignar guia de despacho" description="Ingresa la serie del documento."
+        onClose={() => setIsGuideOpen(false)}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); guideMutation.mutate(); }}>
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Serie</span>
+            <Input value={guideSeries} onChange={(e) => setGuideSeries(e.target.value)} placeholder="Ej: G001" required />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setIsGuideOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={guideMutation.isPending}>Asignar</Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog open={isVehicleReturnOpen} title="Retorno de vehiculo" description="Ingresa los cilindros que retornan."
+        onClose={() => setIsVehicleReturnOpen(false)}>
+        <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); vehicleReturnMutation.mutate(); }}>
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>IDs de cilindros (separados por coma)</span>
+            <Input value={returnCylinderIds} onChange={(e) => setReturnCylinderIds(e.target.value)} placeholder="id1, id2, id3" />
+          </label>
+          <label className="block space-y-2 text-sm text-slate-300">
+            <span>Notas</span>
+            <Input value={returnNotes} onChange={(e) => setReturnNotes(e.target.value)} />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setIsVehicleReturnOpen(false)}>Cancelar</Button>
+            <Button type="submit" disabled={vehicleReturnMutation.isPending}>Registrar retorno</Button>
+          </div>
+        </form>
+      </Dialog>
+
+      <Dialog open={isWaybillOpen} title="Carta Porte" description="Datos estructurados del documento."
+        maxWidthClassName="max-w-[900px]" onClose={() => { setIsWaybillOpen(false); setWaybillData(null); }}>
+        {waybillData ? (
+          <div className="space-y-4 text-sm text-slate-300">
+            <div className="grid grid-cols-2 gap-3">
+              <div><span className="text-slate-500">Documento:</span> {waybillData.document || "-"}</div>
+              <div><span className="text-slate-500">Almacen:</span> {waybillData.warehouse_name || "-"}</div>
+              <div><span className="text-slate-500">Cliente:</span> {waybillData.customer_name || "-"}</div>
+              <div><span className="text-slate-500">Vehiculo:</span> {waybillData.vehicle_plate || "-"}</div>
+              <div><span className="text-slate-500">Destino:</span> {waybillData.destination_place || "-"}</div>
+              <div><span className="text-slate-500">Direccion:</span> {waybillData.destination_address || "-"}</div>
+            </div>
+            <DataTable
+              columns={[
+                { key: "product", header: "Producto", render: (row) => row.product_name || "-" },
+                { key: "qty", header: "Cant.", render: (row) => String(row.quantity) },
+                { key: "weight", header: "Peso kg", render: (row) => row.total_weight_kg?.toString() || "-" },
+                { key: "adr", header: "Puntos ADR", render: (row) => row.adr_points?.toString() || "-" },
+              ]}
+              rows={waybillData.items}
+              rowKey={(row) => `${row.product_id}-${row.product_name}`}
+              emptyMessage="Sin items"
+            />
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800 text-slate-400">
+              <div>Total bultos: {waybillData.total_packages}</div>
+              <div>Peso total: {waybillData.total_weight_kg} kg</div>
+              <div>ADR total: {waybillData.total_adr_points}</div>
+            </div>
+          </div>
+        ) : null}
+      </Dialog>
     </LogisticsSection>
   );
 }

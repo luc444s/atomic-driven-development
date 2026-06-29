@@ -446,6 +446,7 @@ class RouteRead(BaseModel):
     driver_id: str
     vehicle_id: str | None
     status: str
+    gps_start_coordinates: dict[str, object] | None
     notes: str | None
     created_by: str
     created_at: datetime
@@ -479,6 +480,7 @@ class RouteStopRead(BaseModel):
     status: str
     arrival_time: datetime | None
     departure_time: datetime | None
+    gps_coordinates: dict[str, object] | None
     notes: str | None
     created_at: datetime
     updated_at: datetime
@@ -570,6 +572,7 @@ class MovementRead(BaseModel):
     plate: str | None
     destination_place: str | None
     destination_address: str | None
+    dispatched_at: datetime | None
     notes: str | None
     parent_movement_id: str | None
     created_by: str
@@ -582,7 +585,9 @@ class MovementItemRead(BaseModel):
 
     id: str
     movement_id: str
-    cylinder_id: str
+    cylinder_id: str | None
+    product_id: str | None
+    product_name: str | None
     quantity_in: float
     quantity_out: float
     quantity: int
@@ -646,7 +651,9 @@ class MovementUpdateRequest(BaseModel):
 
 
 class MovementItemCreateRequest(BaseModel):
-    cylinder_id: str
+    cylinder_id: str | None = None
+    product_id: str | None = None
+    product_name: str | None = Field(default=None, max_length=200)
     quantity_in: float = 0
     quantity_out: float = 0
     quantity: int = 1
@@ -654,6 +661,7 @@ class MovementItemCreateRequest(BaseModel):
     unit_price: float | None = None
     total_item: float | None = None
     discount: float = 0
+    item_status: str | None = Field(default=None, max_length=20)
     notes: str | None = None
 
 
@@ -1025,3 +1033,420 @@ class CylinderServiceUpdateRequest(BaseModel):
     discount_pct: float | None = None
     discount_amount: float | None = None
     total_amount: float | None = None
+
+
+class PlanningStockSummaryItem(BaseModel):
+    product_id: str
+    product_name: str
+    warehouse_id: str
+    stock_actual: float
+    stock_comprometido: float
+    stock_planificado: float
+    stock_disponible: float
+    coverage_status: str
+
+
+class PlanningPendingOrderItemRead(BaseModel):
+    order_item_id: str
+    product_id: str | None
+    product_name: str
+    quantity_requested: float
+    quantity_planned: float
+    quantity_pending: float
+    stock_disponible: float
+    coverage_status: str
+
+
+class PlanningPendingOrderRead(BaseModel):
+    order_id: str
+    customer_id: str | None
+    customer_name: str
+    warehouse_id: str | None
+    status: str
+    coverage_status: str
+    items: list[PlanningPendingOrderItemRead]
+
+
+class PlanningPlanOrderRequest(BaseModel):
+    mode: str = Field(default="partial", pattern="^(all|full|partial)$")
+    permit_without_stock: bool = False
+
+
+class PlanningPlanOrderResult(BaseModel):
+    order_id: str
+    mode: str
+    updated_items: list[OrderItemRead]
+
+
+class PlanningStockSummaryRequest(BaseModel):
+    warehouse_id: str
+    product_ids: list[str] = Field(default_factory=list)
+
+
+class PlanningGeneratePreloadRequest(BaseModel):
+    warehouse_id: str
+    preload_date: date
+    order_ids: list[str] = Field(default_factory=list)
+    notes: str | None = None
+
+
+class PlanningPreloadItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    preload_id: str
+    order_item_id: str
+    product_id: str
+    product_name: str | None
+    quantity_planned: float
+    quantity_loaded: float
+    created_at: datetime
+
+
+class PlanningPreloadRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    warehouse_id: str
+    branch_id: str | None
+    preload_date: date
+    status: str
+    notes: str | None
+    created_by: str
+    created_at: datetime
+    updated_at: datetime
+    items: list[PlanningPreloadItemRead] = Field(default_factory=list)
+
+
+class PlanningPreloadActionResult(BaseModel):
+    preload: PlanningPreloadRead
+    movement: MovementRead | None = None
+
+
+class ReceptionIncidentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    movement_id: str
+    cylinder_id: str | None
+    reason_code: str
+    description: str | None
+    created_by: str
+    created_at: datetime
+
+
+class ReceptionIncidentCreateRequest(BaseModel):
+    cylinder_id: str | None = None
+    reason_code: str = Field(min_length=1, max_length=50)
+    description: str | None = None
+
+
+class ReceptionItemReceiveRequest(BaseModel):
+    movement_item_id: str
+    quantity_received: float = Field(ge=0)
+
+
+class ReceptionReceiveRequest(BaseModel):
+    items: list[ReceptionItemReceiveRequest] = Field(default_factory=list)
+    notes: str | None = None
+
+
+class ReceptionReceiveResult(BaseModel):
+    movement: MovementRead
+    incidents: list[ReceptionIncidentRead] = Field(default_factory=list)
+    shortage_items: list[MovementItemRead] = Field(default_factory=list)
+
+
+class IncidentReasonRead(BaseModel):
+    code: str
+    description: str
+    target_state: str | None
+
+
+class WaybillDetailItemRead(BaseModel):
+    product_id: str | None
+    product_name: str | None
+    quantity: float
+    unit_weight_kg: float | None
+    total_weight_kg: float | None
+    adr_points: float | None
+
+
+class WaybillRead(BaseModel):
+    movement_id: str
+    movement_type: str
+    document: str | None
+    warehouse_id: str | None
+    warehouse_name: str | None
+    customer_id: str | None
+    customer_name: str | None
+    vehicle_id: str | None
+    vehicle_plate: str | None
+    driver_id: str | None
+    destination_place: str | None
+    destination_address: str | None
+    items: list[WaybillDetailItemRead]
+    total_packages: float
+    total_weight_kg: float
+    total_adr_points: float
+
+
+class WaybillSummaryRead(BaseModel):
+    movement_id: str
+    total_packages: float
+    total_weight_kg: float
+    total_adr_points: float
+
+
+class DispatchGuideAssignRequest(BaseModel):
+    document_series: str = Field(min_length=1, max_length=20)
+
+
+class DispatchVehicleReturnRequest(BaseModel):
+    cylinder_ids: list[str] = Field(default_factory=list)
+    notes: str | None = None
+
+
+class EquipmentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    name: str
+    equipment_type: str | None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class EquipmentCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=120)
+    equipment_type: str | None = Field(default=None, max_length=50)
+    is_active: bool = True
+
+
+class MovementEquipmentRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    movement_id: str
+    equipment_id: str
+    assigned_at: datetime
+    returned_at: datetime | None
+    notes: str | None
+
+
+class MovementEquipmentAssignRequest(BaseModel):
+    equipment_id: str
+    notes: str | None = None
+
+
+class MovementEquipmentReturnRequest(BaseModel):
+    notes: str | None = None
+
+
+class VehicleRouteRestrictionRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    vehicle_id: str
+    route_id: str
+    restriction_type: str
+    created_at: datetime
+
+
+class VehicleRouteRestrictionUpsertRequest(BaseModel):
+    restrictions: list[dict[str, str]] = Field(default_factory=list)
+
+
+class DriverParameterRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    driver_id: str
+    param_key: str
+    param_value: str | None
+    updated_at: datetime
+
+
+class DriverParametersUpsertRequest(BaseModel):
+    parameters: dict[str, str | None] = Field(default_factory=dict)
+
+
+class VehicleDeliveryPointRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    vehicle_id: str
+    delivery_point_id: str
+    created_at: datetime
+
+
+class VehicleDeliveryPointCreateRequest(BaseModel):
+    delivery_point_id: str
+
+
+class AgendaDailySummaryBucket(BaseModel):
+    driver_id: str
+    status: str
+    total: int
+
+
+class RouteWeekdayRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    route_id: str
+    weekday: int
+    created_at: datetime
+
+
+class RouteWeekdayUpdateRequest(BaseModel):
+    weekdays: list[int] = Field(default_factory=list)
+
+
+class LoadWeightSummaryRead(BaseModel):
+    route_id: str
+    weight_limit_kg: float
+    total_weight_kg: float
+    exceeds_limit: bool
+
+
+class AdrProductConfigRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    product_id: str
+    adr_class: str | None
+    adr_points: float | None
+    adr_tunnel: str | None
+    max_quantity: float | None
+    valid_from: date
+    valid_to: date | None
+    created_at: datetime
+    updated_at: datetime
+
+
+class AdrProductConfigUpsertRequest(BaseModel):
+    adr_class: str | None = Field(default=None, max_length=50)
+    adr_points: float | None = None
+    adr_tunnel: str | None = Field(default=None, max_length=10)
+    max_quantity: float | None = None
+    valid_from: date
+    valid_to: date | None = None
+
+
+class AdrIncompatibilityRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    product_id_1: str
+    product_id_2: str
+    created_at: datetime
+
+
+class AdrIncompatibilityCreateRequest(BaseModel):
+    product_id_1: str
+    product_id_2: str
+
+
+class AdrPointsItemRead(BaseModel):
+    product_id: str | None
+    product_name: str | None
+    quantity: float
+    adr_points_per_unit: float
+    total_adr_points: float
+
+
+class AdrPointsSummaryRead(BaseModel):
+    movement_id: str
+    total_adr_points: float
+    items: list[AdrPointsItemRead]
+
+
+class VehicleEligibilityRead(BaseModel):
+    vehicle_id: str
+    plate: str
+    adr_class: str | None
+    capacity_weight: float | None
+    eligible: bool
+    reason: str | None
+
+
+class RouteGpsStartRequest(BaseModel):
+    gps_coordinates: dict[str, object]
+
+
+class RouteStopGpsRequest(BaseModel):
+    gps_coordinates: dict[str, object]
+
+
+class AgendaTaskGpsRequest(BaseModel):
+    gps_coordinates: dict[str, object]
+
+
+class CylinderWeightRead(BaseModel):
+    cylinder_id: str
+    serial: str
+    product_id: str | None
+    product_name: str | None
+    tara_weight_kg: float | None
+    current_weight_kg: float | None
+    content_kg: float | None
+    total_weight_kg: float | None
+
+
+class ProductContentRead(BaseModel):
+    product_id: str
+    product_name: str
+    content_kg: float | None
+
+
+class RouteAgendaReportStopRead(BaseModel):
+    stop_id: str
+    stop_order: int
+    customer_name: str | None
+    address: str | None
+    scheduled_time: time | None
+    status: str
+
+
+class RouteAgendaReportRead(BaseModel):
+    route_id: str
+    route_date: date
+    driver_id: str
+    vehicle_id: str | None
+    stops: list[RouteAgendaReportStopRead]
+
+
+class DispatchTicketRead(WaybillRead):
+    pass
+
+
+class TransferAlbaranRead(WaybillRead):
+    pass
+
+
+class LoadSummaryItemRead(BaseModel):
+    cylinder_id: str
+    serial: str | None
+    state: str | None
+    weight_kg: float | None
+
+
+class LoadSummaryReportRead(BaseModel):
+    route_id: str
+    driver_id: str
+    vehicle_id: str | None
+    total_weight_kg: float
+    items: list[LoadSummaryItemRead]

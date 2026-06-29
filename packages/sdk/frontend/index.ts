@@ -11,6 +11,7 @@ export type PluginNavigationItem = {
   to: string;
   label: string;
   requiredPermissions?: string[];
+  group?: string;
 };
 
 export type PluginWidget = {

@@ -56,7 +56,9 @@ def process_scan(
     if movement is None:
         raise ValueError("Movement not found")
 
-    cylinder = get_cylinder_by_serial(db, tenant_id=tenant_id, serial_or_barcode=payload.barcode_serial)
+    cylinder = get_cylinder_by_serial(
+        db, tenant_id=tenant_id, serial_or_barcode=payload.barcode_serial
+    )
     if cylinder is None:
         log = _record_scan(
             db,
@@ -87,7 +89,9 @@ def process_scan(
     if duplicate is not None:
         raise ValueError("Cylinder was already scanned for this movement and service")
 
-    target_state = _resolve_target_state(db, movement=movement, service_type=normalized_service_type)
+    target_state = _resolve_target_state(
+        db, movement=movement, service_type=normalized_service_type
+    )
     transition = db.scalar(
         select(LogisticsStateTransition).where(
             LogisticsStateTransition.from_state == cylinder.current_state,

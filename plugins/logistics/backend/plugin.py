@@ -60,6 +60,11 @@ LOGISTICS_EVENTS = [
     "logistics.movement.created",
     "logistics.movement.completed",
     "logistics.movement.cancelled",
+    "logistics.dispatch.completed",
+    "logistics.dispatch.returned",
+    "logistics.planning.preload_generated",
+    "logistics.planning.preload_accepted",
+    "logistics.reception.completed",
     "logistics.agenda.task_completed",
     "logistics.warranty.created",
 ]

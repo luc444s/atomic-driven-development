@@ -4,7 +4,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { useNavigate, useParams } from "../../../../apps/web/src/lib/router";
+import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import {
   createCustomer,
   createCustomerAddress,
@@ -14,11 +14,10 @@ import {
   updateCustomer,
   updateCustomerAddress,
 } from "../api";
-import { AddressSection } from "../components/AddressSection";
-import { ContactSection } from "../components/ContactSection";
-import { CrmSection } from "../components/CrmSection";
-import { FiscalInfoSection } from "../components/FiscalInfoSection";
-import type { CustomerAddressPayload, CustomerPayload } from "../types";
+import { AddressSection } from "./AddressSection";
+import { ContactSection } from "./ContactSection";
+import { FiscalInfoSection } from "./FiscalInfoSection";
+import type { Customer, CustomerAddressPayload, CustomerPayload } from "../types";
 
 const EMPTY_CUSTOMER: CustomerPayload = {
   external_code: null,
@@ -69,9 +68,16 @@ const EMPTY_ADDRESS: CustomerAddressPayload = {
   ubigeo_code: null,
 };
 
-export function CustomerFormPage() {
-  const { customerId } = useParams();
-  const navigate = useNavigate();
+export type ModalNuevoClienteProps = {
+  open: boolean;
+  customerId?: string;
+  onClose: () => void;
+  onSaved?: (customer: Customer) => void;
+  onOpenDetail?: (customerId: string) => void;
+  asPage?: boolean;
+};
+
+export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDetail, asPage }: ModalNuevoClienteProps) {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<CustomerPayload>(EMPTY_CUSTOMER);
   const [addressState, setAddressState] = useState<CustomerAddressPayload>(EMPTY_ADDRESS);
@@ -80,7 +86,7 @@ export function CustomerFormPage() {
   const detailQuery = useQuery({
     queryKey: crmKeys.customers.detail(customerId ?? "new"),
     queryFn: () => getCustomer(customerId!),
-    enabled: Boolean(customerId),
+    enabled: Boolean(customerId) && open,
   });
 
   useEffect(() => {
@@ -139,6 +145,14 @@ export function CustomerFormPage() {
     }
   }, [detailQuery.data]);
 
+  useEffect(() => {
+    if (!open) {
+      setFormState(EMPTY_CUSTOMER);
+      setAddressState(EMPTY_ADDRESS);
+      setError(null);
+    }
+  }, [open]);
+
   const createMutation = useMutation({
     mutationFn: async (payload: CustomerPayload) => {
       const customer = await createCustomer(payload);
@@ -150,7 +164,8 @@ export function CustomerFormPage() {
     },
     onSuccess: async (customer) => {
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.all });
-      navigate(`/app/crm/customers/${customer.id}`);
+      onSaved?.(customer);
+      onClose();
     },
   });
 
@@ -171,6 +186,8 @@ export function CustomerFormPage() {
     onSuccess: async (customer) => {
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.all });
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.detail(customer.id) });
+      onSaved?.(customer);
+      onClose();
     },
   });
 
@@ -188,59 +205,85 @@ export function CustomerFormPage() {
     }
   }
 
-  return (
-    <CrmSection
-      title={customerId ? "Editar cliente" : "Nuevo cliente"}
-      description="Formulario base del cliente. La dirección fiscal se completa en el segundo bloque."
-    >
+  const formContent = (
+    <form className="space-y-6" onSubmit={submitForm}>
       {error ? <Alert title="No se pudo guardar">{error}</Alert> : null}
-      <form className="space-y-6" onSubmit={submitForm}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Datos generales</CardTitle>
-            <CardDescription>Identificación fiscal y datos comerciales.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <FiscalInfoSection
-              documentType={formState.document_type_code}
-              documentNumber={formState.document_number}
-              countryCode={formState.country_code}
-              onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value }))}
-            />
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-2 text-sm text-slate-300">
-                <span>Razón social / nombre</span>
-                <Input value={formState.legal_name} onChange={(event) => setFormState((current) => ({ ...current, legal_name: event.target.value }))} />
-              </label>
-              <label className="block space-y-2 text-sm text-slate-300">
-                <span>Nombre comercial</span>
-                <Input value={formState.commercial_name ?? ""} onChange={(event) => setFormState((current) => ({ ...current, commercial_name: event.target.value || null }))} />
-              </label>
-            </div>
-            <ContactSection
-              email={formState.email ?? ""}
-              phone={formState.phone ?? ""}
-              mobile={formState.mobile ?? ""}
-              onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value || null }))}
-            />
-          </CardContent>
-        </Card>
 
+      <Card>
+        <CardHeader>
+          <CardTitle>Datos generales</CardTitle>
+          <CardDescription>Identificación fiscal y datos comerciales.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <FiscalInfoSection
+            documentType={formState.document_type_code}
+            documentNumber={formState.document_number}
+            countryCode={formState.country_code}
+            onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value }))}
+          />
+          <div className="grid gap-4 md:grid-cols-2">
+            <label className="block space-y-2 text-sm text-slate-300">
+              <span>Razón social / nombre</span>
+              <Input value={formState.legal_name} onChange={(event) => setFormState((current) => ({ ...current, legal_name: event.target.value }))} />
+            </label>
+            <label className="block space-y-2 text-sm text-slate-300">
+              <span>Nombre comercial</span>
+              <Input value={formState.commercial_name ?? ""} onChange={(event) => setFormState((current) => ({ ...current, commercial_name: event.target.value || null }))} />
+            </label>
+          </div>
+          <ContactSection
+            email={formState.email ?? ""}
+            phone={formState.phone ?? ""}
+            mobile={formState.mobile ?? ""}
+            onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value || null }))}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Dirección fiscal</CardTitle>
+          <CardDescription>Sección base lista para conectarse con la geografía y geocodificación.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <AddressSection value={addressState} onChange={setAddressState} />
+        </CardContent>
+      </Card>
+
+      {customerId ? (
         <Card>
           <CardHeader>
-            <CardTitle>Dirección fiscal</CardTitle>
-            <CardDescription>Sección base lista para conectarse con la geografía y geocodificación.</CardDescription>
+            <CardTitle>Detalle del cliente</CardTitle>
+            <CardDescription>Ver la ficha completa con direcciones y contactos.</CardDescription>
           </CardHeader>
           <CardContent>
-            <AddressSection value={addressState} onChange={setAddressState} />
+            <Button type="button" variant="secondary" onClick={() => onOpenDetail?.(customerId)}>
+              Ir al detalle
+            </Button>
           </CardContent>
         </Card>
+      ) : null}
 
-        <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={() => navigate("/app/crm/customers")}>Cancelar</Button>
-          <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>Guardar</Button>
-        </div>
-      </form>
-    </CrmSection>
+      <div className="flex justify-end gap-3">
+        <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+        <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>Guardar</Button>
+      </div>
+    </form>
+  );
+
+  if (asPage) {
+    return <div className="p-6">{formContent}</div>;
+  }
+
+  return (
+    <Dialog
+      open={open}
+      title={customerId ? "Editar cliente" : "Nuevo cliente"}
+      description="Formulario base del cliente. La dirección fiscal se completa en el segundo bloque."
+      onClose={onClose}
+      maxWidthClassName="max-w-3xl"
+    >
+      <div className="max-h-[75vh] overflow-y-auto">{formContent}</div>
+    </Dialog>
   );
 }

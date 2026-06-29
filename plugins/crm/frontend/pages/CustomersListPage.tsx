@@ -1,12 +1,18 @@
+import { useState } from "react";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
-import { Link } from "../../../../apps/web/src/lib/router";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { crmKeys, listCustomers } from "../api";
+import { ModalDetalleCliente } from "../components/ModalDetalleCliente";
+import { ModalNuevoCliente } from "../components/ModalNuevoCliente";
 import { CrmSection } from "../components/CrmSection";
 
 export function CustomersListPage() {
+  const [showNew, setShowNew] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
+
   const customersQuery = useQuery({
     queryKey: crmKeys.customers.list({}),
     queryFn: () => listCustomers({ limit: 50, offset: 0 }),
@@ -17,9 +23,7 @@ export function CustomersListPage() {
       title="Clientes"
       description="Gestiona clientes con datos fiscales, direcciones y contactos."
       actions={
-        <Link to="/app/crm/customers/new">
-          <Button>Nuevo cliente</Button>
-        </Link>
+        <Button onClick={() => { setEditId(null); setShowNew(true); }}>Nuevo cliente</Button>
       }
     >
       <Card>
@@ -36,16 +40,12 @@ export function CustomersListPage() {
               { key: "phone", header: "Teléfono", render: (row) => row.phone ?? "-" },
               { key: "status", header: "Activo", render: (row) => (row.is_active ? "Sí" : "No") },
               {
-                key: "detail",
-                header: "Detalle",
+                key: "actions",
+                header: "Acciones",
                 render: (row) => (
                   <div className="flex gap-2">
-                    <Link to={`/app/crm/customers/${row.id}`}>
-                      <Button variant="secondary">Editar</Button>
-                    </Link>
-                    <Link to={`/app/crm/customers/${row.id}/detail`}>
-                      <Button variant="secondary">Ver</Button>
-                    </Link>
+                    <Button variant="secondary" onClick={() => { setEditId(row.id); setShowNew(true); }}>Editar</Button>
+                    <Button variant="secondary" onClick={() => setDetailId(row.id)}>Ver</Button>
                   </div>
                 ),
               },
@@ -56,6 +56,29 @@ export function CustomersListPage() {
           />
         </CardContent>
       </Card>
+
+      <ModalNuevoCliente
+        open={showNew}
+        customerId={editId ?? undefined}
+        onClose={() => { setShowNew(false); setEditId(null); }}
+        onSaved={() => customersQuery.refetch()}
+        onOpenDetail={(id) => {
+          setShowNew(false);
+          setEditId(null);
+          setDetailId(id);
+        }}
+      />
+
+      <ModalDetalleCliente
+        open={detailId !== null}
+        customerId={detailId ?? ""}
+        onClose={() => setDetailId(null)}
+        onEditCustomer={(id) => {
+          setDetailId(null);
+          setEditId(id);
+          setShowNew(true);
+        }}
+      />
     </CrmSection>
   );
 }

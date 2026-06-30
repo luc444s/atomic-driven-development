@@ -241,6 +241,44 @@ def create_product(client: TestClient, headers: dict[str, str], *, sku: str, nam
     return product.json()
 
 
+def test_logistics_order_item_requires_product_id(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="Operaciones GLP SAC",
+            document_number="20100070970",
+        )
+        order = client.post(
+            "/api/v1/plugins/logistics/orders",
+            headers=headers,
+            json={"customer_id": customer["id"], "movement_type": "SC"},
+        ).json()
+        product = create_product(client, headers, sku="GLP-REQ-PROD", name="GLP Requerido")
+
+        response = client.post(
+            f"/api/v1/plugins/logistics/orders/{order['id']}/items",
+            headers=headers,
+            json={
+                "product_name": product["name"],
+                "quantity_requested": 1,
+                "quantity_planned": 1,
+                "location": "ALMACEN",
+            },
+        )
+        assert response.status_code == 422, response.text
+        assert any(error["loc"][-1] == "product_id" for error in response.json()["detail"])
+
+
 def test_logistics_plugin_cylinder_flow(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -445,10 +483,13 @@ def test_logistics_plugin_operations_flow(app) -> None:
         assert order_response.status_code == 201, order_response.text
         order = order_response.json()
 
+        product = create_product(client, headers, sku="GLP-10", name="Envase 10kg")
+
         order_item_response = client.post(
             f"/api/v1/plugins/logistics/orders/{order['id']}/items",
             headers=headers,
             json={
+                "product_id": product["id"],
                 "product_name": "Envase 10kg",
                 "quantity_requested": 2,
                 "quantity_planned": 2,

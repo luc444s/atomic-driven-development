@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
 import type { CustomerBrief } from "../../../crm/frontend/types";
+import type { ProductSearchItem } from "../../../productos/frontend/types";
 
 import {
   createOrder,
@@ -12,6 +13,7 @@ import {
 } from "../api";
 import { listCustomers } from "../../../crm/frontend/api";
 import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
+import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -30,6 +32,7 @@ type OrderFormState = {
 };
 
 type OrderItemFormState = {
+  product_id: string;
   product_name: string;
   quantity_requested: string;
   quantity_planned: string;
@@ -38,6 +41,7 @@ type OrderItemFormState = {
 
 const EMPTY_ORDER: OrderFormState = { customer_id: "", customer_name: "", movement_type: "SC", warehouse_id: "", notes: "" };
 const EMPTY_ITEM: OrderItemFormState = {
+  product_id: "",
   product_name: "",
   quantity_requested: "1",
   quantity_planned: "1",
@@ -51,6 +55,7 @@ export function OrdersPage() {
   const [isOrderOpen, setIsOrderOpen] = useState(false);
   const [isItemOpen, setIsItemOpen] = useState(false);
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -69,6 +74,18 @@ export function OrdersPage() {
     enabled: selectedOrderId !== null,
   });
 
+  function openItemDialog() {
+    setError(null);
+    setItemForm(EMPTY_ITEM);
+    setIsItemOpen(true);
+  }
+
+  function closeItemDialog() {
+    setIsItemOpen(false);
+    setIsProductSearchOpen(false);
+    setItemForm(EMPTY_ITEM);
+  }
+
   const createOrderMutation = useMutation({
     mutationFn: createOrder,
     onSuccess: async (order) => {
@@ -83,6 +100,7 @@ export function OrdersPage() {
   const createItemMutation = useMutation({
     mutationFn: async (payload: OrderItemFormState) =>
       createOrderItem(selectedOrderId!, {
+        product_id: payload.product_id,
         product_name: payload.product_name,
         quantity_requested: Number(payload.quantity_requested),
         quantity_planned: Number(payload.quantity_planned),
@@ -90,6 +108,7 @@ export function OrdersPage() {
       }),
     onSuccess: async () => {
       setIsItemOpen(false);
+      setIsProductSearchOpen(false);
       setItemForm(EMPTY_ITEM);
       setError(null);
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.orders.items(selectedOrderId!) });
@@ -114,6 +133,10 @@ export function OrdersPage() {
   async function submitItem(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!selectedOrderId) {
+      return;
+    }
+    if (!itemForm.product_id) {
+      setError("Selecciona un producto para continuar.");
       return;
     }
     setError(null);
@@ -180,7 +203,7 @@ export function OrdersPage() {
                 <CardDescription>Líneas del pedido seleccionado.</CardDescription>
               </div>
               {selectedOrderId ? (
-                <Button variant="secondary" onClick={() => setIsItemOpen(true)}>
+                <Button variant="secondary" onClick={openItemDialog}>
                   Agregar línea
                 </Button>
               ) : null}
@@ -262,14 +285,25 @@ export function OrdersPage() {
       <Dialog
         open={isItemOpen}
         title="Agregar línea"
-        description="Añade una referencia básica al pedido seleccionado."
-        onClose={() => setIsItemOpen(false)}
+        description="Selecciona un producto real para agregar la línea del pedido."
+        onClose={closeItemDialog}
       >
         <form className="space-y-4" onSubmit={submitItem}>
-          <label className="block space-y-2 text-sm text-foreground">
-            <span>Producto</span>
-            <Input value={itemForm.product_name} onChange={(event) => setItemForm((current) => ({ ...current, product_name: event.target.value }))} />
-          </label>
+          <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">Producto seleccionado</p>
+                <p className="text-sm text-muted-foreground">
+                  {itemForm.product_id
+                    ? `${itemForm.product_name} (${itemForm.product_id})`
+                    : "Selecciona un producto del catálogo para continuar."}
+                </p>
+              </div>
+              <Button type="button" variant="secondary" onClick={() => setIsProductSearchOpen(true)}>
+                {itemForm.product_id ? "Cambiar producto" : "Buscar producto"}
+              </Button>
+            </div>
+          </div>
           <div className="grid gap-4 md:grid-cols-3">
             <label className="block space-y-2 text-sm text-foreground">
               <span>Solicitado</span>
@@ -285,15 +319,27 @@ export function OrdersPage() {
             </label>
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setIsItemOpen(false)}>
+            <Button type="button" variant="secondary" onClick={closeItemDialog}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createItemMutation.isPending}>
+            <Button type="submit" disabled={!itemForm.product_id || createItemMutation.isPending}>
               Guardar
             </Button>
           </div>
         </form>
       </Dialog>
+
+      <ProductSearchDialog
+        open={isProductSearchOpen}
+        onOpenChange={setIsProductSearchOpen}
+        onSelect={(product: ProductSearchItem) =>
+          setItemForm((current) => ({
+            ...current,
+            product_id: product.id,
+            product_name: product.name,
+          }))
+        }
+      />
     </LogisticsSection>
   );
 }

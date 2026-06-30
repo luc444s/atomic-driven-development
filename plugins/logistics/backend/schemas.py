@@ -414,7 +414,7 @@ class OrderUpdateRequest(BaseModel):
 
 
 class OrderItemCreateRequest(BaseModel):
-    product_id: str | None = None
+    product_id: str = Field(min_length=1, max_length=36)
     product_name: str = Field(min_length=1, max_length=120)
     reason: str | None = Field(default=None, max_length=50)
     condition: str | None = Field(default=None, max_length=50)

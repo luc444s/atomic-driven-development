@@ -189,6 +189,18 @@ export type LogisticsOrderItem = {
   created_at: string;
 };
 
+export type LogisticsOrderItemCreatePayload = {
+  product_id: string;
+  product_name: string;
+  reason?: string | null;
+  condition?: string | null;
+  quantity_requested?: number;
+  quantity_planned?: number;
+  status?: number;
+  location?: string | null;
+  description?: string | null;
+};
+
 export type LogisticsRoute = {
   id: string;
   tenant_id: string;
@@ -891,7 +903,7 @@ export function updateOrder(orderId: string, payload: Record<string, unknown>) {
   });
 }
 
-export function createOrderItem(orderId: string, payload: Record<string, unknown>) {
+export function createOrderItem(orderId: string, payload: LogisticsOrderItemCreatePayload) {
   return apiRequest<LogisticsOrderItem>(`${API_PREFIX}/orders/${orderId}/items`, {
     method: "POST",
     body: JSON.stringify(payload),

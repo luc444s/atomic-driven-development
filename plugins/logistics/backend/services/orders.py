@@ -172,7 +172,7 @@ def create_order_item(
 ) -> LogisticsOrderItem:
     item = LogisticsOrderItem(
         order_id=order.id,
-        product_id=payload.product_id,
+        product_id=payload.product_id.strip(),
         product_name=payload.product_name.strip(),
         reason=payload.reason,
         condition=payload.condition,

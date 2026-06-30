@@ -431,6 +431,22 @@ No debe modificar:
 
 salvo que la spec o ADR lo autorice explicitamente.
 
+## Reutilizacion de componentes
+
+Un agente debe priorizar el uso de componentes reutilizables del core (`apps/web/src/shared/ui/`).
+
+Cuando un plugin necesite un comportamiento UI que aun no existe en el core:
+
+1. crear primero el componente generico en `apps/web/src/shared/ui/`;
+2. luego usarlo desde el plugin con props y funciones especificas del dominio.
+
+Reglas:
+
+- no implementar logica de estado, tabla, modal o debounce dentro de un plugin si existe un componente generico en `shared/ui/`;
+- si el componente generico no cubre el caso exacto, extenderlo con props en lugar de clonarlo en el plugin;
+- la excepcion es cuando el comportamiento es 100% especifico del dominio y no tiene sentido fuera de el;
+- los wrappers de dominio son aceptables si solo inyectan defaults (columnas, fetchFn, placeholder) sin duplicar logica interna.
+
 ## Legacy
 
 Ningun agente debe asumir comportamiento del legacy sin evidencia.

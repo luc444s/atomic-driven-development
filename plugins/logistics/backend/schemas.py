@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, time
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class CylinderStateRead(BaseModel):
@@ -664,6 +664,13 @@ class MovementItemCreateRequest(BaseModel):
     item_status: str | None = Field(default=None, max_length=20)
     notes: str | None = None
 
+    @field_validator("cylinder_id", mode="before")
+    @classmethod
+    def coerce_empty_string_to_none(cls, v: object) -> str | None:
+        if v == "":
+            return None
+        return v
+
 
 class MovementCancelRequest(BaseModel):
     reason: str = Field(min_length=1)
@@ -1142,6 +1149,13 @@ class ReceptionIncidentCreateRequest(BaseModel):
     cylinder_id: str | None = None
     reason_code: str = Field(min_length=1, max_length=50)
     description: str | None = None
+
+    @field_validator("cylinder_id", mode="before")
+    @classmethod
+    def coerce_empty_string_to_none(cls, v: object) -> str | None:
+        if v == "":
+            return None
+        return v
 
 
 class ReceptionItemReceiveRequest(BaseModel):

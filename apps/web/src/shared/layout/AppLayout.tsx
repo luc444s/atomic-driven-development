@@ -27,7 +27,7 @@ export function AppLayout() {
 
   return (
     <div className="flex min-h-screen">
-      <div className="w-72 shrink-0">
+      <div className="w-60 shrink-0">
         <Sidebar />
       </div>
 

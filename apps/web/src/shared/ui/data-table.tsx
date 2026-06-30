@@ -13,9 +13,10 @@ type DataTableProps<Row> = {
   rows: Row[];
   rowKey: (row: Row) => string;
   emptyMessage: string;
+  onRowClick?: (row: Row) => void;
 };
 
-export function DataTable<Row>({ columns, rows, rowKey, emptyMessage }: DataTableProps<Row>) {
+export function DataTable<Row>({ columns, rows, rowKey, emptyMessage, onRowClick }: DataTableProps<Row>) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
@@ -32,7 +33,11 @@ export function DataTable<Row>({ columns, rows, rowKey, emptyMessage }: DataTabl
           <tbody className="divide-y divide-border">
             {rows.length > 0 ? (
               rows.map((row) => (
-                <tr key={rowKey(row)} className="align-top">
+                <tr
+                  key={rowKey(row)}
+                  className={cn("align-top", onRowClick && "cursor-pointer hover:bg-accent/50")}
+                  onClick={() => onRowClick?.(row)}
+                >
                   {columns.map((column) => (
                     <td key={column.key} className={cn("px-4 py-3", column.className)}>
                       {column.render(row)}

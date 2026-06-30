@@ -179,6 +179,7 @@ export async function listProducts(params: Record<string, unknown>): Promise<Pro
 }
 
 export async function searchProducts(query: string, limit = 20): Promise<ProductSearchItem[]> {
+  if (!query.trim()) return [];
   return apiRequest(`${PRODUCTOS_BASE}/products/search${buildQuery({ q: query, limit })}`);
 }
 

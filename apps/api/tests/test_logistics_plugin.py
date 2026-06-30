@@ -1326,3 +1326,53 @@ def test_logistics_plugin_spec_0014_flow(app) -> None:
             headers=headers,
         )
         assert unlink_delivery_point.status_code == 204, unlink_delivery_point.text
+
+
+def test_logistics_movement_item_empty_cylinder_id_is_normalized_to_none(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse_response = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Almacen Test", "code": "AT", "address": "Av. Test 123"},
+        )
+        assert warehouse_response.status_code == 201, warehouse_response.text
+        warehouse = warehouse_response.json()
+
+        product = create_product(client, headers, sku="GLP-EMPTY-CYL", name="GLP Test Empty Cylinder")
+
+        movement_response = client.post(
+            "/api/v1/plugins/logistics/movements",
+            headers=headers,
+            json={
+                "movement_type": "TR",
+                "warehouse_id": warehouse["id"],
+                "items": [
+                    {
+                        "cylinder_id": "",
+                        "product_id": product["id"],
+                        "product_name": product["name"],
+                        "quantity_in": 1,
+                    }
+                ],
+            },
+        )
+        assert movement_response.status_code == 201, movement_response.text
+        movement = movement_response.json()
+
+        items_response = client.get(
+            f"/api/v1/plugins/logistics/movements/{movement['id']}/items",
+            headers=headers,
+        )
+        assert items_response.status_code == 200, items_response.text
+        items = items_response.json()
+        assert len(items) == 1
+        assert items[0]["cylinder_id"] is None

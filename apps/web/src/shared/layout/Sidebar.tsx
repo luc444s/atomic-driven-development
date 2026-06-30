@@ -30,7 +30,9 @@ export function Sidebar() {
     pluginNavigation: pluginRuntime.navigation,
   });
 
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
+    () => new Set(sections.map((s) => s.title)),
+  );
 
   function toggleSection(key: string) {
     setCollapsedSections((prev) => {
@@ -132,11 +134,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
-        {pluginRuntime.navigation.length > 0
-          ? "Shell tenant-aware con navegacion dinamica de plugins habilitados."
-          : "No hay plugins habilitados visibles para este usuario."}
-      </div>
-    </aside>
+   </aside>
   );
 }

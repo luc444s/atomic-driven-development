@@ -55,6 +55,7 @@ export async function listCustomers(params: Record<string, unknown>): Promise<Cu
 }
 
 export async function searchCustomers(query: string, limit = 20): Promise<CustomerBrief[]> {
+  if (!query.trim()) return [];
   return apiRequest<CustomerBrief[]>(
     `${CRM_BASE}/customers/search${buildQuery({ query, limit })}`
   );

@@ -15,7 +15,7 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
           {customer.document_type_code} {customer.document_number}
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-2 text-sm text-slate-300">
+      <CardContent className="grid gap-2 text-sm text-foreground">
         <p>País: {customer.country_code}</p>
         <p>Email: {customer.email ?? "-"}</p>
         <p>Teléfono: {customer.phone ?? "-"}</p>

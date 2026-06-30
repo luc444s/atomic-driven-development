@@ -158,19 +158,19 @@ export function WarehousesPage() {
         }}
       >
         <form className="space-y-4" onSubmit={submitWarehouse}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Nombre</span>
             <Input value={warehouseForm.name} onChange={(event) => setWarehouseForm((current) => ({ ...current, name: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Código</span>
             <Input value={warehouseForm.code} onChange={(event) => setWarehouseForm((current) => ({ ...current, code: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Dirección</span>
             <Input value={warehouseForm.address} onChange={(event) => setWarehouseForm((current) => ({ ...current, address: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Teléfono</span>
             <Input value={warehouseForm.phone} onChange={(event) => setWarehouseForm((current) => ({ ...current, phone: event.target.value }))} />
           </label>
@@ -195,11 +195,11 @@ export function WarehousesPage() {
         }}
       >
         <form className="space-y-4" onSubmit={submitZone}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Nombre</span>
             <Input value={zoneForm.name} onChange={(event) => setZoneForm((current) => ({ ...current, name: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Código</span>
             <Input value={zoneForm.code} onChange={(event) => setZoneForm((current) => ({ ...current, code: event.target.value }))} />
           </label>

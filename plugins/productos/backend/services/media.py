@@ -31,7 +31,7 @@ def require_media(db: Session, *, product_id: str, media_id: str) -> ProductMedi
         )
     )
     if media is None:
-        raise ValueError("ProductMedia not found")
+        raise ValueError("Media del producto no encontrado")
     return media
 
 

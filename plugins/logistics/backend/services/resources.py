@@ -51,7 +51,7 @@ def create_warehouse(
 ) -> LogisticsWarehouse:
     branch_id = payload.branch_id if payload.branch_id is not None else action_context.branch_id
     if branch_id is not None and get_branch_for_tenant(db, tenant_id, branch_id) is None:
-        raise ValueError("Branch does not belong to the tenant")
+        raise ValueError("La sucursal no pertenece al tenant")
 
     warehouse = LogisticsWarehouse(
         tenant_id=tenant_id,
@@ -90,7 +90,7 @@ def update_warehouse(
             payload.branch_id is not None
             and get_branch_for_tenant(db, warehouse.tenant_id, payload.branch_id) is None
         ):
-            raise ValueError("Branch does not belong to the tenant")
+            raise ValueError("La sucursal no pertenece al tenant")
         warehouse.branch_id = payload.branch_id
     if payload.address is not None:
         warehouse.address = payload.address

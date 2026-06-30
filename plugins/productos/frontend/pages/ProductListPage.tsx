@@ -56,7 +56,7 @@ export function ProductListPage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Busca por SKU o nombre"
             />
-            <div className="text-sm text-slate-400">
+            <div className="text-sm text-muted-foreground">
               {productsQuery.data ? `${productsQuery.data.total} registros` : "Cargando..."}
             </div>
           </div>

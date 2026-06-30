@@ -186,7 +186,7 @@ def validate_vehicle_for_route(
         db, tenant_id=tenant_id, vehicle_id=vehicle_id, route_id=route_id
     )
     if not allowed:
-        raise ValueError(reason or "Vehicle is not eligible for this route")
+        raise ValueError(reason or "El vehículo no es elegible para esta ruta")
 
 
 def list_vehicle_route_restrictions(
@@ -445,7 +445,7 @@ def replace_route_weekdays(
 ) -> list[RouteWeekdayRead]:
     weekdays = sorted(set(payload.weekdays))
     if any(day < 1 or day > 7 for day in weekdays):
-        raise ValueError("Weekdays must be between 1 and 7")
+        raise ValueError("Los días de semana deben estar entre 1 y 7")
     db.execute(delete(LogisticsRouteWeekday).where(LogisticsRouteWeekday.route_id == route.id))
     for weekday in weekdays:
         db.add(LogisticsRouteWeekday(tenant_id=route.tenant_id, route_id=route.id, weekday=weekday))
@@ -501,7 +501,7 @@ def validate_route_weight_limit(
     summary = build_load_weight_summary(db, route=route)
     cylinder = db.scalar(select(LogisticsCylinder).where(LogisticsCylinder.id == cylinder_id))
     if summary.total_weight_kg + _cylinder_weight(cylinder) > summary.weight_limit_kg:
-        raise ValueError("Route load exceeds the configured weight limit")
+        raise ValueError("La carga de la ruta excede el límite de peso configurado")
 
 
 def get_adr_product_config(
@@ -569,7 +569,7 @@ def create_adr_incompatibility(
     action_context: LogisticsActionContext,
 ) -> LogisticsAdrIncompatibility:
     if payload.product_id_1 == payload.product_id_2:
-        raise ValueError("Products must be different")
+        raise ValueError("Los productos deben ser diferentes")
     item = LogisticsAdrIncompatibility(
         tenant_id=tenant_id,
         product_id_1=payload.product_id_1,

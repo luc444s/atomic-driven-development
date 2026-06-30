@@ -392,16 +392,18 @@ Modulo piloto recomendado:
 
 Si una decision parece rapida pero rompe modularidad, trazabilidad, migracion controlada o claridad arquitectonica, no debe implementarse como atajo permanente.
 
-## Minimal CSS
+## Tema y colores
 
-Reglas para mantener el CSS generado pequeno y evitable:
+Reglas obligatorias para mantener consistencia entre claro/oscuro y evitar colores rotos en runtime:
 
+- **PROHIBIDO usar colores hardcodeados** (`text-white`, `text-slate-300`, `bg-slate-950`, `border-slate-800`, etc.) en componentes JSX. Usar exclusivamente las variables CSS semanticas: `text-foreground`, `text-muted-foreground`, `bg-surface`, `bg-surface-alt`, `bg-card`, `border-border`, `border-input`, `border-ring`, etc.
+- las unicas excepciones son colores semanticos de estado (badges de cylinder states, alertas, etc.) que representen informacion y no estructura visual;
+- `text-white` solo es aceptable si semanticamente significa "blanco puro" (ej. iconos sobre fondo primary);
 - no usar valores arbitrarios (`h-[...]`, `w-[...]`, `text-[...]`, etc); extender `theme.extend` si un valor se repite;
 - no usar `@apply` en componentes; poner las utility classes directamente en JSX para que Tailwind pueda purgar;
 - no agregar plugins Tailwind que no se usen (`forms`, `typography`, `daisyui`, etc);
 - mantener `content` apuntando solo a archivos fuente del frontend;
-- preferir colores del theme (`bg-slate-900`) sobre valores literales (`bg-[#0f172a]`);
-- los colores CSS variables de shadcn/ui van en `index.css`, no en clases inline.
+- los colores CSS variables van en `index.css`, no en clases inline.
 
 ## Component Minimal
 

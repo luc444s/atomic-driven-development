@@ -76,7 +76,7 @@ export function ProductSearchDialog({
               render: (row) => (
                 <button
                   type="button"
-                  className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-200 hover:border-cyan-500"
+                  className="rounded-md border border-border px-3 py-1.5 text-sm text-foreground hover:border-ring"
                   onClick={() => {
                     onSelect(row);
                     onOpenChange(false);

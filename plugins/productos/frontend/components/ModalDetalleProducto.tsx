@@ -28,7 +28,7 @@ import {
 } from "../api";
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 function today() {
   return new Date().toISOString().slice(0, 10);
@@ -245,7 +245,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
 
       <div className="flex items-center justify-between gap-4">
         <div>
-          <p className="text-sm text-slate-400">{detailQuery.data ? `${detailQuery.data.sku} · ${detailQuery.data.condition_code}` : "Cargando..."}</p>
+          <p className="text-sm text-muted-foreground">{detailQuery.data ? `${detailQuery.data.sku} · ${detailQuery.data.condition_code}` : "Cargando..."}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => onEditProduct?.(productId)}>Editar ficha</Button>
@@ -265,13 +265,13 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
           <CardTitle>Resumen</CardTitle>
           <CardDescription>Información base del producto.</CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-3 md:grid-cols-3 text-sm text-slate-300">
-          <div><span className="text-slate-500">Estado:</span> {detailQuery.data?.status_code ?? "-"}</div>
-          <div><span className="text-slate-500">Activo:</span> {detailQuery.data?.is_active ? "Sí" : "No"}</div>
-          <div><span className="text-slate-500">Unidad:</span> {detailQuery.data?.unit_id ?? "-"}</div>
-          <div><span className="text-slate-500">Marca:</span> {detailQuery.data?.brand_id ?? "-"}</div>
-          <div><span className="text-slate-500">Grupo:</span> {detailQuery.data?.group_id ?? "-"}</div>
-          <div><span className="text-slate-500">Subcategoría:</span> {detailQuery.data?.subcategory_id ?? "-"}</div>
+        <CardContent className="grid gap-3 md:grid-cols-3 text-sm text-foreground">
+          <div><span className="text-muted-foreground">Estado:</span> {detailQuery.data?.status_code ?? "-"}</div>
+          <div><span className="text-muted-foreground">Activo:</span> {detailQuery.data?.is_active ? "Sí" : "No"}</div>
+          <div><span className="text-muted-foreground">Unidad:</span> {detailQuery.data?.unit_id ?? "-"}</div>
+          <div><span className="text-muted-foreground">Marca:</span> {detailQuery.data?.brand_id ?? "-"}</div>
+          <div><span className="text-muted-foreground">Grupo:</span> {detailQuery.data?.group_id ?? "-"}</div>
+          <div><span className="text-muted-foreground">Subcategoría:</span> {detailQuery.data?.subcategory_id ?? "-"}</div>
         </CardContent>
       </Card>
 
@@ -387,8 +387,8 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
             <CardTitle>Impuestos</CardTitle>
             <CardDescription>Reemplaza la configuración vigente por tipo.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-slate-300">
-            <label className="flex items-center gap-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2">
+          <CardContent className="space-y-4 text-sm text-foreground">
+            <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2">
               <input type="checkbox" checked={taxValues.igv_exempt} onChange={(event) => setTaxValues((current) => ({ ...current, igv_exempt: event.target.checked }))} />
               IGV exonerado
             </label>
@@ -435,7 +435,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
               </select>
             </div>
             <textarea
-              className="min-h-20 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500"
+              className="min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
               value={adrForm.cargo_description}
               onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
               placeholder="Mercancía / descripción"
@@ -474,7 +474,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
                 <option value="DOC">DOC</option>
               </select>
               <input
-                className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50"
+                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
                 type="file"
                 onChange={(event: ChangeEvent<HTMLInputElement>) => setMediaFile(event.target.files?.[0] ?? null)}
               />

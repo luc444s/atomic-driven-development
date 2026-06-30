@@ -19,9 +19,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 const controlClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 export function EquipmentPage() {
   const queryClient = useQueryClient();
@@ -138,13 +139,10 @@ export function EquipmentPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <select className={controlClassName} value={selectedMovementId ?? ""}
-              onChange={(e) => setSelectedMovementId(e.target.value || null)}>
-              <option value="">Selecciona movimiento</option>
-              {(movementsQuery.data ?? []).map((m) => (
-                <option key={m.id} value={m.id}>{m.movement_type} - {m.customer_name || m.id}</option>
-              ))}
-            </select>
+            <Select value={selectedMovementId ?? ""}
+              onChange={(value) => setSelectedMovementId(value || null)}
+              placeholder="Selecciona movimiento"
+              options={(movementsQuery.data ?? []).map((m) => ({ value: m.id, label: `${m.movement_type} - ${m.customer_name || m.id}` }))} />
             <DataTable
               columns={[
                 { key: "equip", header: "Equipo", render: (row) => equipmentQuery.data?.find((e) => e.id === row.equipment_id)?.name || row.equipment_id },
@@ -168,11 +166,11 @@ export function EquipmentPage() {
       <Dialog open={isCreateOpen} title="Nuevo equipo" description="Registra un equipo en el catalogo."
         onClose={() => setIsCreateOpen(false)}>
         <form className="space-y-4" onSubmit={handleCreate}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Nombre</span>
             <Input value={equipName} onChange={(e) => setEquipName(e.target.value)} required />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Tipo</span>
             <Input value={equipType} onChange={(e) => setEquipType(e.target.value)} placeholder="Bomba, manguera, etc" />
           </label>
@@ -187,16 +185,13 @@ export function EquipmentPage() {
         description="Selecciona un equipo del catalogo."
         onClose={() => setIsAssignOpen(false)}>
         <form className="space-y-4" onSubmit={handleAssign}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Equipo</span>
-            <select className={controlClassName} value={assignEquipId} onChange={(e) => setAssignEquipId(e.target.value)} required>
-              <option value="">Selecciona equipo</option>
-              {(equipmentQuery.data ?? []).filter((e) => e.is_active).map((e) => (
-                <option key={e.id} value={e.id}>{e.name} {e.equipment_type ? `(${e.equipment_type})` : ""}</option>
-              ))}
-            </select>
+            <Select value={assignEquipId} onChange={(value) => setAssignEquipId(value)} required
+              placeholder="Selecciona equipo"
+              options={(equipmentQuery.data ?? []).filter((e) => e.is_active).map((e) => ({ value: e.id, label: `${e.name} ${e.equipment_type ? `(${e.equipment_type})` : ""}` }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Notas</span>
             <Input value={assignNotes} onChange={(e) => setAssignNotes(e.target.value)} />
           </label>

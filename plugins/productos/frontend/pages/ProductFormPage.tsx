@@ -50,7 +50,7 @@ const EMPTY_PRODUCT: ProductPayload = {
 };
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 export function ProductFormPage() {
   const { productId } = useParams();
@@ -155,11 +155,11 @@ export function ProductFormPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>SKU</span>
                 <Input value={formState.sku} onChange={(event) => setFormState((current) => ({ ...current, sku: event.target.value }))} />
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Legacy ID</span>
                 <Input
                   type="number"
@@ -169,11 +169,11 @@ export function ProductFormPage() {
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Nombre</span>
                 <Input value={formState.name} onChange={(event) => setFormState((current) => ({ ...current, name: event.target.value }))} />
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Descripción corta</span>
                 <Input
                   value={formState.short_description ?? ""}
@@ -181,16 +181,16 @@ export function ProductFormPage() {
                 />
               </label>
             </div>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Descripción</span>
               <textarea
-                className="min-h-24 w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500"
+                className="min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
                 value={formState.description ?? ""}
                 onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value || null }))}
               />
             </label>
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Línea</span>
                 <select className={selectClassName} value={formState.line_id} onChange={(event) => setFormState((current) => ({ ...current, line_id: event.target.value }))}>
                   <option value="">Selecciona</option>
@@ -199,7 +199,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Sublínea</span>
                 <select className={selectClassName} value={formState.subline_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, subline_id: event.target.value || null }))}>
                   <option value="">Sin sublínea</option>
@@ -208,7 +208,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Marca</span>
                 <select className={selectClassName} value={formState.brand_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, brand_id: event.target.value || null }))}>
                   <option value="">Sin marca</option>
@@ -219,7 +219,7 @@ export function ProductFormPage() {
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Tipo de insumo</span>
                 <select className={selectClassName} value={formState.insumo_type_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, insumo_type_id: event.target.value || null }))}>
                   <option value="">Sin tipo</option>
@@ -228,7 +228,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Subcategoría</span>
                 <select className={selectClassName} value={formState.subcategory_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, subcategory_id: event.target.value || null }))}>
                   <option value="">Sin subcategoría</option>
@@ -237,7 +237,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Grupo</span>
                 <select className={selectClassName} value={formState.group_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, group_id: event.target.value || null }))}>
                   <option value="">Sin grupo</option>
@@ -248,7 +248,7 @@ export function ProductFormPage() {
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Unidad principal</span>
                 <select className={selectClassName} value={formState.unit_id} onChange={(event) => setFormState((current) => ({ ...current, unit_id: event.target.value }))}>
                   <option value="">Selecciona</option>
@@ -257,7 +257,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Unidad de caja</span>
                 <select className={selectClassName} value={formState.box_unit_id ?? ""} onChange={(event) => setFormState((current) => ({ ...current, box_unit_id: event.target.value || null }))}>
                   <option value="">Sin unidad de caja</option>
@@ -266,13 +266,13 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Cantidad por caja</span>
                 <Input type="number" value={formState.qty_per_box ?? ""} onChange={(event) => setFormState((current) => ({ ...current, qty_per_box: event.target.value ? Number(event.target.value) : null }))} />
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-3">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Estado</span>
                 <select className={selectClassName} value={formState.status_code} onChange={(event) => setFormState((current) => ({ ...current, status_code: event.target.value }))}>
                   {(statusQuery.data ?? []).map((item) => (
@@ -280,7 +280,7 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Condición</span>
                 <select className={selectClassName} value={formState.condition_code} onChange={(event) => setFormState((current) => ({ ...current, condition_code: event.target.value }))}>
                   {(conditionsQuery.data ?? []).map((item) => (
@@ -288,25 +288,25 @@ export function ProductFormPage() {
                   ))}
                 </select>
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Código país</span>
                 <Input value={formState.country_code ?? ""} onChange={(event) => setFormState((current) => ({ ...current, country_code: event.target.value || null }))} />
               </label>
             </div>
             <div className="grid gap-4 md:grid-cols-4">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Peso kg</span>
                 <Input type="number" value={formState.weight_kg ?? ""} onChange={(event) => setFormState((current) => ({ ...current, weight_kg: event.target.value ? Number(event.target.value) : null }))} />
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Contenido m3</span>
                 <Input type="number" value={formState.content_m3 ?? ""} onChange={(event) => setFormState((current) => ({ ...current, content_m3: event.target.value ? Number(event.target.value) : null }))} />
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Tiempo entrega</span>
                 <Input value={formState.delivery_time ?? ""} onChange={(event) => setFormState((current) => ({ ...current, delivery_time: event.target.value || null }))} />
               </label>
-              <label className="flex items-center gap-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+              <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
                 <input type="checkbox" checked={formState.is_service} onChange={(event) => setFormState((current) => ({ ...current, is_service: event.target.checked }))} />
                 Servicio
               </label>

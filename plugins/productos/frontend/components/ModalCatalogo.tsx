@@ -28,7 +28,7 @@ import {
 } from "../api";
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 type CatalogType = "categories" | "lines" | "subline" | "brands" | "insumo-types" | "units" | "subcategories" | "groups";
 
@@ -98,10 +98,10 @@ function CatalogoMenuContent({ onSelect }: { onSelect: (type: CatalogType) => vo
           key={item.type}
           type="button"
           onClick={() => onSelect(item.type)}
-          className="rounded-lg border border-slate-800 bg-slate-950 p-4 text-left transition hover:border-cyan-700 hover:bg-slate-900"
+          className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
         >
-          <p className="text-sm font-medium text-slate-200">{item.label}</p>
-          <p className="mt-1 text-xs text-slate-500">{item.description}</p>
+          <p className="text-sm font-medium text-foreground">{item.label}</p>
+          <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
         </button>
       ))}
     </div>

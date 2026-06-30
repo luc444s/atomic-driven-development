@@ -48,7 +48,7 @@ export function ModalDetalleStock({
       ) : null}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-slate-400">
+          <p className="text-sm text-muted-foreground">
             {detailQuery.data
               ? `${detailQuery.data.product_sku} · ${detailQuery.data.warehouse_code}`
               : "Cargando..."}
@@ -81,21 +81,21 @@ export function ModalDetalleStock({
           <CardDescription>Resumen por producto y almacén.</CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Producto</p>
-            <p className="mt-2 text-sm text-slate-100">{detailQuery.data?.product_name ?? "-"}</p>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Producto</p>
+            <p className="mt-2 text-sm text-foreground">{detailQuery.data?.product_name ?? "-"}</p>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Almacén</p>
-            <p className="mt-2 text-sm text-slate-100">{detailQuery.data?.warehouse_name ?? "-"}</p>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Almacén</p>
+            <p className="mt-2 text-sm text-foreground">{detailQuery.data?.warehouse_name ?? "-"}</p>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Cantidad</p>
-            <p className="mt-2 text-sm text-slate-100">{detailQuery.data?.quantity ?? 0}</p>
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Cantidad</p>
+            <p className="mt-2 text-sm text-foreground">{detailQuery.data?.quantity ?? 0}</p>
           </div>
-          <div className="rounded-lg border border-slate-800 bg-slate-950 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Mín/Máx</p>
-            <p className="mt-2 text-sm text-slate-100">
+          <div className="rounded-lg border border-border bg-surface p-4">
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Mín/Máx</p>
+            <p className="mt-2 text-sm text-foreground">
               {detailQuery.data?.min_quantity ?? "-"} / {detailQuery.data?.max_quantity ?? "-"}
             </p>
           </div>

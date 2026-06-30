@@ -68,7 +68,7 @@ def supersede_price(
     action_context: ProductosActionContext,
 ) -> ProductPrice:
     if price.valid_to is not None:
-        raise ValueError("Only active prices can be superseded")
+        raise ValueError("Solo los precios activos pueden ser reemplazados")
     _close_open_price(
         db,
         product_id=price.product_id,
@@ -88,7 +88,7 @@ def supersede_price(
     db.flush()
     product = db.get(Product, price.product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     _audit_emit_price_change(
         db, product=product, price=item, action_context=action_context, action="supersede"
     )
@@ -164,7 +164,7 @@ def supersede_cost(
     action_context: ProductosActionContext,
 ) -> ProductCost:
     if cost.valid_to is not None:
-        raise ValueError("Only active costs can be superseded")
+        raise ValueError("Solo los costos activos pueden ser reemplazados")
     _close_open_cost(
         db,
         product_id=cost.product_id,
@@ -184,7 +184,7 @@ def supersede_cost(
     db.flush()
     product = db.get(Product, cost.product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     _audit_emit_cost_change(
         db, product=product, cost=item, action_context=action_context, action="supersede"
     )
@@ -245,7 +245,7 @@ def require_price(db: Session, *, product_id: str, price_id: str) -> ProductPric
         )
     )
     if price is None:
-        raise ValueError("ProductPrice not found")
+        raise ValueError("Precio de producto no encontrado")
     return price
 
 
@@ -254,7 +254,7 @@ def require_cost(db: Session, *, product_id: str, cost_id: str) -> ProductCost:
         select(ProductCost).where(ProductCost.product_id == product_id, ProductCost.id == cost_id)
     )
     if cost is None:
-        raise ValueError("ProductCost not found")
+        raise ValueError("Costo de producto no encontrado")
     return cost
 
 

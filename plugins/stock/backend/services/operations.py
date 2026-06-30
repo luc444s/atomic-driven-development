@@ -174,7 +174,7 @@ def adjust_stock(
     warehouse = require_warehouse(db, tenant_id=tenant_id, warehouse_id=warehouse_id)
     quantity_decimal = _to_decimal(quantity)
     if quantity_decimal == Decimal("0.000"):
-        raise ValueError("Quantity must be different from zero")
+        raise ValueError("La cantidad debe ser diferente de cero")
 
     balance = _lock_balance_row(
         db,
@@ -186,7 +186,7 @@ def adjust_stock(
     current = _current_quantity(balance.quantity)
     new_quantity = current + quantity_decimal
     if new_quantity < Decimal("0.000"):
-        raise ValueError("Insufficient stock for adjustment")
+        raise ValueError("Stock insuficiente para el ajuste")
 
     reference_id = idempotency_key or str(uuid4())
     ledger = StockLedger(
@@ -279,14 +279,14 @@ def transfer_stock(
         return existing
 
     if from_warehouse_id == to_warehouse_id:
-        raise ValueError("Origin and destination warehouse must be different")
+        raise ValueError("El almacén de origen y destino deben ser diferentes")
 
     product = require_product(db, tenant_id=tenant_id, product_id=product_id)
     from_warehouse = require_warehouse(db, tenant_id=tenant_id, warehouse_id=from_warehouse_id)
     to_warehouse = require_warehouse(db, tenant_id=tenant_id, warehouse_id=to_warehouse_id)
     quantity_decimal = _to_decimal(quantity)
     if quantity_decimal <= Decimal("0.000"):
-        raise ValueError("Quantity must be greater than zero")
+        raise ValueError("La cantidad debe ser mayor que cero")
 
     first_warehouse_id, second_warehouse_id = sorted([from_warehouse_id, to_warehouse_id])
     first_balance = _lock_balance_row(
@@ -311,7 +311,7 @@ def transfer_stock(
     origin_current = _current_quantity(pair.origin.quantity)
     destination_current = _current_quantity(pair.destination.quantity)
     if origin_current < quantity_decimal:
-        raise ValueError("Insufficient stock for transfer")
+        raise ValueError("Stock insuficiente para la transferencia")
 
     pair.origin.quantity = float(origin_current - quantity_decimal)
     pair.origin.updated_by = action_context.actor_user_id
@@ -418,11 +418,11 @@ def upsert_stock_config(
     action_context: StockActionContext,
 ) -> StockConfigRead:
     if min_quantity < 0:
-        raise ValueError("Minimum quantity cannot be negative")
+        raise ValueError("La cantidad mínima no puede ser negativa")
     if max_quantity is not None and max_quantity < 0:
-        raise ValueError("Maximum quantity cannot be negative")
+        raise ValueError("La cantidad máxima no puede ser negativa")
     if max_quantity is not None and max_quantity < min_quantity:
-        raise ValueError("Maximum quantity cannot be smaller than minimum quantity")
+        raise ValueError("La cantidad máxima no puede ser menor que la cantidad mínima")
 
     product = require_product(db, tenant_id=tenant_id, product_id=product_id)
     warehouse = require_warehouse(db, tenant_id=tenant_id, warehouse_id=warehouse_id)

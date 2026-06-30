@@ -28,7 +28,7 @@ import {
 import { ProductosSection } from "../components/ProductosSection";
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 type SimpleCatalogProps = {
   title: string;

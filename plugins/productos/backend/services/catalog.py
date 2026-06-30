@@ -630,7 +630,7 @@ def require_status(db: Session, code: str) -> ProductStatus:
     ensure_static_catalogs_seeded(db)
     status = db.get(ProductStatus, code)
     if status is None or not status.is_active:
-        raise ValueError("ProductStatus not found")
+        raise ValueError("Estado de producto no encontrado")
     return status
 
 
@@ -638,7 +638,7 @@ def require_condition(db: Session, code: str) -> ProductCondition:
     ensure_static_catalogs_seeded(db)
     condition = db.get(ProductCondition, code)
     if condition is None or not condition.is_active:
-        raise ValueError("ProductCondition not found")
+        raise ValueError("Condición de producto no encontrada")
     return condition
 
 
@@ -751,7 +751,7 @@ def _ensure_unique_subline_code(
     )
     existing = db.scalar(stmt)
     if existing is not None and existing.id != exclude_id:
-        raise ValueError("ProductSubline code already exists")
+        raise ValueError("El código de sublínea ya existe")
 
 
 def _validate_category_reference(db: Session, *, tenant_id: str, category_id: str | None) -> None:

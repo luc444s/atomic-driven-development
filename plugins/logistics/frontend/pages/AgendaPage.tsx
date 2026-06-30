@@ -12,6 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type TaskFormState = {
   task_type: string;
@@ -123,31 +124,24 @@ export function AgendaPage() {
         onClose={() => setIsOpen(false)}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Tipo</span>
-            <select
+            <Select
               value={formState.task_type}
-              onChange={(event) => setFormState((current) => ({ ...current, task_type: event.target.value }))}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              {(taskTypesQuery.data ?? []).map((type) => (
-                <option key={type.code} value={type.code}>
-                  {type.description}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFormState((current) => ({ ...current, task_type: value }))}
+              options={(taskTypesQuery.data ?? []).map((type) => ({ value: type.code, label: type.description }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Fecha</span>
             <Input type="date" value={formState.scheduled_date} onChange={(event) => setFormState((current) => ({ ...current, scheduled_date: event.target.value }))} />
           </label>
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-foreground">
             <span>Cliente</span>
             <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
               {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
             </Button>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Descripción</span>
             <Input value={formState.description} onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value }))} />
           </label>

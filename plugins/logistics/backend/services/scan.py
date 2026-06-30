@@ -54,7 +54,7 @@ def process_scan(
         )
     )
     if movement is None:
-        raise ValueError("Movement not found")
+        raise ValueError("Movimiento no encontrado")
 
     cylinder = get_cylinder_by_serial(
         db, tenant_id=tenant_id, serial_or_barcode=payload.barcode_serial
@@ -75,7 +75,7 @@ def process_scan(
             gps_lng=payload.gps_lng,
             action_context=action_context,
         )
-        raise ValueError(log.error_reason or "Cylinder not found")
+        raise ValueError(log.error_reason or "Envase no encontrado")
 
     duplicate = db.scalar(
         select(LogisticsScanLog).where(
@@ -87,7 +87,7 @@ def process_scan(
         )
     )
     if duplicate is not None:
-        raise ValueError("Cylinder was already scanned for this movement and service")
+        raise ValueError("El envase ya fue escaneado para este movimiento y servicio")
 
     target_state = _resolve_target_state(
         db, movement=movement, service_type=normalized_service_type
@@ -114,7 +114,7 @@ def process_scan(
             gps_lng=payload.gps_lng,
             action_context=action_context,
         )
-        raise ValueError(log.error_reason or "Invalid transition")
+        raise ValueError(log.error_reason or "Transición inválida")
 
     adr_validated = not transition.requires_adr or has_valid_adr(cylinder)
     hydrotest_validated = not transition.requires_hydrotest or has_valid_hydrotest(cylinder)
@@ -263,7 +263,7 @@ def _resolve_target_state(
         select(LogisticsMovementType).where(LogisticsMovementType.code == movement.movement_type)
     )
     if movement_type is None or not movement_type.target_state:
-        raise ValueError("Movement type does not define a target state")
+        raise ValueError("El tipo de movimiento no define un estado destino")
     return movement_type.target_state
 
 

@@ -90,7 +90,7 @@ def update_promotion(
     db.flush()
     product = db.get(Product, promotion.product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     _audit_emit_promotion(
         db,
         product=product,
@@ -125,7 +125,7 @@ def delete_promotion(
 def require_promotion(db: Session, *, promotion_id: str) -> ProductPromotion:
     promotion = db.get(ProductPromotion, promotion_id)
     if promotion is None:
-        raise ValueError("ProductPromotion not found")
+        raise ValueError("Promoción de producto no encontrada")
     return promotion
 
 

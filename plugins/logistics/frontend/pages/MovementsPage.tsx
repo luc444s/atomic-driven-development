@@ -32,9 +32,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 const controlClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 type MovementFormState = {
   movement_type: string;
@@ -260,7 +261,7 @@ export function MovementsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="mb-2 text-sm font-medium text-white">Items</p>
+              <p className="mb-2 text-sm font-medium text-foreground">Items</p>
               <DataTable
                 columns={[
                   { key: "product", header: "Producto / Envase", render: (row) => row.product_name || row.cylinder_id || "-" },
@@ -273,7 +274,7 @@ export function MovementsPage() {
               />
             </div>
             <div>
-              <p className="mb-2 text-sm font-medium text-white">Historial</p>
+              <p className="mb-2 text-sm font-medium text-foreground">Historial</p>
               <DataTable
                 columns={[
                   { key: "field", header: "Campo", render: (row) => row.field_name },
@@ -292,44 +293,32 @@ export function MovementsPage() {
       <Dialog open={isOpen} title="Nuevo movimiento" description="Crea una operacion basica." onClose={() => setIsOpen(false)}>
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Tipo</span>
-              <select value={formState.movement_type} onChange={(event) => setFormState((current) => ({ ...current, movement_type: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-                {(movementTypesQuery.data ?? []).map((type) => (
-                  <option key={type.code} value={type.code}>{type.name}</option>
-                ))}
-              </select>
+              <Select value={formState.movement_type} onChange={(value) => setFormState((current) => ({ ...current, movement_type: value }))}
+                options={(movementTypesQuery.data ?? []).map((type) => ({ value: type.code, label: type.name }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Almacen</span>
-              <select value={formState.warehouse_id} onChange={(event) => setFormState((current) => ({ ...current, warehouse_id: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-                <option value="">Sin definir</option>
-                {(warehousesQuery.data ?? []).map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>{warehouse.name}</option>
-                ))}
-              </select>
+              <Select value={formState.warehouse_id} onChange={(value) => setFormState((current) => ({ ...current, warehouse_id: value }))}
+                placeholder="Sin definir"
+                options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
             </label>
           </div>
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-foreground">
             <span>Cliente</span>
             <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
               {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Envase</span>
-              <select value={formState.cylinder_id} onChange={(event) => setFormState((current) => ({ ...current, cylinder_id: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200">
-                <option value="">Selecciona</option>
-                {(cylindersQuery.data ?? []).map((cylinder) => (
-                  <option key={cylinder.id} value={cylinder.id}>{cylinder.serial}</option>
-                ))}
-              </select>
+              <Select value={formState.cylinder_id} onChange={(value) => setFormState((current) => ({ ...current, cylinder_id: value }))}
+                placeholder="Selecciona"
+                options={(cylindersQuery.data ?? []).map((cylinder) => ({ value: cylinder.id, label: cylinder.serial }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Cantidad</span>
               <Input value={formState.quantity} onChange={(event) => setFormState((current) => ({ ...current, quantity: event.target.value }))} />
             </label>
@@ -347,7 +336,7 @@ export function MovementsPage() {
       <Dialog open={isGuideOpen} title="Asignar guia de despacho" description="Ingresa la serie del documento."
         onClose={() => setIsGuideOpen(false)}>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); guideMutation.mutate(); }}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Serie</span>
             <Input value={guideSeries} onChange={(e) => setGuideSeries(e.target.value)} placeholder="Ej: G001" required />
           </label>
@@ -361,11 +350,11 @@ export function MovementsPage() {
       <Dialog open={isVehicleReturnOpen} title="Retorno de vehiculo" description="Ingresa los cilindros que retornan."
         onClose={() => setIsVehicleReturnOpen(false)}>
         <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); vehicleReturnMutation.mutate(); }}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>IDs de cilindros (separados por coma)</span>
             <Input value={returnCylinderIds} onChange={(e) => setReturnCylinderIds(e.target.value)} placeholder="id1, id2, id3" />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Notas</span>
             <Input value={returnNotes} onChange={(e) => setReturnNotes(e.target.value)} />
           </label>
@@ -379,14 +368,14 @@ export function MovementsPage() {
       <Dialog open={isWaybillOpen} title="Carta Porte" description="Datos estructurados del documento."
         maxWidthClassName="max-w-[900px]" onClose={() => { setIsWaybillOpen(false); setWaybillData(null); }}>
         {waybillData ? (
-          <div className="space-y-4 text-sm text-slate-300">
+          <div className="space-y-4 text-sm text-foreground">
             <div className="grid grid-cols-2 gap-3">
-              <div><span className="text-slate-500">Documento:</span> {waybillData.document || "-"}</div>
-              <div><span className="text-slate-500">Almacen:</span> {waybillData.warehouse_name || "-"}</div>
-              <div><span className="text-slate-500">Cliente:</span> {waybillData.customer_name || "-"}</div>
-              <div><span className="text-slate-500">Vehiculo:</span> {waybillData.vehicle_plate || "-"}</div>
-              <div><span className="text-slate-500">Destino:</span> {waybillData.destination_place || "-"}</div>
-              <div><span className="text-slate-500">Direccion:</span> {waybillData.destination_address || "-"}</div>
+              <div><span className="text-muted-foreground">Documento:</span> {waybillData.document || "-"}</div>
+              <div><span className="text-muted-foreground">Almacen:</span> {waybillData.warehouse_name || "-"}</div>
+              <div><span className="text-muted-foreground">Cliente:</span> {waybillData.customer_name || "-"}</div>
+              <div><span className="text-muted-foreground">Vehiculo:</span> {waybillData.vehicle_plate || "-"}</div>
+              <div><span className="text-muted-foreground">Destino:</span> {waybillData.destination_place || "-"}</div>
+              <div><span className="text-muted-foreground">Direccion:</span> {waybillData.destination_address || "-"}</div>
             </div>
             <DataTable
               columns={[
@@ -399,7 +388,7 @@ export function MovementsPage() {
               rowKey={(row) => `${row.product_id}-${row.product_name}`}
               emptyMessage="Sin items"
             />
-            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-slate-800 text-slate-400">
+            <div className="grid grid-cols-3 gap-3 pt-2 border-t border-border text-muted-foreground">
               <div>Total bultos: {waybillData.total_packages}</div>
               <div>Peso total: {waybillData.total_weight_kg} kg</div>
               <div>ADR total: {waybillData.total_adr_points}</div>

@@ -331,7 +331,7 @@ def plan_order(
     action_context: LogisticsActionContext,
 ) -> PlanningPlanOrderResult:
     if order.warehouse_id is None:
-        raise ValueError("Order must have a warehouse to be planned")
+        raise ValueError("El pedido debe tener un almacén para ser planificado")
     items = list(
         db.scalars(
             select(LogisticsOrderItem)
@@ -341,7 +341,7 @@ def plan_order(
     )
     product_ids = {item.product_id for item in items if item.product_id is not None}
     if len(product_ids) != len(items):
-        raise ValueError("All order items must have product_id before planning")
+        raise ValueError("Todos los artículos del pedido deben tener product_id antes de planificar")
 
     actual = _stock_actual_by_product(
         db,
@@ -374,7 +374,7 @@ def plan_order(
             assert item.product_id is not None
             pending = max(float(item.quantity_requested) - float(item.quantity_planned), 0)
             if available_map.get(item.product_id, 0) < pending:
-                raise ValueError("Insufficient stock for full planning mode")
+                raise ValueError("Stock insuficiente para el modo de planificación completa")
 
     updated_items: list[OrderItemRead] = []
     for item in items:
@@ -439,7 +439,7 @@ def generate_preload(
         )
     )
     if existing is not None:
-        raise ValueError("An active preload already exists for the selected date and warehouse")
+        raise ValueError("Ya existe una precarga activa para la fecha y almacén seleccionados")
 
     order_stmt = select(LogisticsOrder).where(
         LogisticsOrder.tenant_id == tenant_id,
@@ -483,7 +483,7 @@ def generate_preload(
             )
             created_items += 1
     if created_items == 0:
-        raise ValueError("No planned order items available to generate preload")
+        raise ValueError("No hay artículos de pedidos planificados disponibles para generar la precarga")
     db.flush()
     audit_logistics_action(
         db,
@@ -519,7 +519,7 @@ def accept_preload(
     action_context: LogisticsActionContext,
 ) -> PlanningPreloadActionResult:
     if preload.status != "PENDIENTE":
-        raise ValueError("Only pending preloads can be accepted")
+        raise ValueError("Solo se pueden aceptar precargas pendientes")
     movement = LogisticsMovement(
         tenant_id=preload.tenant_id,
         branch_id=preload.branch_id,

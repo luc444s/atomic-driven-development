@@ -57,7 +57,7 @@ export function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
-      <Card className="w-full max-w-md border-slate-800 bg-slate-950/70 backdrop-blur">
+      <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle>SYSTUTOR OSS</CardTitle>
           <CardDescription>
@@ -69,8 +69,8 @@ export function LoginPage() {
             {errorMessage ? <Alert title="Login fallido">{errorMessage}</Alert> : null}
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="email">
-                Email
+              <label className="text-sm font-medium text-foreground" htmlFor="email">
+                Correo electrónico
               </label>
               <Input
                 id="email"
@@ -82,8 +82,8 @@ export function LoginPage() {
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium text-slate-200" htmlFor="password">
-                Password
+              <label className="text-sm font-medium text-foreground" htmlFor="password">
+                Contraseña
               </label>
               <Input
                 id="password"

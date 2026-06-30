@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type VehicleFormState = {
   id?: string;
@@ -136,44 +137,37 @@ export function VehiclesPage() {
         }}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Placa</span>
             <Input value={formState.plate} onChange={(event) => setFormState((current) => ({ ...current, plate: event.target.value }))} />
           </label>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Tipo</span>
               <Input value={formState.vehicle_type} onChange={(event) => setFormState((current) => ({ ...current, vehicle_type: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Marca</span>
               <Input value={formState.brand} onChange={(event) => setFormState((current) => ({ ...current, brand: event.target.value }))} />
             </label>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Modelo</span>
               <Input value={formState.model} onChange={(event) => setFormState((current) => ({ ...current, model: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Capacidad</span>
               <Input value={formState.capacity_weight} onChange={(event) => setFormState((current) => ({ ...current, capacity_weight: event.target.value }))} />
             </label>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Almacén base</span>
-            <select
+            <Select
               value={formState.warehouse_id}
-              onChange={(event) => setFormState((current) => ({ ...current, warehouse_id: event.target.value }))}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              <option value="">Sin asignar</option>
-              {(warehousesQuery.data ?? []).map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFormState((current) => ({ ...current, warehouse_id: value }))}
+              placeholder="Sin asignar"
+              options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
           </label>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>

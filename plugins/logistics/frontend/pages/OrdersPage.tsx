@@ -19,6 +19,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type OrderFormState = {
   customer_id: string;
@@ -208,42 +209,34 @@ export function OrdersPage() {
         onClose={() => setIsOrderOpen(false)}
       >
         <form className="space-y-4" onSubmit={submitOrder}>
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-foreground">
             <span>Cliente</span>
             <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
               {orderForm.customer_name ? `${orderForm.customer_name} (${orderForm.customer_id})` : "Seleccionar cliente"}
             </Button>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Tipo</span>
-              <select
+              <Select
                 value={orderForm.movement_type}
-                onChange={(event) => setOrderForm((current) => ({ ...current, movement_type: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              >
-                <option value="SC">Salida cliente</option>
-                <option value="IC">Ingreso cliente</option>
-                <option value="TR">Traslado</option>
-              </select>
+                onChange={(value) => setOrderForm((current) => ({ ...current, movement_type: value }))}
+                options={[
+                  { value: "SC", label: "Salida cliente" },
+                  { value: "IC", label: "Ingreso cliente" },
+                  { value: "TR", label: "Traslado" },
+                ]} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Almacén</span>
-              <select
+              <Select
                 value={orderForm.warehouse_id}
-                onChange={(event) => setOrderForm((current) => ({ ...current, warehouse_id: event.target.value }))}
-                className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-              >
-                <option value="">Sin definir</option>
-                {(warehousesQuery.data ?? []).map((warehouse) => (
-                  <option key={warehouse.id} value={warehouse.id}>
-                    {warehouse.name}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setOrderForm((current) => ({ ...current, warehouse_id: value }))}
+                placeholder="Sin definir"
+                options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
             </label>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Notas</span>
             <Input value={orderForm.notes} onChange={(event) => setOrderForm((current) => ({ ...current, notes: event.target.value }))} />
           </label>
@@ -273,20 +266,20 @@ export function OrdersPage() {
         onClose={() => setIsItemOpen(false)}
       >
         <form className="space-y-4" onSubmit={submitItem}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Producto</span>
             <Input value={itemForm.product_name} onChange={(event) => setItemForm((current) => ({ ...current, product_name: event.target.value }))} />
           </label>
           <div className="grid gap-4 md:grid-cols-3">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Solicitado</span>
               <Input value={itemForm.quantity_requested} onChange={(event) => setItemForm((current) => ({ ...current, quantity_requested: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Planificado</span>
               <Input value={itemForm.quantity_planned} onChange={(event) => setItemForm((current) => ({ ...current, quantity_planned: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Origen</span>
               <Input value={itemForm.location} onChange={(event) => setItemForm((current) => ({ ...current, location: event.target.value }))} />
             </label>

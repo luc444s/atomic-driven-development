@@ -52,7 +52,7 @@ def get_product(db: Session, *, tenant_id: str, product_id: str) -> Product | No
 def require_product(db: Session, *, tenant_id: str, product_id: str) -> Product:
     product = get_product(db, tenant_id=tenant_id, product_id=product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     return product
 
 
@@ -409,7 +409,7 @@ def _validate_product_payload(
             db, ProductSubline, tenant_id=tenant_id, entity_id=payload.subline_id
         )
         if subline.line_id != payload.line_id:
-            raise ValueError("ProductSubline does not belong to ProductLine")
+            raise ValueError("La sublínea no pertenece a la línea de producto")
     if payload.brand_id is not None:
         _require_tenant_entity(db, ProductBrand, tenant_id=tenant_id, entity_id=payload.brand_id)
     if payload.insumo_type_id is not None:
@@ -432,7 +432,7 @@ def _validate_product_payload(
         select(Product).where(Product.tenant_id == tenant_id, Product.sku == payload.sku.strip())
     )
     if existing is not None and existing.id != exclude_product_id:
-        raise ValueError("Product SKU already exists")
+        raise ValueError("El SKU del producto ya existe")
 
 
 def _require_tenant_entity(db: Session, model: type[Any], *, tenant_id: str, entity_id: str):

@@ -7,6 +7,7 @@ import { useAuthStore } from "../../features/auth/store";
 import { Sidebar } from "./Sidebar";
 import { ShellHeader } from "./ShellHeader";
 import { Button } from "../ui/button";
+import { ThemeToggle } from "../ui/theme-toggle";
 
 export function AppLayout() {
   const token = useAuthStore((state) => state.token);
@@ -18,7 +19,7 @@ export function AppLayout() {
 
   if (token && bootstrap.isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-sm text-slate-400">
+      <div className="flex min-h-screen items-center justify-center text-sm text-muted-foreground">
         Cargando contexto del tenant...
       </div>
     );
@@ -31,7 +32,7 @@ export function AppLayout() {
       </div>
 
       <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-        <header className="flex items-center justify-between border-b border-slate-800 bg-slate-950/70 px-4 py-4 backdrop-blur lg:px-6">
+        <header className="flex items-center justify-between border-b border-border bg-surface/70 px-4 py-4 backdrop-blur lg:px-6">
           <ShellHeader
             tenantName={currentTenant?.name ?? null}
             branchName={currentBranch?.name ?? null}
@@ -41,12 +42,12 @@ export function AppLayout() {
 
           <div className="flex items-center gap-3">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium text-slate-200">{user?.full_name ?? "Cargando usuario..."}</p>
-              <p className="text-xs text-slate-500">{user?.email ?? "Sesion activa"}</p>
+              <p className="text-sm font-medium text-foreground">{user?.full_name ?? "Cargando usuario..."}</p>
+              <p className="text-xs text-muted-foreground">{user?.email ?? "Sesion activa"}</p>
             </div>
             <Button type="button" variant="secondary" onClick={logout}>
               <LogOut />
-              Logout
+              Cerrar sesión
             </Button>
           </div>
         </header>

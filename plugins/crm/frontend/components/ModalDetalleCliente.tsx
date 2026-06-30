@@ -47,17 +47,17 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                 <CardTitle>Direcciones y contactos</CardTitle>
                 <CardDescription>Resumen del maestro de cliente.</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-slate-300">
+              <CardContent className="space-y-4 text-sm text-foreground">
                 <div>
-                  <p className="font-medium text-slate-100">Direcciones</p>
+                  <p className="font-medium text-foreground">Direcciones</p>
                   <p>{detailQuery.data.addresses.length}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-slate-100">Contactos</p>
+                  <p className="font-medium text-foreground">Contactos</p>
                   <p>{detailQuery.data.contacts.length}</p>
                 </div>
                 <div>
-                  <p className="font-medium text-slate-100">Notas</p>
+                  <p className="font-medium text-foreground">Notas</p>
                   <p>{detailQuery.data.notes ?? "-"}</p>
                 </div>
               </CardContent>

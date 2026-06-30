@@ -513,7 +513,7 @@ def create_agenda_tasks_from_route(
             )
         )
         if delivery_point is None:
-            raise ValueError("Delivery point not found for route stop")
+            raise ValueError("Punto de entrega no encontrado para la parada de ruta")
         customer = None
         customer = get_customer(
             db,

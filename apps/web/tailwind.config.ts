@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 export default {
+  darkMode: "class",
   content: ["./index.html", "./src/**/*.{ts,tsx}", "../../plugins/*/frontend/**/*.{ts,tsx}"],
   theme: {
     extend: {
@@ -38,14 +39,22 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        panel: "rgb(15 23 42)",
-        panelAlt: "rgb(30 41 59)",
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar))",
+          foreground: "hsl(var(--sidebar-foreground))",
+          muted: "hsl(var(--sidebar-muted))",
+        },
+        surface: "hsl(var(--surface))",
+        "surface-alt": "hsl(var(--surface-alt))",
       },
       fontFamily: {
         sans: ['"Geist Variable"', "Inter", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       letterSpacing: {
         wide: "0.2em",
+      },
+      boxShadow: {
+        card: "var(--card-shadow)",
       },
       gridTemplateColumns: {
         shell: "280px 1fr",

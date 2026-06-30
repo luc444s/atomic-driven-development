@@ -24,9 +24,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 const controlClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 const COVERAGE_COLORS: Record<string, string> = {
   verde: "text-emerald-400",
@@ -35,7 +36,7 @@ const COVERAGE_COLORS: Record<string, string> = {
 };
 
 function CoverageBadge({ status }: { status: string }) {
-  return <Badge className={COVERAGE_COLORS[status] || "text-slate-400"}>{status}</Badge>;
+  return <Badge className={COVERAGE_COLORS[status] || "text-muted-foreground"}>{status}</Badge>;
 }
 
 export function PlanningPage() {
@@ -142,12 +143,9 @@ export function PlanningPage() {
       {error ? <Alert title="Operacion no completada">{error}</Alert> : null}
 
       <div className="flex flex-wrap gap-3">
-        <select className={controlClassName} value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
-          <option value="">Todos los almacenes</option>
-          {(warehousesQuery.data ?? []).map((wh) => (
-            <option key={wh.id} value={wh.id}>{wh.name}</option>
-          ))}
-        </select>
+        <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)}
+          placeholder="Todos los almacenes"
+          options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
       </div>
 
       <Card>
@@ -243,15 +241,16 @@ export function PlanningPage() {
         {selectedOrder ? (
           <div className="space-y-4">
             <div className="flex flex-wrap gap-3">
-              <label className="space-y-1 text-sm text-slate-300">
+              <label className="space-y-1 text-sm text-foreground">
                 <span>Modo</span>
-                <select className={controlClassName} value={planMode} onChange={(e) => setPlanMode(e.target.value)}>
-                  <option value="partial">Parcial</option>
-                  <option value="full">Completos</option>
-                  <option value="all">Todo</option>
-                </select>
+                <Select value={planMode} onChange={(value) => setPlanMode(value)}
+                  options={[
+                    { value: "partial", label: "Parcial" },
+                    { value: "full", label: "Completos" },
+                    { value: "all", label: "Todo" },
+                  ]} />
               </label>
-              <label className="flex items-center gap-2 pt-5 text-sm text-slate-300">
+              <label className="flex items-center gap-2 pt-5 text-sm text-foreground">
                 <input type="checkbox" checked={permitNoStock} onChange={(e) => setPermitNoStock(e.target.checked)} />
                 Permitir sin stock
               </label>
@@ -295,16 +294,13 @@ export function PlanningPage() {
         onClose={() => setIsPreloadOpen(false)}
       >
         <form className="space-y-4" onSubmit={handleGeneratePreload}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Almacen</span>
-            <select className={controlClassName} value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)} required>
-              <option value="">Selecciona almacen</option>
-              {(warehousesQuery.data ?? []).map((wh) => (
-                <option key={wh.id} value={wh.id}>{wh.name}</option>
-              ))}
-            </select>
+            <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)} required
+              placeholder="Selecciona almacen"
+              options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Fecha</span>
             <Input type="date" value={preloadDate} onChange={(e) => setPreloadDate(e.target.value)} required />
           </label>

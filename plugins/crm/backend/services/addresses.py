@@ -159,9 +159,9 @@ def set_fiscal_address(
     action_context: CrmActionContext,
 ) -> CrmCustomer:
     if address.customer_id != customer.id:
-        raise ValueError("Address does not belong to customer")
+        raise ValueError("La dirección no pertenece al cliente")
     if not address.is_active:
-        raise ValueError("Inactive address cannot be the fiscal address")
+        raise ValueError("Una dirección inactiva no puede ser la dirección fiscal")
     customer.fiscal_address_id = address.id
     db.add(customer)
     db.flush()
@@ -184,7 +184,7 @@ def delete_address(
     action_context: CrmActionContext,
 ) -> None:
     if customer.fiscal_address_id == address.id:
-        raise ValueError("Cannot delete the active fiscal address")
+        raise ValueError("No se puede eliminar la dirección fiscal activa")
     audit_crm_action(
         db,
         context=action_context,
@@ -262,10 +262,10 @@ def _validate_address_payload(
     payload: CustomerAddressCreateRequest | CustomerAddressUpdateRequest,
 ) -> None:
     if payload.geocode_source == "GOOGLE" and not payload.place_id:
-        raise ValueError("GOOGLE geocode source requires place_id")
+        raise ValueError("La fuente de geocodificación GOOGLE requiere place_id")
     if payload.geography_id:
         geography = get_geography(db, geography_id=payload.geography_id)
         if geography is None:
-            raise ValueError("Geography not found")
+            raise ValueError("Geografía no encontrada")
         if geography.country_code != payload.country_code:
-            raise ValueError("Geography country does not match address country")
+            raise ValueError("El país de la geografía no coincide con el país de la dirección")

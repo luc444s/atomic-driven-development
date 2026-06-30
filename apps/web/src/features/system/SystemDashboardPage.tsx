@@ -23,8 +23,8 @@ export function SystemDashboardPage() {
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Dashboard del sistema</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-2xl font-semibold text-foreground">Dashboard del sistema</h1>
+        <p className="text-sm text-muted-foreground">
           Shell base del core para revisar salud, readiness y estado general del backend.
         </p>
       </div>
@@ -38,28 +38,28 @@ export function SystemDashboardPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Health</CardTitle>
+            <CardTitle>Estado</CardTitle>
             <CardDescription>Estado basico de la API.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <MetricRow label="Status" value={healthQuery.data?.status ?? "cargando"} />
-            <MetricRow label="Service" value={healthQuery.data?.service ?? "-"} />
-            <MetricRow label="Version" value={healthQuery.data?.version ?? "-"} />
-            <MetricRow label="Environment" value={healthQuery.data?.env ?? "-"} />
+            <MetricRow label="Estado" value={healthQuery.data?.status ?? "cargando"} />
+            <MetricRow label="Servicio" value={healthQuery.data?.service ?? "-"} />
+            <MetricRow label="Versión" value={healthQuery.data?.version ?? "-"} />
+            <MetricRow label="Entorno" value={healthQuery.data?.env ?? "-"} />
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Ready</CardTitle>
+            <CardTitle>Listo</CardTitle>
             <CardDescription>Conectividad y runtime inicial del core.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <MetricRow label="Database" value={boolLabel(readyQuery.data?.database_connected)} />
+            <MetricRow label="Base de datos" value={boolLabel(readyQuery.data?.database_connected)} />
             <MetricRow label="Redis" value={boolLabel(readyQuery.data?.redis_configured)} />
-            <MetricRow label="Plugins loaded" value={String(readyQuery.data?.plugins_loaded ?? 0)} />
+            <MetricRow label="Plugins cargados" value={String(readyQuery.data?.plugins_loaded ?? 0)} />
             <MetricRow
-              label="Database configured"
+              label="BD configurada"
               value={boolLabel(readyQuery.data?.database_configured)}
             />
           </CardContent>
@@ -69,8 +69,8 @@ export function SystemDashboardPage() {
       {pluginRuntime.widgets.length > 0 ? (
         <div className="space-y-3">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-white">Widgets de plugins</h2>
-            <p className="text-sm text-slate-400">
+            <h2 className="text-lg font-semibold text-foreground">Widgets de plugins</h2>
+            <p className="text-sm text-muted-foreground">
               Componentes habilitados por el runtime persistente segun estado y permisos.
             </p>
           </div>
@@ -100,8 +100,8 @@ export function SystemDashboardPage() {
 
 function MetricRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-slate-800 bg-slate-900/70 px-3 py-2">
-      <span className="text-sm text-slate-400">{label}</span>
+    <div className="flex items-center justify-between rounded-md border border-border bg-muted/70 px-3 py-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
       <Badge>{value}</Badge>
     </div>
   );

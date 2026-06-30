@@ -138,10 +138,10 @@ export function BranchesPageContent({
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-white">Branches</h1>
-          <p className="text-sm text-slate-400">Administracion tenant-aware de sucursales disponibles.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Sucursales</h1>
+          <p className="text-sm text-muted-foreground">Administracion tenant-aware de sucursales disponibles.</p>
         </div>
-        {canManage ? <Button onClick={onCreate}>Create branch</Button> : null}
+        {canManage ? <Button onClick={onCreate}>Crear sucursal</Button> : null}
       </div>
 
       {hasError ? (
@@ -150,29 +150,29 @@ export function BranchesPageContent({
 
       <Card>
         <CardHeader>
-          <CardTitle>Branches</CardTitle>
+          <CardTitle>Sucursales</CardTitle>
           <CardDescription>Listado mínimo de branches activas o deshabilitadas.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={[
-              { key: "name", header: "Branch name", render: (branch) => branch.name },
-              { key: "code", header: "Code", render: (branch) => branch.code },
-              { key: "status", header: "Status", render: (branch) => <Badge>{branch.active ? "Active" : "Disabled"}</Badge> },
+              { key: "name", header: "Nombre", render: (branch) => branch.name },
+              { key: "code", header: "Código", render: (branch) => branch.code },
+              { key: "status", header: "Estado", render: (branch) => <Badge>{branch.active ? "Activo" : "Inactivo"}</Badge> },
               {
                 key: "actions",
-                header: "Actions",
+                header: "Acciones",
                 className: "w-56",
                 render: (branch) => (
                   <div className="flex flex-wrap gap-2">
                     {canManage ? (
                       <Button variant="secondary" onClick={() => onEdit(branch)}>
-                        Edit
+                        Editar
                       </Button>
                     ) : null}
                     {canManage ? (
                       <Button variant="secondary" onClick={() => onToggleBranch(branch)}>
-                        {branch.active ? "Disable" : "Enable"}
+                        {branch.active ? "Desactivar" : "Activar"}
                       </Button>
                     ) : null}
                   </div>
@@ -188,21 +188,21 @@ export function BranchesPageContent({
 
       <Dialog
         open={isDialogOpen}
-        title={formState.id ? "Edit branch" : "Create branch"}
+        title={formState.id ? "Editar sucursal" : "Crear sucursal"}
         description="Formulario mínimo del core management."
         onClose={onCloseDialog}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Name</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Nombre</span>
             <Input
               value={formState.name}
               onChange={(event) => onFieldChange({ name: event.target.value })}
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Code</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Código</span>
             <Input
               value={formState.code}
               onChange={(event) => onFieldChange({ code: event.target.value.toUpperCase() })}
@@ -213,10 +213,10 @@ export function BranchesPageContent({
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onCloseDialog}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {formState.id ? "Save changes" : "Create branch"}
+              {formState.id ? "Guardar cambios" : "Crear sucursal"}
             </Button>
           </div>
         </form>

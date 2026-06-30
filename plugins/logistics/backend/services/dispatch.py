@@ -33,7 +33,7 @@ def assign_dispatch_guide(
     action_context: LogisticsActionContext,
 ) -> LogisticsMovement:
     if movement.warehouse_id is None:
-        raise ValueError("Movement must have warehouse to assign guide")
+        raise ValueError("El movimiento debe tener almacén para asignar guía")
     year_prefix = movement.created_at.year
     numbers = []
     for row in db.scalars(
@@ -74,9 +74,9 @@ def close_dispatch(
     action_context: LogisticsActionContext,
 ) -> LogisticsMovement:
     if movement.warehouse_id is None:
-        raise ValueError("Movement must define warehouse")
+        raise ValueError("El movimiento debe definir el almacén")
     if movement.status == "CANCELADO":
-        raise ValueError("Cancelled movement cannot be dispatched")
+        raise ValueError("Un movimiento cancelado no puede despacharse")
     if movement.dispatched_at is not None:
         return movement
     items = list(

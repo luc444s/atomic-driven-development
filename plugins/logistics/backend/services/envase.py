@@ -233,7 +233,7 @@ def print_label(
 ) -> LogisticsCylinderLabelHistory:
     origin = payload.origin.strip().upper()
     if origin == "REIMPRESION" and not payload.reason:
-        raise ValueError("Reprint requires a reason")
+        raise ValueError("La reimpresión requiere un motivo")
     label_history = LogisticsCylinderLabelHistory(
         cylinder_id=cylinder.id,
         origin=origin,

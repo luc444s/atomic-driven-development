@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-
 import { cn } from "./cn";
 
 type DialogProps = {
@@ -21,37 +20,32 @@ export function Dialog({
   onClose,
   maxWidthClassName = "max-w-2xl",
 }: DialogProps) {
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4" onClick={onClose}>
       <div
-        className={cn(
-          "w-full rounded-xl border border-slate-800 bg-slate-950 shadow-xl",
-          maxWidthClassName
-        )}
+        className={cn("w-full rounded-xl border border-border bg-card shadow-xl", maxWidthClassName)}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-slate-800 p-5">
+        <div className="flex items-start justify-between gap-4 border-b border-border p-5">
           <div className="space-y-1">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            {description ? <p className="text-sm text-slate-400">{description}</p> : null}
+            <h2 className="text-lg font-semibold text-card-foreground">{title}</h2>
+            {description ? <p className="text-sm text-muted-foreground">{description}</p> : null}
           </div>
           <button
             type="button"
             onClick={onClose}
             className={cn(
-              "rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-300",
-              "hover:bg-slate-900 hover:text-white"
+              "rounded-md border border-border px-3 py-1.5 text-sm text-muted-foreground",
+              "hover:bg-accent hover:text-accent-foreground transition"
             )}
           >
             Cerrar
           </button>
         </div>
         <div className="p-5">{children}</div>
-        {actions ? <div className="border-t border-slate-800 p-5">{actions}</div> : null}
+        {actions ? <div className="border-t border-border p-5">{actions}</div> : null}
       </div>
     </div>
   );

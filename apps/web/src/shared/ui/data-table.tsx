@@ -1,5 +1,4 @@
 import { ReactNode } from "react";
-
 import { cn } from "./cn";
 
 export type DataTableColumn<Row> = {
@@ -18,10 +17,10 @@ type DataTableProps<Row> = {
 
 export function DataTable<Row>({ columns, rows, rowKey, emptyMessage }: DataTableProps<Row>) {
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950/70">
+    <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-800 text-sm text-slate-200">
-          <thead className="bg-slate-900/80 text-left text-xs uppercase tracking-wide text-slate-400">
+        <table className="min-w-full divide-y divide-border text-sm text-card-foreground">
+          <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {columns.map((column) => (
                 <th key={column.key} className={cn("px-4 py-3 font-semibold", column.className)}>
@@ -30,7 +29,7 @@ export function DataTable<Row>({ columns, rows, rowKey, emptyMessage }: DataTabl
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-800">
+          <tbody className="divide-y divide-border">
             {rows.length > 0 ? (
               rows.map((row) => (
                 <tr key={rowKey(row)} className="align-top">
@@ -43,7 +42,7 @@ export function DataTable<Row>({ columns, rows, rowKey, emptyMessage }: DataTabl
               ))
             ) : (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-8 text-center text-slate-500">
+                <td colSpan={columns.length} className="px-4 py-8 text-center text-muted-foreground">
                   {emptyMessage}
                 </td>
               </tr>

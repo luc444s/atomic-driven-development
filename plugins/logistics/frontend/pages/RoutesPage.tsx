@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type RouteFormState = { route_date: string; vehicle_id: string; notes: string };
 type StopFormState = { delivery_point_id: string; stop_order: string };
@@ -188,13 +189,13 @@ export function RoutesPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {routeQuery.data ? (
-              <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-4 text-sm text-slate-300">
-                <p className="font-medium text-white">{routeQuery.data.route_date}</p>
-                <p className="mt-1 text-slate-400">Estado: {routeQuery.data.status}</p>
-                <p className="text-slate-500">{routeQuery.data.notes ?? "Sin notas"}</p>
+              <div className="rounded-lg border border-border bg-surface-alt/60 p-4 text-sm text-foreground">
+                <p className="font-medium text-foreground">{routeQuery.data.route_date}</p>
+                <p className="mt-1 text-muted-foreground">Estado: {routeQuery.data.status}</p>
+                <p className="text-muted-foreground">{routeQuery.data.notes ?? "Sin notas"}</p>
               </div>
             ) : (
-              <p className="text-sm text-slate-400">Selecciona una ruta.</p>
+              <p className="text-sm text-muted-foreground">Selecciona una ruta.</p>
             )}
 
             <DataTable
@@ -233,26 +234,19 @@ export function RoutesPage() {
         onClose={() => setIsRouteOpen(false)}
       >
         <form className="space-y-4" onSubmit={submitRoute}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Fecha</span>
             <Input type="date" value={routeForm.route_date} onChange={(event) => setRouteForm((current) => ({ ...current, route_date: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Vehículo</span>
-            <select
+            <Select
               value={routeForm.vehicle_id}
-              onChange={(event) => setRouteForm((current) => ({ ...current, vehicle_id: event.target.value }))}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              <option value="">Sin asignar</option>
-              {(vehiclesQuery.data ?? []).map((vehicle) => (
-                <option key={vehicle.id} value={vehicle.id}>
-                  {vehicle.plate}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setRouteForm((current) => ({ ...current, vehicle_id: value }))}
+              placeholder="Sin asignar"
+              options={(vehiclesQuery.data ?? []).map((vehicle) => ({ value: vehicle.id, label: vehicle.plate }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Notas</span>
             <Input value={routeForm.notes} onChange={(event) => setRouteForm((current) => ({ ...current, notes: event.target.value }))} />
           </label>
@@ -274,22 +268,15 @@ export function RoutesPage() {
         onClose={() => setIsStopOpen(false)}
       >
         <form className="space-y-4" onSubmit={submitStop}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Punto</span>
-            <select
+            <Select
               value={stopForm.delivery_point_id}
-              onChange={(event) => setStopForm((current) => ({ ...current, delivery_point_id: event.target.value }))}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              <option value="">Selecciona</option>
-              {(deliveryPointsQuery.data ?? []).map((point) => (
-                <option key={point.id} value={point.id}>
-                  {point.customer_name} - {point.address}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setStopForm((current) => ({ ...current, delivery_point_id: value }))}
+              placeholder="Selecciona"
+              options={(deliveryPointsQuery.data ?? []).map((point) => ({ value: point.id, label: `${point.customer_name} - ${point.address}` }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Orden</span>
             <Input value={stopForm.stop_order} onChange={(event) => setStopForm((current) => ({ ...current, stop_order: event.target.value }))} />
           </label>

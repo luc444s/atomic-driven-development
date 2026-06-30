@@ -35,7 +35,7 @@ export function buildShellSidebarSections({
 }: BuildShellSidebarSectionsInput): ShellNavSection[] {
   const sections: ShellNavSection[] = [
     {
-      title: "Core",
+      title: "Sistema",
       items: [{ kind: "link", label: "Dashboard", to: "/app/system" }],
     },
   ];
@@ -49,7 +49,7 @@ export function buildShellSidebarSections({
 
   const settingsItems: Array<ShellNavLinkItem | ShellNavActionItem> = [];
   if (permissions.includes("core.users.read")) {
-    settingsItems.push({ kind: "link", label: "Users", to: "/app/settings/users" });
+    settingsItems.push({ kind: "link", label: "Usuarios", to: "/app/settings/users" });
   }
   if (permissions.includes("core.roles.read") || permissions.includes("core.roles.manage")) {
     settingsItems.push({ kind: "link", label: "Roles", to: "/app/settings/roles" });
@@ -58,10 +58,10 @@ export function buildShellSidebarSections({
     permissions.includes("core.branches.read") ||
     permissions.includes("core.branches.manage")
   ) {
-    settingsItems.push({ kind: "link", label: "Branches", to: "/app/settings/branches" });
+    settingsItems.push({ kind: "link", label: "Sucursales", to: "/app/settings/branches" });
   }
   if (settingsItems.length > 0) {
-    sections.push({ title: "Settings", items: settingsItems });
+    sections.push({ title: "Ajustes", items: settingsItems });
   }
 
   if (pluginNavigation.length > 0) {
@@ -121,8 +121,8 @@ export function buildShellSidebarSections({
   }
 
   sections.push({
-    title: "Session",
-    items: [{ kind: "action", label: "Logout", action: "logout" }],
+    title: "Sesión",
+    items: [{ kind: "action", label: "Cerrar sesión", action: "logout" }],
   });
 
   return sections;

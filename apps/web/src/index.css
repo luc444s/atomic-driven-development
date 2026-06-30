@@ -5,32 +5,68 @@
 
 @layer base {
   :root {
-    --background: 222 47% 11%;
-    --foreground: 210 40% 90%;
-    --card: 222 47% 11%;
-    --card-foreground: 210 40% 90%;
-    --popover: 222 47% 11%;
-    --popover-foreground: 210 40% 90%;
+    color-scheme: light;
+    --background: 210 40% 95%;
+    --foreground: 222 47% 11%;
+    --card: 0 0% 99%;
+    --card-foreground: 222 47% 11%;
+    --popover: 0 0% 99%;
+    --popover-foreground: 222 47% 11%;
+    --primary: 187 85% 43%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222 47% 11%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215 20% 45%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 60% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 214 32% 50%;
+    --input: 214 32% 50%;
+    --ring: 187 85% 43%;
+    --sidebar: 210 40% 99%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-muted: 215 20% 65%;
+    --surface: 0 0% 99%;
+    --surface-alt: 210 40% 96%;
+    --card-shadow: 0 4px 12px -2px rgb(0 0 0 / 0.08), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 222 84% 5%;
+    --foreground: 214 32% 91%;
+    --card: 222 84% 5%;
+    --card-foreground: 210 40% 96%;
+    --popover: 222 84% 5%;
+    --popover-foreground: 210 40% 96%;
     --primary: 187 85% 53%;
     --primary-foreground: 222 47% 11%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 90%;
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-    --accent: 217 33% 17%;
-    --accent-foreground: 210 40% 90%;
+    --secondary: 222 47% 11%;
+    --secondary-foreground: 210 40% 96%;
+    --muted: 222 47% 11%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 222 47% 11%;
+    --accent-foreground: 210 40% 96%;
     --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 90%;
-    --border: 215 25% 27%;
+    --destructive-foreground: 210 40% 96%;
+    --border: 217 33% 17%;
     --input: 215 25% 27%;
     --ring: 187 85% 53%;
-    --radius: 0.5rem;
+    --sidebar: 222 84% 5%;
+    --sidebar-foreground: 214 32% 91%;
+    --sidebar-muted: 215 16% 47%;
+    --surface: 222 84% 5%;
+    --surface-alt: 222 47% 11%;
+    --card-shadow: 0 0 0 0 transparent;
   }
 
   body {
     @apply m-0 min-w-[320px] min-h-screen font-sans;
     color: hsl(var(--foreground));
-    background: radial-gradient(circle at top, rgb(15 23 42), rgb(2 6 23) 55%);
+    background: hsl(var(--background));
   }
 
   #root {
@@ -40,4 +76,6 @@
   * {
     @apply box-border;
   }
+
+
 }

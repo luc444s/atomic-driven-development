@@ -111,7 +111,7 @@ describe("core management frontend", () => {
       />
     );
 
-    expect(markup).toContain("Users");
+    expect(markup).toContain("Usuarios");
     expect(markup).toContain("Admin Core");
     expect(markup).toContain("admin@example.com");
   });
@@ -159,7 +159,7 @@ describe("core management frontend", () => {
       />
     );
 
-    expect(markup).toContain("Branches");
+    expect(markup).toContain("Sucursales");
     expect(markup).toContain("Main");
   });
 
@@ -185,8 +185,8 @@ describe("core management frontend", () => {
 
     expect(markup).toContain("Plugins");
     expect(markup).toContain("Logistics");
-    expect(markup).toContain("Read only");
-    expect(markup).not.toContain(">Install<");
+    expect(markup).toContain("Solo lectura");
+    expect(markup).not.toContain(">Instalar<");
   });
 
   it("hides users, roles and branches menu items without read permissions", () => {
@@ -196,9 +196,9 @@ describe("core management frontend", () => {
     });
     const labels = sections.flatMap((section) => section.items.map((item) => item.label));
 
-    expect(labels).not.toContain("Users");
+    expect(labels).not.toContain("Usuarios");
     expect(labels).not.toContain("Roles");
-    expect(labels).not.toContain("Branches");
+    expect(labels).not.toContain("Sucursales");
     expect(labels).toContain("Plugins");
   });
 

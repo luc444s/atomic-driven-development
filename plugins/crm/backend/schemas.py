@@ -80,7 +80,7 @@ class CustomerContactCreateRequest(BaseModel):
     def normalize_contact_type(cls, value: str) -> str:
         normalized = value.strip().upper()
         if normalized not in {"PHONE", "EMAIL", "OTHER"}:
-            raise ValueError("contact_type must be PHONE, EMAIL or OTHER")
+            raise ValueError("contact_type debe ser PHONE, EMAIL o OTHER")
         return normalized
 
 
@@ -151,7 +151,7 @@ class CustomerAddressCreateRequest(BaseModel):
     def normalize_address_type(cls, value: str) -> str:
         normalized = value.strip().upper()
         if normalized not in {"FISCAL", "DELIVERY", "BILLING", "OTHER"}:
-            raise ValueError("address_type must be FISCAL, DELIVERY, BILLING or OTHER")
+            raise ValueError("address_type debe ser FISCAL, DELIVERY, BILLING o OTHER")
         return normalized
 
     @field_validator("country_code")
@@ -199,7 +199,7 @@ class CustomerAddressUpdateRequest(BaseModel):
             return None
         normalized = value.strip().upper()
         if normalized not in {"FISCAL", "DELIVERY", "BILLING", "OTHER"}:
-            raise ValueError("address_type must be FISCAL, DELIVERY, BILLING or OTHER")
+            raise ValueError("address_type debe ser FISCAL, DELIVERY, BILLING o OTHER")
         return normalized
 
     @field_validator("country_code")

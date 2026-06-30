@@ -21,9 +21,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 const controlClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 export function ReceptionPage() {
   const queryClient = useQueryClient();
@@ -136,12 +137,9 @@ export function ReceptionPage() {
       {error ? <Alert title="Operacion no completada">{error}</Alert> : null}
 
       <div className="flex flex-wrap gap-3">
-        <select className={controlClassName} value={warehouseFilter} onChange={(e) => setWarehouseFilter(e.target.value)}>
-          <option value="">Todos los almacenes</option>
-          {(warehousesQuery.data ?? []).map((wh) => (
-            <option key={wh.id} value={wh.id}>{wh.name}</option>
-          ))}
-        </select>
+        <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)}
+          placeholder="Todos los almacenes"
+          options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
       </div>
 
       <Card>
@@ -214,7 +212,7 @@ export function ReceptionPage() {
                   <div className="space-y-3">
                     {itemsQuery.data.map((item) => (
                       <div key={item.id} className="grid grid-cols-2 gap-3 items-end">
-                        <span className="text-sm text-slate-300">{item.product_name || item.cylinder_id || "-"}</span>
+                        <span className="text-sm text-foreground">{item.product_name || item.cylinder_id || "-"}</span>
                         <Input
                           type="number"
                           value={receiveQtys[item.id] ?? String(item.quantity ?? item.quantity_in ?? 1)}
@@ -226,9 +224,9 @@ export function ReceptionPage() {
                 );
               })()
             ) : (
-              <p className="text-sm text-slate-400">Este movimiento no tiene items.</p>
+              <p className="text-sm text-muted-foreground">Este movimiento no tiene items.</p>
             )}
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Notas</span>
               <Input value={receiveNotes} onChange={(e) => setReceiveNotes(e.target.value)} />
             </label>
@@ -247,20 +245,17 @@ export function ReceptionPage() {
         onClose={() => setIsIncidentOpen(false)}
       >
         <form className="space-y-4" onSubmit={handleIncident}>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Motivo</span>
-            <select className={controlClassName} value={incidentReason} onChange={(e) => setIncidentReason(e.target.value)} required>
-              <option value="">Selecciona motivo</option>
-              {(incidentReasonsQuery.data ?? []).map((r) => (
-                <option key={r.code} value={r.code}>{r.description}</option>
-              ))}
-            </select>
+            <Select value={incidentReason} onChange={(value) => setIncidentReason(value)} required
+              placeholder="Selecciona motivo"
+              options={(incidentReasonsQuery.data ?? []).map((r) => ({ value: r.code, label: r.description }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Cilindro (opcional)</span>
             <Input value={incidentCylinderId} onChange={(e) => setIncidentCylinderId(e.target.value)} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Descripcion</span>
             <Input value={incidentDesc} onChange={(e) => setIncidentDesc(e.target.value)} />
           </label>

@@ -52,7 +52,7 @@ export function CustomerSearchDialog({ open, onOpenChange, onSelect, title = "Se
               <button
                 key={customer.id}
                 type="button"
-                className="rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-left text-sm text-slate-200 hover:border-cyan-500"
+                className="rounded-md border border-border bg-surface px-3 py-2 text-left text-sm text-foreground hover:border-ring"
                 onClick={() => {
                   onSelect(customer);
                   onOpenChange(false);

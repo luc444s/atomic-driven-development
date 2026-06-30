@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../apps/web/src/shared/ui/select";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
@@ -46,7 +47,7 @@ import {
 } from "./api";
 
 const controlClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition placeholder:text-slate-500 focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition placeholder:text-muted-foreground focus:border-ring";
 
 type CylinderFormState = {
   serial: string;
@@ -838,7 +839,7 @@ export function LogisticsPage() {
             <Card key={state} className="min-w-40">
               <CardContent className="space-y-2 p-4">
                 <CylinderStateBadge state={state} />
-                <p className="text-2xl font-semibold text-white">{summaryByState.get(state) ?? 0}</p>
+                <p className="text-2xl font-semibold text-foreground">{summaryByState.get(state) ?? 0}</p>
               </CardContent>
             </Card>
           ))}
@@ -852,14 +853,9 @@ export function LogisticsPage() {
         </CardHeader>
         <CardContent className="grid gap-3 md:grid-cols-3">
           <Input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Serie o barcode" />
-          <select className={controlClassName} value={stateFilter} onChange={(event) => setStateFilter(event.target.value)}>
-            <option value="">Todos los estados</option>
-            {(statesQuery.data ?? []).map((state) => (
-              <option key={state.code} value={state.code}>
-                {getCylinderStateLabel(state.code)}
-              </option>
-            ))}
-          </select>
+          <Select value={stateFilter} onChange={(value) => setStateFilter(value)}
+            placeholder="Todos los estados"
+            options={(statesQuery.data ?? []).map((state) => ({ value: state.code, label: getCylinderStateLabel(state.code) }))} />
           <Button variant="secondary" onClick={() => { setSearch(""); setStateFilter(""); }}>
             Limpiar filtros
           </Button>
@@ -880,8 +876,8 @@ export function LogisticsPage() {
                 >
                   {row.serial}
                 </button>
-                <p className="text-xs text-slate-500">{row.description || "Sin descripción"}</p>
-                <p className="text-xs text-slate-500">{row.barcode2 || row.barcode1 || "Sin barcode"}</p>
+                <p className="text-xs text-muted-foreground">{row.description || "Sin descripción"}</p>
+                <p className="text-xs text-muted-foreground">{row.barcode2 || row.barcode1 || "Sin barcode"}</p>
               </div>
             ),
           },
@@ -889,9 +885,9 @@ export function LogisticsPage() {
             key: "gas",
             header: "Gas / marca",
             render: (row) => (
-              <div className="space-y-1 text-sm text-slate-300">
+              <div className="space-y-1 text-sm text-foreground">
                 <p>{gasById.get(row.gas_group_id ?? "") || "Sin gas"}</p>
-                <p className="text-xs text-slate-500">{brandById.get(row.brand_id ?? "") || "Sin marca"}</p>
+                <p className="text-xs text-muted-foreground">{brandById.get(row.brand_id ?? "") || "Sin marca"}</p>
               </div>
             ),
           },
@@ -904,7 +900,7 @@ export function LogisticsPage() {
             key: "ph",
             header: "PH / ADR",
             render: (row) => (
-              <div className="space-y-1 text-xs text-slate-400">
+              <div className="space-y-1 text-xs text-muted-foreground">
                 <p>PH: {formatDate(row.next_hydrotest_date)}</p>
                 <p>ADR: {row.adr_un_number || "-"}</p>
               </div>
@@ -913,7 +909,7 @@ export function LogisticsPage() {
           {
             key: "location",
             header: "Ubicación",
-            render: (row) => <span className="text-sm text-slate-300">{row.location || "-"}</span>,
+            render: (row) => <span className="text-sm text-foreground">{row.location || "-"}</span>,
           },
           {
             key: "actions",
@@ -1026,14 +1022,9 @@ export function LogisticsPage() {
                   <CardDescription>Aplica la siguiente transición válida del state machine.</CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 md:grid-cols-[1fr_auto]">
-                  <select className={controlClassName} value={nextState} onChange={(event) => setNextState(event.target.value)}>
-                    <option value="">Selecciona estado destino</option>
-                    {(transitionsQuery.data ?? []).map((item) => (
-                      <option key={item.id} value={item.to_state}>
-                        {getCylinderStateLabel(item.to_state)}
-                      </option>
-                    ))}
-                  </select>
+                  <Select value={nextState} onChange={(value) => setNextState(value)}
+                    placeholder="Selecciona estado destino"
+                    options={(transitionsQuery.data ?? []).map((item) => ({ value: item.to_state, label: getCylinderStateLabel(item.to_state) }))} />
                   <Button onClick={handleTransition} disabled={!nextState || transitionMutation.isPending}>
                     Aplicar transición
                   </Button>
@@ -1067,7 +1058,7 @@ export function LogisticsPage() {
                       key: "change",
                       header: "Cambio",
                       render: (row) => (
-                        <span className="text-sm text-slate-300">
+                        <span className="text-sm text-foreground">
                           {row.from_state ? getCylinderStateLabel(row.from_state) : "Inicio"} → {getCylinderStateLabel(row.to_state)}
                         </span>
                       ),
@@ -1338,12 +1329,9 @@ export function LogisticsPage() {
         <form className="space-y-4" onSubmit={handleService}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Tipo servicio">
-              <select className={controlClassName} value={serviceForm.service_type_id} onChange={(event) => setServiceForm((current) => ({ ...current, service_type_id: event.target.value }))}>
-                <option value="">Selecciona</option>
-                {(serviceTypesQuery.data ?? []).map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
+              <Select value={serviceForm.service_type_id} onChange={(value) => setServiceForm((current) => ({ ...current, service_type_id: value }))}
+                placeholder="Selecciona"
+                options={(serviceTypesQuery.data ?? []).map((item) => ({ value: item.id, label: item.name }))} />
             </Field>
             <Field label="Estado"><Input value={serviceForm.status} onChange={(event) => setServiceForm((current) => ({ ...current, status: event.target.value }))} /></Field>
             <Field label="Inicio"><Input type="datetime-local" value={serviceForm.start_date} onChange={(event) => setServiceForm((current) => ({ ...current, start_date: event.target.value }))} /></Field>
@@ -1369,11 +1357,12 @@ export function LogisticsPage() {
         <form className="space-y-4" onSubmit={handlePrintLabel}>
           <div className="grid gap-3 md:grid-cols-3">
             <Field label="Origen">
-              <select className={controlClassName} value={printLabelForm.origin} onChange={(event) => setPrintLabelForm((current) => ({ ...current, origin: event.target.value }))}>
-                <option value="ALTA">ALTA</option>
-                <option value="REIMPRESION">REIMPRESION</option>
-                <option value="PLUS">PLUS</option>
-              </select>
+              <Select value={printLabelForm.origin} onChange={(value) => setPrintLabelForm((current) => ({ ...current, origin: value }))}
+                options={[
+                  { value: "ALTA", label: "ALTA" },
+                  { value: "REIMPRESION", label: "REIMPRESION" },
+                  { value: "PLUS", label: "PLUS" },
+                ]} />
             </Field>
             <Field label="Impresora"><Input value={printLabelForm.printer_name} onChange={(event) => setPrintLabelForm((current) => ({ ...current, printer_name: event.target.value }))} /></Field>
             <Field label="Copias"><Input type="number" value={printLabelForm.copies} onChange={(event) => setPrintLabelForm((current) => ({ ...current, copies: event.target.value }))} /></Field>
@@ -1392,19 +1381,16 @@ export function LogisticsPage() {
             <Field label="Movimiento"><Input value={scanForm.movement_id} onChange={(event) => setScanForm((current) => ({ ...current, movement_id: event.target.value }))} /></Field>
             <Field label="Barcode / serie"><Input value={scanForm.barcode_serial} onChange={(event) => setScanForm((current) => ({ ...current, barcode_serial: event.target.value }))} /></Field>
             <Field label="Servicio">
-              <select className={controlClassName} value={scanForm.service_type} onChange={(event) => setScanForm((current) => ({ ...current, service_type: event.target.value }))}>
-                {[
-                  "VENTA",
-                  "CANJE_ENTREGA",
-                  "CANJE_RECOJO",
-                  "ALQUILER",
-                  "DEVOLUCION",
-                  "RECHAZO",
-                  "SPOT",
-                ].map((item) => (
-                  <option key={item} value={item}>{item}</option>
-                ))}
-              </select>
+              <Select value={scanForm.service_type} onChange={(value) => setScanForm((current) => ({ ...current, service_type: value }))}
+                options={[
+                  { value: "VENTA", label: "VENTA" },
+                  { value: "CANJE_ENTREGA", label: "CANJE_ENTREGA" },
+                  { value: "CANJE_RECOJO", label: "CANJE_RECOJO" },
+                  { value: "ALQUILER", label: "ALQUILER" },
+                  { value: "DEVOLUCION", label: "DEVOLUCION" },
+                  { value: "RECHAZO", label: "RECHAZO" },
+                  { value: "SPOT", label: "SPOT" },
+                ]} />
             </Field>
             <Field label="GPS lat"><Input type="number" value={scanForm.gps_lat} onChange={(event) => setScanForm((current) => ({ ...current, gps_lat: event.target.value }))} /></Field>
             <Field label="GPS lng"><Input type="number" value={scanForm.gps_lng} onChange={(event) => setScanForm((current) => ({ ...current, gps_lng: event.target.value }))} /></Field>
@@ -1449,16 +1435,14 @@ function CylinderFormFields({ form, gasProducts, brands, conditions, includeActi
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Barcode producto"><Input value={form.barcode1} onChange={(event) => updateField("barcode1", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Matrícula etiqueta"><Input value={form.barcode2} onChange={(event) => updateField("barcode2", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Gas">
-        <select className={controlClassName} value={form.gas_group_id} onChange={(event) => updateField("gas_group_id", event.target.value)}>
-          <option value="">Sin asignar</option>
-          {gasProducts.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
+        <Select value={form.gas_group_id} onChange={(value) => updateField("gas_group_id", value)}
+          placeholder="Sin asignar"
+          options={gasProducts.map((item) => ({ value: item.id, label: item.name }))} />
       </Field>
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Marca">
-        <select className={controlClassName} value={form.brand_id} onChange={(event) => updateField("brand_id", event.target.value)}>
-          <option value="">Sin asignar</option>
-          {brands.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
-        </select>
+        <Select value={form.brand_id} onChange={(value) => updateField("brand_id", value)}
+          placeholder="Sin asignar"
+          options={brands.map((item) => ({ value: item.id, label: item.name }))} />
       </Field>
       </div>
       </FormRow>
@@ -1466,10 +1450,9 @@ function CylinderFormFields({ form, gasProducts, brands, conditions, includeActi
       <FormRow title="Datos Comerciales y Uso">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
         <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Condición">
-        <select className={controlClassName} value={form.condition} onChange={(event) => updateField("condition", event.target.value)}>
-          <option value="">Sin asignar</option>
-          {conditions.map((item) => <option key={item.code} value={item.code}>{item.name}</option>)}
-        </select>
+        <Select value={form.condition} onChange={(value) => updateField("condition", value)}
+          placeholder="Sin asignar"
+          options={conditions.map((item) => ({ value: item.code, label: item.name }))} />
       </Field>
         <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Contenido kg"><Input type="number" value={form.content_kg} onChange={(event) => updateField("content_kg", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Volumen m3"><Input type="number" value={form.volume_m3} onChange={(event) => updateField("volume_m3", event.target.value)} /></Field>
@@ -1477,7 +1460,7 @@ function CylinderFormFields({ form, gasProducts, brands, conditions, includeActi
         <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Costo"><Input type="number" value={form.cost} onChange={(event) => updateField("cost", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Precio"><Input type="number" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-6 xl:col-span-5" label="Es servicio">
-        <label className="flex items-center gap-2 text-sm text-slate-200">
+        <label className="flex items-center gap-2 text-sm text-foreground">
           <input type="checkbox" checked={form.is_service} onChange={(event) => updateField("is_service", event.target.checked)} />
           Producto de servicio
         </label>
@@ -1519,7 +1502,7 @@ function CylinderFormFields({ form, gasProducts, brands, conditions, includeActi
       </FormRow>
       {includeActivation ? (
         <Field label="Activo">
-          <label className="flex items-center gap-2 text-sm text-slate-200">
+          <label className="flex items-center gap-2 text-sm text-foreground">
             <input type="checkbox" checked={form.is_active} onChange={(event) => updateField("is_active", event.target.checked)} />
             Envase activo
           </label>
@@ -1532,7 +1515,7 @@ function CylinderFormFields({ form, gasProducts, brands, conditions, includeActi
 function FormRow({ title, children }: { title: string; children: any }) {
   return (
     <div className="space-y-3">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-500">{title}</p>
+      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
       {children}
     </div>
   );
@@ -1546,8 +1529,8 @@ type FieldProps = {
 
 function Field({ label, children, className }: FieldProps) {
   return (
-    <label className={["space-y-1 text-sm text-slate-300", className ?? ""].join(" ")}>
-      <span className="block text-xs uppercase tracking-[0.12em] text-slate-500">{label}</span>
+    <label className={["space-y-1 text-sm text-foreground", className ?? ""].join(" ")}>
+      <span className="block text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
       {children}
     </label>
   );
@@ -1556,8 +1539,8 @@ function Field({ label, children, className }: FieldProps) {
 function InfoBlock({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="space-y-1">
-      <p className="text-xs uppercase tracking-[0.12em] text-slate-500">{label}</p>
-      <p className="text-sm text-slate-200">{value || "-"}</p>
+      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
+      <p className="text-sm text-foreground">{value || "-"}</p>
     </div>
   );
 }

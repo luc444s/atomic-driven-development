@@ -25,7 +25,7 @@ def get_customer(db: Session, *, tenant_id: str, customer_id: str) -> CrmCustome
 def require_customer(db: Session, *, tenant_id: str, customer_id: str) -> CrmCustomer:
     customer = get_customer(db, tenant_id=tenant_id, customer_id=customer_id)
     if customer is None:
-        raise ValueError("Customer not found")
+        raise ValueError("Cliente no encontrado")
     return customer
 
 
@@ -318,7 +318,7 @@ def _validate_customer_payload(
     )
     existing = db.scalar(stmt)
     if existing is not None and existing.id != exclude_customer_id:
-        raise ValueError("Customer document already exists")
+        raise ValueError("El documento del cliente ya existe")
     if payload.external_code:
         existing_external = db.scalar(
             select(CrmCustomer).where(
@@ -327,7 +327,7 @@ def _validate_customer_payload(
             )
         )
         if existing_external is not None and existing_external.id != exclude_customer_id:
-            raise ValueError("Customer external code already exists")
+            raise ValueError("El código externo del cliente ya existe")
     payload.document_number = validation.formatted or payload.document_number
 
 
@@ -359,7 +359,7 @@ def _ensure_customer_can_be_disabled(db: Session, *, customer_id: str) -> None:
             {"customer_id": customer_id},
         ).first()
         if pending_order is not None:
-            raise ValueError("Customer has open orders and cannot be disabled")
+            raise ValueError("El cliente tiene pedidos abiertos y no puede desactivarse")
 
     if "lg_movements" in tables:
         pending_movement = db.execute(
@@ -371,4 +371,4 @@ def _ensure_customer_can_be_disabled(db: Session, *, customer_id: str) -> None:
             {"customer_id": customer_id},
         ).first()
         if pending_movement is not None:
-            raise ValueError("Customer has open movements and cannot be disabled")
+            raise ValueError("El cliente tiene movimientos abiertos y no puede desactivarse")

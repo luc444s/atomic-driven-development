@@ -10,7 +10,7 @@ import { adjustStock, listWarehousesCatalog, stockKeys } from "../api";
 import type { LogisticsWarehouseOption, StockBalanceItem } from "../types";
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 type ModalAjusteStockProps = {
   open: boolean;
@@ -104,10 +104,10 @@ export function ModalAjusteStock({
         <Alert title="No se pudo cargar almacenes">{warehousesQuery.error.message}</Alert>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Producto</span>
           <div className="space-y-2">
-            <div className="rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+            <div className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
               {selectedProduct ? `${selectedProduct.sku} · ${selectedProduct.name}` : "Sin seleccionar"}
             </div>
             <Button type="button" variant="secondary" onClick={() => setShowSearch(true)}>
@@ -115,7 +115,7 @@ export function ModalAjusteStock({
             </Button>
           </div>
         </label>
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Almacén</span>
           <select className={selectClassName} value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
             <option value="">Selecciona un almacén</option>
@@ -128,7 +128,7 @@ export function ModalAjusteStock({
         </label>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Cantidad</span>
           <Input
             type="number"
@@ -138,7 +138,7 @@ export function ModalAjusteStock({
             placeholder="10 o -2"
           />
         </label>
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Motivo</span>
           <textarea
             className={`${selectClassName} min-h-24`}

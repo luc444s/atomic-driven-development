@@ -10,7 +10,7 @@ import { listWarehousesCatalog, stockKeys, upsertConfig } from "../api";
 import type { LogisticsWarehouseOption, StockConfig } from "../types";
 
 const selectClassName =
-  "w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500";
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 type ModalConfigStockProps = {
   open: boolean;
@@ -97,10 +97,10 @@ export function ModalConfigStock({
         <Alert title="No se pudo cargar almacenes">{warehousesQuery.error.message}</Alert>
       ) : null}
       <div className="grid gap-4 md:grid-cols-2">
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Producto</span>
           <div className="space-y-2">
-            <div className="rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-200">
+            <div className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
               {selectedProduct ? `${selectedProduct.sku} · ${selectedProduct.name}` : "Sin seleccionar"}
             </div>
             <Button type="button" variant="secondary" onClick={() => setShowSearch(true)}>
@@ -108,7 +108,7 @@ export function ModalConfigStock({
             </Button>
           </div>
         </label>
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Almacén</span>
           <select className={selectClassName} value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
             <option value="">Selecciona un almacén</option>
@@ -121,15 +121,15 @@ export function ModalConfigStock({
         </label>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Mínimo</span>
           <Input type="number" step="0.001" value={minQuantity} onChange={(event) => setMinQuantity(event.target.value)} />
         </label>
-        <label className="block space-y-2 text-sm text-slate-300">
+        <label className="block space-y-2 text-sm text-foreground">
           <span>Máximo</span>
           <Input type="number" step="0.001" value={maxQuantity} onChange={(event) => setMaxQuantity(event.target.value)} />
         </label>
-        <label className="flex items-center gap-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-300">
+        <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
           <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
           Configuración activa
         </label>

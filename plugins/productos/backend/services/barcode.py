@@ -36,7 +36,7 @@ def get_barcode(db: Session, *, product_id: str, barcode_id: str) -> ProductBarc
 def require_barcode(db: Session, *, product_id: str, barcode_id: str) -> ProductBarcode:
     barcode = get_barcode(db, product_id=product_id, barcode_id=barcode_id)
     if barcode is None:
-        raise ValueError("ProductBarcode not found")
+        raise ValueError("Código de barras no encontrado")
     return barcode
 
 
@@ -236,4 +236,4 @@ def _ensure_unique_barcode(
         )
     )
     if existing is not None and existing.id != exclude_id:
-        raise ValueError("Product barcode already exists")
+        raise ValueError("El código de barras del producto ya existe")

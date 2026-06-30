@@ -28,7 +28,7 @@ class Settings(BaseModel):
     jwt_secret_key: str = "change-me"
     jwt_access_token_ttl_minutes: int = 60
     cors_origins: list[str] = Field(
-        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173"]
+        default_factory=lambda: ["http://localhost:5173", "http://127.0.0.1:5173", "http://192.168.18.9:5173"]
     )
     plugins_dir: Path = Field(default_factory=lambda: PROJECT_ROOT / "plugins")
     seed_demo_tenant_name: str = "Demo Tenant"
@@ -45,7 +45,7 @@ def get_settings() -> Settings:
     cors_origins = _split_csv(
         os.getenv(
             "SYSTUTOR_CORS_ORIGINS",
-            "http://localhost:5173,http://127.0.0.1:5173",
+            "http://localhost:5173,http://127.0.0.1:5173,http://192.168.18.9:5173",
         )
     )
     return Settings(

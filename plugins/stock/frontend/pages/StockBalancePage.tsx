@@ -93,7 +93,7 @@ export function StockBalancePage() {
             <CardTitle>Bases activas</CardTitle>
             <CardDescription>Producto + almacén con balance materializado.</CardDescription>
           </CardHeader>
-          <CardContent className="text-2xl font-semibold text-white">{totals.balances}</CardContent>
+          <CardContent className="text-2xl font-semibold text-foreground">{totals.balances}</CardContent>
         </Card>
         <Card>
           <CardHeader>
@@ -124,7 +124,7 @@ export function StockBalancePage() {
               placeholder="Busca por SKU, producto o almacén"
             />
             <select
-              className="rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-cyan-500"
+              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring"
               value={warehouseFilter}
               onChange={(event) => setWarehouseFilter(event.target.value)}
             >
@@ -135,7 +135,7 @@ export function StockBalancePage() {
                 </option>
               ))}
             </select>
-            <label className="flex items-center gap-3 rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-300">
+            <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
               <input
                 type="checkbox"
                 checked={belowMinOnly}

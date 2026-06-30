@@ -143,9 +143,9 @@ def receive_movement(
     action_context: LogisticsActionContext,
 ) -> ReceptionReceiveResult:
     if movement.status != "DESCARGADO_POR_RECEPCIONAR":
-        raise ValueError("Only movements pending reception can be received")
+        raise ValueError("Solo los movimientos pendientes de recepción pueden recibirse")
     if movement.warehouse_id is None:
-        raise ValueError("Movement must define destination warehouse")
+        raise ValueError("El movimiento debe definir el almacén de destino")
 
     warehouse = db.scalar(
         select(LogisticsWarehouse).where(
@@ -171,7 +171,7 @@ def receive_movement(
             continue
         quantity_received = received_map.get(item.id, expected_quantity if not explicit_mode else 0)
         if quantity_received > expected_quantity:
-            raise ValueError("Received quantity cannot exceed expected quantity")
+            raise ValueError("La cantidad recibida no puede exceder la cantidad esperada")
         shortage = expected_quantity - quantity_received
         if quantity_received > 0 and item.cylinder_id is not None:
             cylinder = get_cylinder(db, tenant_id=movement.tenant_id, cylinder_id=item.cylinder_id)

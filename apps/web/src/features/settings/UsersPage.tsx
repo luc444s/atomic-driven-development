@@ -23,6 +23,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../shared/ui/data-table";
 import { Dialog } from "../../shared/ui/dialog";
 import { Input } from "../../shared/ui/input";
+import { Select } from "../../shared/ui/select";
 
 type UserFormState = {
   id?: string;
@@ -215,12 +216,12 @@ export function UsersPageContent({
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-white">Users</h1>
-          <p className="text-sm text-slate-400">
+          <h1 className="text-2xl font-semibold text-foreground">Usuarios</h1>
+          <p className="text-sm text-muted-foreground">
             Administracion tenant-aware de usuarios, branch y roles efectivos del core.
           </p>
         </div>
-        {canCreate ? <Button onClick={onCreate}>Create user</Button> : null}
+        {canCreate ? <Button onClick={onCreate}>Crear usuario</Button> : null}
       </div>
 
       {hasError ? (
@@ -231,17 +232,17 @@ export function UsersPageContent({
 
       <Card>
         <CardHeader>
-          <CardTitle>Users</CardTitle>
+          <CardTitle>Usuarios</CardTitle>
           <CardDescription>Lista mínima operativa del tenant actual.</CardDescription>
         </CardHeader>
         <CardContent>
           <DataTable
             columns={[
-              { key: "name", header: "Name", render: (user) => user.name },
-              { key: "email", header: "Email", render: (user) => user.email },
+              { key: "name", header: "Nombre", render: (user) => user.name },
+              { key: "email", header: "Correo", render: (user) => user.email },
               {
                 key: "branch",
-                header: "Branch",
+                header: "Sucursal",
                 render: (user) => branches.find((branch) => branch.id === user.branch_id)?.name ?? "-",
               },
               {
@@ -255,18 +256,18 @@ export function UsersPageContent({
               },
               {
                 key: "status",
-                header: "Status",
+                header: "Estado",
                 render: (user) => <StatusBadge active={user.active} />,
               },
               {
                 key: "actions",
-                header: "Actions",
+                header: "Acciones",
                 className: "w-56",
                 render: (user) => (
                   <div className="flex flex-wrap gap-2">
                     {canUpdate ? (
                       <Button variant="secondary" onClick={() => onEdit(user)}>
-                        Edit
+                        Editar
                       </Button>
                     ) : null}
                     {canDisable ? (
@@ -275,7 +276,7 @@ export function UsersPageContent({
                         disabled={isToggling}
                         onClick={() => onToggleUser(user)}
                       >
-                        {user.active ? "Disable" : "Enable"}
+                        {user.active ? "Desactivar" : "Activar"}
                       </Button>
                     ) : null}
                   </div>
@@ -291,21 +292,21 @@ export function UsersPageContent({
 
       <Dialog
         open={isDialogOpen}
-        title={formState.id ? "Edit user" : "Create user"}
+        title={formState.id ? "Editar usuario" : "Crear usuario"}
         description="Formulario mínimo del core management."
         onClose={onCloseDialog}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Name</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Nombre</span>
             <Input
               value={formState.name}
               onChange={(event) => onFieldChange({ name: event.target.value })}
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Email</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Correo</span>
             <Input
               type="email"
               value={formState.email}
@@ -313,39 +314,33 @@ export function UsersPageContent({
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Password</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Contraseña</span>
             <Input
               type="password"
               value={formState.password}
-              placeholder={formState.id ? "Dejar vacío para mantener password" : "Password inicial"}
+              placeholder={formState.id ? "Dejar vacío para mantener contraseña" : "Contraseña inicial"}
               onChange={(event) => onFieldChange({ password: event.target.value })}
             />
           </label>
 
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Branch</span>
-            <select
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Sucursal</span>
+            <Select
               value={formState.branch_id}
-              onChange={(event) => onFieldChange({ branch_id: event.target.value })}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              <option value="">Sin branch</option>
-              {branches.map((branch) => (
-                <option key={branch.id} value={branch.id}>
-                  {branch.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => onFieldChange({ branch_id: value })}
+              options={branches.map((b) => ({ value: b.id, label: b.name }))}
+              placeholder="Sin branch"
+            />
           </label>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm text-slate-300">Roles</legend>
-            <div className="grid gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3 sm:grid-cols-2">
+            <legend className="text-sm text-foreground">Roles</legend>
+            <div className="grid gap-2 rounded-md border border-border bg-muted/60 p-3 sm:grid-cols-2">
               {roles.map((role) => {
                 const checked = formState.role_ids.includes(role.id);
                 return (
-                  <label key={role.id} className="flex items-center gap-2 text-sm text-slate-300">
+                  <label key={role.id} className="flex items-center gap-2 text-sm text-foreground">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -368,10 +363,10 @@ export function UsersPageContent({
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onCloseDialog}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {formState.id ? "Save changes" : "Create user"}
+              {formState.id ? "Guardar cambios" : "Crear usuario"}
             </Button>
           </div>
         </form>
@@ -381,5 +376,5 @@ export function UsersPageContent({
 }
 
 function StatusBadge({ active }: { active: boolean }) {
-  return <Badge>{active ? "Active" : "Disabled"}</Badge>;
+  return <Badge>{active ? "Activo" : "Inactivo"}</Badge>;
 }

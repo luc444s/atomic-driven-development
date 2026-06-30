@@ -10,15 +10,15 @@ type ContactSectionProps = {
 export function ContactSection({ email, phone, mobile, onChange }: ContactSectionProps) {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <label className="block space-y-2 text-sm text-slate-300">
+      <label className="block space-y-2 text-sm text-foreground">
         <span>Email</span>
         <Input value={email} onChange={(event) => onChange("email", event.target.value)} />
       </label>
-      <label className="block space-y-2 text-sm text-slate-300">
+      <label className="block space-y-2 text-sm text-foreground">
         <span>Teléfono</span>
         <Input value={phone} onChange={(event) => onChange("phone", event.target.value)} />
       </label>
-      <label className="block space-y-2 text-sm text-slate-300">
+      <label className="block space-y-2 text-sm text-foreground">
         <span>Celular</span>
         <Input value={mobile} onChange={(event) => onChange("mobile", event.target.value)} />
       </label>

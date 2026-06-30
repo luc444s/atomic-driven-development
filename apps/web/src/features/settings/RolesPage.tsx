@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { FormEvent, useState } from "react";
+import { FormEvent, useMemo, useState } from "react";
 
 import {
   CorePermission,
@@ -21,6 +21,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../shared/ui/data-table";
 import { Dialog } from "../../shared/ui/dialog";
 import { Input } from "../../shared/ui/input";
+import { Select } from "../../shared/ui/select";
 
 type RoleFormState = {
   id?: string;
@@ -141,14 +142,26 @@ export function RolesPageContent({
   onFieldChange,
   onToggleRole,
 }: RolesPageContentProps) {
+  const [filterModule, setFilterModule] = useState("_all");
+
+  const modules = useMemo(() => {
+    const unique = new Set(permissions.map((p) => p.name.split(".")[0]));
+    return ["_all", ...Array.from(unique).sort()];
+  }, [permissions]);
+
+  const filteredPermissions = useMemo(() => {
+    if (filterModule === "_all") return permissions;
+    return permissions.filter((p) => p.name.startsWith(filterModule + "."));
+  }, [permissions, filterModule]);
+
   return (
     <section className="space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="space-y-2">
-          <h1 className="text-2xl font-semibold text-white">Roles</h1>
-          <p className="text-sm text-slate-400">Administracion tenant-aware de roles y permisos efectivos.</p>
+          <h1 className="text-2xl font-semibold text-foreground">Roles</h1>
+          <p className="text-sm text-muted-foreground">Administracion tenant-aware de roles y permisos efectivos.</p>
         </div>
-        {canManage ? <Button onClick={onCreate}>Create role</Button> : null}
+        {canManage ? <Button onClick={onCreate}>Crear rol</Button> : null}
       </div>
 
       {hasError ? (
@@ -163,27 +176,27 @@ export function RolesPageContent({
         <CardContent>
           <DataTable
             columns={[
-              { key: "name", header: "Role", render: (role) => role.name },
+              { key: "name", header: "Rol", render: (role) => role.name },
               {
                 key: "count",
-                header: "Permissions count",
+                header: "Permisos",
                 render: (role) => String(role.permissions.length),
               },
-              { key: "status", header: "Status", render: (role) => <Badge>{role.active ? "Active" : "Disabled"}</Badge> },
+              { key: "status", header: "Estado", render: (role) => <Badge>{role.active ? "Activo" : "Inactivo"}</Badge> },
               {
                 key: "actions",
-                header: "Actions",
+                header: "Acciones",
                 className: "w-56",
                 render: (role) => (
                   <div className="flex flex-wrap gap-2">
                     {canManage ? (
                       <Button variant="secondary" onClick={() => onEdit(role)}>
-                        Edit
+                        Editar
                       </Button>
                     ) : null}
                     {canManage ? (
                       <Button variant="secondary" onClick={() => onToggleRole(role)}>
-                        {role.active ? "Disable" : "Enable"}
+                        {role.active ? "Desactivar" : "Activar"}
                       </Button>
                     ) : null}
                   </div>
@@ -199,13 +212,13 @@ export function RolesPageContent({
 
       <Dialog
         open={isDialogOpen}
-        title={formState.id ? "Edit role" : "Create role"}
+        title={formState.id ? "Editar rol" : "Crear rol"}
         description="Formulario mínimo del core management."
         onClose={onCloseDialog}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <label className="block space-y-2 text-sm text-slate-300">
-            <span>Name</span>
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Nombre</span>
             <Input
               value={formState.name}
               onChange={(event) => onFieldChange({ name: event.target.value })}
@@ -213,12 +226,20 @@ export function RolesPageContent({
           </label>
 
           <fieldset className="space-y-2">
-            <legend className="text-sm text-slate-300">Permissions</legend>
-            <div className="grid gap-2 rounded-md border border-slate-800 bg-slate-900/60 p-3 sm:grid-cols-2">
-              {permissions.map((permission) => {
+            <legend className="text-sm text-foreground">Permisos</legend>
+            <Select
+              value={filterModule}
+              onChange={setFilterModule}
+              options={modules.map((m) => ({
+                value: m,
+                label: m === "_all" ? "Todos los módulos" : m,
+              }))}
+            />
+            <div className="grid gap-2 rounded-md border border-border bg-muted/60 p-3 sm:grid-cols-2 max-h-80 overflow-y-auto">
+              {filteredPermissions.map((permission) => {
                 const checked = formState.permission_names.includes(permission.name);
                 return (
-                  <label key={permission.id} className="flex items-center gap-2 text-sm text-slate-300">
+                  <label key={permission.id} className="flex items-center gap-2 text-sm text-foreground">
                     <input
                       type="checkbox"
                       checked={checked}
@@ -241,10 +262,10 @@ export function RolesPageContent({
 
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={onCloseDialog}>
-              Cancel
+              Cancelar
             </Button>
             <Button type="submit" disabled={isSaving}>
-              {formState.id ? "Save changes" : "Create role"}
+              {formState.id ? "Guardar cambios" : "Crear rol"}
             </Button>
           </div>
         </form>

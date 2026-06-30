@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type DeliveryPointFormState = {
   id?: string;
@@ -181,62 +182,55 @@ export function DeliveryPointsPage() {
         }}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
-          <div className="space-y-2 text-sm text-slate-300">
+          <div className="space-y-2 text-sm text-foreground">
             <span>Cliente</span>
             <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
               {formState.customer_name ? `${formState.customer_name} (${formState.customer_id})` : "Seleccionar cliente"}
             </Button>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Contacto</span>
             <Input value={formState.contact_name} onChange={(event) => setFormState((current) => ({ ...current, contact_name: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Email contacto</span>
             <Input value={formState.contact_email} onChange={(event) => setFormState((current) => ({ ...current, contact_email: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Dirección</span>
             <Input value={formState.address} onChange={(event) => setFormState((current) => ({ ...current, address: event.target.value }))} />
           </label>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Teléfono</span>
               <Input value={formState.phone} onChange={(event) => setFormState((current) => ({ ...current, phone: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Día sugerido</span>
               <Input value={formState.delivery_day} onChange={(event) => setFormState((current) => ({ ...current, delivery_day: event.target.value }))} />
             </label>
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Día de visita</span>
               <Input value={formState.visit_day} onChange={(event) => setFormState((current) => ({ ...current, visit_day: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Ventana horaria</span>
               <Input value={formState.time_window} onChange={(event) => setFormState((current) => ({ ...current, time_window: event.target.value }))} />
             </label>
           </div>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Indicaciones</span>
             <Input value={formState.instructions} onChange={(event) => setFormState((current) => ({ ...current, instructions: event.target.value }))} />
           </label>
-          <label className="block space-y-2 text-sm text-slate-300">
+          <label className="block space-y-2 text-sm text-foreground">
             <span>Zona</span>
-            <select
+            <Select
               value={formState.zone_id}
-              onChange={(event) => setFormState((current) => ({ ...current, zone_id: event.target.value }))}
-              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-            >
-              <option value="">Sin zona</option>
-              {(zonesQuery.data ?? []).map((zone) => (
-                <option key={zone.id} value={zone.id}>
-                  {zone.name}
-                </option>
-              ))}
-            </select>
+              onChange={(value) => setFormState((current) => ({ ...current, zone_id: value }))}
+              placeholder="Sin zona"
+              options={(zonesQuery.data ?? []).map((zone) => ({ value: zone.id, label: zone.name }))} />
           </label>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>

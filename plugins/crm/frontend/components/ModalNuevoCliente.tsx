@@ -222,11 +222,11 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
             onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value }))}
           />
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Razón social / nombre</span>
               <Input value={formState.legal_name} onChange={(event) => setFormState((current) => ({ ...current, legal_name: event.target.value }))} />
             </label>
-            <label className="block space-y-2 text-sm text-slate-300">
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Nombre comercial</span>
               <Input value={formState.commercial_name ?? ""} onChange={(event) => setFormState((current) => ({ ...current, commercial_name: event.target.value || null }))} />
             </label>

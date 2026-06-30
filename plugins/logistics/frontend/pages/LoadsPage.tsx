@@ -8,6 +8,7 @@ import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type LoadFormState = {
   route_id: string;
@@ -85,35 +86,21 @@ export function LoadsPage() {
         <CardContent>
           <form className="space-y-4" onSubmit={assignSelected}>
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Ruta</span>
-                <select
+                <Select
                   value={formState.route_id}
-                  onChange={(event) => setFormState({ route_id: event.target.value, stop_id: "", cylinder_ids: [] })}
-                  className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="">Selecciona una ruta</option>
-                  {(routesQuery.data ?? []).map((route) => (
-                    <option key={route.id} value={route.id}>
-                      {route.route_date} · {route.status}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormState({ route_id: value, stop_id: "", cylinder_ids: [] })}
+                  placeholder="Selecciona una ruta"
+                  options={(routesQuery.data ?? []).map((route) => ({ value: route.id, label: `${route.route_date} · ${route.status}` }))} />
               </label>
-              <label className="block space-y-2 text-sm text-slate-300">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Parada</span>
-                <select
+                <Select
                   value={formState.stop_id}
-                  onChange={(event) => setFormState((current) => ({ ...current, stop_id: event.target.value }))}
-                  className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"
-                >
-                  <option value="">Sin asignar</option>
-                  {(stopsQuery.data ?? []).map((stop) => (
-                    <option key={stop.id} value={stop.id}>
-                      Parada {stop.stop_order}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setFormState((current) => ({ ...current, stop_id: value }))}
+                  placeholder="Sin asignar"
+                  options={(stopsQuery.data ?? []).map((stop) => ({ value: stop.id, label: `Parada ${stop.stop_order}` }))} />
               </label>
             </div>
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -122,10 +109,10 @@ export function LoadsPage() {
                 return (
                   <label
                     key={cylinder.id}
-                    className="flex items-center justify-between rounded-lg border border-slate-800 bg-slate-900/60 px-3 py-3 text-sm text-slate-300"
+                    className="flex items-center justify-between rounded-lg border border-border bg-surface-alt/60 px-3 py-3 text-sm text-foreground"
                   >
                     <div className="space-y-1">
-                      <p className="font-medium text-white">{cylinder.serial}</p>
+                      <p className="font-medium text-foreground">{cylinder.serial}</p>
                       <CylinderStateBadge state={cylinder.current_state} />
                     </div>
                     <input

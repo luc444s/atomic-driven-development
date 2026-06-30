@@ -5,6 +5,7 @@ import { useLogoutAction } from "../../features/auth/useLogoutAction";
 import { useAuthStore } from "../../features/auth/store";
 import { usePluginFrontendRuntime } from "../../features/plugins/runtime";
 import { buildShellSidebarSections } from "../../features/shell/navigation";
+import { ThemeToggle } from "../ui/theme-toggle";
 
 function ChevronDown({ open }: { open: boolean }) {
   return (
@@ -41,10 +42,12 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex min-h-screen w-full flex-col border-r border-slate-800 bg-slate-950/80 p-4">
-      <div className="mb-8 space-y-1">
-        <h1 className="text-lg font-semibold text-white">SYSTUTOR OSS</h1>
-        <p className="text-sm text-slate-400">Core Frontend v0.2</p>
+    <aside className="flex min-h-screen w-full flex-col border-r border-border bg-sidebar p-4">
+      <div className="mb-8 flex items-center justify-between">
+        <div className="space-y-1">
+          <h1 className="text-lg font-semibold text-sidebar-foreground">SYSTUTOR OSS</h1>
+          </div>
+        <ThemeToggle />
       </div>
 
       <nav className="space-y-5">
@@ -57,7 +60,7 @@ export function Sidebar() {
               <button
                 type="button"
                 onClick={() => toggleSection(sectionKey)}
-                className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-slate-500 hover:text-slate-300"
+                className="flex w-full items-center justify-between text-xs font-semibold uppercase tracking-wide text-sidebar-muted hover:text-sidebar-foreground"
               >
                 <span>{section.title}</span>
                 <ChevronDown open={!isCollapsed} />
@@ -76,8 +79,8 @@ export function Sidebar() {
                             [
                               "block rounded-md px-3 py-2 text-sm transition",
                               isActive
-                                ? "bg-slate-800 text-white"
-                                : "text-slate-300 hover:bg-slate-900 hover:text-white",
+                                ? "bg-accent text-accent-foreground"
+                                : "text-sidebar-foreground/85 hover:bg-accent hover:text-accent-foreground",
                             ].join(" ")
                           }
                         >
@@ -97,8 +100,8 @@ export function Sidebar() {
                                 [
                                   "block rounded-md px-3 py-1.5 pl-6 text-sm transition",
                                   isActive
-                                    ? "bg-slate-800 text-white"
-                                    : "text-slate-400 hover:bg-slate-900 hover:text-white",
+                                    ? "bg-accent text-accent-foreground"
+                                    : "text-sidebar-foreground/75 hover:bg-accent hover:text-accent-foreground",
                                 ].join(" ")
                               }
                             >
@@ -114,7 +117,7 @@ export function Sidebar() {
                           key={`${sectionKey}:${item.action}`}
                           type="button"
                           onClick={logout}
-                          className="block w-full rounded-md px-3 py-2 text-left text-sm text-slate-300 transition hover:bg-slate-900 hover:text-white"
+                          className="block w-full rounded-md px-3 py-2 text-left text-sm text-sidebar-foreground/70 transition hover:bg-accent hover:text-accent-foreground"
                         >
                           {item.label}
                         </button>
@@ -129,7 +132,7 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="mt-auto rounded-md border border-dashed border-slate-800 p-3 text-xs text-slate-500">
+      <div className="mt-auto rounded-md border border-dashed border-border p-3 text-xs text-muted-foreground">
         {pluginRuntime.navigation.length > 0
           ? "Shell tenant-aware con navegacion dinamica de plugins habilitados."
           : "No hay plugins habilitados visibles para este usuario."}

@@ -84,8 +84,8 @@ export function PluginsPageContent({
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <h1 className="text-2xl font-semibold text-white">Plugins</h1>
-        <p className="text-sm text-slate-400">
+        <h1 className="text-2xl font-semibold text-foreground">Plugins</h1>
+        <p className="text-sm text-muted-foreground">
           Management mínimo del runtime persistente, incluyendo lifecycle, errores y visibilidad frontend.
         </p>
       </div>
@@ -104,24 +104,24 @@ export function PluginsPageContent({
         <CardContent>
           <DataTable
             columns={[
-              { key: "plugin_id", header: "Plugin ID", render: (plugin) => plugin.plugin_id },
-              { key: "version", header: "Version", render: (plugin) => plugin.version },
-              { key: "api_version", header: "API Version", render: (plugin) => plugin.api_version },
-              { key: "state", header: "State", render: (plugin) => <Badge>{plugin.state}</Badge> },
-              { key: "installed_at", header: "Installed at", render: (plugin) => plugin.installed_at ?? "-" },
-              { key: "enabled_at", header: "Enabled at", render: (plugin) => plugin.enabled_at ?? "-" },
+              { key: "plugin_id", header: "ID", render: (plugin) => plugin.plugin_id },
+              { key: "version", header: "Versión", render: (plugin) => plugin.version },
+              { key: "api_version", header: "API Versión", render: (plugin) => plugin.api_version },
+              { key: "state", header: "Estado", render: (plugin) => <Badge>{plugin.state}</Badge> },
+              { key: "installed_at", header: "Instalado", render: (plugin) => plugin.installed_at ?? "-" },
+              { key: "enabled_at", header: "Activado", render: (plugin) => plugin.enabled_at ?? "-" },
               {
                 key: "last_error",
-                header: "Last error",
+                header: "Último error",
                 render: (plugin) => plugin.last_error ?? "-",
               },
               {
                 key: "actions",
-                header: "Actions",
+                header: "Acciones",
                 className: "w-72",
                 render: (plugin) => (
                   <div className="flex flex-wrap gap-2">
-                    {canManage ? renderPluginActions(plugin, isMutating, onAction) : <span className="text-slate-500">Read only</span>}
+                    {canManage ? renderPluginActions(plugin, isMutating, onAction) : <span className="text-muted-foreground">Solo lectura</span>}
                   </div>
                 ),
               },
@@ -146,7 +146,7 @@ export function PluginsPageContent({
               </div>
               <CardDescription>{plugin.description}</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4 text-sm text-slate-300">
+            <CardContent className="space-y-4 text-sm text-muted-foreground">
               <InfoLine label="Plugin ID" value={plugin.plugin_id} />
               <InfoLine label="Enabled" value={plugin.is_enabled ? "si" : "no"} />
               <InfoLine
@@ -197,23 +197,23 @@ function renderPluginActions(
 function actionLabel(action: PluginAction) {
   switch (action) {
     case "install":
-      return "Install";
+      return "Instalar";
     case "enable":
-      return "Enable";
+      return "Activar";
     case "disable":
-      return "Disable";
+      return "Desactivar";
     case "uninstall":
-      return "Uninstall";
+      return "Desinstalar";
     case "migrate":
-      return "Migrate";
+      return "Migrar";
   }
 }
 
 function InfoLine({ label, value }: { label: string; value: string | null }) {
   return (
     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-      <span className="text-slate-400">{label}</span>
-      <span className="break-all text-slate-200">{value ?? "-"}</span>
+      <span className="text-muted-foreground">{label}</span>
+      <span className="break-all text-foreground">{value ?? "-"}</span>
     </div>
   );
 }

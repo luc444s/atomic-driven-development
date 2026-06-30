@@ -71,7 +71,7 @@ def update_adr_config(
 ) -> ProductAdr:
     today = date.today()
     if adr.valid_to is None and adr.valid_from <= today:
-        raise ValueError("Active ADR configs cannot be edited in place")
+        raise ValueError("Las configuraciones ADR activas no pueden editarse directamente")
     if payload.subline_id is not None:
         require_tenant_entity(
             db, ProductSubline, tenant_id=adr.tenant_id, entity_id=payload.subline_id
@@ -103,7 +103,7 @@ def update_adr_config(
     db.flush()
     product = db.get(Product, adr.product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     _audit_emit_adr(
         db,
         product=product,
@@ -126,7 +126,7 @@ def expire_adr_config(
     db.flush()
     product = db.get(Product, adr.product_id)
     if product is None:
-        raise ValueError("Product not found")
+        raise ValueError("Producto no encontrado")
     _audit_emit_adr(db, product=product, adr=adr, action_context=action_context, action="expire")
     return adr
 
@@ -136,7 +136,7 @@ def require_adr_config(db: Session, *, product_id: str, adr_id: str) -> ProductA
         select(ProductAdr).where(ProductAdr.product_id == product_id, ProductAdr.id == adr_id)
     )
     if adr is None:
-        raise ValueError("ProductAdr not found")
+        raise ValueError("ADR de producto no encontrado")
     return adr
 
 

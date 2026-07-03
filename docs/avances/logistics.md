@@ -6,9 +6,35 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 
 ## Actualización 2026-06-29
 
-- `SPEC 0014` ya no debe leerse como trabajo pendiente: sus módulos fueron implementados en `plugins/logistics/`.
-- Este documento todavía conserva parte del inventario previo a esa implementación y requiere una pasada de normalización posterior para recalcular conteos, endpoints y cobertura exacta.
+- `SPEC 0014` no está cerrada al 100% como paquete completo.
+- Varias piezas ya están implementadas en `plugins/logistics/`, pero otras siguen parciales o sin UI de cierre.
+- Este documento agrega una matriz estricta para separar `hecho`, `parcial` y `faltante`.
+- La lectura normalizada de cierre incremental vive en `docs/specs/core/0014-1-logistics-gap-closure.md`.
+- `SPEC 0019` ya empezó a implementarse con catálogos remotos de `productos` para envases.
+- `SPEC 0021` quedó implementada: el alta de envase ya soporta ramas `EMPTY_FROM_CUSTOMER` y `FULL_FROM_SUPPLIER`, con trazabilidad operativa inicial y contrapartida mínima en `stock` para el caso lleno desde proveedor.
+- En `frontend/pages/PlanningPage.tsx`, la tarjeta `Stock disponible` ya consume balances reales del módulo owner `stock` vía REST (`/api/v1/plugins/stock/balance`) y combina reservas/precargas de `logistics` en frontend.
 - Para el estado funcional más reciente, tomar como referencia inmediata `plugins/logistics/README.md` y `docs/specs/core/0014-logistics-complete/index.md`.
+- Los cinco parciales operativos de planificacion quedan desglosados en `docs/specs/core/0020-logistics-planificacion-parciales.md`.
+
+## Matriz 0014
+
+| Bloque | Estado | Evidencia | Falta |
+|---|---|---|---|
+| 1. Planificación | Hecho | `plugins/logistics/backend/router.py:2126-2358`, `plugins/logistics/backend/services/planning.py`, `plugins/logistics/frontend/pages/PlanningPage.tsx` | Validación fina y pruebas de borde |
+| 2. Recepción | Hecho | `plugins/logistics/backend/router.py:2389-2513`, `plugins/logistics/backend/services/reception.py`, `plugins/logistics/frontend/pages/ReceptionPage.tsx` | Cierre de casos borde |
+| 3. Carta Porte | Hecho | `plugins/logistics/backend/router.py:2519-2633`, `plugins/logistics/backend/services/documents.py`, `plugins/logistics/frontend/pages/MovementsPage.tsx` | Render PDF final |
+| 4. Reportes | Parcial | `plugins/logistics/backend/router.py:2563-2629` | UI/consumidor de reportes |
+| 5. Guía de Despacho | Parcial | `plugins/logistics/backend/router.py:2681-2713`, `plugins/logistics/frontend/pages/MovementsPage.tsx` | Pantalla propia del flujo |
+| 6. Equipos por Movimiento | Hecho | `plugins/logistics/backend/router.py:2769-2803`, `plugins/logistics/backend/services/extensions.py`, `plugins/logistics/frontend/pages/EquipmentPage.tsx` | Nada estructural evidente |
+| 7. Restricciones Vehículo-Ruta | Parcial | `plugins/logistics/backend/router.py:2882-2934`, `plugins/logistics/backend/services/extensions.py` | UI de administración |
+| 8. Parámetros de Repartidor | Parcial | `plugins/logistics/backend/router.py:2937-2966`, `plugins/logistics/backend/services/extensions.py` | UI de mantenimiento |
+| 9. Vinculación Vehículo-Cliente | Parcial | `plugins/logistics/backend/router.py:2969-3002`, `plugins/logistics/backend/services/extensions.py` | UI de gestión |
+| 10. Resumen Diario de Agenda | Parcial | `plugins/logistics/backend/router.py:3027-3039` | Pantalla/consumidor |
+| 11. Schedule Semanal de Rutas | Parcial | `plugins/logistics/backend/router.py:3042-3065` | UI de edición |
+| 12. Validación de Peso en Carga | Parcial | `plugins/logistics/backend/router.py:3068-3078`, `plugins/logistics/backend/services/extensions.py` | UI operativa clara |
+| 13. Módulo ADR Completo | Parcial | `plugins/logistics/backend/router.py:3081-3137`, `plugins/logistics/backend/services/extensions.py` | UI y flujo completo |
+| 14. GPS Tracking | Parcial | `plugins/logistics/backend/router.py:3226-3274`, `plugins/logistics/backend/services/extensions.py` | Captura móvil real |
+| 15. Peso y Contenido de Cilindro | Parcial | `plugins/logistics/backend/router.py:533`, `plugins/logistics/backend/router.py:3296-3313`, `plugins/logistics/backend/services/extensions.py` | UI específica |
 
 ## Nota de alineación con `productos`
 
@@ -16,12 +42,13 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 - No son el destino arquitectónico final del catálogo.
 - Desde ADR 0015 y SPEC 0015, ambos catálogos quedan definidos como estructuras transitorias de coexistencia.
 - El destino final es migrar hacia `prod_products` y `prod_brands` del plugin `productos`.
+- En envases ya se admite la referencia transicional `product_id` en `lg_cylinders` para consumir `prod_products` sin romper lectura legacy de `gas_group_id`.
 - Mientras esa migración no ocurra, `logistics` puede seguir operando con `lg_gas_products` y `lg_brands`.
 - Cualquier nuevo diseño o cambio relevante en `logistics` debe asumir que:
   - `product_id` será la referencia maestra futura a `prod_products`;
   - `product_name` puede sobrevivir solo como snapshot transaccional de lectura;
   - precios y costos no deben consolidarse en `logistics`, porque su ownership final vive en `productos`.
-- `SPEC 0014` fue implementada; esta nota histórica describe el estado anterior del módulo antes de ese cierre.
+- La matriz de arriba es la referencia actual; las notas de abajo conservan contexto del inventario previo.
 
 ---
 

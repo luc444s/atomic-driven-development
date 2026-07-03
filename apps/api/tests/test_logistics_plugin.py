@@ -35,8 +35,10 @@ def login(client: TestClient, email: str = "admin@example.com", password: str = 
     return client.post("/api/v1/auth/login", json={"email": email, "password": password})
 
 
-def auth_headers(client: TestClient) -> dict[str, str]:
-    response = login(client)
+def auth_headers(
+    client: TestClient, email: str = "admin@example.com", password: str = "ChangeMe123!"
+) -> dict[str, str]:
+    response = login(client, email=email, password=password)
     token = response.json()["access_token"]
     return {"Authorization": f"Bearer {token}"}
 
@@ -241,6 +243,41 @@ def create_product(client: TestClient, headers: dict[str, str], *, sku: str, nam
     return product.json()
 
 
+def create_scoped_logistics_user(
+    client: TestClient,
+    headers: dict[str, str],
+    *,
+    role_name: str,
+    email: str,
+    password: str,
+    branch_id: str,
+    warehouse_id: str,
+    permission_names: list[str],
+) -> dict[str, str]:
+    role_response = client.post(
+        "/api/v1/core/roles",
+        headers=headers,
+        json={"name": role_name, "permission_names": permission_names},
+    )
+    assert role_response.status_code == 201, role_response.text
+    role_id = role_response.json()["id"]
+
+    user_response = client.post(
+        "/api/v1/core/users",
+        headers=headers,
+        json={
+            "name": role_name,
+            "email": email,
+            "password": password,
+            "branch_id": branch_id,
+            "role_ids": [role_id],
+            "warehouse_ids": [warehouse_id],
+        },
+    )
+    assert user_response.status_code == 201, user_response.text
+    return user_response.json()
+
+
 def test_logistics_order_item_requires_product_id(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -410,6 +447,156 @@ def test_logistics_plugin_cylinder_flow(app) -> None:
     assert any(event.event_name == "logistics.cylinder.state_changed" for event in events)
 
 
+def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="Cliente Envase Vacio SAC",
+            document_number="20100070970",
+        )
+        warehouse_response = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Almacen Envases", "code": "AE", "address": "Av. Envases 100"},
+        )
+        assert warehouse_response.status_code == 201, warehouse_response.text
+        warehouse = warehouse_response.json()
+
+        create_scoped_logistics_user(
+            client,
+            headers,
+            role_name="logistics-cylinder-create-empty",
+            email="cylinder-empty@example.com",
+            password="CylinderEmpty123!",
+            branch_id=seeded_demo["branch_id"],
+            warehouse_id=warehouse["id"],
+            permission_names=["logistics.cylinder.create"],
+        )
+        limited_headers = auth_headers(
+            client,
+            email="cylinder-empty@example.com",
+            password="CylinderEmpty123!",
+        )
+
+        create_response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=limited_headers,
+            json={
+                "serial": "GL-ENTRY-EMPTY-01",
+                "condition": "CILCLI",
+                "entry_mode": "EMPTY_FROM_CUSTOMER",
+                "document_type": "GUIA",
+                "document_number": "G001-000123",
+                "customer_id": customer["id"],
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        assert create_response.json()["current_state"] == "EN_ALMACEN_VACIO"
+
+
+def test_logistics_create_cylinder_full_from_supplier_adjusts_stock(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse_response = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Planta Llenado", "code": "PL", "address": "Av. Planta 200"},
+        )
+        assert warehouse_response.status_code == 201, warehouse_response.text
+        warehouse = warehouse_response.json()
+
+        product = create_product(client, headers, sku="GLP-ENTRY-10", name="GLP Entrada 10kg")
+
+        create_scoped_logistics_user(
+            client,
+            headers,
+            role_name="logistics-cylinder-create-full",
+            email="cylinder-full@example.com",
+            password="CylinderFull123!",
+            branch_id=seeded_demo["branch_id"],
+            warehouse_id=warehouse["id"],
+            permission_names=["logistics.cylinder.create"],
+        )
+        limited_headers = auth_headers(
+            client,
+            email="cylinder-full@example.com",
+            password="CylinderFull123!",
+        )
+
+        create_response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=limited_headers,
+            json={
+                "serial": "GL-ENTRY-FULL-01",
+                "condition": "CILPRO",
+                "product_id": product["id"],
+                "content_kg": 10,
+                "entry_mode": "FULL_FROM_SUPPLIER",
+                "document_type": "FACTURA",
+                "document_number": "F001-000555",
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        assert create_response.json()["current_state"] == "LLENADO_OK"
+
+        balance_response = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert balance_response.status_code == 200, balance_response.text
+        assert balance_response.json()["quantity"] == 10
+
+
+def test_logistics_create_cylinder_entry_requires_resolved_active_warehouse(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        customer = create_customer(
+            client,
+            headers,
+            name="Cliente Sin Almacen Unico SAC",
+            document_number="20100070970",
+        )
+
+        response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=headers,
+            json={
+                "serial": "GL-ENTRY-ERR-01",
+                "entry_mode": "EMPTY_FROM_CUSTOMER",
+                "document_type": "GUIA",
+                "document_number": "G001-000999",
+                "customer_id": customer["id"],
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "almacen activo unico" in response.json()["detail"]
+
+
 def test_logistics_plugin_operations_flow(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -417,6 +604,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
         )
     enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
@@ -544,6 +732,14 @@ def test_logistics_plugin_operations_flow(app) -> None:
         assert stop_response.status_code == 201, stop_response.text
         stop = stop_response.json()
 
+        second_stop_response = client.post(
+            f"/api/v1/plugins/logistics/routes/{route['id']}/stops",
+            headers=headers,
+            json={"delivery_point_id": delivery_point["id"]},
+        )
+        assert second_stop_response.status_code == 201, second_stop_response.text
+        assert second_stop_response.json()["stop_order"] == 2
+
         bulk_load_response = client.post(
             "/api/v1/plugins/logistics/loads/bulk",
             headers=headers,
@@ -570,7 +766,7 @@ def test_logistics_plugin_operations_flow(app) -> None:
             headers=headers,
         )
         assert agenda_from_route_response.status_code == 200, agenda_from_route_response.text
-        assert len(agenda_from_route_response.json()) == 1
+        assert len(agenda_from_route_response.json()) == 2
 
         route_start_response = client.post(
             f"/api/v1/plugins/logistics/routes/{route['id']}/start",
@@ -661,6 +857,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
         )
     enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
@@ -671,11 +868,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
             document_number="10467793549",
         )
 
-        gas_products_response = client.get(
-            "/api/v1/plugins/logistics/catalog/gas-products", headers=headers
-        )
-        assert gas_products_response.status_code == 200, gas_products_response.text
-        gas_product = gas_products_response.json()[0]
+        product = create_product(client, headers, sku="GLP-ENV-10", name="GLP Envase 10kg")
 
         brands_response = client.get("/api/v1/plugins/logistics/catalog/brands", headers=headers)
         assert brands_response.status_code == 200, brands_response.text
@@ -695,10 +888,10 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
                 "description": "Envase piloto 10kg",
                 "barcode1": "BC-200001",
                 "barcode2": "MAT-200001",
-                "gas_group_id": gas_product["id"],
+                "product_id": product["id"],
                 "content_kg": 10,
                 "volume_m3": 1.2,
-                "condition": "NUEVO",
+                "condition": "CILPRO",
                 "brand_id": brand["id"],
                 "cost": 120,
                 "price": 170,
@@ -727,6 +920,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
         cylinder = create_response.json()
         assert cylinder["barcode2"] == "MAT-200001"
         assert cylinder["brand_id"] == brand["id"]
+        assert cylinder["product_id"] == product["id"]
 
         update_response = client.patch(
             f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}",

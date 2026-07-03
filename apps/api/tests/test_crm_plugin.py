@@ -71,6 +71,7 @@ def test_crm_plugin_customer_flow(app) -> None:
             json={
                 "external_code": "CLI-0001",
                 "legal_name": "GLP Norte SAC",
+                "commercial_name": "GLP Norte",
                 "document_type_code": "RUC",
                 "document_number": "20100070970",
                 "country_code": "PER",
@@ -104,6 +105,8 @@ def test_crm_plugin_customer_flow(app) -> None:
         )
         assert search_response.status_code == 200, search_response.text
         assert search_response.json()[0]["id"] == customer["id"]
+        assert search_response.json()[0]["commercial_name"] == "GLP Norte"
+        assert search_response.json()[0]["display_name"] == "GLP Norte"
 
         address_response = client.post(
             f"/api/v1/plugins/crm/customers/{customer['id']}/addresses",
@@ -127,6 +130,28 @@ def test_crm_plugin_customer_flow(app) -> None:
         assert fiscal_response.status_code == 200, fiscal_response.text
         assert fiscal_response.json()["fiscal_address_id"] == address["id"]
 
+        commercial_address_response = client.post(
+            f"/api/v1/plugins/crm/customers/{customer['id']}/addresses",
+            headers=headers,
+            json={
+                "address_type": "COMERCIAL",
+                "label": "Oficina Madrid",
+                "line1": "Calle Mayor 10",
+                "city": "Madrid",
+                "country_code": "ESP",
+                "geocode_source": "MANUAL",
+            },
+        )
+        assert commercial_address_response.status_code == 201, commercial_address_response.text
+
+        locality_search_response = client.get(
+            "/api/v1/plugins/crm/customers/search?query=Madrid",
+            headers=headers,
+        )
+        assert locality_search_response.status_code == 200, locality_search_response.text
+        assert locality_search_response.json()[0]["id"] == customer["id"]
+        assert locality_search_response.json()[0]["locality_summary"] in {"Lima", "Madrid"}
+
         contact_response = client.post(
             f"/api/v1/plugins/crm/customers/{customer['id']}/contacts",
             headers=headers,
@@ -146,7 +171,8 @@ def test_crm_plugin_customer_flow(app) -> None:
         assert detail_response.status_code == 200, detail_response.text
         detail = detail_response.json()
         assert detail["fiscal_address_id"] == address["id"]
-        assert len(detail["addresses"]) == 1
+        assert len(detail["addresses"]) == 2
+        assert {item["address_type"] for item in detail["addresses"]} == {"FISCAL", "COMERCIAL"}
         assert len(detail["contacts"]) == 1
 
         disable_response = client.patch(

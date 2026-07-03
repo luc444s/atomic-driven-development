@@ -1,3 +1,4 @@
+import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
 import type { CustomerAddressPayload } from "../types";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 
@@ -9,6 +10,21 @@ type AddressSectionProps = {
 export function AddressSection({ value, onChange }: AddressSectionProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
+      <label className="block space-y-2 text-sm text-foreground md:col-span-2">
+        <span>Tipo de dirección</span>
+        <Combobox
+          value={value.address_type}
+          onChange={(addressType) => onChange({ ...value, address_type: addressType })}
+          options={[
+            { value: "FISCAL", label: "Fiscal" },
+            { value: "COMERCIAL", label: "Comercial" },
+            { value: "ENTREGA", label: "Entrega" },
+            { value: "OTRA", label: "Otra" },
+          ]}
+          placeholder="Seleccionar tipo"
+          searchPlaceholder="Buscar tipo"
+        />
+      </label>
       <label className="block space-y-2 text-sm text-foreground">
         <span>Dirección</span>
         <Input value={value.line1} onChange={(event) => onChange({ ...value, line1: event.target.value })} />

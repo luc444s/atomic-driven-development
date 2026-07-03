@@ -49,7 +49,7 @@ ProductListPage
 | Archivo | Líneas aprox | Contenido |
 |---------|-------------|-----------|
 | `components/ModalNuevoProducto.tsx` | ~350 | Formulario ficha maestra dentro de `Dialog`; acepta `productId` opcional para edición |
-| `components/ModalDetalleProducto.tsx` | ~550 | Detalle operativo (barcodes, precios, costos, ADR, media, promos) dentro de `Dialog` |
+| `components/ModalDetalleProducto.tsx` | ~550 | Menú raíz simple + submodales por sección operativa (barcodes, precios, costos, impuestos, ADR, media, promos) |
 | `components/ModalCatalogo.tsx` | ~200 | Menú de catálogos + sub-modales para cada tipo |
 
 ### Modificados

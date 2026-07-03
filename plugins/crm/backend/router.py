@@ -319,7 +319,7 @@ def post_customer(
     except ValueError as exc:
         db.rollback()
         message = str(exc)
-        if "already exists" in message:
+        if "already exists" in message or "ya existe" in message:
             raise _conflict(message) from exc
         raise _bad_request(message) from exc
 
@@ -349,7 +349,7 @@ def put_customer(
     except ValueError as exc:
         db.rollback()
         message = str(exc)
-        if "already exists" in message:
+        if "already exists" in message or "ya existe" in message:
             raise _conflict(message) from exc
         raise _bad_request(message) from exc
 

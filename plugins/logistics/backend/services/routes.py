@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, date, datetime
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from plugins.crm.backend.services.customers import get_customer
@@ -164,6 +164,15 @@ def get_route_stop(db: Session, *, route_id: str, stop_id: str) -> LogisticsRout
     )
 
 
+def _next_stop_order(db: Session, *, route_id: str) -> int:
+    current_max = db.scalar(
+        select(func.max(LogisticsRouteStop.stop_order)).where(
+            LogisticsRouteStop.route_id == route_id
+        )
+    )
+    return int(current_max or 0) + 1
+
+
 def create_route_stop(
     db: Session,
     *,
@@ -171,10 +180,11 @@ def create_route_stop(
     payload: RouteStopCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsRouteStop:
+    stop_order = payload.stop_order or _next_stop_order(db, route_id=route.id)
     stop = LogisticsRouteStop(
         route_id=route.id,
         delivery_point_id=payload.delivery_point_id,
-        stop_order=payload.stop_order,
+        stop_order=stop_order,
         scheduled_time=payload.scheduled_time,
         notes=payload.notes,
     )

@@ -79,6 +79,7 @@ class LogisticsCylinder(Base):
     gas_group_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_gas_products.id"), nullable=True, index=True
     )
+    product_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     content_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     volume_m3: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
     condition: Mapped[str | None] = mapped_column(

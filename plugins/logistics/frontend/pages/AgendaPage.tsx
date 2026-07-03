@@ -96,7 +96,10 @@ export function AgendaPage() {
                 key: "customer",
                 header: "Cliente",
                 render: (row) =>
-                  customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_name ?? "-",
+                  customersQuery.data?.items.find((item) => item.id === row.customer_id)?.commercial_name ??
+                  customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ??
+                  row.customer_name ??
+                  "-",
               },
               { key: "status", header: "Estado", render: (row) => row.status },
               {
@@ -160,7 +163,7 @@ export function AgendaPage() {
         open={isCustomerSearchOpen}
         onOpenChange={setIsCustomerSearchOpen}
         onSelect={(customer: CustomerBrief) =>
-          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))
         }
       />
     </LogisticsSection>

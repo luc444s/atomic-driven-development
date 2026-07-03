@@ -10,12 +10,13 @@ export function CustomerInfoCard({ customer }: CustomerInfoCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{customer.legal_name}</CardTitle>
-        <CardDescription>
-          {customer.document_type_code} {customer.document_number}
-        </CardDescription>
+        <CardTitle>{customer.commercial_name || customer.legal_name}</CardTitle>
+        <CardDescription>{customer.document_type_code} {customer.document_number}</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-2 text-sm text-foreground">
+        <p>Nombre fiscal: {customer.legal_name}</p>
+        <p>Nombre comercial: {customer.commercial_name ?? "-"}</p>
+        <p>Código cliente: {customer.external_code ?? "-"}</p>
         <p>País: {customer.country_code}</p>
         <p>Email: {customer.email ?? "-"}</p>
         <p>Teléfono: {customer.phone ?? "-"}</p>

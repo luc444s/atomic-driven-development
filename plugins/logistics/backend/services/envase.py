@@ -25,6 +25,7 @@ from plugins.logistics.backend.schemas import (
     CylinderServiceUpdateRequest,
     PrintLabelRequest,
 )
+from plugins.productos.backend.models import Product
 
 
 def list_retimbrados(db: Session, *, cylinder_id: str) -> list[LogisticsCylinderRetimbrado]:
@@ -188,9 +189,13 @@ def build_label_data(db: Session, *, cylinder: LogisticsCylinder) -> dict[str, o
     brand_name = db.scalar(
         select(LogisticsBrand.name).where(LogisticsBrand.id == cylinder.brand_id)
     )
-    gas_name = db.scalar(
-        select(LogisticsGasProduct.name).where(LogisticsGasProduct.id == cylinder.gas_group_id)
-    )
+    gas_name = None
+    if cylinder.product_id is not None:
+        gas_name = db.scalar(select(Product.name).where(Product.id == cylinder.product_id))
+    if gas_name is None:
+        gas_name = db.scalar(
+            select(LogisticsGasProduct.name).where(LogisticsGasProduct.id == cylinder.gas_group_id)
+        )
     latest_retimbrado = db.scalar(
         select(LogisticsCylinderRetimbrado)
         .where(LogisticsCylinderRetimbrado.cylinder_id == cylinder.id)

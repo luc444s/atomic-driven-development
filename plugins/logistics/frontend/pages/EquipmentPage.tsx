@@ -142,10 +142,10 @@ export function EquipmentPage() {
             <Select value={selectedMovementId ?? ""}
               onChange={(value) => setSelectedMovementId(value || null)}
               placeholder="Selecciona movimiento"
-              options={(movementsQuery.data ?? []).map((m) => ({ value: m.id, label: `${m.movement_type} - ${m.customer_name || m.id}` }))} />
+              options={(movementsQuery.data ?? []).map((m) => ({ value: m.id, label: `${m.movement_type} - ${m.customer_name || "Sin cliente"}` }))} />
             <DataTable
               columns={[
-                { key: "equip", header: "Equipo", render: (row) => equipmentQuery.data?.find((e) => e.id === row.equipment_id)?.name || row.equipment_id },
+                { key: "equip", header: "Equipo", render: (row) => equipmentQuery.data?.find((e) => e.id === row.equipment_id)?.name || "-" },
                 { key: "assigned", header: "Asignado", render: (row) => new Date(row.assigned_at).toLocaleString() },
                 { key: "returned", header: "Devuelto", render: (row) => row.returned_at ? new Date(row.returned_at).toLocaleString() : "Pendiente" },
                 {

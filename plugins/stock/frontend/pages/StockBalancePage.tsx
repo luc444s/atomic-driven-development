@@ -7,6 +7,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listBalances, listWarehousesCatalog, stockKeys } from "../api";
 import { ModalAjusteStock } from "../components/ModalAjusteStock";
 import { ModalConfigStock } from "../components/ModalConfigStock";
@@ -123,18 +124,18 @@ export function StockBalancePage() {
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Busca por SKU, producto o almacén"
             />
-            <select
-              className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring"
+            <Select
               value={warehouseFilter}
-              onChange={(event) => setWarehouseFilter(event.target.value)}
-            >
-              <option value="">Todos los almacenes</option>
-              {(warehousesQuery.data ?? []).map((warehouse) => (
-                <option key={warehouse.id} value={warehouse.id}>
-                  {warehouse.code} · {warehouse.name}
-                </option>
-              ))}
-            </select>
+              onChange={setWarehouseFilter}
+              placeholder="Todos los almacenes"
+              options={[
+                { value: "", label: "Todos los almacenes" },
+                ...(warehousesQuery.data ?? []).map((warehouse) => ({
+                  value: warehouse.id,
+                  label: `${warehouse.code} · ${warehouse.name}`,
+                })),
+              ]}
+            />
             <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
               <input
                 type="checkbox"

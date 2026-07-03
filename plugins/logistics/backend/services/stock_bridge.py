@@ -74,3 +74,26 @@ def adjust_products_stock(
             idempotency_key=f"{idempotency_prefix}:{index}:{product_id}",
             action_context=stock_context,
         )
+
+
+def adjust_required_product_stock(
+    db: Session,
+    *,
+    tenant_id: str,
+    warehouse_id: str,
+    product_id: str,
+    quantity: float,
+    reason: str,
+    idempotency_key: str,
+    action_context: LogisticsActionContext,
+) -> None:
+    adjust_stock(
+        db,
+        tenant_id=tenant_id,
+        product_id=product_id,
+        warehouse_id=warehouse_id,
+        quantity=quantity,
+        reason=reason,
+        idempotency_key=idempotency_key,
+        action_context=build_stock_action_context(action_context),
+    )

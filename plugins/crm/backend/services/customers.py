@@ -4,7 +4,7 @@ from sqlalchemy import inspect, or_, select, text
 from sqlalchemy.orm import Session, selectinload
 
 from plugins.crm.backend.common import CrmActionContext, audit_crm_action, emit_crm_event
-from plugins.crm.backend.models import CrmCustomer
+from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
 from plugins.crm.backend.schemas import (
     CustomerCreateRequest,
     CustomerSearchItemRead,
@@ -241,10 +241,21 @@ def search_customers(
             CrmCustomer.is_active.is_(True),
             or_(
                 CrmCustomer.legal_name.ilike(term),
+                CrmCustomer.commercial_name.ilike(term),
                 CrmCustomer.document_number.ilike(term),
                 CrmCustomer.email.ilike(term),
                 CrmCustomer.phone.ilike(term),
                 CrmCustomer.external_code.ilike(term),
+                CrmCustomer.addresses.any(
+                    or_(
+                        CrmCustomerAddress.city.ilike(term),
+                        CrmCustomerAddress.district.ilike(term),
+                        CrmCustomerAddress.state.ilike(term),
+                        CrmCustomerAddress.line1.ilike(term),
+                        CrmCustomerAddress.contact_phone.ilike(term),
+                        CrmCustomerAddress.contact_email.ilike(term),
+                    )
+                ),
             ),
         )
         .order_by(CrmCustomer.legal_name.asc())
@@ -255,12 +266,16 @@ def search_customers(
         CustomerSearchItemRead(
             id=item.id,
             legal_name=item.legal_name,
+            commercial_name=item.commercial_name,
+            display_name=item.commercial_name or item.legal_name,
             document_type_code=item.document_type_code,
             document_number=item.document_number,
+            external_code=item.external_code,
             email=item.email,
             phone=item.phone,
             country_code=item.country_code,
             fiscal_address_summary=_build_fiscal_address_summary(item),
+            locality_summary=_build_locality_summary(item),
         )
         for item in customers
     ]
@@ -342,6 +357,22 @@ def _build_fiscal_address_summary(customer: CrmCustomer) -> str | None:
             elif address.city:
                 parts.append(address.city)
             return ", ".join(parts)
+    return None
+
+
+def _build_locality_summary(customer: CrmCustomer) -> str | None:
+    preferred = None
+    if customer.fiscal_address_id is not None:
+        preferred = next(
+            (address for address in customer.addresses if address.id == customer.fiscal_address_id),
+            None,
+        )
+    address = preferred or next(iter(customer.addresses), None)
+    if address is None:
+        return None
+    for value in (address.district, address.city, address.state):
+        if value:
+            return value
     return None
 
 

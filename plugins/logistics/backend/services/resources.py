@@ -323,7 +323,9 @@ def update_delivery_point(
     payload: DeliveryPointUpdateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsDeliveryPoint:
-    if payload.customer_id is not None and payload.customer_id != delivery_point.customer_id:
+    if payload.customer_id is not None and (
+        payload.customer_id != delivery_point.customer_id or not delivery_point.customer_name
+    ):
         customer = require_customer(
             db,
             tenant_id=delivery_point.tenant_id,

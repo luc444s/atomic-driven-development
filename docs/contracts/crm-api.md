@@ -226,6 +226,17 @@ Response:
 }
 ```
 
+`search` filtra por:
+
+- `legal_name`
+- `commercial_name`
+- `document_number`
+- `phone`
+- `email`
+- `external_code`
+- localidad (`district`, `city`, `state`)
+- texto de direccion base
+
 ### GET `/customers/search`
 
 Permiso: `crm.customer.read`
@@ -244,12 +255,16 @@ Response:
   {
     "id": "uuid",
     "legal_name": "GLP Norte SAC",
+    "commercial_name": "GLP Norte",
+    "display_name": "GLP Norte",
     "document_type_code": "RUC",
     "document_number": "20123456789",
+    "external_code": "CLI-0001",
     "email": "ventas@glpnorte.pe",
     "phone": "014445555",
     "country_code": "PER",
-    "fiscal_address_summary": "Av. Peru 123, Lima"
+    "fiscal_address_summary": "Av. Peru 123, Lima",
+    "locality_summary": "Lima"
   }
 ]
 ```

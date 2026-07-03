@@ -12,17 +12,34 @@ from plugins.logistics.backend.common import (
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsCylinderStateLog,
+    LogisticsGasProduct,
 )
 from plugins.logistics.backend.schemas import (
     CylinderCreateRequest,
     CylinderSummaryItem,
     CylinderTransitionRequest,
     CylinderUpdateRequest,
+    MovementCreateRequest,
 )
 from plugins.logistics.backend.services.state_machine import (
     ensure_transition_allowed,
     list_allowed_transitions,
 )
+from plugins.logistics.backend.services.stock_bridge import adjust_required_product_stock
+from plugins.productos.backend.models import Product
+
+ENTRY_MODE_EMPTY_FROM_CUSTOMER = "EMPTY_FROM_CUSTOMER"
+ENTRY_MODE_FULL_FROM_SUPPLIER = "FULL_FROM_SUPPLIER"
+
+ENTRY_MODE_TARGET_STATE = {
+    ENTRY_MODE_EMPTY_FROM_CUSTOMER: "EN_ALMACEN_VACIO",
+    ENTRY_MODE_FULL_FROM_SUPPLIER: "LLENADO_OK",
+}
+
+ENTRY_MODE_MOVEMENT_TYPE = {
+    ENTRY_MODE_EMPTY_FROM_CUSTOMER: "IC",
+    ENTRY_MODE_FULL_FROM_SUPPLIER: "IFP",
+}
 
 
 def list_cylinders(
@@ -116,16 +133,32 @@ def create_cylinder(
     *,
     tenant_id: str,
     payload: CylinderCreateRequest,
+    warehouse_id: str | None,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinder:
+    _validate_initial_entry_payload(payload, warehouse_id=warehouse_id)
     cylinder = LogisticsCylinder(
         tenant_id=tenant_id,
         serial=payload.serial.strip().upper(),
         is_active=True,
     )
     _apply_cylinder_payload(cylinder, payload)
+    if payload.entry_mode is not None:
+        cylinder.current_state = ENTRY_MODE_TARGET_STATE[payload.entry_mode]
     db.add(cylinder)
     db.flush()
+
+    document_reference = _build_document_reference(payload)
+    state_notes = (
+        _build_initial_state_notes(payload=payload, warehouse_id=warehouse_id, document_reference=document_reference)
+        if payload.entry_mode is not None
+        else "Initial cylinder registration"
+    )
+    state_metadata = (
+        _build_initial_state_metadata(payload=payload, warehouse_id=warehouse_id, document_reference=document_reference)
+        if payload.entry_mode is not None
+        else {}
+    )
 
     db.add(
         LogisticsCylinderStateLog(
@@ -134,11 +167,22 @@ def create_cylinder(
             from_state=None,
             to_state=cylinder.current_state,
             changed_by=action_context.actor_user_id,
-            origin="PLUGIN_CREATE",
-            notes="Initial cylinder registration",
-            metadata_json={},
+            origin="ALTA CILINDRO" if payload.entry_mode is not None else "PLUGIN_CREATE",
+            notes=state_notes,
+            metadata_json=state_metadata,
         )
     )
+
+    if payload.entry_mode is not None and warehouse_id is not None:
+        _register_initial_entry(
+            db,
+            tenant_id=tenant_id,
+            cylinder=cylinder,
+            payload=payload,
+            warehouse_id=warehouse_id,
+            document_reference=document_reference,
+            action_context=action_context,
+        )
 
     audit_logistics_action(
         db,
@@ -146,7 +190,12 @@ def create_cylinder(
         action="cylinder.create",
         entity_type="cylinder",
         entity_id=cylinder.id,
-        details={"serial": cylinder.serial, "state": cylinder.current_state},
+        details={
+            "serial": cylinder.serial,
+            "state": cylinder.current_state,
+            "entry_mode": payload.entry_mode,
+            "warehouse_id": warehouse_id,
+        },
     )
     emit_logistics_event(
         db,
@@ -154,7 +203,12 @@ def create_cylinder(
         event_name="logistics.cylinder.created",
         entity_type="cylinder",
         entity_id=cylinder.id,
-        payload={"serial": cylinder.serial, "current_state": cylinder.current_state},
+        payload={
+            "serial": cylinder.serial,
+            "current_state": cylinder.current_state,
+            "entry_mode": payload.entry_mode or "MANUAL",
+            "warehouse_id": warehouse_id,
+        },
     )
     return cylinder
 
@@ -317,6 +371,7 @@ def _apply_cylinder_payload(
     for field_name in [
         "branch_id",
         "gas_group_id",
+        "product_id",
         "content_kg",
         "volume_m3",
         "brand_id",
@@ -340,3 +395,183 @@ def _apply_cylinder_payload(
     is_active = getattr(payload, "is_active", None)
     if should_apply("is_active") and is_active is not None:
         cylinder.is_active = is_active
+
+
+def _validate_initial_entry_payload(
+    payload: CylinderCreateRequest,
+    *,
+    warehouse_id: str | None,
+) -> None:
+    if payload.entry_mode is None:
+        return
+    if warehouse_id is None:
+        raise ValueError(
+            "No se pudo resolver un almacen activo unico para el usuario. Ajusta el contexto operativo antes de crear el envase."
+        )
+    if not payload.document_type:
+        raise ValueError("El tipo de documento es obligatorio para el alta operativa del envase")
+    if not payload.document_number:
+        raise ValueError("El numero de documento es obligatorio para el alta operativa del envase")
+    if payload.entry_mode == ENTRY_MODE_EMPTY_FROM_CUSTOMER and not payload.customer_id:
+        raise ValueError("customer_id es obligatorio cuando el envase entra vacio desde cliente")
+    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER:
+        if payload.product_id is None and payload.gas_group_id is None:
+            raise ValueError("product_id es obligatorio cuando el envase entra lleno desde proveedor")
+        if payload.content_kg is None or payload.content_kg <= 0:
+            raise ValueError("content_kg debe ser mayor que cero cuando el envase entra lleno desde proveedor")
+
+
+def _build_document_reference(payload: CylinderCreateRequest) -> str | None:
+    if not payload.document_type or not payload.document_number:
+        return None
+    return f"{payload.document_type}:{payload.document_number}"
+
+
+def _build_initial_state_notes(
+    *,
+    payload: CylinderCreateRequest,
+    warehouse_id: str | None,
+    document_reference: str | None,
+) -> str:
+    labels = {
+        ENTRY_MODE_EMPTY_FROM_CUSTOMER: "ALTA CILINDRO VACIO DESDE CLIENTE",
+        ENTRY_MODE_FULL_FROM_SUPPLIER: "ALTA CILINDRO LLENO DESDE PROVEEDOR",
+    }
+    parts = [labels.get(payload.entry_mode or "", "ALTA CILINDRO")]
+    if warehouse_id:
+        parts.append(f"almacen={warehouse_id}")
+    if document_reference:
+        parts.append(f"doc={document_reference}")
+    return " | ".join(parts)
+
+
+def _build_initial_state_metadata(
+    *,
+    payload: CylinderCreateRequest,
+    warehouse_id: str | None,
+    document_reference: str | None,
+) -> dict[str, object]:
+    data: dict[str, object] = {
+        "entry_mode": payload.entry_mode,
+        "warehouse_id": warehouse_id,
+    }
+    if document_reference is not None:
+        data["document_reference"] = document_reference
+    if payload.customer_id is not None:
+        data["customer_id"] = payload.customer_id
+    return data
+
+
+def _resolve_stock_product_for_gas(
+    db: Session,
+    *,
+    tenant_id: str,
+    product_id: str | None,
+    gas_group_id: str,
+) -> Product:
+    if product_id is not None:
+        product = db.scalar(
+            select(Product).where(
+                Product.tenant_id == tenant_id,
+                Product.id == product_id,
+                Product.is_active.is_(True),
+            )
+        )
+        if product is None:
+            raise LookupError(
+                "No se encontro el producto maestro asociado al envase. Ajusta el catalogo antes de crear un envase lleno desde proveedor."
+            )
+        return product
+    gas = db.scalar(
+        select(LogisticsGasProduct).where(
+            LogisticsGasProduct.tenant_id == tenant_id,
+            LogisticsGasProduct.id == gas_group_id,
+        )
+    )
+    if gas is None:
+        raise LookupError("Gas product not found")
+    product = db.scalar(
+        select(Product).where(
+            Product.tenant_id == tenant_id,
+            Product.sku == gas.code,
+            Product.condition_code == "GAS",
+            Product.is_active.is_(True),
+        )
+    )
+    if product is None:
+        raise LookupError(
+            f"No se encontro el producto maestro para el gas {gas.code}. Ajusta el catalogo antes de crear un envase lleno desde proveedor."
+        )
+    return product
+
+
+def _register_initial_entry(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    payload: CylinderCreateRequest,
+    warehouse_id: str,
+    document_reference: str | None,
+    action_context: LogisticsActionContext,
+) -> None:
+    from plugins.logistics.backend.services.movements import confirm_movement, create_movement
+
+    product = None
+    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and (
+        payload.product_id is not None or payload.gas_group_id is not None
+    ):
+        product = _resolve_stock_product_for_gas(
+            db,
+            tenant_id=tenant_id,
+            product_id=payload.product_id,
+            gas_group_id=payload.gas_group_id or "",
+        )
+
+    movement = create_movement(
+        db,
+        tenant_id=tenant_id,
+        created_by=action_context.actor_user_id,
+        payload=MovementCreateRequest(
+            branch_id=payload.branch_id,
+            movement_type=ENTRY_MODE_MOVEMENT_TYPE[payload.entry_mode or ENTRY_MODE_EMPTY_FROM_CUSTOMER],
+            document_series=payload.document_type,
+            document_number=payload.document_number,
+            customer_id=payload.customer_id,
+            warehouse_id=warehouse_id,
+            notes=_build_initial_state_notes(
+                payload=payload,
+                warehouse_id=warehouse_id,
+                document_reference=document_reference,
+            ),
+            items=[
+                {
+                    "cylinder_id": cylinder.id,
+                    "product_id": product.id if product is not None else None,
+                    "product_name": product.name if product is not None else None,
+                    "quantity": 1,
+                    "quantity_in": payload.content_kg if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and payload.content_kg is not None else 1,
+                    "notes": document_reference,
+                }
+            ],
+        ),
+        action_context=action_context,
+    )
+    confirm_movement(
+        db,
+        tenant_id=tenant_id,
+        movement=movement,
+        action_context=action_context,
+    )
+
+    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and product is not None and payload.content_kg is not None:
+        adjust_required_product_stock(
+            db,
+            tenant_id=tenant_id,
+            warehouse_id=warehouse_id,
+            product_id=product.id,
+            quantity=payload.content_kg,
+            reason=f"Alta cilindro lleno desde proveedor: {document_reference or cylinder.serial}",
+            idempotency_key=f"cylinder-create:{cylinder.id}:stock",
+            action_context=action_context,
+        )

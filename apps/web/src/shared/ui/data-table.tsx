@@ -14,9 +14,10 @@ type DataTableProps<Row> = {
   rowKey: (row: Row) => string;
   emptyMessage: string;
   onRowClick?: (row: Row) => void;
+  dense?: boolean;
 };
 
-export function DataTable<Row>({ columns, rows, rowKey, emptyMessage, onRowClick }: DataTableProps<Row>) {
+export function DataTable<Row>({ columns, rows, rowKey, emptyMessage, onRowClick, dense = false }: DataTableProps<Row>) {
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-card">
       <div className="overflow-x-auto">
@@ -24,7 +25,7 @@ export function DataTable<Row>({ columns, rows, rowKey, emptyMessage, onRowClick
           <thead className="bg-muted/50 text-left text-xs uppercase tracking-wide text-muted-foreground">
             <tr>
               {columns.map((column) => (
-                <th key={column.key} className={cn("px-4 py-3 font-semibold", column.className)}>
+                <th key={column.key} className={cn(dense ? "px-3 py-1.5 font-semibold" : "px-4 py-3 font-semibold", column.className)}>
                   {column.header}
                 </th>
               ))}
@@ -39,7 +40,7 @@ export function DataTable<Row>({ columns, rows, rowKey, emptyMessage, onRowClick
                   onClick={() => onRowClick?.(row)}
                 >
                   {columns.map((column) => (
-                    <td key={column.key} className={cn("px-4 py-3", column.className)}>
+                    <td key={column.key} className={cn(dense ? "px-3 py-1.5" : "px-4 py-3", column.className)}>
                       {column.render(row)}
                     </td>
                   ))}

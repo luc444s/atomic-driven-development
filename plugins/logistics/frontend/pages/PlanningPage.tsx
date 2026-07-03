@@ -5,10 +5,11 @@ import {
   acceptPreload,
   cancelPreload,
   generatePreload,
-  getPlanningStock,
   listPlanningPendingOrders,
+  listPlanningStockBalances,
   listPreloads,
   listWarehouses,
+  LogisticsWarehouse,
   logisticsKeys,
   planningKeys,
   PlanningPendingOrder,
@@ -26,14 +27,105 @@ import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 
-const controlClassName =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
-
 const COVERAGE_COLORS: Record<string, string> = {
   verde: "text-emerald-400",
   amarillo: "text-amber-400",
   rojo: "text-rose-400",
 };
+
+function getCoverageStatus(available: number): string {
+  if (available >= 1) {
+    return "verde";
+  }
+  if (available > 0) {
+    return "amarillo";
+  }
+  return "rojo";
+}
+
+function resolveWarehouseName(
+  warehousesById: Map<string, LogisticsWarehouse>,
+  warehouseId: string | null,
+): string {
+  if (!warehouseId) {
+    return "Sin asignar";
+  }
+  return warehousesById.get(warehouseId)?.name ?? "-";
+}
+
+function buildPlanningStockRows(
+  warehouseId: string,
+  balances: Array<{
+    product_id: string;
+    product_name: string;
+    warehouse_id: string;
+    quantity: number;
+  }>,
+  pendingOrders: PlanningPendingOrder[],
+  preloads: PlanningPreload[],
+): PlanningStockSummaryItem[] {
+  const productNames = new Map<string, string>();
+  const actualByProduct = new Map<string, number>();
+  const committedByProduct = new Map<string, number>();
+  const plannedByProduct = new Map<string, number>();
+
+  for (const balance of balances) {
+    productNames.set(balance.product_id, balance.product_name);
+    actualByProduct.set(balance.product_id, (actualByProduct.get(balance.product_id) ?? 0) + balance.quantity);
+  }
+
+  for (const order of pendingOrders) {
+    for (const item of order.items) {
+      if (!item.product_id) {
+        continue;
+      }
+      productNames.set(item.product_id, productNames.get(item.product_id) ?? item.product_name);
+      committedByProduct.set(
+        item.product_id,
+        (committedByProduct.get(item.product_id) ?? 0) + item.quantity_planned,
+      );
+    }
+  }
+
+  for (const preload of preloads) {
+    if (preload.status !== "PENDIENTE") {
+      continue;
+    }
+    for (const item of preload.items) {
+      productNames.set(item.product_id, productNames.get(item.product_id) ?? item.product_name ?? "-");
+      plannedByProduct.set(
+        item.product_id,
+        (plannedByProduct.get(item.product_id) ?? 0) + item.quantity_planned,
+      );
+    }
+  }
+
+  const productIds = new Set<string>([
+    ...actualByProduct.keys(),
+    ...committedByProduct.keys(),
+    ...plannedByProduct.keys(),
+  ]);
+
+  return Array.from(productIds)
+    .map((productId) => {
+      const stock_actual = actualByProduct.get(productId) ?? 0;
+      const stock_comprometido = committedByProduct.get(productId) ?? 0;
+      const stock_planificado = plannedByProduct.get(productId) ?? 0;
+      const stock_disponible = stock_actual - stock_comprometido - stock_planificado;
+
+      return {
+        product_id: productId,
+        product_name: productNames.get(productId) ?? "-",
+        warehouse_id: warehouseId,
+        stock_actual,
+        stock_comprometido,
+        stock_planificado,
+        stock_disponible,
+        coverage_status: getCoverageStatus(stock_disponible),
+      };
+    })
+    .sort((left, right) => left.product_name.localeCompare(right.product_name));
+}
 
 function CoverageBadge({ status }: { status: string }) {
   return <Badge className={COVERAGE_COLORS[status] || "text-muted-foreground"}>{status}</Badge>;
@@ -51,17 +143,18 @@ export function PlanningPage() {
   const [error, setError] = useState<string | null>(null);
 
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
-  const stockQuery = useQuery({
+  const stockBalancesQuery = useQuery({
     queryKey: planningKeys.stock(warehouseFilter),
-    queryFn: () => getPlanningStock(warehouseFilter || undefined),
+    queryFn: () => listPlanningStockBalances(warehouseFilter),
+    enabled: Boolean(warehouseFilter),
   });
   const pendingQuery = useQuery({
-    queryKey: planningKeys.pendingOrders(),
-    queryFn: listPlanningPendingOrders,
+    queryKey: planningKeys.pendingOrders(warehouseFilter),
+    queryFn: () => listPlanningPendingOrders(warehouseFilter || undefined),
   });
   const preloadsQuery = useQuery({
-    queryKey: planningKeys.preloads.list(),
-    queryFn: listPreloads,
+    queryKey: planningKeys.preloads.list(warehouseFilter),
+    queryFn: () => listPreloads(warehouseFilter || undefined),
   });
 
   const planMutation = useMutation({
@@ -71,7 +164,7 @@ export function PlanningPage() {
       setError(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) }),
-        queryClient.invalidateQueries({ queryKey: planningKeys.pendingOrders() }),
+        queryClient.invalidateQueries({ queryKey: planningKeys.pendingOrders(warehouseFilter) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.orders.all() }),
       ]);
     },
@@ -88,6 +181,7 @@ export function PlanningPage() {
       setPreloadDate("");
       setError(null);
       queryClient.invalidateQueries({ queryKey: planningKeys.preloads.all() });
+      queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) });
     },
   });
 
@@ -96,6 +190,7 @@ export function PlanningPage() {
     onSuccess: () => {
       setSelectedPreload(null);
       queryClient.invalidateQueries({ queryKey: planningKeys.preloads.all() });
+      queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) });
     },
   });
 
@@ -104,6 +199,7 @@ export function PlanningPage() {
     onSuccess: () => {
       setSelectedPreload(null);
       queryClient.invalidateQueries({ queryKey: planningKeys.preloads.all() });
+      queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) });
     },
   });
 
@@ -126,9 +222,16 @@ export function PlanningPage() {
     }
   }
 
-  const stockByProduct = new Map(
-    (stockQuery.data ?? []).map((item) => [item.product_id, item])
-  );
+  const warehousesById = new Map((warehousesQuery.data ?? []).map((warehouse) => [warehouse.id, warehouse]));
+  const stockRows = warehouseFilter
+    ? buildPlanningStockRows(
+        warehouseFilter,
+        stockBalancesQuery.data ?? [],
+        pendingQuery.data ?? [],
+        preloadsQuery.data ?? [],
+      )
+    : [];
+  const stockByProduct = new Map(stockRows.map((item) => [item.product_id, item]));
 
   return (
     <LogisticsSection
@@ -163,7 +266,7 @@ export function PlanningPage() {
               { key: "disponible", header: "Disponible", render: (row) => String(row.stock_disponible) },
               { key: "coverage", header: "Cobertura", render: (row) => <CoverageBadge status={row.coverage_status} /> },
             ]}
-            rows={stockQuery.data ?? []}
+            rows={stockRows}
             rowKey={(row) => `${row.product_id}-${row.warehouse_id}`}
             emptyMessage="Selecciona un almacen para ver stock."
           />
@@ -180,13 +283,27 @@ export function PlanningPage() {
             <DataTable
               columns={[
                 { key: "customer", header: "Cliente", render: (row) => row.customer_name },
-                { key: "warehouse", header: "Almacen", render: (row) => row.warehouse_id || "-" },
+                {
+                  key: "warehouse",
+                  header: "Almacen",
+                  render: (row) => resolveWarehouseName(warehousesById, row.warehouse_id),
+                },
                 { key: "status", header: "Estado", render: (row) => row.status },
                 { key: "coverage", header: "Cobertura", render: (row) => <CoverageBadge status={row.coverage_status} /> },
                 {
                   key: "actions", header: "", className: "w-20",
                   render: (row) => (
-                    <Button variant="secondary" onClick={() => setSelectedOrder(row)}>Planificar</Button>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        if (row.warehouse_id) {
+                          setWarehouseFilter(row.warehouse_id);
+                        }
+                        setSelectedOrder(row);
+                      }}
+                    >
+                      Planificar
+                    </Button>
                   ),
                 },
               ]}
@@ -210,7 +327,11 @@ export function PlanningPage() {
             <DataTable
               columns={[
                 { key: "date", header: "Fecha", render: (row) => row.preload_date },
-                { key: "warehouse", header: "Almacen", render: (row) => row.warehouse_id },
+                {
+                  key: "warehouse",
+                  header: "Almacen",
+                  render: (row) => resolveWarehouseName(warehousesById, row.warehouse_id),
+                },
                 { key: "status", header: "Estado", render: (row) => row.status },
                 {
                   key: "actions", header: "", className: "w-32",
@@ -321,7 +442,7 @@ export function PlanningPage() {
           <div className="space-y-4">
             <DataTable
               columns={[
-                { key: "product", header: "Producto", render: (row) => row.product_name || row.product_id },
+                { key: "product", header: "Producto", render: (row) => row.product_name || "-" },
                 { key: "planned", header: "Planificado", render: (row) => String(row.quantity_planned) },
                 { key: "loaded", header: "Cargado", render: (row) => String(row.quantity_loaded) },
               ]}

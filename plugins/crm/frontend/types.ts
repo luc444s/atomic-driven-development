@@ -77,12 +77,16 @@ export type CustomerAddress = {
 export type CustomerBrief = {
   id: string;
   legal_name: string;
+  commercial_name: string | null;
+  display_name: string;
   document_type_code: string;
   document_number: string;
+  external_code: string | null;
   email: string | null;
   phone: string | null;
   country_code: string;
   fiscal_address_summary: string | null;
+  locality_summary: string | null;
 };
 
 export type CustomerListItem = {

@@ -168,7 +168,9 @@ export function OrdersPage() {
                   key: "customer",
                   header: "Cliente",
                   render: (row) =>
-                    customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_name,
+                    customersQuery.data?.items.find((item) => item.id === row.customer_id)?.commercial_name ??
+                    customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ??
+                    row.customer_name,
                 },
                 { key: "type", header: "Tipo", render: (row) => row.movement_type },
                 { key: "status", header: "Estado", render: (row) => row.status },
@@ -278,7 +280,7 @@ export function OrdersPage() {
         open={isCustomerSearchOpen}
         onOpenChange={setIsCustomerSearchOpen}
         onSelect={(customer: CustomerBrief) =>
-          setOrderForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+          setOrderForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))
         }
       />
 

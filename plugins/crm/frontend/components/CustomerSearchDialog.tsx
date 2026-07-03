@@ -25,14 +25,35 @@ export function CustomerSearchDialog({
       onSelect={onSelect}
       getRowId={(item) => item.id}
       columns={[
-        { key: "name", header: "Cliente", render: (row) => row.legal_name },
+        {
+          key: "name",
+          header: "Cliente",
+          render: (row) => (
+            <div className="space-y-1">
+              <p className="font-medium text-foreground">{row.display_name}</p>
+              {row.commercial_name && row.commercial_name !== row.legal_name ? (
+                <p className="text-xs text-muted-foreground">Fiscal: {row.legal_name}</p>
+              ) : null}
+            </div>
+          ),
+        },
         {
           key: "document",
           header: "Documento",
-          render: (row) => `${row.document_type_code} ${row.document_number}`,
+          render: (row) => (
+            <div className="space-y-1">
+              <p>{`${row.document_type_code} ${row.document_number}`}</p>
+              <p className="text-xs text-muted-foreground">Código: {row.external_code ?? "-"}</p>
+            </div>
+          ),
         },
         { key: "email", header: "Email", render: (row) => row.email ?? "-" },
         { key: "phone", header: "Teléfono", render: (row) => row.phone ?? "-" },
+        {
+          key: "locality",
+          header: "Localidad",
+          render: (row) => row.locality_summary ?? "-",
+        },
         {
           key: "address",
           header: "Dirección fiscal",

@@ -1,0 +1,33 @@
+Para cerrar bien desde legacy, me faltaría solo esto:
+1. CREADO_LLENO
+- Confirmar dónde se persiste realmente.
+- Si va a ECilindroEstadoActual, Producto, otra tabla, o solo vive en lógica temporal.
+2. Tipo = 1 y Tipo = 4
+- Confirmar exactamente qué significan en BD.
+- Si representan ownership, tipo de movimiento, tipo de atención, o otra cosa.
+3. InsertarECabeceraPedido(...)
+- Ver firma o mapeo de parámetros.
+- Necesito ubicar con certeza dónde cae docafec, dónde cae el almacén y qué campo guarda el tipo.
+4. InsertardetallePedido(...)
+- Ver firma o mapeo.
+- Para confirmar cómo se relaciona el cilindro con el detalle operativo y si ahí también se arrastra condición/cliente/proveedor.
+5. Agregastock_Click sobre vacío
+- Confirmar si existe un flujo equivalente para:
+- Checkvaciodecli
+- Checkvacioaprov
+- Checkllenoacli
+- O si solo lleno desde proveedor genera compra/stock y los demás no.
+6. TextBox28
+- Confirmar qué representa exactamente.
+- Parece ser el valor que completa Doc.Relacionado, pero necesito saber si es número libre, serie+número, OC, guía, garantía, etc.
+7. Reglas de reset/reuso de IdCompra
+- Ya sabemos que normalmente crea una nueva.
+- Falta confirmar si eso es comportamiento intencional o bug/accidente del formulario.
+8. Si el cliente/proveedor se persiste como FK real o snapshot
+- Para no inventar en OSS algo más rígido o más laxo que el legacy.
+Si consigues eso, ya se puede cerrar SPEC 0021 con mucha menos ambigüedad.
+La tanda mínima que más valor me daría es:
+1. firma de InsertarECabeceraPedido
+2. firma de InsertardetallePedido
+3. dónde se guarda CREADO_LLENO
+4. qué hacen los otros 3 checks además de Checkllenodeprov

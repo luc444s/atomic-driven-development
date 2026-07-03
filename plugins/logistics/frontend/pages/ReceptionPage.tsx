@@ -181,7 +181,7 @@ export function ReceptionPage() {
           <div className="space-y-4">
             <DataTable
               columns={[
-                { key: "product", header: "Producto", render: (row) => row.product_name || row.cylinder_id || "-" },
+                { key: "product", header: "Producto", render: (row) => row.product_name || "-" },
                 { key: "qty_in", header: "Cant. entrada", render: (row) => String(row.quantity_in) },
                 { key: "qty_out", header: "Cant. salida", render: (row) => String(row.quantity_out) },
               ]}
@@ -212,7 +212,7 @@ export function ReceptionPage() {
                   <div className="space-y-3">
                     {itemsQuery.data.map((item) => (
                       <div key={item.id} className="grid grid-cols-2 gap-3 items-end">
-                        <span className="text-sm text-foreground">{item.product_name || item.cylinder_id || "-"}</span>
+                        <span className="text-sm text-foreground">{item.product_name || "-"}</span>
                         <Input
                           type="number"
                           value={receiveQtys[item.id] ?? String(item.quantity ?? item.quantity_in ?? 1)}

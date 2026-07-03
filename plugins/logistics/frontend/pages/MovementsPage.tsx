@@ -205,7 +205,9 @@ export function MovementsPage() {
                   key: "customer",
                   header: "Cliente",
                   render: (row) =>
-                    (row.customer_id && customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name) ||
+                    (row.customer_id &&
+                      (customersQuery.data?.items.find((item) => item.id === row.customer_id)?.commercial_name ||
+                        customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name)) ||
                     row.customer_name ||
                     "-",
                 },
@@ -264,7 +266,7 @@ export function MovementsPage() {
               <p className="mb-2 text-sm font-medium text-foreground">Items</p>
               <DataTable
                 columns={[
-                  { key: "product", header: "Producto / Envase", render: (row) => row.product_name || row.cylinder_id || "-" },
+                  { key: "product", header: "Producto / Envase", render: (row) => row.product_name || "-" },
                   { key: "before", header: "Antes", render: (row) => row.state_before ?? "-" },
                   { key: "after", header: "Despues", render: (row) => row.state_after ?? "-" },
                 ]}
@@ -331,7 +333,7 @@ export function MovementsPage() {
       </Dialog>
 
       <CustomerSearchDialog open={isCustomerSearchOpen} onOpenChange={setIsCustomerSearchOpen}
-        onSelect={(customer: CustomerBrief) => setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))} />
+        onSelect={(customer: CustomerBrief) => setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))} />
 
       <Dialog open={isGuideOpen} title="Asignar guia de despacho" description="Ingresa la serie del documento."
         onClose={() => setIsGuideOpen(false)}>

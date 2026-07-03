@@ -106,11 +106,28 @@ export function DeliveryPointsPage() {
     }
   }
 
+  function openCreateDialog() {
+    setFormState(EMPTY_FORM);
+    setError(null);
+    setIsOpen(true);
+  }
+
+  function closeDialog() {
+    setIsOpen(false);
+  }
+
+  function handleDialogClose() {
+    if (isCustomerSearchOpen) {
+      return;
+    }
+    closeDialog();
+  }
+
   return (
     <LogisticsSection
       title="Puntos de entrega"
       description="Direcciones frecuentes para organizar la salida y el reparto."
-      actions={<Button onClick={() => setIsOpen(true)}>Nuevo punto</Button>}
+      actions={<Button onClick={openCreateDialog}>Nuevo punto</Button>}
     >
       {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}
 
@@ -125,7 +142,10 @@ export function DeliveryPointsPage() {
               {
                 key: "customer",
                 header: "Cliente",
-                render: (row) => customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_id,
+                render: (row) => {
+                  const customer = customersQuery.data?.items.find((item) => item.id === row.customer_id);
+                  return customer?.commercial_name ?? customer?.legal_name ?? row.customer_name ?? "-";
+                },
               },
               { key: "address", header: "Dirección", render: (row) => row.address },
               { key: "contact", header: "Contacto", render: (row) => row.contact_name ?? "-" },
@@ -145,7 +165,11 @@ export function DeliveryPointsPage() {
                       setFormState({
                         id: row.id,
                         customer_id: row.customer_id,
-                        customer_name: customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ?? row.customer_id,
+                        customer_name:
+                          customersQuery.data?.items.find((item) => item.id === row.customer_id)?.commercial_name ??
+                          customersQuery.data?.items.find((item) => item.id === row.customer_id)?.legal_name ??
+                          row.customer_name ??
+                          "",
                         contact_name: row.contact_name ?? "",
                         contact_email: row.contact_email ?? "",
                         address: row.address,
@@ -176,10 +200,7 @@ export function DeliveryPointsPage() {
         open={isOpen}
         title={formState.id ? "Editar punto de entrega" : "Nuevo punto de entrega"}
         description="Guarda una dirección útil para rutas y pedidos."
-        onClose={() => {
-          setIsOpen(false);
-          setFormState(EMPTY_FORM);
-        }}
+        onClose={handleDialogClose}
       >
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="space-y-2 text-sm text-foreground">
@@ -233,7 +254,7 @@ export function DeliveryPointsPage() {
               options={(zonesQuery.data ?? []).map((zone) => ({ value: zone.id, label: zone.name }))} />
           </label>
           <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>
+            <Button type="button" variant="secondary" onClick={closeDialog}>
               Cancelar
             </Button>
             <Button type="submit" disabled={saveMutation.isPending}>
@@ -247,7 +268,7 @@ export function DeliveryPointsPage() {
         open={isCustomerSearchOpen}
         onOpenChange={setIsCustomerSearchOpen}
         onSelect={(customer: CustomerBrief) =>
-          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+          setFormState((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))
         }
       />
     </LogisticsSection>

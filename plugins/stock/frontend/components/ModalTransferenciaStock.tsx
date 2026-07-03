@@ -6,11 +6,12 @@ import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listWarehousesCatalog, stockKeys, transferStock } from "../api";
 import type { LogisticsWarehouseOption, StockTransferResult } from "../types";
 
-const selectClassName =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
+const fieldClassName =
+  "w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 type ModalTransferenciaStockProps = {
   open: boolean;
@@ -122,31 +123,39 @@ export function ModalTransferenciaStock({
       <div className="grid gap-4 md:grid-cols-2">
         <label className="block space-y-2 text-sm text-foreground">
           <span>Almacén origen</span>
-          <select className={selectClassName} value={fromWarehouseId} onChange={(event) => setFromWarehouseId(event.target.value)}>
-            <option value="">Selecciona un almacén</option>
-            {(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.code} · {warehouse.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={fromWarehouseId}
+            onChange={setFromWarehouseId}
+            placeholder="Selecciona un almacén"
+            options={[
+              { value: "", label: "Selecciona un almacén" },
+              ...(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} · ${warehouse.name}`,
+              })),
+            ]}
+          />
         </label>
         <label className="block space-y-2 text-sm text-foreground">
           <span>Almacén destino</span>
-          <select className={selectClassName} value={toWarehouseId} onChange={(event) => setToWarehouseId(event.target.value)}>
-            <option value="">Selecciona un almacén</option>
-            {(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.code} · {warehouse.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={toWarehouseId}
+            onChange={setToWarehouseId}
+            placeholder="Selecciona un almacén"
+            options={[
+              { value: "", label: "Selecciona un almacén" },
+              ...(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} · ${warehouse.name}`,
+              })),
+            ]}
+          />
         </label>
       </div>
       <label className="block space-y-2 text-sm text-foreground">
         <span>Notas</span>
         <textarea
-          className={`${selectClassName} min-h-24`}
+          className={`${fieldClassName} min-h-24`}
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Traslado a almacén de reparto"

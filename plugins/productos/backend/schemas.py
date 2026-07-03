@@ -515,6 +515,15 @@ class ProductRead(BaseModel):
     created_by: str
     created_at: datetime
     updated_at: datetime
+    line_name: str | None = None
+    subline_name: str | None = None
+    brand_name: str | None = None
+    unit_name: str | None = None
+    insumo_type_name: str | None = None
+    subcategory_name: str | None = None
+    group_name: str | None = None
+    condition_name: str | None = None
+    status_name: str | None = None
     barcodes: list[ProductBarcodeRead]
     prices: list[ProductPriceRead]
     costs: list[ProductCostRead]

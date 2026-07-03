@@ -4,7 +4,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from sqlalchemy.sql.elements import ColumnElement
 
-from plugins.crm.backend.models import CrmCustomer
+from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
 
 
 def build_customer_filters(
@@ -21,10 +21,21 @@ def build_customer_filters(
         filters.append(
             or_(
                 CrmCustomer.legal_name.ilike(term),
+                CrmCustomer.commercial_name.ilike(term),
                 CrmCustomer.document_number.ilike(term),
                 CrmCustomer.email.ilike(term),
                 CrmCustomer.phone.ilike(term),
                 CrmCustomer.external_code.ilike(term),
+                CrmCustomer.addresses.any(
+                    or_(
+                        CrmCustomerAddress.city.ilike(term),
+                        CrmCustomerAddress.district.ilike(term),
+                        CrmCustomerAddress.state.ilike(term),
+                        CrmCustomerAddress.line1.ilike(term),
+                        CrmCustomerAddress.contact_phone.ilike(term),
+                        CrmCustomerAddress.contact_email.ilike(term),
+                    )
+                ),
             )
         )
     if document_type_code:

@@ -18,7 +18,11 @@ import {
   deletePromotion,
   expireProductAdr,
   getProduct,
+  listBrands,
+  listGroups,
+  listSubcategories,
   listSubline,
+  listUnits,
   productosKeys,
   replaceProductTax,
   setPrimaryProductBarcode,
@@ -42,9 +46,22 @@ export type ModalDetalleProductoProps = {
   asPage?: boolean;
 };
 
+type DetailSection = "barcodes" | "prices" | "costs" | "taxes" | "adr" | "media" | "promotions";
+
+const DETAIL_SECTION_ITEMS: Array<{ key: DetailSection; label: string; description: string }> = [
+  { key: "barcodes", label: "Barcodes", description: "Códigos internos, CABYS o matrícula." },
+  { key: "prices", label: "Precios", description: "Lista, monto y moneda por vigencia." },
+  { key: "costs", label: "Costos", description: "Costo actual, reposición y otros cortes." },
+  { key: "taxes", label: "Impuestos", description: "IGV, percepción y comisión externa." },
+  { key: "adr", label: "ADR", description: "Configuración de mercancías peligrosas." },
+  { key: "media", label: "Media", description: "Fotos, archivos y códigos relacionados." },
+  { key: "promotions", label: "Promociones", description: "Promociones simples por producto." },
+];
+
 export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, asPage }: ModalDetalleProductoProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [selectedSection, setSelectedSection] = useState<DetailSection | null>(null);
   const [barcodeType, setBarcodeType] = useState("INTERNAL");
   const [barcodeValue, setBarcodeValue] = useState("");
   const [priceList, setPriceList] = useState("UNITARIO");
@@ -93,6 +110,18 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
     enabled: open,
   });
   const sublineQuery = useQuery({ queryKey: productosKeys.catalogs.subline, queryFn: listSubline, enabled: open });
+  const brandsQuery = useQuery({ queryKey: productosKeys.catalogs.brands, queryFn: listBrands, enabled: open });
+  const groupsQuery = useQuery({ queryKey: productosKeys.catalogs.groups, queryFn: listGroups, enabled: open });
+  const subcategoriesQuery = useQuery({ queryKey: productosKeys.catalogs.subcategories, queryFn: listSubcategories, enabled: open });
+  const unitsQuery = useQuery({ queryKey: productosKeys.catalogs.units, queryFn: listUnits, enabled: open });
+
+  const brandById = useMemo(() => new Map((brandsQuery.data ?? []).map((item) => [item.id, item.name] as const)), [brandsQuery.data]);
+  const groupById = useMemo(() => new Map((groupsQuery.data ?? []).map((item) => [item.id, item.name] as const)), [groupsQuery.data]);
+  const subcategoryById = useMemo(
+    () => new Map((subcategoriesQuery.data ?? []).map((item) => [item.id, item.name] as const)),
+    [subcategoriesQuery.data]
+  );
+  const unitById = useMemo(() => new Map((unitsQuery.data ?? []).map((item) => [item.id, item.name] as const)), [unitsQuery.data]);
 
   const currentTaxes = useMemo(() => {
     const map = new Map(detailQuery.data?.taxes.map((item) => [item.tax_type, item]) ?? []);
@@ -238,7 +267,351 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
     }
   }
 
-  const content = (
+  function closeSection() {
+    setSelectedSection(null);
+  }
+
+  function openSection(section: DetailSection) {
+    setError(null);
+    setSelectedSection(section);
+  }
+
+  function renderSectionContent(section: DetailSection) {
+    switch (section) {
+      case "barcodes":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Barcodes</CardTitle>
+              <CardDescription>Un solo barcode puede ser principal.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
+                <select className={selectClassName} value={barcodeType} onChange={(event) => setBarcodeType(event.target.value)}>
+                  <option value="INTERNAL">INTERNAL</option>
+                  <option value="CABYS">CABYS</option>
+                  <option value="MATRICULA">MATRICULA</option>
+                  <option value="GS1">GS1</option>
+                </select>
+                <Input value={barcodeValue} onChange={(event) => setBarcodeValue(event.target.value)} placeholder="Código" />
+                <Button onClick={() => submitMutation(() => barcodeMutation.mutateAsync())}>Agregar</Button>
+              </div>
+              <DataTable
+                columns={[
+                  { key: "type", header: "Tipo", render: (row) => row.barcode_type },
+                  { key: "value", header: "Código", render: (row) => row.barcode },
+                  { key: "primary", header: "Principal", render: (row) => (row.is_primary ? "Sí" : "No") },
+                  {
+                    key: "actions",
+                    header: "Acciones",
+                    render: (row) => (
+                      <div className="flex gap-2">
+                        {!row.is_primary ? (
+                          <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductBarcode(productId, row.id))}>
+                            Principal
+                          </Button>
+                        ) : null}
+                        <Button variant="secondary" onClick={() => submitMutation(() => deleteProductBarcode(productId, row.id))}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                rows={detailQuery.data?.barcodes ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin barcodes."
+              />
+            </CardContent>
+          </Card>
+        );
+      case "prices":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Precios</CardTitle>
+              <CardDescription>Nueva fila = nueva vigencia.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_auto]">
+                <select className={selectClassName} value={priceList} onChange={(event) => setPriceList(event.target.value)}>
+                  <option value="UNITARIO">UNITARIO</option>
+                  <option value="INTERMEDIO">INTERMEDIO</option>
+                  <option value="CAJA">CAJA</option>
+                  <option value="LISTA2">LISTA2</option>
+                  <option value="LISTA3">LISTA3</option>
+                  <option value="LISTA4">LISTA4</option>
+                </select>
+                <Input type="number" value={priceAmount} onChange={(event) => setPriceAmount(event.target.value)} placeholder="Monto" />
+                <Input value={priceCurrency} onChange={(event) => setPriceCurrency(event.target.value.toUpperCase())} placeholder="MON" />
+                <Button onClick={() => submitMutation(() => priceMutation.mutateAsync())}>Agregar</Button>
+              </div>
+              <DataTable
+                columns={[
+                  { key: "list", header: "Lista", render: (row) => row.price_list },
+                  { key: "amount", header: "Monto", render: (row) => `${row.amount} ${row.currency}` },
+                  { key: "from", header: "Desde", render: (row) => row.valid_from },
+                  { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
+                ]}
+                rows={detailQuery.data?.prices ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin precios."
+              />
+            </CardContent>
+          </Card>
+        );
+      case "costs":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Costos</CardTitle>
+              <CardDescription>Nueva fila = nueva vigencia.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_auto]">
+                <select className={selectClassName} value={costType} onChange={(event) => setCostType(event.target.value)}>
+                  <option value="ACTUAL">ACTUAL</option>
+                  <option value="REPOSICION">REPOSICION</option>
+                  <option value="ANTERIOR">ANTERIOR</option>
+                  <option value="CGI">CGI</option>
+                  <option value="TOTAL">TOTAL</option>
+                </select>
+                <Input type="number" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="Monto" />
+                <Input value={costCurrency} onChange={(event) => setCostCurrency(event.target.value.toUpperCase())} placeholder="MON" />
+                <Button onClick={() => submitMutation(() => costMutation.mutateAsync())}>Agregar</Button>
+              </div>
+              <DataTable
+                columns={[
+                  { key: "type", header: "Tipo", render: (row) => row.cost_type },
+                  { key: "amount", header: "Monto", render: (row) => `${row.amount} ${row.currency}` },
+                  { key: "from", header: "Desde", render: (row) => row.valid_from },
+                  { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
+                ]}
+                rows={detailQuery.data?.costs ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin costos."
+              />
+            </CardContent>
+          </Card>
+        );
+      case "taxes":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Impuestos</CardTitle>
+              <CardDescription>Reemplaza la configuración vigente por tipo.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4 text-sm text-foreground">
+              <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2">
+                <input
+                  type="checkbox"
+                  checked={taxValues.igv_exempt}
+                  onChange={(event) => setTaxValues((current) => ({ ...current, igv_exempt: event.target.checked }))}
+                />
+                IGV exonerado
+              </label>
+              <div className="grid gap-4 md:grid-cols-2">
+                <label className="block space-y-2">
+                  <span>Percepción</span>
+                  <Input
+                    value={taxValues.percepcion}
+                    onChange={(event) => setTaxValues((current) => ({ ...current, percepcion: event.target.value }))}
+                    placeholder={currentTaxes.percepcion?.value?.toString() ?? "0"}
+                  />
+                </label>
+                <label className="block space-y-2">
+                  <span>Comisión externa</span>
+                  <Input
+                    value={taxValues.comision_ext}
+                    onChange={(event) => setTaxValues((current) => ({ ...current, comision_ext: event.target.value }))}
+                    placeholder={currentTaxes.comision?.value?.toString() ?? "0"}
+                  />
+                </label>
+              </div>
+              <Button onClick={() => submitMutation(() => taxMutation.mutateAsync())}>Guardar impuestos</Button>
+            </CardContent>
+          </Card>
+        );
+      case "adr":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>ADR</CardTitle>
+              <CardDescription>La configuración activa del producto transportado vive aquí, no en logística.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-4">
+                <Input value={adrForm.category} onChange={(event) => setAdrForm((current) => ({ ...current, category: event.target.value }))} placeholder="Categoría" />
+                <Input value={adrForm.packaging_type} onChange={(event) => setAdrForm((current) => ({ ...current, packaging_type: event.target.value }))} placeholder="Tipo bulto" />
+                <Input value={adrForm.un_number} onChange={(event) => setAdrForm((current) => ({ ...current, un_number: event.target.value }))} placeholder="UN" />
+                <Input value={adrForm.label} onChange={(event) => setAdrForm((current) => ({ ...current, label: event.target.value }))} placeholder="Etiqueta" />
+              </div>
+              <div className="grid gap-4 md:grid-cols-4">
+                <Input value={adrForm.net_weight_kg} onChange={(event) => setAdrForm((current) => ({ ...current, net_weight_kg: event.target.value }))} placeholder="Peso kg" />
+                <Input value={adrForm.net_volume_m3} onChange={(event) => setAdrForm((current) => ({ ...current, net_volume_m3: event.target.value }))} placeholder="Volumen m3" />
+                <Input value={adrForm.factor} onChange={(event) => setAdrForm((current) => ({ ...current, factor: event.target.value }))} placeholder="Factor" />
+                <Input value={adrForm.points} onChange={(event) => setAdrForm((current) => ({ ...current, points: event.target.value }))} placeholder="Puntos" />
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input value={adrForm.tunnel_restriction} onChange={(event) => setAdrForm((current) => ({ ...current, tunnel_restriction: event.target.value }))} placeholder="Túnel" />
+                <Input value={adrForm.unit_measure} onChange={(event) => setAdrForm((current) => ({ ...current, unit_measure: event.target.value }))} placeholder="Unidad medida" />
+                <select className={selectClassName} value={adrForm.subline_id} onChange={(event) => setAdrForm((current) => ({ ...current, subline_id: event.target.value }))}>
+                  <option value="">Sin sublínea ADR</option>
+                  {(sublineQuery.data ?? []).map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <textarea
+                className="min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
+                value={adrForm.cargo_description}
+                onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
+                placeholder="Mercancía / descripción"
+              />
+              <div className="flex justify-between gap-4">
+                <Button variant="secondary" onClick={() => (activeAdr ? submitMutation(() => expireProductAdr(productId, activeAdr.id)) : Promise.resolve())}>
+                  Expirar ADR vigente
+                </Button>
+                <Button onClick={() => submitMutation(() => adrMutation.mutateAsync())}>Registrar ADR</Button>
+              </div>
+              <DataTable
+                columns={[
+                  { key: "category", header: "Categoría", render: (row) => row.category ?? "-" },
+                  { key: "un", header: "UN", render: (row) => row.un_number ?? "-" },
+                  { key: "label", header: "Etiqueta", render: (row) => row.label ?? "-" },
+                  { key: "from", header: "Desde", render: (row) => row.valid_from },
+                  { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
+                ]}
+                rows={detailQuery.data?.adr_configs ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin configuración ADR."
+              />
+            </CardContent>
+          </Card>
+        );
+      case "media":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Media</CardTitle>
+              <CardDescription>Archivos locales preparados para evolucionar a R2.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
+                <select className={selectClassName} value={mediaType} onChange={(event) => setMediaType(event.target.value)}>
+                  <option value="PHOTO">PHOTO</option>
+                  <option value="BARCODE_IMAGE">BARCODE_IMAGE</option>
+                  <option value="DOC">DOC</option>
+                </select>
+                <input
+                  className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
+                  type="file"
+                  onChange={(event: ChangeEvent<HTMLInputElement>) => setMediaFile(event.target.files?.[0] ?? null)}
+                />
+                <Button onClick={() => submitMutation(() => mediaMutation.mutateAsync())}>Subir</Button>
+              </div>
+              <DataTable
+                columns={[
+                  { key: "type", header: "Tipo", render: (row) => row.media_type },
+                  { key: "url", header: "Archivo", render: (row) => <a className="text-cyan-300 hover:underline" href={row.url} target="_blank" rel="noreferrer">Abrir</a> },
+                  { key: "primary", header: "Principal", render: (row) => (row.is_primary ? "Sí" : "No") },
+                  {
+                    key: "actions",
+                    header: "Acciones",
+                    render: (row) => (
+                      <div className="flex gap-2">
+                        {!row.is_primary ? (
+                          <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductMedia(productId, row.id))}>
+                            Principal
+                          </Button>
+                        ) : null}
+                        <Button variant="secondary" onClick={() => submitMutation(() => deleteProductMedia(productId, row.id))}>
+                          Eliminar
+                        </Button>
+                      </div>
+                    ),
+                  },
+                ]}
+                rows={detailQuery.data?.media_items ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin media."
+              />
+            </CardContent>
+          </Card>
+        );
+      case "promotions":
+        return (
+          <Card>
+            <CardHeader>
+              <CardTitle>Promociones</CardTitle>
+              <CardDescription>Promociones simples por producto.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input value={promotionForm.name} onChange={(event) => setPromotionForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre" />
+                <select className={selectClassName} value={promotionForm.condition} onChange={(event) => setPromotionForm((current) => ({ ...current, condition: event.target.value }))}>
+                  <option value="PORCENTAJE">PORCENTAJE</option>
+                  <option value="CANTIDAD">CANTIDAD</option>
+                  <option value="OFERTA">OFERTA</option>
+                </select>
+                <Input value={promotionForm.qty_required} onChange={(event) => setPromotionForm((current) => ({ ...current, qty_required: event.target.value }))} placeholder="Cantidad requerida" />
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                <Input value={promotionForm.discount_percent} onChange={(event) => setPromotionForm((current) => ({ ...current, discount_percent: event.target.value }))} placeholder="% descuento" />
+                <Input value={promotionForm.unit_price} onChange={(event) => setPromotionForm((current) => ({ ...current, unit_price: event.target.value }))} placeholder="Precio unitario" />
+                <Input value={promotionForm.box_price} onChange={(event) => setPromotionForm((current) => ({ ...current, box_price: event.target.value }))} placeholder="Precio caja" />
+              </div>
+              <Button onClick={() => submitMutation(() => promotionMutation.mutateAsync())}>Crear promoción</Button>
+              <DataTable
+                columns={[
+                  { key: "name", header: "Nombre", render: (row) => row.name ?? "-" },
+                  { key: "condition", header: "Tipo", render: (row) => row.condition },
+                  { key: "discount", header: "Descuento", render: (row) => row.discount_percent ?? "-" },
+                  { key: "validity", header: "Vigencia", render: (row) => `${row.valid_from} → ${row.valid_to ?? "vigente"}` },
+                  {
+                    key: "actions",
+                    header: "Acciones",
+                    render: (row) => <Button variant="secondary" onClick={() => submitMutation(() => deletePromotion(row.id))}>Eliminar</Button>,
+                  },
+                ]}
+                rows={detailQuery.data?.promotions ?? []}
+                rowKey={(row) => row.id}
+                emptyMessage="Sin promociones."
+              />
+            </CardContent>
+          </Card>
+        );
+    }
+  }
+
+  function renderSectionDialog() {
+    if (!selectedSection) {
+      return null;
+    }
+
+    const currentItem = DETAIL_SECTION_ITEMS.find((item) => item.key === selectedSection);
+
+    return (
+      <Dialog
+        open
+        title={currentItem?.label ?? "Sección"}
+        description={currentItem?.description}
+        onClose={closeSection}
+        maxWidthClassName="max-w-4xl"
+      >
+        <div className="space-y-4">
+          <Button variant="secondary" onClick={closeSection}>
+            ← Volver al menú
+          </Button>
+          {renderSectionContent(selectedSection)}
+        </div>
+      </Dialog>
+    );
+  }
+
+  const rootContent = (
     <div className="space-y-6">
       {error ? <Alert title="Operación fallida">{error}</Alert> : null}
       {detailQuery.error ? <Alert title="No se pudo cargar el producto">{detailQuery.error.message}</Alert> : null}
@@ -251,9 +624,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
           <Button variant="secondary" onClick={() => onEditProduct?.(productId)}>Editar ficha</Button>
           <Button
             variant="secondary"
-            onClick={() =>
-              submitMutation(() => toggleProduct(productId, !(detailQuery.data?.is_active ?? true), "Cambio manual"))
-            }
+            onClick={() => submitMutation(() => toggleProduct(productId, !(detailQuery.data?.is_active ?? true), "Cambio manual"))}
           >
             {detailQuery.data?.is_active ? "Desactivar" : "Activar"}
           </Button>
@@ -268,297 +639,55 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         <CardContent className="grid gap-3 md:grid-cols-3 text-sm text-foreground">
           <div><span className="text-muted-foreground">Estado:</span> {detailQuery.data?.status_code ?? "-"}</div>
           <div><span className="text-muted-foreground">Activo:</span> {detailQuery.data?.is_active ? "Sí" : "No"}</div>
-          <div><span className="text-muted-foreground">Unidad:</span> {detailQuery.data?.unit_id ?? "-"}</div>
-          <div><span className="text-muted-foreground">Marca:</span> {detailQuery.data?.brand_id ?? "-"}</div>
-          <div><span className="text-muted-foreground">Grupo:</span> {detailQuery.data?.group_id ?? "-"}</div>
-          <div><span className="text-muted-foreground">Subcategoría:</span> {detailQuery.data?.subcategory_id ?? "-"}</div>
+          <div><span className="text-muted-foreground">Unidad:</span> {unitById.get(detailQuery.data?.unit_id ?? "") ?? "-"}</div>
+          <div><span className="text-muted-foreground">Marca:</span> {brandById.get(detailQuery.data?.brand_id ?? "") ?? "-"}</div>
+          <div><span className="text-muted-foreground">Grupo:</span> {groupById.get(detailQuery.data?.group_id ?? "") ?? "-"}</div>
+          <div><span className="text-muted-foreground">Subcategoría:</span> {subcategoryById.get(detailQuery.data?.subcategory_id ?? "") ?? "-"}</div>
         </CardContent>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Barcodes</CardTitle>
-            <CardDescription>Un solo barcode puede ser principal.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-              <select className={selectClassName} value={barcodeType} onChange={(event) => setBarcodeType(event.target.value)}>
-                <option value="INTERNAL">INTERNAL</option>
-                <option value="CABYS">CABYS</option>
-                <option value="MATRICULA">MATRICULA</option>
-                <option value="GS1">GS1</option>
-              </select>
-              <Input value={barcodeValue} onChange={(event) => setBarcodeValue(event.target.value)} placeholder="Código" />
-              <Button onClick={() => submitMutation(() => barcodeMutation.mutateAsync())}>Agregar</Button>
-            </div>
-            <DataTable
-              columns={[
-                { key: "type", header: "Tipo", render: (row) => row.barcode_type },
-                { key: "value", header: "Código", render: (row) => row.barcode },
-                { key: "primary", header: "Principal", render: (row) => (row.is_primary ? "Sí" : "No") },
-                {
-                  key: "actions",
-                  header: "Acciones",
-                  render: (row) => (
-                    <div className="flex gap-2">
-                      {!row.is_primary ? (
-                        <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductBarcode(productId, row.id))}>Principal</Button>
-                      ) : null}
-                      <Button variant="secondary" onClick={() => submitMutation(() => deleteProductBarcode(productId, row.id))}>Eliminar</Button>
-                    </div>
-                  ),
-                },
-              ]}
-              rows={detailQuery.data?.barcodes ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin barcodes."
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Precios</CardTitle>
-            <CardDescription>Nueva fila = nueva vigencia.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_auto]">
-              <select className={selectClassName} value={priceList} onChange={(event) => setPriceList(event.target.value)}>
-                <option value="UNITARIO">UNITARIO</option>
-                <option value="INTERMEDIO">INTERMEDIO</option>
-                <option value="CAJA">CAJA</option>
-                <option value="LISTA2">LISTA2</option>
-                <option value="LISTA3">LISTA3</option>
-                <option value="LISTA4">LISTA4</option>
-              </select>
-              <Input type="number" value={priceAmount} onChange={(event) => setPriceAmount(event.target.value)} placeholder="Monto" />
-              <Input value={priceCurrency} onChange={(event) => setPriceCurrency(event.target.value.toUpperCase())} placeholder="MON" />
-              <Button onClick={() => submitMutation(() => priceMutation.mutateAsync())}>Agregar</Button>
-            </div>
-            <DataTable
-              columns={[
-                { key: "list", header: "Lista", render: (row) => row.price_list },
-                { key: "amount", header: "Monto", render: (row) => `${row.amount} ${row.currency}` },
-                { key: "from", header: "Desde", render: (row) => row.valid_from },
-                { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
-              ]}
-              rows={detailQuery.data?.prices ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin precios."
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Costos</CardTitle>
-            <CardDescription>Nueva fila = nueva vigencia.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_120px_auto]">
-              <select className={selectClassName} value={costType} onChange={(event) => setCostType(event.target.value)}>
-                <option value="ACTUAL">ACTUAL</option>
-                <option value="REPOSICION">REPOSICION</option>
-                <option value="ANTERIOR">ANTERIOR</option>
-                <option value="CGI">CGI</option>
-                <option value="TOTAL">TOTAL</option>
-              </select>
-              <Input type="number" value={costAmount} onChange={(event) => setCostAmount(event.target.value)} placeholder="Monto" />
-              <Input value={costCurrency} onChange={(event) => setCostCurrency(event.target.value.toUpperCase())} placeholder="MON" />
-              <Button onClick={() => submitMutation(() => costMutation.mutateAsync())}>Agregar</Button>
-            </div>
-            <DataTable
-              columns={[
-                { key: "type", header: "Tipo", render: (row) => row.cost_type },
-                { key: "amount", header: "Monto", render: (row) => `${row.amount} ${row.currency}` },
-                { key: "from", header: "Desde", render: (row) => row.valid_from },
-                { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
-              ]}
-              rows={detailQuery.data?.costs ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin costos."
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Impuestos</CardTitle>
-            <CardDescription>Reemplaza la configuración vigente por tipo.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 text-sm text-foreground">
-            <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2">
-              <input type="checkbox" checked={taxValues.igv_exempt} onChange={(event) => setTaxValues((current) => ({ ...current, igv_exempt: event.target.checked }))} />
-              IGV exonerado
-            </label>
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="block space-y-2">
-                <span>Percepción</span>
-                <Input value={taxValues.percepcion} onChange={(event) => setTaxValues((current) => ({ ...current, percepcion: event.target.value }))} placeholder={currentTaxes.percepcion?.value?.toString() ?? "0"} />
-              </label>
-              <label className="block space-y-2">
-                <span>Comisión externa</span>
-                <Input value={taxValues.comision_ext} onChange={(event) => setTaxValues((current) => ({ ...current, comision_ext: event.target.value }))} placeholder={currentTaxes.comision?.value?.toString() ?? "0"} />
-              </label>
-            </div>
-            <Button onClick={() => submitMutation(() => taxMutation.mutateAsync())}>Guardar impuestos</Button>
-          </CardContent>
-        </Card>
-
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle>ADR</CardTitle>
-            <CardDescription>La configuración activa del producto transportado vive aquí, no en logística.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-4">
-              <Input value={adrForm.category} onChange={(event) => setAdrForm((current) => ({ ...current, category: event.target.value }))} placeholder="Categoría" />
-              <Input value={adrForm.packaging_type} onChange={(event) => setAdrForm((current) => ({ ...current, packaging_type: event.target.value }))} placeholder="Tipo bulto" />
-              <Input value={adrForm.un_number} onChange={(event) => setAdrForm((current) => ({ ...current, un_number: event.target.value }))} placeholder="UN" />
-              <Input value={adrForm.label} onChange={(event) => setAdrForm((current) => ({ ...current, label: event.target.value }))} placeholder="Etiqueta" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-4">
-              <Input value={adrForm.net_weight_kg} onChange={(event) => setAdrForm((current) => ({ ...current, net_weight_kg: event.target.value }))} placeholder="Peso kg" />
-              <Input value={adrForm.net_volume_m3} onChange={(event) => setAdrForm((current) => ({ ...current, net_volume_m3: event.target.value }))} placeholder="Volumen m3" />
-              <Input value={adrForm.factor} onChange={(event) => setAdrForm((current) => ({ ...current, factor: event.target.value }))} placeholder="Factor" />
-              <Input value={adrForm.points} onChange={(event) => setAdrForm((current) => ({ ...current, points: event.target.value }))} placeholder="Puntos" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Input value={adrForm.tunnel_restriction} onChange={(event) => setAdrForm((current) => ({ ...current, tunnel_restriction: event.target.value }))} placeholder="Túnel" />
-              <Input value={adrForm.unit_measure} onChange={(event) => setAdrForm((current) => ({ ...current, unit_measure: event.target.value }))} placeholder="Unidad medida" />
-              <select className={selectClassName} value={adrForm.subline_id} onChange={(event) => setAdrForm((current) => ({ ...current, subline_id: event.target.value }))}>
-                <option value="">Sin sublínea ADR</option>
-                {(sublineQuery.data ?? []).map((item) => (
-                  <option key={item.id} value={item.id}>{item.name}</option>
-                ))}
-              </select>
-            </div>
-            <textarea
-              className="min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
-              value={adrForm.cargo_description}
-              onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
-              placeholder="Mercancía / descripción"
-            />
-            <div className="flex justify-between gap-4">
-              <Button variant="secondary" onClick={() => activeAdr ? submitMutation(() => expireProductAdr(productId, activeAdr.id)) : Promise.resolve()}>
-                Expirar ADR vigente
-              </Button>
-              <Button onClick={() => submitMutation(() => adrMutation.mutateAsync())}>Registrar ADR</Button>
-            </div>
-            <DataTable
-              columns={[
-                { key: "category", header: "Categoría", render: (row) => row.category ?? "-" },
-                { key: "un", header: "UN", render: (row) => row.un_number ?? "-" },
-                { key: "label", header: "Etiqueta", render: (row) => row.label ?? "-" },
-                { key: "from", header: "Desde", render: (row) => row.valid_from },
-                { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
-              ]}
-              rows={detailQuery.data?.adr_configs ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin configuración ADR."
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Media</CardTitle>
-            <CardDescription>Archivos locales preparados para evolucionar a R2.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-3 md:grid-cols-[180px_1fr_auto]">
-              <select className={selectClassName} value={mediaType} onChange={(event) => setMediaType(event.target.value)}>
-                <option value="PHOTO">PHOTO</option>
-                <option value="BARCODE_IMAGE">BARCODE_IMAGE</option>
-                <option value="DOC">DOC</option>
-              </select>
-              <input
-                className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground"
-                type="file"
-                onChange={(event: ChangeEvent<HTMLInputElement>) => setMediaFile(event.target.files?.[0] ?? null)}
-              />
-              <Button onClick={() => submitMutation(() => mediaMutation.mutateAsync())}>Subir</Button>
-            </div>
-            <DataTable
-              columns={[
-                { key: "type", header: "Tipo", render: (row) => row.media_type },
-                { key: "url", header: "Archivo", render: (row) => <a className="text-cyan-300 hover:underline" href={row.url} target="_blank" rel="noreferrer">Abrir</a> },
-                { key: "primary", header: "Principal", render: (row) => (row.is_primary ? "Sí" : "No") },
-                {
-                  key: "actions",
-                  header: "Acciones",
-                  render: (row) => (
-                    <div className="flex gap-2">
-                      {!row.is_primary ? <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductMedia(productId, row.id))}>Principal</Button> : null}
-                      <Button variant="secondary" onClick={() => submitMutation(() => deleteProductMedia(productId, row.id))}>Eliminar</Button>
-                    </div>
-                  ),
-                },
-              ]}
-              rows={detailQuery.data?.media_items ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin media."
-            />
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Promociones</CardTitle>
-            <CardDescription>Promociones simples por producto.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3">
-              <Input value={promotionForm.name} onChange={(event) => setPromotionForm((current) => ({ ...current, name: event.target.value }))} placeholder="Nombre" />
-              <select className={selectClassName} value={promotionForm.condition} onChange={(event) => setPromotionForm((current) => ({ ...current, condition: event.target.value }))}>
-                <option value="PORCENTAJE">PORCENTAJE</option>
-                <option value="CANTIDAD">CANTIDAD</option>
-                <option value="OFERTA">OFERTA</option>
-              </select>
-              <Input value={promotionForm.qty_required} onChange={(event) => setPromotionForm((current) => ({ ...current, qty_required: event.target.value }))} placeholder="Cantidad requerida" />
-            </div>
-            <div className="grid gap-4 md:grid-cols-3">
-              <Input value={promotionForm.discount_percent} onChange={(event) => setPromotionForm((current) => ({ ...current, discount_percent: event.target.value }))} placeholder="% descuento" />
-              <Input value={promotionForm.unit_price} onChange={(event) => setPromotionForm((current) => ({ ...current, unit_price: event.target.value }))} placeholder="Precio unitario" />
-              <Input value={promotionForm.box_price} onChange={(event) => setPromotionForm((current) => ({ ...current, box_price: event.target.value }))} placeholder="Precio caja" />
-            </div>
-            <Button onClick={() => submitMutation(() => promotionMutation.mutateAsync())}>Crear promoción</Button>
-            <DataTable
-              columns={[
-                { key: "name", header: "Nombre", render: (row) => row.name ?? "-" },
-                { key: "condition", header: "Tipo", render: (row) => row.condition },
-                { key: "discount", header: "Descuento", render: (row) => row.discount_percent ?? "-" },
-                { key: "validity", header: "Vigencia", render: (row) => `${row.valid_from} → ${row.valid_to ?? "vigente"}` },
-                {
-                  key: "actions",
-                  header: "Acciones",
-                  render: (row) => <Button variant="secondary" onClick={() => submitMutation(() => deletePromotion(row.id))}>Eliminar</Button>,
-                },
-              ]}
-              rows={detailQuery.data?.promotions ?? []}
-              rowKey={(row) => row.id}
-              emptyMessage="Sin promociones."
-            />
-          </CardContent>
-        </Card>
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Menú</CardTitle>
+       </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {DETAIL_SECTION_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                type="button"
+                onClick={() => openSection(item.key)}
+                className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+              >
+                <p className="text-sm font-medium text-foreground">{item.label}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{item.description}</p>
+              </button>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 
   if (asPage) {
-    return <div className="p-6">{content}</div>;
+    return <div className="p-6 space-y-6">{rootContent}{renderSectionDialog()}</div>;
   }
 
   return (
-    <Dialog
-      open={open}
-      title={detailQuery.data?.name ?? "Detalle producto"}
-      description={`${detailQuery.data?.sku ?? ""} · ${detailQuery.data?.condition_code ?? ""}`}
-      onClose={onClose}
-      maxWidthClassName="max-w-5xl"
-    >
-      <div className="max-h-[85vh] overflow-y-auto">{content}</div>
-    </Dialog>
+    <>
+      <Dialog
+        open={open}
+        title={detailQuery.data?.name ?? "Detalle producto"}
+        description={`${detailQuery.data?.sku ?? ""} · ${detailQuery.data?.condition_code ?? ""}`}
+        onClose={() => {
+          closeSection();
+          onClose();
+        }}
+        maxWidthClassName="max-w-4xl"
+      >
+        <div className="max-h-[85vh] overflow-y-auto">{rootContent}</div>
+      </Dialog>
+      {renderSectionDialog()}
+    </>
   );
 }

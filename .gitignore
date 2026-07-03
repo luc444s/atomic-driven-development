@@ -46,6 +46,12 @@ tmp/
 postgres-data/
 redis-data/
 
+# Engram memory
+engram/
+
+# Grabaciones / transcripciones
+grabaciones/
+
 # Tooling outputs
 legacy_report/
 migration_errors*.xlsx

@@ -384,6 +384,15 @@ def _raise_service_error(exc: Exception) -> Never:
     raise exc
 
 
+def _resolve_active_warehouse_id(tenant_context: TenantContext) -> str:
+    warehouse_ids = tenant_context.current_warehouse_ids
+    if warehouse_ids is None or len(warehouse_ids) != 1:
+        raise ValueError(
+            "No se pudo resolver un almacen activo unico para el usuario. Ajusta el contexto operativo antes de crear el envase."
+        )
+    return warehouse_ids[0]
+
+
 @router.get("/catalog/cylinder-states", response_model=list[CylinderStateRead])
 def get_cylinder_states(
     db: Session = DB_SESSION,
@@ -470,10 +479,12 @@ def get_gas_product_catalog(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_GAS_CATALOG_READ,
 ) -> list[GasProductRead]:
-    return [
+    items = [
         GasProductRead.model_validate(item)
         for item in list_gas_products_catalog(db, tenant_id=tenant_context.current_tenant_id)
     ]
+    db.commit()
+    return items
 
 
 @router.get("/catalog/brands", response_model=list[BrandRead])
@@ -482,10 +493,12 @@ def get_brand_catalog(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_BRAND_CATALOG_READ,
 ) -> list[BrandRead]:
-    return [
+    items = [
         BrandRead.model_validate(item)
         for item in list_brands_catalog(db, tenant_id=tenant_context.current_tenant_id)
     ]
+    db.commit()
+    return items
 
 
 @router.get("/catalog/service-types", response_model=list[ServiceTypeRead])
@@ -494,10 +507,12 @@ def get_service_type_catalog(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SERVICE_READ,
 ) -> list[ServiceTypeRead]:
-    return [
+    items = [
         ServiceTypeRead.model_validate(item)
         for item in list_service_types_catalog(db, tenant_id=tenant_context.current_tenant_id)
     ]
+    db.commit()
+    return items
 
 
 @router.get("/cylinders", response_model=list[CylinderRead])
@@ -918,16 +933,23 @@ def create_cylinder_endpoint(
     _: User = REQUIRE_CYLINDER_CREATE,
 ) -> CylinderRead:
     try:
+        resolved_warehouse_id = (
+            _resolve_active_warehouse_id(tenant_context) if payload.entry_mode is not None else None
+        )
         cylinder = create_cylinder(
             db,
             tenant_id=tenant_context.current_tenant_id,
             payload=payload,
+            warehouse_id=resolved_warehouse_id,
             action_context=build_action_context(request, tenant_context),
         )
         db.commit()
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
     return CylinderRead.model_validate(cylinder)
 
 

@@ -14,9 +14,11 @@ from plugins.productos.backend.common import build_action_context
 from plugins.productos.backend.models import (
     ProductBrand,
     ProductCategory,
+    ProductCondition,
     ProductGroup,
     ProductInsumoType,
     ProductLine,
+    ProductStatus,
     ProductSubcategory,
     ProductSubline,
     ProductUnit,
@@ -759,7 +761,24 @@ def get_product_detail(
     product = get_product(db, tenant_id=tenant_context.current_tenant_id, product_id=product_id)
     if product is None:
         raise _not_found("Product")
-    return serialize_product(product)
+    result = serialize_product(product)
+
+    def _name(model: type, pk: str | None) -> str | None:
+        if pk is None:
+            return None
+        row = db.get(model, pk)
+        return row.name if row else None
+
+    result.line_name = _name(ProductLine, product.line_id)
+    result.subline_name = _name(ProductSubline, product.subline_id)
+    result.brand_name = _name(ProductBrand, product.brand_id)
+    result.unit_name = _name(ProductUnit, product.unit_id)
+    result.insumo_type_name = _name(ProductInsumoType, product.insumo_type_id)
+    result.subcategory_name = _name(ProductSubcategory, product.subcategory_id)
+    result.group_name = _name(ProductGroup, product.group_id)
+    result.condition_name = _name(ProductCondition, product.condition_code)
+    result.status_name = _name(ProductStatus, product.status_code)
+    return result
 
 
 @router.post(

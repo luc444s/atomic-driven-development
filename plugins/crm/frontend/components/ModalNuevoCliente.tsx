@@ -10,6 +10,8 @@ import {
   createCustomerAddress,
   crmKeys,
   getCustomer,
+  listCountries,
+  listDocumentTypes,
   setFiscalAddress,
   updateCustomer,
   updateCustomerAddress,
@@ -41,32 +43,34 @@ const EMPTY_CUSTOMER: CustomerPayload = {
   notes: null,
 };
 
-const EMPTY_ADDRESS: CustomerAddressPayload = {
-  address_type: "FISCAL",
-  label: "Fiscal",
-  geography_id: null,
-  line1: "",
-  line2: null,
-  city: null,
-  state: null,
-  district: null,
-  postal_code: null,
-  country_code: "PER",
-  latitude: null,
-  longitude: null,
-  place_id: null,
-  formatted_address: null,
-  street_name: null,
-  street_number: null,
-  geocode_source: "MANUAL",
-  precision_meters: null,
-  gps_link: null,
-  contact_name: null,
-  contact_phone: null,
-  contact_email: null,
-  notes: null,
-  ubigeo_code: null,
-};
+function emptyAddress(address_type = "FISCAL"): CustomerAddressPayload {
+  return {
+    address_type,
+    label: address_type === "FISCAL" ? "Fiscal" : address_type === "COMERCIAL" ? "Comercial" : address_type === "ENTREGA" ? "Entrega" : "Otra",
+    geography_id: null,
+    line1: "",
+    line2: null,
+    city: null,
+    state: null,
+    district: null,
+    postal_code: null,
+    country_code: "PER",
+    latitude: null,
+    longitude: null,
+    place_id: null,
+    formatted_address: null,
+    street_name: null,
+    street_number: null,
+    geocode_source: "MANUAL",
+    precision_meters: null,
+    gps_link: null,
+    contact_name: null,
+    contact_phone: null,
+    contact_email: null,
+    notes: null,
+    ubigeo_code: null,
+  };
+}
 
 export type ModalNuevoClienteProps = {
   open: boolean;
@@ -80,13 +84,23 @@ export type ModalNuevoClienteProps = {
 export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDetail, asPage }: ModalNuevoClienteProps) {
   const queryClient = useQueryClient();
   const [formState, setFormState] = useState<CustomerPayload>(EMPTY_CUSTOMER);
-  const [addressState, setAddressState] = useState<CustomerAddressPayload>(EMPTY_ADDRESS);
+  const [addressesState, setAddressesState] = useState<CustomerAddressPayload[]>([emptyAddress()]);
   const [error, setError] = useState<string | null>(null);
 
   const detailQuery = useQuery({
     queryKey: crmKeys.customers.detail(customerId ?? "new"),
     queryFn: () => getCustomer(customerId!),
     enabled: Boolean(customerId) && open,
+  });
+  const countriesQuery = useQuery({
+    queryKey: crmKeys.geography.countries,
+    queryFn: listCountries,
+    enabled: open,
+  });
+  const documentTypesQuery = useQuery({
+    queryKey: crmKeys.catalogs.documentTypes(formState.country_code),
+    queryFn: () => listDocumentTypes(formState.country_code),
+    enabled: open,
   });
 
   useEffect(() => {
@@ -114,41 +128,42 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
       gender: detailQuery.data.gender,
       notes: detailQuery.data.notes,
     });
-    const fiscalAddress = detailQuery.data.addresses.find((item) => item.id === detailQuery.data.fiscal_address_id);
-    if (fiscalAddress) {
-      setAddressState({
-        address_type: fiscalAddress.address_type,
-        label: fiscalAddress.label,
-        geography_id: fiscalAddress.geography_id,
-        line1: fiscalAddress.line1,
-        line2: fiscalAddress.line2,
-        city: fiscalAddress.city,
-        state: fiscalAddress.state,
-        district: fiscalAddress.district,
-        postal_code: fiscalAddress.postal_code,
-        country_code: fiscalAddress.country_code,
-        latitude: fiscalAddress.latitude,
-        longitude: fiscalAddress.longitude,
-        place_id: fiscalAddress.place_id,
-        formatted_address: fiscalAddress.formatted_address,
-        street_name: fiscalAddress.street_name,
-        street_number: fiscalAddress.street_number,
-        geocode_source: fiscalAddress.geocode_source,
-        precision_meters: fiscalAddress.precision_meters,
-        gps_link: fiscalAddress.gps_link,
-        contact_name: fiscalAddress.contact_name,
-        contact_phone: fiscalAddress.contact_phone,
-        contact_email: fiscalAddress.contact_email,
-        notes: fiscalAddress.notes,
-        ubigeo_code: fiscalAddress.ubigeo_code,
-      });
+    if (detailQuery.data.addresses.length > 0) {
+      setAddressesState(
+        detailQuery.data.addresses.map((item) => ({
+          address_type: item.address_type,
+          label: item.label,
+          geography_id: item.geography_id,
+          line1: item.line1,
+          line2: item.line2,
+          city: item.city,
+          state: item.state,
+          district: item.district,
+          postal_code: item.postal_code,
+          country_code: item.country_code,
+          latitude: item.latitude,
+          longitude: item.longitude,
+          place_id: item.place_id,
+          formatted_address: item.formatted_address,
+          street_name: item.street_name,
+          street_number: item.street_number,
+          geocode_source: item.geocode_source,
+          precision_meters: item.precision_meters,
+          gps_link: item.gps_link,
+          contact_name: item.contact_name,
+          contact_phone: item.contact_phone,
+          contact_email: item.contact_email,
+          notes: item.notes,
+          ubigeo_code: item.ubigeo_code,
+        }))
+      );
     }
   }, [detailQuery.data]);
 
   useEffect(() => {
     if (!open) {
       setFormState(EMPTY_CUSTOMER);
-      setAddressState(EMPTY_ADDRESS);
+      setAddressesState([emptyAddress()]);
       setError(null);
     }
   }, [open]);
@@ -156,9 +171,16 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
   const createMutation = useMutation({
     mutationFn: async (payload: CustomerPayload) => {
       const customer = await createCustomer(payload);
-      if (addressState.line1.trim()) {
-        const address = await createCustomerAddress(customer.id, addressState);
-        await setFiscalAddress(customer.id, address.id);
+      const validAddresses = addressesState.filter((a) => a.line1.trim());
+      let fiscalId: string | null = null;
+      for (const addr of validAddresses) {
+        const created = await createCustomerAddress(customer.id, addr);
+        if (addr.address_type === "FISCAL" && !fiscalId) {
+          fiscalId = created.id;
+        }
+      }
+      if (fiscalId) {
+        await setFiscalAddress(customer.id, fiscalId);
       }
       return getCustomer(customer.id);
     },
@@ -173,11 +195,12 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
     mutationFn: async (payload: CustomerPayload) => {
       const customer = await updateCustomer(customerId!, payload);
       const fiscalAddress = detailQuery.data?.addresses.find((item) => item.id === detailQuery.data?.fiscal_address_id);
-      if (addressState.line1.trim()) {
+      const firstAddress = addressesState.find((a) => a.line1.trim());
+      if (firstAddress) {
         if (fiscalAddress) {
-          await updateCustomerAddress(fiscalAddress.id, addressState);
+          await updateCustomerAddress(fiscalAddress.id, { ...firstAddress, address_type: fiscalAddress.address_type });
         } else {
-          const address = await createCustomerAddress(customer.id, addressState);
+          const address = await createCustomerAddress(customer.id, firstAddress);
           await setFiscalAddress(customer.id, address.id);
         }
       }
@@ -219,6 +242,16 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
             documentType={formState.document_type_code}
             documentNumber={formState.document_number}
             countryCode={formState.country_code}
+            countryOptions={(countriesQuery.data ?? []).map((item) => ({
+              value: item.country_code,
+              label: item.name,
+              keywords: [item.code ?? "", item.country_code],
+            }))}
+            documentTypeOptions={(documentTypesQuery.data ?? []).map((item) => ({
+              value: item.code,
+              label: item.name,
+              keywords: [item.code, item.description ?? ""],
+            }))}
             onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value }))}
           />
           <div className="grid gap-4 md:grid-cols-2">
@@ -242,13 +275,49 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
 
       <Card>
         <CardHeader>
-          <CardTitle>Dirección fiscal</CardTitle>
-          <CardDescription>Sección base lista para conectarse con la geografía y geocodificación.</CardDescription>
+          <CardTitle>Direcciones</CardTitle>
+          <CardDescription>
+            Dirección fiscal, comercial, entrega u otras. La primera dirección con tipo "Fiscal" se usará como domicilio fiscal.
+          </CardDescription>
         </CardHeader>
-        <CardContent>
-          <AddressSection value={addressState} onChange={setAddressState} />
+        <CardContent className="space-y-3">
+          {addressesState.map((addr, i) => (
+            <div key={i} className="space-y-3 rounded-lg border border-border p-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-semibold text-foreground">
+                  Dirección {i + 1}
+                  {i === 0 ? <span className="ml-2 text-xs font-normal text-muted-foreground">(fiscal por defecto)</span> : null}
+                </span>
+                {addressesState.length > 1 ? (
+                  <button
+                    type="button"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                    onClick={() => setAddressesState((prev) => prev.filter((_, j) => j !== i))}
+                  >
+                    x
+                  </button>
+                ) : null}
+              </div>
+              <AddressSection
+                value={addr}
+                onChange={(updated) => setAddressesState((prev) => prev.map((item, j) => (j === i ? updated : item)))}
+              />
+            </div>
+          ))}
+          <button
+            type="button"
+            className="text-sm font-medium text-primary hover:underline"
+            onClick={() => setAddressesState((prev) => [...prev, emptyAddress("COMERCIAL")])}
+          >
+            + Agregar dirección
+          </button>
         </CardContent>
       </Card>
+
+      {detailQuery.data ? (
+        <Card>
+                  </Card>
+      ) : null}
 
       {customerId ? (
         <Card>

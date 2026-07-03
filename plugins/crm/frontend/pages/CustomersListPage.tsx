@@ -3,6 +3,7 @@ import { useQuery } from "../../../../apps/web/src/lib/react-query";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
+import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { crmKeys, listCustomers } from "../api";
 import { ModalDetalleCliente } from "../components/ModalDetalleCliente";
 import { ModalNuevoCliente } from "../components/ModalNuevoCliente";
@@ -12,10 +13,11 @@ export function CustomersListPage() {
   const [showNew, setShowNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const customersQuery = useQuery({
-    queryKey: crmKeys.customers.list({}),
-    queryFn: () => listCustomers({ limit: 50, offset: 0 }),
+    queryKey: crmKeys.customers.list({ search }),
+    queryFn: () => listCustomers({ search, limit: 50, offset: 0 }),
   });
 
   return (
@@ -29,13 +31,30 @@ export function CustomersListPage() {
       <Card>
         <CardHeader>
           <CardTitle>Catálogo de clientes</CardTitle>
-          <CardDescription>Listado operativo del tenant actual.</CardDescription>
+          <CardDescription>Búsqueda operativa por nombre fiscal, comercial, documento, teléfono, código o localidad.</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <Input
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Buscar por nombre, documento, teléfono, código o localidad"
+            />
+          </div>
           <DataTable
             columns={[
-              { key: "name", header: "Cliente", render: (row) => row.legal_name },
+              {
+                key: "name",
+                header: "Cliente",
+                render: (row) => (
+                  <div className="space-y-1">
+                    <p className="font-medium text-foreground">{row.commercial_name ?? row.legal_name}</p>
+                    {row.commercial_name ? <p className="text-xs text-muted-foreground">Fiscal: {row.legal_name}</p> : null}
+                  </div>
+                ),
+              },
               { key: "doc", header: "Documento", render: (row) => `${row.document_type_code} ${row.document_number}` },
+              { key: "code", header: "Código", render: (row) => row.external_code ?? "-" },
               { key: "country", header: "País", render: (row) => row.country_code },
               { key: "phone", header: "Teléfono", render: (row) => row.phone ?? "-" },
               { key: "status", header: "Activo", render: (row) => (row.is_active ? "Sí" : "No") },

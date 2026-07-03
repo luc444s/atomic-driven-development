@@ -6,11 +6,9 @@ import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listWarehousesCatalog, stockKeys, upsertConfig } from "../api";
 import type { LogisticsWarehouseOption, StockConfig } from "../types";
-
-const selectClassName =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
 
 type ModalConfigStockProps = {
   open: boolean;
@@ -110,14 +108,18 @@ export function ModalConfigStock({
         </label>
         <label className="block space-y-2 text-sm text-foreground">
           <span>Almacén</span>
-          <select className={selectClassName} value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
-            <option value="">Selecciona un almacén</option>
-            {(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => (
-              <option key={warehouse.id} value={warehouse.id}>
-                {warehouse.code} · {warehouse.name}
-              </option>
-            ))}
-          </select>
+          <Select
+            value={warehouseId}
+            onChange={setWarehouseId}
+            placeholder="Selecciona un almacén"
+            options={[
+              { value: "", label: "Selecciona un almacén" },
+              ...(warehousesQuery.data ?? []).map((warehouse: LogisticsWarehouseOption) => ({
+                value: warehouse.id,
+                label: `${warehouse.code} · ${warehouse.name}`,
+              })),
+            ]}
+          />
         </label>
       </div>
       <div className="grid gap-4 md:grid-cols-3">

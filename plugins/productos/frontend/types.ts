@@ -224,6 +224,15 @@ export type Product = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  line_name: string | null;
+  subline_name: string | null;
+  brand_name: string | null;
+  unit_name: string | null;
+  insumo_type_name: string | null;
+  subcategory_name: string | null;
+  group_name: string | null;
+  condition_name: string | null;
+  status_name: string | null;
   barcodes: ProductBarcode[];
   prices: ProductPrice[];
   costs: ProductCost[];

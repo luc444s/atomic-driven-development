@@ -18,6 +18,7 @@ from plugins.logistics.backend.models import (
     LogisticsWarehouse,
     LogisticsZone,
 )
+from plugins.productos.backend.models import Product, ProductBrand
 
 STATE_DEFINITIONS: tuple[tuple[str, bool, str], ...] = (
     ("CREADO_VACIO", False, "Cilindro nuevo registrado"),
@@ -80,6 +81,7 @@ MOVEMENT_TYPE_DEFINITIONS: tuple[tuple[str, str, str, bool, str | None, str | No
     ("SC", "Salida a cliente", "EGRESO", True, "EN_ALMACEN_VACIO", "EN_CLIENTE_LLENO"),
     ("IC", "Ingreso desde cliente", "INGRESO", True, "EN_CLIENTE_VACIO", "EN_ALMACEN_VACIO"),
     ("IP", "Ingreso proveedor", "INGRESO", True, "CREADO_VACIO", "EN_ALMACEN_VACIO"),
+    ("IFP", "Ingreso lleno desde proveedor", "INGRESO", True, None, "LLENADO_OK"),
     ("SP", "Salida a proveedor", "EGRESO", True, "EN_ALMACEN_VACIO", "EN_RUTA"),
     ("TR", "Traslado interno", "TRASLADO", True, "EN_ALMACEN_VACIO", "EN_ALMACEN_VACIO"),
     ("MV", "Envio a mantenimiento", "EGRESO", True, "EN_ALMACEN_VACIO", "EN_MANTENIMIENTO"),
@@ -91,18 +93,6 @@ AGENDA_TASK_TYPE_DEFINITIONS: tuple[tuple[str, str], ...] = (
     ("SERVICIO", "Mantenimiento en sitio"),
     ("VISITA", "Visita programada"),
     ("COBRO", "Cobranza"),
-)
-
-GAS_PRODUCT_DEFINITIONS: tuple[tuple[str, str, float, str], ...] = (
-    ("GLP10", "GLP 10kg", 10, "KG"),
-    ("GLP15", "GLP 15kg", 15, "KG"),
-    ("GLP45", "GLP 45kg", 45, "KG"),
-)
-
-BRAND_DEFINITIONS: tuple[tuple[str, str], ...] = (
-    ("GENERICA", "Generica"),
-    ("INDURA", "Indura"),
-    ("SOLYGAS", "Solygas"),
 )
 
 SERVICE_TYPE_DEFINITIONS: tuple[tuple[str, str], ...] = (
@@ -248,14 +238,23 @@ def _ensure_tenant_envase_catalogs(db: Session, *, tenant_id: str) -> None:
         select(LogisticsGasProduct.id).where(LogisticsGasProduct.tenant_id == tenant_id).limit(1)
     )
     if has_gases is None:
-        for code, name, content_kg, unit in GAS_PRODUCT_DEFINITIONS:
+        gas_products = db.scalars(
+            select(Product)
+            .where(
+                Product.tenant_id == tenant_id,
+                Product.condition_code == "GAS",
+                Product.is_active.is_(True),
+            )
+            .order_by(Product.name)
+        ).all()
+        for product in gas_products:
             db.add(
                 LogisticsGasProduct(
                     tenant_id=tenant_id,
-                    code=code,
-                    name=name,
-                    content_kg=content_kg,
-                    unit=unit,
+                    code=product.sku,
+                    name=product.name,
+                    content_kg=float(product.weight_kg) if product.weight_kg is not None else None,
+                    unit="KG",
                 )
             )
 
@@ -263,8 +262,13 @@ def _ensure_tenant_envase_catalogs(db: Session, *, tenant_id: str) -> None:
         select(LogisticsBrand.id).where(LogisticsBrand.tenant_id == tenant_id).limit(1)
     )
     if has_brands is None:
-        for code, name in BRAND_DEFINITIONS:
-            db.add(LogisticsBrand(tenant_id=tenant_id, code=code, name=name))
+        brands = db.scalars(
+            select(ProductBrand)
+            .where(ProductBrand.tenant_id == tenant_id, ProductBrand.is_active.is_(True))
+            .order_by(ProductBrand.name)
+        ).all()
+        for brand in brands:
+            db.add(LogisticsBrand(tenant_id=tenant_id, code=brand.code, name=brand.name))
 
     has_service_types = db.scalar(
         select(LogisticsServiceType.id).where(LogisticsServiceType.tenant_id == tenant_id).limit(1)

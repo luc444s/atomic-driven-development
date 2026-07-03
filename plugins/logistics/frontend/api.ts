@@ -10,6 +10,7 @@ export type LogisticsCylinder = {
   barcode2: string | null;
   current_state: string;
   gas_group_id: string | null;
+  product_id: string | null;
   content_kg: number | null;
   volume_m3: number | null;
   condition: string | null;
@@ -128,6 +129,7 @@ export type LogisticsDeliveryPoint = {
   id: string;
   tenant_id: string;
   customer_id: string;
+  customer_name: string | null;
   contact_name: string | null;
   contact_email: string | null;
   address: string;
@@ -522,12 +524,15 @@ export type LogisticsCylinderService = {
   updated_at: string;
 };
 
-export type CreateCylinderPayload = {
+export type CylinderEntryMode = "EMPTY_FROM_CUSTOMER" | "FULL_FROM_SUPPLIER";
+
+type BaseCylinderPayload = {
   serial: string;
   description?: string | null;
   barcode1?: string | null;
   barcode2?: string | null;
   gas_group_id?: string | null;
+  product_id?: string | null;
   content_kg?: number | null;
   volume_m3?: number | null;
   condition?: string | null;
@@ -558,7 +563,14 @@ export type CreateCylinderPayload = {
   adr_unit_measure?: string | null;
 };
 
-export type UpdateCylinderPayload = Partial<CreateCylinderPayload> & {
+export type CreateCylinderPayload = BaseCylinderPayload & {
+  entry_mode?: CylinderEntryMode | null;
+  document_type?: string | null;
+  document_number?: string | null;
+  customer_id?: string | null;
+};
+
+export type UpdateCylinderPayload = Partial<BaseCylinderPayload> & {
   is_active?: boolean | null;
   branch_id?: string | null;
 };
@@ -638,7 +650,7 @@ export const logisticsKeys = {
   },
 };
 
-function withQuery(path: string, params: Record<string, string | boolean | undefined>) {
+function withQuery(path: string, params: Record<string, string | number | boolean | undefined>) {
   const search = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value === undefined || value === "") {
@@ -1156,6 +1168,13 @@ export type PlanningStockSummaryItem = {
   coverage_status: string;
 };
 
+export type PlanningStockOwnerBalanceItem = {
+  product_id: string;
+  product_name: string;
+  warehouse_id: string;
+  quantity: number;
+};
+
 export type PlanningPendingOrderItem = {
   order_item_id: string;
   product_id: string | null;
@@ -1217,10 +1236,10 @@ export type PlanningPreloadActionResult = {
 export const planningKeys = {
   stock: (wh?: string) => [...logisticsKeys.all, "planning", "stock", wh] as const,
   stockSummary: () => [...logisticsKeys.all, "planning", "stock-summary"] as const,
-  pendingOrders: () => [...logisticsKeys.all, "planning", "pending-orders"] as const,
+  pendingOrders: (wh?: string) => [...logisticsKeys.all, "planning", "pending-orders", wh] as const,
   preloads: {
     all: () => [...logisticsKeys.all, "planning", "preloads"] as const,
-    list: () => [...planningKeys.preloads.all(), "list"] as const,
+    list: (wh?: string) => [...planningKeys.preloads.all(), "list", wh] as const,
     detail: (id: string) => [...planningKeys.preloads.all(), id] as const,
   },
 };
@@ -1238,8 +1257,53 @@ export function postPlanningStockSummary(payload: { warehouse_id: string; produc
   });
 }
 
-export function listPlanningPendingOrders() {
-  return apiRequest<PlanningPendingOrder[]>(`${API_PREFIX}/planning/pending-orders`);
+type StockBalancePageRead = {
+  items: Array<{
+    product_id: string;
+    product_name: string;
+    warehouse_id: string;
+    quantity: number;
+  }>;
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export async function listPlanningStockBalances(
+  warehouse_id: string,
+): Promise<PlanningStockOwnerBalanceItem[]> {
+  const limit = 200;
+  const items: PlanningStockOwnerBalanceItem[] = [];
+  let offset = 0;
+  let total = 0;
+
+  do {
+    const page = await apiRequest<StockBalancePageRead>(
+      withQuery("/api/v1/plugins/stock/balance", {
+        warehouse_id,
+        limit,
+        offset,
+      }),
+    );
+    items.push(
+      ...page.items.map((item) => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        warehouse_id: item.warehouse_id,
+        quantity: item.quantity,
+      })),
+    );
+    total = page.total;
+    offset += page.limit;
+  } while (items.length < total);
+
+  return items;
+}
+
+export function listPlanningPendingOrders(warehouse_id?: string) {
+  return apiRequest<PlanningPendingOrder[]>(
+    withQuery(`${API_PREFIX}/planning/pending-orders`, { warehouse_id }),
+  );
 }
 
 export function postPlanOrder(orderId: string, payload: { mode: string; permit_without_stock?: boolean }) {
@@ -1256,8 +1320,8 @@ export function generatePreload(payload: { warehouse_id: string; preload_date: s
   });
 }
 
-export function listPreloads() {
-  return apiRequest<PlanningPreload[]>(`${API_PREFIX}/planning/preloads`);
+export function listPreloads(warehouse_id?: string) {
+  return apiRequest<PlanningPreload[]>(withQuery(`${API_PREFIX}/planning/preloads`, { warehouse_id }));
 }
 
 export function getPreload(preloadId: string) {

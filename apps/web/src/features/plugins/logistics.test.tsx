@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
-import { buildCylinderFormState } from "../../../../../plugins/logistics/frontend/LogisticsPage";
+import { buildCylinderFormState } from "../../../../../plugins/logistics/frontend/cylinders/forms/cylinder-payload";
 import { CylinderStateBadge, getCylinderStateLabel } from "../../../../../plugins/logistics/frontend/CylinderStateBadge";
 
 describe("logistics frontend helpers", () => {
@@ -16,6 +16,7 @@ describe("logistics frontend helpers", () => {
       barcode2: "MAT-200001",
       current_state: "EN_ALMACEN_VACIO",
       gas_group_id: "gas-1",
+      product_id: "prod-1",
       content_kg: 10,
       volume_m3: 1.2,
       condition: "NUEVO",
@@ -50,7 +51,7 @@ describe("logistics frontend helpers", () => {
     });
 
     expect(form.barcode2).toBe("MAT-200001");
-    expect(form.gas_group_id).toBe("gas-1");
+    expect(form.gas_group_id).toBe("prod-1");
     expect(form.price).toBe("175");
     expect(form.adr_package_type).toBe("CIL");
     expect(form.is_active).toBe(true);

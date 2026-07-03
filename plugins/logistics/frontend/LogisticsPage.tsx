@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useRef, useState } from "react";
 import type { CustomerBrief } from "../../crm/frontend/types";
 
 import { useMutation, useQuery, useQueryClient } from "../../../apps/web/src/lib/react-query";
@@ -11,9 +11,12 @@ import { Dialog } from "../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../apps/web/src/shared/ui/select";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
+import { getProduct, listAllProducts, listBrands as listProductBrands, listSubline, productosKeys } from "../../productos/frontend/api";
 import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
+import type { CylinderEntryMode } from "./api";
 import {
+  type LogisticsCylinder,
   createCylinder,
   createCylinderService,
   createHydrotest,
@@ -22,13 +25,13 @@ import {
   deleteCylinderService,
   getAllowedTransitions,
   getCylinderLabelData,
-  listBrands,
   listConditions,
   listCylinderServices,
   listCylinders,
   listCylinderStates,
   listCylinderSummary,
   listCylinderTrace,
+  listBrands,
   listGasProducts,
   listHydrotests,
   listLabelHistory,
@@ -38,336 +41,42 @@ import {
   listServiceTypes,
   listWarranties,
   logisticsKeys,
-  LogisticsCylinder,
   printLabel,
   processScan,
   transitionCylinder,
   updateCylinder,
   updateCylinderService,
 } from "./api";
+import { CreateCylinderDialog } from "./cylinders/dialogs/create-cylinder-dialog";
+import { EditCylinderDialog } from "./cylinders/dialogs/edit-cylinder-dialog";
+import { CylinderViewSectionDialog } from "./cylinders/dialogs/cylinder-view-section-dialog";
+import {
+  type CylinderFormState,
+  type CylinderCreateMetaState,
+  type HydrotestFormState,
+  type WarrantyFormState,
+  type RetimbradoFormState,
+  type ServiceFormState,
+  type PrintLabelFormState,
+  type ScanFormState,
+  EMPTY_CYLINDER_FORM,
+  EMPTY_HYDROTEST_FORM,
+  EMPTY_WARRANTY_FORM,
+  EMPTY_RETIMBRADO_FORM,
+  EMPTY_SERVICE_FORM,
+  EMPTY_PRINT_LABEL_FORM,
+  EMPTY_SCAN_FORM,
+  EMPTY_CYLINDER_CREATE_META,
+} from "./cylinders/forms/cylinder-form-state";
+import {
+  buildCylinderFormState,
+  buildCylinderPayload,
+  buildCreateCylinderPayload,
+} from "./cylinders/forms/cylinder-payload";
+import { toNullable, toNumberOrNull, toIntegerOrNull, formatDate, formatDateTime, InfoBlock, DataCard, Field } from "./cylinders/utils/formatters";
 
 const controlClassName =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition placeholder:text-muted-foreground focus:border-ring";
-
-type CylinderFormState = {
-  serial: string;
-  description: string;
-  barcode1: string;
-  barcode2: string;
-  gas_group_id: string;
-  content_kg: string;
-  volume_m3: string;
-  condition: string;
-  brand_id: string;
-  cost: string;
-  price: string;
-  country_code: string;
-  box_number: string;
-  is_service: boolean;
-  manufacturer_date: string;
-  manufacturer_code: string;
-  manufacture_year: string;
-  weight_origin: string;
-  weight_current: string;
-  last_hydrotest_date: string;
-  next_hydrotest_date: string;
-  adr_category: string;
-  adr_un_number: string;
-  adr_label: string;
-  adr_package_type: string;
-  adr_weight_kg: string;
-  adr_merchandise: string;
-  adr_tunnel: string;
-  adr_subline: string;
-  adr_factor: string;
-  adr_points: string;
-  adr_unit_measure: string;
-  location: string;
-  is_active: boolean;
-};
-
-type HydrotestFormState = {
-  test_date: string;
-  status: string;
-  notes: string;
-};
-
-type WarrantyFormState = {
-  customer_id: string;
-  customer_name: string;
-  warranty_type: string;
-  description: string;
-};
-
-type RetimbradoFormState = {
-  retimbrado_date: string;
-  manufacture_code: string;
-  manufacture_year: string;
-  serial_number: string;
-  weight_origin: string;
-  weight_current: string;
-  service_pressure: string;
-  test_pressure: string;
-  approval_number: string;
-  danger_class: string;
-  marking1: string;
-  marking2: string;
-  package_format: string;
-  transport_code: string;
-  adr_label: string;
-  adr_tunnel: string;
-  un_number: string;
-  food_registry: string;
-  notes: string;
-};
-
-type ServiceFormState = {
-  service_type_id: string;
-  status: string;
-  start_date: string;
-  end_date: string;
-  notes: string;
-  purchase_price: string;
-  sale_price: string;
-  stock_in: string;
-  stock_out: string;
-  group_code: string;
-  discount_pct: string;
-  discount_amount: string;
-  total_amount: string;
-};
-
-type PrintLabelFormState = {
-  origin: string;
-  reason: string;
-  printer_name: string;
-  copies: string;
-};
-
-type ScanFormState = {
-  movement_id: string;
-  barcode_serial: string;
-  service_type: string;
-  gps_lat: string;
-  gps_lng: string;
-};
-
-const EMPTY_CYLINDER_FORM: CylinderFormState = {
-  serial: "",
-  description: "",
-  barcode1: "",
-  barcode2: "",
-  gas_group_id: "",
-  content_kg: "",
-  volume_m3: "",
-  condition: "",
-  brand_id: "",
-  cost: "",
-  price: "",
-  country_code: "",
-  box_number: "",
-  is_service: false,
-  manufacturer_date: "",
-  manufacturer_code: "",
-  manufacture_year: "",
-  weight_origin: "",
-  weight_current: "",
-  last_hydrotest_date: "",
-  next_hydrotest_date: "",
-  adr_category: "",
-  adr_un_number: "",
-  adr_label: "",
-  adr_package_type: "",
-  adr_weight_kg: "",
-  adr_merchandise: "",
-  adr_tunnel: "",
-  adr_subline: "",
-  adr_factor: "",
-  adr_points: "",
-  adr_unit_measure: "",
-  location: "",
-  is_active: true,
-};
-
-const EMPTY_HYDROTEST_FORM: HydrotestFormState = {
-  test_date: "",
-  status: "VIGENTE",
-  notes: "",
-};
-
-const EMPTY_WARRANTY_FORM: WarrantyFormState = {
-  customer_id: "",
-  customer_name: "",
-  warranty_type: "CAMBIO",
-  description: "",
-};
-
-const EMPTY_RETIMBRADO_FORM: RetimbradoFormState = {
-  retimbrado_date: "",
-  manufacture_code: "",
-  manufacture_year: "",
-  serial_number: "",
-  weight_origin: "",
-  weight_current: "",
-  service_pressure: "",
-  test_pressure: "",
-  approval_number: "",
-  danger_class: "",
-  marking1: "",
-  marking2: "",
-  package_format: "",
-  transport_code: "",
-  adr_label: "",
-  adr_tunnel: "",
-  un_number: "",
-  food_registry: "",
-  notes: "",
-};
-
-const EMPTY_SERVICE_FORM: ServiceFormState = {
-  service_type_id: "",
-  status: "PENDIENTE",
-  start_date: "",
-  end_date: "",
-  notes: "",
-  purchase_price: "",
-  sale_price: "",
-  stock_in: "",
-  stock_out: "",
-  group_code: "",
-  discount_pct: "",
-  discount_amount: "",
-  total_amount: "",
-};
-
-const EMPTY_PRINT_LABEL_FORM: PrintLabelFormState = {
-  origin: "ALTA",
-  reason: "",
-  printer_name: "",
-  copies: "1",
-};
-
-const EMPTY_SCAN_FORM: ScanFormState = {
-  movement_id: "",
-  barcode_serial: "",
-  service_type: "VENTA",
-  gps_lat: "",
-  gps_lng: "",
-};
-
-export function buildCylinderFormState(cylinder?: LogisticsCylinder | null): CylinderFormState {
-  if (!cylinder) {
-    return EMPTY_CYLINDER_FORM;
-  }
-  return {
-    serial: cylinder.serial,
-    description: cylinder.description ?? "",
-    barcode1: cylinder.barcode1 ?? "",
-    barcode2: cylinder.barcode2 ?? "",
-    gas_group_id: cylinder.gas_group_id ?? "",
-    content_kg: cylinder.content_kg?.toString() ?? "",
-    volume_m3: cylinder.volume_m3?.toString() ?? "",
-    condition: cylinder.condition ?? "",
-    brand_id: cylinder.brand_id ?? "",
-    cost: cylinder.cost?.toString() ?? "",
-    price: cylinder.price?.toString() ?? "",
-    country_code: cylinder.country_code ?? "",
-    box_number: cylinder.box_number ?? "",
-    is_service: cylinder.is_service,
-    manufacturer_date: cylinder.manufacturer_date ?? "",
-    manufacturer_code: cylinder.manufacturer_code ?? "",
-    manufacture_year: cylinder.manufacture_year?.toString() ?? "",
-    weight_origin: cylinder.weight_origin?.toString() ?? "",
-    weight_current: cylinder.weight_current?.toString() ?? "",
-    last_hydrotest_date: cylinder.last_hydrotest_date ?? "",
-    next_hydrotest_date: cylinder.next_hydrotest_date ?? "",
-    adr_category: cylinder.adr_category ?? "",
-    adr_un_number: cylinder.adr_un_number ?? "",
-    adr_label: cylinder.adr_label ?? "",
-    adr_package_type: cylinder.adr_package_type ?? "",
-    adr_weight_kg: cylinder.adr_weight_kg?.toString() ?? "",
-    adr_merchandise: cylinder.adr_merchandise ?? "",
-    adr_tunnel: cylinder.adr_tunnel ?? "",
-    adr_subline: cylinder.adr_subline ?? "",
-    adr_factor: cylinder.adr_factor?.toString() ?? "",
-    adr_points: cylinder.adr_points?.toString() ?? "",
-    adr_unit_measure: cylinder.adr_unit_measure ?? "",
-    location: cylinder.location ?? "",
-    is_active: cylinder.is_active,
-  };
-}
-
-function toNullable(value: string) {
-  const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
-
-function toNumberOrNull(value: string) {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  return Number.isNaN(parsed) ? null : parsed;
-}
-
-function toIntegerOrNull(value: string) {
-  const parsed = toNumberOrNull(value);
-  return parsed === null ? null : Math.trunc(parsed);
-}
-
-function formatDate(value: string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-  return value;
-}
-
-function formatDateTime(value: string | null | undefined) {
-  if (!value) {
-    return "-";
-  }
-  return new Date(value).toLocaleString();
-}
-
-function buildCylinderPayload(form: CylinderFormState) {
-  return {
-    serial: form.serial,
-    description: toNullable(form.description),
-    barcode1: toNullable(form.barcode1),
-    barcode2: toNullable(form.barcode2),
-    gas_group_id: toNullable(form.gas_group_id),
-    content_kg: toNumberOrNull(form.content_kg),
-    volume_m3: toNumberOrNull(form.volume_m3),
-    condition: toNullable(form.condition),
-    brand_id: toNullable(form.brand_id),
-    cost: toNumberOrNull(form.cost),
-    price: toNumberOrNull(form.price),
-    country_code: toNullable(form.country_code),
-    box_number: toNullable(form.box_number),
-    is_service: form.is_service,
-    manufacturer_date: toNullable(form.manufacturer_date),
-    manufacturer_code: toNullable(form.manufacturer_code),
-    manufacture_year: toIntegerOrNull(form.manufacture_year),
-    weight_origin: toNumberOrNull(form.weight_origin),
-    weight_current: toNumberOrNull(form.weight_current),
-    last_hydrotest_date: toNullable(form.last_hydrotest_date),
-    next_hydrotest_date: toNullable(form.next_hydrotest_date),
-    adr_category: toNullable(form.adr_category),
-    adr_un_number: toNullable(form.adr_un_number),
-    adr_label: toNullable(form.adr_label),
-    adr_package_type: toNullable(form.adr_package_type),
-    adr_weight_kg: toNumberOrNull(form.adr_weight_kg),
-    adr_merchandise: toNullable(form.adr_merchandise),
-    adr_tunnel: toNullable(form.adr_tunnel),
-    adr_subline: toNullable(form.adr_subline),
-    adr_factor: toNumberOrNull(form.adr_factor),
-    adr_points: toIntegerOrNull(form.adr_points),
-    adr_unit_measure: toNullable(form.adr_unit_measure),
-    location: toNullable(form.location),
-    is_active: form.is_active,
-  };
-}
+  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring";
 
 export function LogisticsPage() {
   const queryClient = useQueryClient();
@@ -393,13 +102,19 @@ export function LogisticsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHydrotestOpen, setIsHydrotestOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
+  const [isCreateCustomerSearchOpen, setIsCreateCustomerSearchOpen] = useState(false);
   const [isWarrantyCustomerSearchOpen, setIsWarrantyCustomerSearchOpen] = useState(false);
   const [isRetimbradoOpen, setIsRetimbradoOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
+  const [isTransitionOpen, setIsTransitionOpen] = useState(false);
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
+  const [isDetailMenuOpen, setIsDetailMenuOpen] = useState(false);
+  const [isFullDetailOpen, setIsFullDetailOpen] = useState(false);
+  const [selectedViewSection, setSelectedViewSection] = useState<"trace" | "ph" | "retimbrados" | "custody" | "services" | "label" | null>(null);
   const [nextState, setNextState] = useState("");
   const [cylinderForm, setCylinderForm] = useState<CylinderFormState>(EMPTY_CYLINDER_FORM);
+  const [createMeta, setCreateMeta] = useState<CylinderCreateMetaState>(EMPTY_CYLINDER_CREATE_META);
   const [hydrotestForm, setHydrotestForm] = useState<HydrotestFormState>(EMPTY_HYDROTEST_FORM);
   const [warrantyForm, setWarrantyForm] = useState<WarrantyFormState>(EMPTY_WARRANTY_FORM);
   const [retimbradoForm, setRetimbradoForm] = useState<RetimbradoFormState>(EMPTY_RETIMBRADO_FORM);
@@ -422,6 +137,12 @@ export function LogisticsPage() {
   });
   const gasProductsQuery = useQuery({ queryKey: logisticsKeys.gasProducts(), queryFn: listGasProducts });
   const brandsQuery = useQuery({ queryKey: logisticsKeys.brands(), queryFn: listBrands });
+  const gasCatalogQuery = useQuery({
+    queryKey: [...productosKeys.products.all, "all-active"],
+    queryFn: () => listAllProducts({ is_active: true }),
+  });
+  const brandCatalogQuery = useQuery({ queryKey: productosKeys.catalogs.brands, queryFn: listProductBrands });
+  const sublineCatalogQuery = useQuery({ queryKey: productosKeys.catalogs.subline, queryFn: listSubline });
   const conditionsQuery = useQuery({ queryKey: logisticsKeys.conditions(), queryFn: listConditions });
   const serviceTypesQuery = useQuery({
     queryKey: logisticsKeys.serviceTypes(),
@@ -484,9 +205,64 @@ export function LogisticsPage() {
     () => new Map((gasProductsQuery.data ?? []).map((item) => [item.id, item.name] as const)),
     [gasProductsQuery.data]
   );
+  const productById = useMemo(
+    () => new Map((gasCatalogQuery.data ?? []).map((item) => [item.id, item.name] as const)),
+    [gasCatalogQuery.data]
+  );
   const brandById = useMemo(
     () => new Map((brandsQuery.data ?? []).map((item) => [item.id, item.name] as const)),
     [brandsQuery.data]
+  );
+  const gasIdByCatalogKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of gasProductsQuery.data ?? []) {
+      map.set(item.code, item.id);
+      map.set(item.name, item.id);
+      map.set(item.name.toUpperCase(), item.id);
+    }
+    return map;
+  }, [gasProductsQuery.data]);
+  const brandIdByCatalogKey = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const item of brandsQuery.data ?? []) {
+      map.set(item.code, item.id);
+      map.set(item.name, item.id);
+      map.set(item.name.toUpperCase(), item.id);
+    }
+    return map;
+  }, [brandsQuery.data]);
+  const validGasIds = useMemo(() => new Set((gasProductsQuery.data ?? []).map((item) => item.id)), [gasProductsQuery.data]);
+
+  const gasOptions = useMemo(() => {
+    return (gasCatalogQuery.data ?? []).map((item) => ({
+      id: item.id,
+      name: `${item.sku} · ${item.name}`,
+    }));
+  }, [gasCatalogQuery.data]);
+
+  const brandOptions = useMemo(() => {
+    const options = (brandCatalogQuery.data ?? [])
+      .map((item) => {
+        const localId =
+          brandIdByCatalogKey.get(item.code) ?? brandIdByCatalogKey.get(item.name) ?? brandIdByCatalogKey.get(item.name.toUpperCase());
+        return localId ? { id: localId, name: `${item.code} · ${item.name}` } : null;
+      })
+      .filter((item): item is { id: string; name: string } => item !== null);
+    const seen = new Set(options.map((item) => item.id));
+    for (const item of brandsQuery.data ?? []) {
+      if (!seen.has(item.id)) {
+        options.push({ id: item.id, name: `${item.code} · ${item.name}` });
+      }
+    }
+    return options;
+  }, [brandCatalogQuery.data, brandIdByCatalogKey, brandsQuery.data]);
+  const sublineOptions = useMemo(
+    () =>
+      (sublineCatalogQuery.data ?? []).map((item) => ({
+        value: item.name,
+        label: `${item.code} · ${item.name}`,
+      })),
+    [sublineCatalogQuery.data]
   );
   const serviceTypeById = useMemo(
     () => new Map((serviceTypesQuery.data ?? []).map((item) => [item.id, item.name] as const)),
@@ -500,6 +276,30 @@ export function LogisticsPage() {
     () => (scanLogsQuery.data ?? []).filter((item) => item.cylinder_id === selectedCylinder?.id),
     [scanLogsQuery.data, selectedCylinder?.id]
   );
+
+  const productIdByGasId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const prod of gasCatalogQuery.data ?? []) {
+      const lgId = gasIdByCatalogKey.get(prod.sku) ?? gasIdByCatalogKey.get(prod.name) ?? gasIdByCatalogKey.get(prod.name.toUpperCase());
+      if (lgId) {
+        map.set(lgId, prod.id);
+      }
+    }
+    return map;
+  }, [gasCatalogQuery.data, gasIdByCatalogKey]);
+
+  const lgBrandIdByProdBrandId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const prodBrand of brandCatalogQuery.data ?? []) {
+      const lgId = brandIdByCatalogKey.get(prodBrand.code) ?? brandIdByCatalogKey.get(prodBrand.name) ?? brandIdByCatalogKey.get(prodBrand.name.toUpperCase());
+      if (lgId) {
+        map.set(prodBrand.id, lgId);
+      }
+    }
+    return map;
+  }, [brandCatalogQuery.data, brandIdByCatalogKey]);
+
+  const gasGroupIdRef = useRef(cylinderForm.gas_group_id);
 
   const invalidateCylinderCollections = async (cylinderId?: string) => {
     const tasks = [
@@ -521,13 +321,20 @@ export function LogisticsPage() {
     await Promise.all(tasks);
   };
 
+  function resetCreateDialog() {
+    setCylinderForm(EMPTY_CYLINDER_FORM);
+    gasGroupIdRef.current = "";
+    setCreateMeta(EMPTY_CYLINDER_CREATE_META);
+    setPanelError(null);
+    setIsCreateCustomerSearchOpen(false);
+  }
+
   const createMutation = useMutation({
     mutationFn: createCylinder,
     onSuccess: async (cylinder) => {
       setSelectedCylinder(cylinder);
       setIsCreateOpen(false);
-      setCylinderForm(EMPTY_CYLINDER_FORM);
-      setPanelError(null);
+      resetCreateDialog();
       await invalidateCylinderCollections(cylinder.id);
     },
   });
@@ -696,6 +503,7 @@ export function LogisticsPage() {
     cylindersQuery.error ||
       statesQuery.error ||
       summaryQuery.error ||
+      gasCatalogQuery.error ||
       gasProductsQuery.error ||
       brandsQuery.error
   );
@@ -704,7 +512,7 @@ export function LogisticsPage() {
     event.preventDefault();
     setPanelError(null);
     try {
-      await createMutation.mutateAsync(buildCylinderPayload(cylinderForm));
+      await createMutation.mutateAsync(buildCreateCylinderPayload(cylinderForm, createMeta));
     } catch (error) {
       setPanelError(error instanceof Error ? error.message : "No se pudo crear el envase.");
     }
@@ -717,9 +525,10 @@ export function LogisticsPage() {
     }
     setDetailError(null);
     try {
+      const payload = buildCylinderPayload(cylinderForm);
       await updateMutation.mutateAsync({
         cylinderId: selectedCylinder.id,
-        payload: buildCylinderPayload(cylinderForm),
+        payload,
       });
     } catch (error) {
       setDetailError(error instanceof Error ? error.message : "No se pudo actualizar el envase.");
@@ -800,9 +609,16 @@ export function LogisticsPage() {
 
   function openDetail(cylinder: LogisticsCylinder) {
     setSelectedCylinder(cylinder);
-    setCylinderForm(buildCylinderFormState(cylinder));
+    const raw = cylinder.product_id ?? cylinder.gas_group_id ?? "";
+    const mapped = cylinder.product_id ?? productIdByGasId.get(raw) ?? (validGasIds.has(raw) ? raw : "");
+    gasGroupIdRef.current = mapped;
+    setCylinderForm({
+      ...buildCylinderFormState(cylinder),
+      gas_group_id: mapped,
+    });
     setNextState("");
     setDetailError(null);
+    setIsDetailMenuOpen(true);
     setScanForm({
       ...EMPTY_SCAN_FORM,
       barcode_serial: cylinder.barcode2 || cylinder.barcode1 || cylinder.serial,
@@ -810,12 +626,76 @@ export function LogisticsPage() {
   }
 
   function openEditDialog() {
-    setCylinderForm(buildCylinderFormState(selectedCylinder));
+    const raw = selectedCylinder.product_id ?? selectedCylinder.gas_group_id ?? "";
+    const mapped = selectedCylinder.product_id ?? productIdByGasId.get(raw) ?? (validGasIds.has(raw) ? raw : "");
+    const form = {
+      ...buildCylinderFormState(selectedCylinder),
+      gas_group_id: mapped,
+    };
+    gasGroupIdRef.current = form.gas_group_id;
+    setCylinderForm(form);
     setIsEditOpen(true);
   }
 
+  function closeDetailContext() {
+    setSelectedCylinder(null);
+    setDetailError(null);
+    setIsEditOpen(false);
+    setIsDetailMenuOpen(false);
+    setSelectedViewSection(null);
+  }
+
+  function openViewSection(section: NonNullable<typeof selectedViewSection>) {
+    setIsDetailMenuOpen(false);
+    setSelectedViewSection(section);
+  }
+
+  function closeViewSection() {
+    setSelectedViewSection(null);
+    if (selectedCylinder) {
+      setIsDetailMenuOpen(true);
+    }
+  }
+
+  function closeViewSectionAndGoBack() {
+    setSelectedViewSection(null);
+    setIsDetailMenuOpen(true);
+  }
+
+  function handleCylinderFormChange(next: CylinderFormState) {
+    const prevGasId = gasGroupIdRef.current;
+    setCylinderForm(next);
+    if (next.gas_group_id && next.gas_group_id !== prevGasId) {
+      gasGroupIdRef.current = next.gas_group_id;
+      getProduct(next.gas_group_id).then((product) => {
+        setCylinderForm((current) => ({
+          ...current,
+          brand_id: lgBrandIdByProdBrandId.get(product.brand_id ?? "") ?? current.brand_id,
+          adr_subline: product.subline_name ?? current.adr_subline,
+        }));
+      }).catch(() => {});
+    }
+  }
+
   return (
-    <LogisticsSection
+    <>
+      <CylinderViewSectionDialog
+        open={selectedViewSection !== null}
+        section={selectedViewSection}
+        cylinderId={selectedCylinderId}
+        onBack={closeViewSectionAndGoBack}
+        traceData={traceQuery.data ?? []}
+        hydrotestsData={hydrotestsQuery.data ?? []}
+        warrantiesData={warrantiesQuery.data ?? []}
+        retimbradosData={retimbradosQuery.data ?? []}
+        ownershipData={ownershipQuery.data ?? []}
+        labelHistoryData={labelHistoryQuery.data ?? []}
+        servicesData={servicesQuery.data ?? []}
+        scanData={filteredScans}
+        labelData={labelDataQuery.data ?? null}
+        serviceTypeById={serviceTypeById}
+      />
+      <LogisticsSection
       title="Control de envases"
       description="Ficha completa del cilindro, trazabilidad, retimbrados, etiquetas, servicios y escaneo en campo."
       actions={canCreate ? <Button onClick={() => setIsCreateOpen(true)}>Nuevo envase</Button> : null}
@@ -886,7 +766,7 @@ export function LogisticsPage() {
             header: "Gas / marca",
             render: (row) => (
               <div className="space-y-1 text-sm text-foreground">
-                <p>{gasById.get(row.gas_group_id ?? "") || "Sin gas"}</p>
+                <p>{productById.get(row.product_id ?? "") || gasById.get(row.gas_group_id ?? "") || "Sin gas"}</p>
                 <p className="text-xs text-muted-foreground">{brandById.get(row.brand_id ?? "") || "Sin marca"}</p>
               </div>
             ),
@@ -928,44 +808,124 @@ export function LogisticsPage() {
         emptyMessage="Aún no hay envases registrados."
       />
 
-      <Dialog
+      <CreateCylinderDialog
         open={isCreateOpen}
-        title="Nuevo envase"
-        description="Registra la ficha completa del cilindro."
+        onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) {
+            resetCreateDialog();
+          }
+        }}
+        cylinderForm={cylinderForm}
+        onCylinderFormChange={handleCylinderFormChange}
+        createMeta={createMeta}
+        onCreateMetaChange={setCreateMeta}
+        gasOptions={gasOptions}
+        brandOptions={brandOptions}
+        sublineOptions={sublineOptions}
+        conditions={conditionsQuery.data ?? []}
+        isPending={createMutation.isPending}
+        error={panelError}
+        onSubmit={handleCreateCylinder}
+        onCustomerSearchClick={() => setIsCreateCustomerSearchOpen(true)}
+      />
+
+      <CustomerSearchDialog
+        open={isCreateCustomerSearchOpen}
+        onOpenChange={setIsCreateCustomerSearchOpen}
+        onSelect={(customer: CustomerBrief) =>
+          setCreateMeta((current) => ({
+            ...current,
+            customer_id: customer.id,
+            customer_name: customer.display_name,
+          }))
+        }
+      />
+
+      <Dialog
+        open={isDetailMenuOpen && selectedCylinder !== null}
+        title={selectedCylinder ? `Ficha del envase ${selectedCylinder.serial}` : "Ficha del envase"}
         maxWidthClassName="max-w-[1600px]"
-        onClose={() => { setIsCreateOpen(false); setPanelError(null); }}
+        onClose={closeDetailContext}
       >
-        <form className="space-y-4" onSubmit={handleCreateCylinder}>
-          <CylinderFormFields
-            form={cylinderForm}
-            gasProducts={gasProductsQuery.data ?? []}
-            brands={brandsQuery.data ?? []}
-            conditions={conditionsQuery.data ?? []}
-            onChange={setCylinderForm}
-            includeActivation={false}
-          />
-          {panelError ? <Alert title="No se pudo guardar">{panelError}</Alert> : null}
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setIsCreateOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={createMutation.isPending}>
-              Guardar envase
-            </Button>
+        {selectedCylinder ? (
+          <div className="space-y-4">
+            {detailError ? <Alert title="Operación no completada">{detailError}</Alert> : null}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Datos generales</CardTitle>
+                <CardDescription>Resumen corto del envase antes de entrar a una función.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 text-sm text-foreground">
+                <div><span className="text-muted-foreground">Serial:</span> {selectedCylinder.serial}</div>
+                <div><span className="text-muted-foreground">Estado:</span> <CylinderStateBadge state={selectedCylinder.current_state} /></div>
+                <div><span className="text-muted-foreground">Gas:</span> {productById.get(selectedCylinder.product_id ?? "") || gasById.get(selectedCylinder.gas_group_id ?? "") || "-"}</div>
+                <div><span className="text-muted-foreground">Marca:</span> {brandById.get(selectedCylinder.brand_id ?? "") || "-"}</div>
+                <div><span className="text-muted-foreground">Barcode producto:</span> {selectedCylinder.barcode1 || "-"}</div>
+                <div><span className="text-muted-foreground">Matrícula:</span> {selectedCylinder.barcode2 || "-"}</div>
+                <div><span className="text-muted-foreground">Condición:</span> {selectedCylinder.condition || "-"}</div>
+                <div><span className="text-muted-foreground">Ubicación:</span> {selectedCylinder.location || "-"}</div>
+                <div><span className="text-muted-foreground">Contenido kg:</span> {selectedCylinder.content_kg?.toString() || "-"}</div>
+                <div><span className="text-muted-foreground">Volumen m3:</span> {selectedCylinder.volume_m3?.toString() || "-"}</div>
+                <div><span className="text-muted-foreground">Costo:</span> {selectedCylinder.cost?.toString() || "-"}</div>
+                <div><span className="text-muted-foreground">Precio:</span> {selectedCylinder.price?.toString() || "-"}</div>
+                <div><span className="text-muted-foreground">PH siguiente:</span> {formatDate(selectedCylinder.next_hydrotest_date) || "-"}</div>
+                <div><span className="text-muted-foreground">ADR UN:</span> {selectedCylinder.adr_un_number || "-"}</div>
+                <div><span className="text-muted-foreground">ADR etiqueta:</span> {selectedCylinder.adr_label || "-"}</div>
+                <div><span className="text-muted-foreground">ADR mercancía:</span> {selectedCylinder.adr_merchandise || "-"}</div>
+              </CardContent>
+            </Card>
+
+            {!selectedCylinder.barcode2 ? (
+              <Alert title="Falta matrícula de etiqueta">Este envase aún no tiene `barcode2` para etiqueta y escaneo.</Alert>
+            ) : null}
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Operativa</CardTitle>
+                <CardDescription>Acciones para trabajar el envase.</CardDescription>
+              </CardHeader>
+              <CardContent>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+                  {canUpdate ? <button type="button" onClick={openEditDialog} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Editar ficha</p><p className="mt-1 text-xs text-muted-foreground">Actualiza los datos principales.</p></button> : null}
+                  {canMaintenance ? <button type="button" onClick={() => setIsHydrotestOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar PH</p><p className="mt-1 text-xs text-muted-foreground">Nueva prueba hidrostática.</p></button> : null}
+                  {canMaintenance ? <button type="button" onClick={() => setIsWarrantyOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar garantía</p><p className="mt-1 text-xs text-muted-foreground">Asocia una garantía comercial.</p></button> : null}
+                  {canTransition ? <button type="button" onClick={() => setIsTransitionOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Transición operativa</p><p className="mt-1 text-xs text-muted-foreground">Cambia el estado del envase.</p></button> : null}
+                  {canRetimbrado ? <button type="button" onClick={() => setIsRetimbradoOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar retimbrado</p><p className="mt-1 text-xs text-muted-foreground">Carga la ficha técnica del reestampado.</p></button> : null}
+                  {canServiceManage ? <button type="button" onClick={() => setIsServiceOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Agregar servicio</p><p className="mt-1 text-xs text-muted-foreground">Registra un servicio operativo.</p></button> : null}
+                  {canLabelPrint ? <button type="button" onClick={() => setIsPrintLabelOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Imprimir etiqueta</p><p className="mt-1 text-xs text-muted-foreground">Genera el registro de impresión.</p></button> : null}
+                  {canScan ? <button type="button" onClick={() => setIsScanOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Escanear</p><p className="mt-1 text-xs text-muted-foreground">Procesa validación con GPS.</p></button> : null}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Vista</CardTitle>
+                <CardDescription>Abre una tabla específica con un clic.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <button type="button" onClick={() => openViewSection("trace")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Trazabilidad de estado</p><p className="mt-1 text-xs text-muted-foreground">Transiciones registradas.</p></button>
+                  <button type="button" onClick={() => openViewSection("ph")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">PH y garantías</p><p className="mt-1 text-xs text-muted-foreground">Mantenimiento legal y comercial.</p></button>
+                  <button type="button" onClick={() => openViewSection("retimbrados")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Retimbrados</p><p className="mt-1 text-xs text-muted-foreground">Ficha técnica del reestampado.</p></button>
+                  <button type="button" onClick={() => openViewSection("custody")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Custodia e impresión</p><p className="mt-1 text-xs text-muted-foreground">Tenencia y etiquetas impresas.</p></button>
+                  <button type="button" onClick={() => openViewSection("services")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Servicios y escaneos</p><p className="mt-1 text-xs text-muted-foreground">Mantenimiento y eventos de campo.</p></button>
+                  <button type="button" onClick={() => openViewSection("label")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Etiqueta operativa</p><p className="mt-1 text-xs text-muted-foreground">Resumen rápido para impresión.</p></button>
+                </div>
+              </CardContent>
+            </Card>
           </div>
-        </form>
+        ) : null}
       </Dialog>
 
       <Dialog
-        open={selectedCylinder !== null}
+        open={isFullDetailOpen && selectedCylinder !== null}
         title={selectedCylinder ? `Ficha del envase ${selectedCylinder.serial}` : "Ficha del envase"}
         description="Detalle completo del envase con trazabilidad y operación asociada."
         maxWidthClassName="max-w-[1600px]"
-        onClose={() => {
-          setSelectedCylinder(null);
-          setDetailError(null);
-          setIsEditOpen(false);
-        }}
+        onClose={closeDetailContext}
       >
         {selectedCylinder ? (
           <div className="space-y-6">
@@ -1000,7 +960,7 @@ export function LogisticsPage() {
                 <InfoBlock label="Descripción" value={selectedCylinder.description} />
                 <InfoBlock label="Barcode producto" value={selectedCylinder.barcode1} />
                 <InfoBlock label="Matrícula" value={selectedCylinder.barcode2} />
-                <InfoBlock label="Gas" value={gasById.get(selectedCylinder.gas_group_id ?? "") || null} />
+                <InfoBlock label="Gas" value={productById.get(selectedCylinder.product_id ?? "") || gasById.get(selectedCylinder.gas_group_id ?? "") || null} />
                 <InfoBlock label="Marca" value={brandById.get(selectedCylinder.brand_id ?? "") || null} />
                 <InfoBlock label="Condición" value={selectedCylinder.condition} />
                 <InfoBlock label="Ubicación" value={selectedCylinder.location} />
@@ -1160,7 +1120,7 @@ export function LogisticsPage() {
                       {
                         key: "service",
                         header: "Servicio",
-                        render: (row) => serviceTypeById.get(row.service_type_id) || row.service_type_id,
+                        render: (row) => serviceTypeById.get(row.service_type_id) || "-",
                       },
                       { key: "status", header: "Estado", render: (row) => row.status },
                       { key: "total", header: "Total", render: (row) => row.total_amount?.toString() || "-" },
@@ -1213,32 +1173,19 @@ export function LogisticsPage() {
         ) : null}
       </Dialog>
 
-      <Dialog
+      <EditCylinderDialog
         open={isEditOpen}
-        title={selectedCylinder ? `Editar ${selectedCylinder.serial}` : "Editar envase"}
-        description="Actualiza la ficha completa del envase."
-        maxWidthClassName="max-w-[1600px]"
-        onClose={() => setIsEditOpen(false)}
-      >
-        <form className="space-y-4" onSubmit={handleUpdateCylinder}>
-          <CylinderFormFields
-            form={cylinderForm}
-            gasProducts={gasProductsQuery.data ?? []}
-            brands={brandsQuery.data ?? []}
-            conditions={conditionsQuery.data ?? []}
-            onChange={setCylinderForm}
-            includeActivation
-          />
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="secondary" onClick={() => setIsEditOpen(false)}>
-              Cancelar
-            </Button>
-            <Button type="submit" disabled={updateMutation.isPending}>
-              Guardar cambios
-            </Button>
-          </div>
-        </form>
-      </Dialog>
+        onOpenChange={setIsEditOpen}
+        cylinderForm={cylinderForm}
+        onCylinderFormChange={handleCylinderFormChange}
+        gasOptions={gasOptions}
+        brandOptions={brandOptions}
+        sublineOptions={sublineOptions}
+        conditions={conditionsQuery.data ?? []}
+        isPending={updateMutation.isPending}
+        serial={selectedCylinder?.serial ?? ""}
+        onSubmit={handleUpdateCylinder}
+      />
 
       <Dialog
         open={isHydrotestOpen}
@@ -1291,7 +1238,7 @@ export function LogisticsPage() {
         open={isWarrantyCustomerSearchOpen}
         onOpenChange={setIsWarrantyCustomerSearchOpen}
         onSelect={(customer: CustomerBrief) =>
-          setWarrantyForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.legal_name }))
+          setWarrantyForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))
         }
       />
 
@@ -1375,6 +1322,34 @@ export function LogisticsPage() {
         </form>
       </Dialog>
 
+      <Dialog open={isTransitionOpen} title="Transición operativa" description="Aplica la siguiente transición válida del state machine." onClose={() => setIsTransitionOpen(false)}>
+        <div className="space-y-4">
+          <Select
+            value={nextState}
+            onChange={(value) => setNextState(value)}
+            placeholder="Selecciona estado destino"
+            options={(transitionsQuery.data ?? []).map((item) => ({
+              value: item.to_state,
+              label: getCylinderStateLabel(item.to_state),
+            }))}
+          />
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" onClick={() => setIsTransitionOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={async () => {
+                await handleTransition();
+                setIsTransitionOpen(false);
+              }}
+              disabled={!nextState || transitionMutation.isPending}
+            >
+              Aplicar transición
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+
       <Dialog open={isScanOpen} title="Escaneo en campo" description="Procesa un escaneo con validación ADR/PH y GPS." onClose={() => setIsScanOpen(false)}>
         <form className="space-y-4" onSubmit={handleScan}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
@@ -1402,157 +1377,6 @@ export function LogisticsPage() {
         </form>
       </Dialog>
     </LogisticsSection>
-  );
-}
-
-type CylinderFormFieldsProps = {
-  form: CylinderFormState;
-  gasProducts: Array<{ id: string; name: string }>;
-  brands: Array<{ id: string; name: string }>;
-  conditions: Array<{ code: string; name: string }>;
-  includeActivation: boolean;
-  onChange: (next: CylinderFormState) => void;
-};
-
-function CylinderFormFields({ form, gasProducts, brands, conditions, includeActivation, onChange }: CylinderFormFieldsProps) {
-  function updateField<Key extends keyof CylinderFormState>(key: Key, value: CylinderFormState[Key]) {
-    onChange({ ...form, [key]: value });
-  }
-
-  return (
-    <div className="space-y-4">
-      <FormRow title="Identificación">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Serial"><Input value={form.serial} onChange={(event) => updateField("serial", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Descripción"><Input value={form.description} onChange={(event) => updateField("description", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Ubicación"><Input value={form.location} onChange={(event) => updateField("location", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Caja / lote"><Input value={form.box_number} onChange={(event) => updateField("box_number", event.target.value)} /></Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="Códigos y Clasificación">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Barcode producto"><Input value={form.barcode1} onChange={(event) => updateField("barcode1", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Matrícula etiqueta"><Input value={form.barcode2} onChange={(event) => updateField("barcode2", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Gas">
-        <Select value={form.gas_group_id} onChange={(value) => updateField("gas_group_id", value)}
-          placeholder="Sin asignar"
-          options={gasProducts.map((item) => ({ value: item.id, label: item.name }))} />
-      </Field>
-        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Marca">
-        <Select value={form.brand_id} onChange={(value) => updateField("brand_id", value)}
-          placeholder="Sin asignar"
-          options={brands.map((item) => ({ value: item.id, label: item.name }))} />
-      </Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="Datos Comerciales y Uso">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Condición">
-        <Select value={form.condition} onChange={(value) => updateField("condition", value)}
-          placeholder="Sin asignar"
-          options={conditions.map((item) => ({ value: item.code, label: item.name }))} />
-      </Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Contenido kg"><Input type="number" value={form.content_kg} onChange={(event) => updateField("content_kg", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Volumen m3"><Input type="number" value={form.volume_m3} onChange={(event) => updateField("volume_m3", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="País"><Input value={form.country_code} onChange={(event) => updateField("country_code", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Costo"><Input type="number" value={form.cost} onChange={(event) => updateField("cost", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Precio"><Input type="number" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-6 xl:col-span-5" label="Es servicio">
-        <label className="flex items-center gap-2 text-sm text-foreground">
-          <input type="checkbox" checked={form.is_service} onChange={(event) => updateField("is_service", event.target.checked)} />
-          Producto de servicio
-        </label>
-      </Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="Fabricación y PH">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Fecha fabricación"><Input type="date" value={form.manufacturer_date} onChange={(event) => updateField("manufacturer_date", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-3" label="Código fabricación"><Input value={form.manufacturer_code} onChange={(event) => updateField("manufacturer_code", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-1" label="Año"><Input type="number" value={form.manufacture_year} onChange={(event) => updateField("manufacture_year", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso origen"><Input type="number" value={form.weight_origin} onChange={(event) => updateField("weight_origin", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso actual"><Input type="number" value={form.weight_current} onChange={(event) => updateField("weight_current", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Última PH"><Input type="date" value={form.last_hydrotest_date} onChange={(event) => updateField("last_hydrotest_date", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Siguiente PH"><Input type="date" value={form.next_hydrotest_date} onChange={(event) => updateField("next_hydrotest_date", event.target.value)} /></Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="ADR">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Categoría"><Input value={form.adr_category} onChange={(event) => updateField("adr_category", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="UN"><Input value={form.adr_un_number} onChange={(event) => updateField("adr_un_number", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Etiqueta"><Input value={form.adr_label} onChange={(event) => updateField("adr_label", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Tipo bulto"><Input value={form.adr_package_type} onChange={(event) => updateField("adr_package_type", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso kg"><Input type="number" value={form.adr_weight_kg} onChange={(event) => updateField("adr_weight_kg", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Túnel"><Input value={form.adr_tunnel} onChange={(event) => updateField("adr_tunnel", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Sublinea"><Input value={form.adr_subline} onChange={(event) => updateField("adr_subline", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Factor"><Input type="number" value={form.adr_factor} onChange={(event) => updateField("adr_factor", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Puntos"><Input type="number" value={form.adr_points} onChange={(event) => updateField("adr_points", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Unidad"><Input value={form.adr_unit_measure} onChange={(event) => updateField("adr_unit_measure", event.target.value)} /></Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="Mercancía ADR">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-6 xl:col-span-12" label="Mercancía"><Input value={form.adr_merchandise} onChange={(event) => updateField("adr_merchandise", event.target.value)} /></Field>
-      </div>
-      </FormRow>
-      {includeActivation ? (
-        <Field label="Activo">
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input type="checkbox" checked={form.is_active} onChange={(event) => updateField("is_active", event.target.checked)} />
-            Envase activo
-          </label>
-        </Field>
-      ) : null}
-    </div>
-  );
-}
-
-function FormRow({ title, children }: { title: string; children: any }) {
-  return (
-    <div className="space-y-3">
-      <p className="text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground">{title}</p>
-      {children}
-    </div>
-  );
-}
-
-type FieldProps = {
-  label: string;
-  children: any;
-  className?: string;
-};
-
-function Field({ label, children, className }: FieldProps) {
-  return (
-    <label className={["space-y-1 text-sm text-foreground", className ?? ""].join(" ")}>
-      <span className="block text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</span>
-      {children}
-    </label>
-  );
-}
-
-function InfoBlock({ label, value }: { label: string; value: string | null }) {
-  return (
-    <div className="space-y-1">
-      <p className="text-xs uppercase tracking-[0.12em] text-muted-foreground">{label}</p>
-      <p className="text-sm text-foreground">{value || "-"}</p>
-    </div>
-  );
-}
-
-function DataCard({ title, description, table }: { title: string; description: string; table: any }) {
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
-      </CardHeader>
-      <CardContent>{table}</CardContent>
-    </Card>
+    </>
   );
 }

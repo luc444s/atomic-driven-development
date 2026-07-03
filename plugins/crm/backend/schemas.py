@@ -120,8 +120,11 @@ class CustomerAddressRead(BaseModel):
     updated_at: datetime
 
 
+ADDRESS_TYPES = {"FISCAL", "COMERCIAL", "ENTREGA", "OTRA"}
+
+
 class CustomerAddressCreateRequest(BaseModel):
-    address_type: str = Field(default="DELIVERY", min_length=1, max_length=30)
+    address_type: str = Field(default="ENTREGA", min_length=1, max_length=30)
     label: str | None = Field(default=None, max_length=100)
     geography_id: str | None = None
     line1: str = Field(min_length=1, max_length=200)
@@ -150,8 +153,8 @@ class CustomerAddressCreateRequest(BaseModel):
     @classmethod
     def normalize_address_type(cls, value: str) -> str:
         normalized = value.strip().upper()
-        if normalized not in {"FISCAL", "DELIVERY", "BILLING", "OTHER"}:
-            raise ValueError("address_type debe ser FISCAL, DELIVERY, BILLING o OTHER")
+        if normalized not in ADDRESS_TYPES:
+            raise ValueError("address_type debe ser FISCAL, COMERCIAL, ENTREGA u OTRA")
         return normalized
 
     @field_validator("country_code")
@@ -198,8 +201,8 @@ class CustomerAddressUpdateRequest(BaseModel):
         if value is None:
             return None
         normalized = value.strip().upper()
-        if normalized not in {"FISCAL", "DELIVERY", "BILLING", "OTHER"}:
-            raise ValueError("address_type debe ser FISCAL, DELIVERY, BILLING o OTHER")
+        if normalized not in ADDRESS_TYPES:
+            raise ValueError("address_type debe ser FISCAL, COMERCIAL, ENTREGA u OTRA")
         return normalized
 
     @field_validator("country_code")
@@ -236,12 +239,16 @@ class CustomerListItemRead(BaseModel):
 class CustomerSearchItemRead(BaseModel):
     id: str
     legal_name: str
+    commercial_name: str | None
+    display_name: str
     document_type_code: str
     document_number: str
+    external_code: str | None
     email: str | None
     phone: str | None
     country_code: str
     fiscal_address_summary: str | None
+    locality_summary: str | None
 
 
 class CustomerRead(CustomerListItemRead):

@@ -30,6 +30,8 @@ Esta spec describe el corte implementado de `logistics` al momento de construir 
 
 Completar el modelo de datos del envase para cubrir el equivalente funcional de `frmMovBombonas`/`FrmCatBombonas`, e implementar el sistema de escaneo movil para trazabilidad en campo.
 
+Nota de interpretacion: aunque `lg_cylinders` conserva campos ADR por trazabilidad y snapshot operativo, la configuracion ADR maestra pertenece a `productos`. El alta de envase no debe tratar ADR como entrada manual independiente del catalogo/producto.
+
 ## No objetivos
 
 - migracion de datos historicos legacy

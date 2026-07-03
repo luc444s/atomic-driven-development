@@ -27,7 +27,7 @@ type RouteFormState = { route_date: string; vehicle_id: string; notes: string };
 type StopFormState = { delivery_point_id: string; stop_order: string };
 
 const EMPTY_ROUTE: RouteFormState = { route_date: "", vehicle_id: "", notes: "" };
-const EMPTY_STOP: StopFormState = { delivery_point_id: "", stop_order: "1" };
+const EMPTY_STOP: StopFormState = { delivery_point_id: "", stop_order: "" };
 
 export function RoutesPage() {
   const queryClient = useQueryClient();
@@ -66,7 +66,7 @@ export function RoutesPage() {
     mutationFn: async (payload: StopFormState) =>
       createRouteStop(selectedRouteId!, {
         delivery_point_id: payload.delivery_point_id,
-        stop_order: Number(payload.stop_order),
+        stop_order: payload.stop_order ? Number(payload.stop_order) : undefined,
       }),
     onSuccess: async () => {
       setIsStopOpen(false);
@@ -97,6 +97,19 @@ export function RoutesPage() {
       setError(null);
     },
   });
+
+  function getNextStopOrder() {
+    const currentMax = (stopsQuery.data ?? []).reduce(
+      (max, stop) => (stop.stop_order > max ? stop.stop_order : max),
+      0
+    );
+    return String(currentMax + 1);
+  }
+
+  function openStopDialog() {
+    setStopForm({ delivery_point_id: "", stop_order: getNextStopOrder() });
+    setIsStopOpen(true);
+  }
 
   async function submitRoute(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -176,7 +189,7 @@ export function RoutesPage() {
               </div>
               {selectedRouteId ? (
                 <div className="flex gap-2">
-                  <Button variant="secondary" onClick={() => setIsStopOpen(true)}>
+                  <Button variant="secondary" onClick={openStopDialog}>
                     Parada
                   </Button>
                   <Button variant="secondary" onClick={() => agendaMutation.mutate(selectedRouteId!)}>

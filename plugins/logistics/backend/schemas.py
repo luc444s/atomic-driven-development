@@ -4,6 +4,8 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+CYLINDER_ENTRY_MODES = ("EMPTY_FROM_CUSTOMER", "FULL_FROM_SUPPLIER")
+
 
 class CylinderStateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -36,6 +38,7 @@ class CylinderRead(BaseModel):
     barcode2: str | None
     current_state: str
     gas_group_id: str | None
+    product_id: str | None
     content_kg: float | None
     volume_m3: float | None
     condition: str | None
@@ -72,10 +75,15 @@ class CylinderRead(BaseModel):
 class CylinderCreateRequest(BaseModel):
     serial: str = Field(min_length=1, max_length=50)
     branch_id: str | None = None
+    entry_mode: str | None = Field(default=None, max_length=50)
+    document_type: str | None = Field(default=None, max_length=20)
+    document_number: str | None = Field(default=None, max_length=50)
+    customer_id: str | None = None
     description: str | None = Field(default=None, max_length=200)
     barcode1: str | None = Field(default=None, max_length=150)
     barcode2: str | None = Field(default=None, max_length=50)
     gas_group_id: str | None = None
+    product_id: str | None = None
     content_kg: float | None = None
     volume_m3: float | None = None
     condition: str | None = Field(default=None, max_length=50)
@@ -105,6 +113,32 @@ class CylinderCreateRequest(BaseModel):
     adr_unit_measure: str | None = Field(default=None, max_length=20)
     location: str | None = Field(default=None, max_length=100)
 
+    @field_validator("entry_mode")
+    @classmethod
+    def normalize_entry_mode(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        if normalized not in CYLINDER_ENTRY_MODES:
+            raise ValueError("entry_mode invalido")
+        return normalized
+
+    @field_validator("document_type")
+    @classmethod
+    def normalize_document_type(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        return normalized or None
+
+    @field_validator("document_number")
+    @classmethod
+    def normalize_document_number(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip().upper()
+        return normalized or None
+
 
 class CylinderUpdateRequest(BaseModel):
     serial: str | None = Field(default=None, min_length=1, max_length=50)
@@ -113,6 +147,7 @@ class CylinderUpdateRequest(BaseModel):
     barcode1: str | None = Field(default=None, max_length=150)
     barcode2: str | None = Field(default=None, max_length=50)
     gas_group_id: str | None = None
+    product_id: str | None = None
     content_kg: float | None = None
     volume_m3: float | None = None
     condition: str | None = Field(default=None, max_length=50)
@@ -275,6 +310,7 @@ class DeliveryPointRead(BaseModel):
     id: str
     tenant_id: str
     customer_id: str
+    customer_name: str | None
     contact_name: str | None
     contact_email: str | None
     address: str
@@ -488,7 +524,7 @@ class RouteStopRead(BaseModel):
 
 class RouteStopCreateRequest(BaseModel):
     delivery_point_id: str
-    stop_order: int
+    stop_order: int | None = None
     scheduled_time: time | None = None
     notes: str | None = None
 
@@ -669,7 +705,9 @@ class MovementItemCreateRequest(BaseModel):
     def coerce_empty_string_to_none(cls, v: object) -> str | None:
         if v == "":
             return None
-        return v
+        if isinstance(v, str) or v is None:
+            return v
+        return str(v)
 
 
 class MovementCancelRequest(BaseModel):
@@ -1155,7 +1193,9 @@ class ReceptionIncidentCreateRequest(BaseModel):
     def coerce_empty_string_to_none(cls, v: object) -> str | None:
         if v == "":
             return None
-        return v
+        if isinstance(v, str) or v is None:
+            return v
+        return str(v)
 
 
 class ReceptionItemReceiveRequest(BaseModel):

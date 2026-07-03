@@ -102,17 +102,18 @@ def create_movement(
             )
         )
         warehouse_branch_id = warehouse.branch_id if warehouse is not None else None
+    full_document = None
+    if payload.document_series and payload.document_number:
+        candidate = f"{payload.document_series}-{payload.document_number}"
+        if len(candidate) <= 27:
+            full_document = candidate
     movement = LogisticsMovement(
         tenant_id=tenant_id,
         branch_id=payload.branch_id or warehouse_branch_id,
         movement_type=payload.movement_type,
         document_series=payload.document_series,
         document_number=payload.document_number,
-        full_document=(
-            f"{payload.document_series}-{payload.document_number}"
-            if payload.document_series and payload.document_number
-            else None
-        ),
+        full_document=full_document,
         order_id=payload.order_id,
         route_id=payload.route_id,
         customer_id=customer_id,
@@ -252,6 +253,91 @@ def record_movement_status_change(
     return history
 
 
+def _apply_target_state_custody(
+    db: Session,
+    *,
+    cylinder,
+    movement: LogisticsMovement,
+    target_state: str,
+    action_context: LogisticsActionContext,
+) -> None:
+    if target_state in {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}:
+        register_ownership_change(
+            db,
+            cylinder=cylinder,
+            movement_id=movement.id,
+            customer_id=movement.customer_id,
+            customer_name=movement.customer_name,
+            notes=movement.notes,
+            action_context=action_context,
+        )
+    elif target_state in {"EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN", "LLENADO_OK"}:
+        register_ownership_change(
+            db,
+            cylinder=cylinder,
+            movement_id=movement.id,
+            customer_id=None,
+            customer_name="ALMACEN",
+            notes=movement.notes,
+            action_context=action_context,
+        )
+
+
+def apply_cylinder_effects_for_movement(
+    db: Session,
+    *,
+    tenant_id: str,
+    movement: LogisticsMovement,
+    action_context: LogisticsActionContext,
+) -> None:
+    movement_type = get_movement_type(db, code=movement.movement_type)
+    if movement_type is None or not movement_type.moves_cylinders or not movement_type.target_state:
+        return
+
+    for item in list_movement_items(db, movement_id=movement.id):
+        if item.cylinder_id is None:
+            continue
+        cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=item.cylinder_id)
+        if cylinder is None:
+            continue
+        target_state = movement_type.target_state
+        if cylinder.current_state != target_state:
+            transitioned = transition_cylinder(
+                db,
+                tenant_id=tenant_id,
+                cylinder_id=cylinder.id,
+                payload=CylinderTransitionRequest(
+                    to_state=target_state,
+                    movement_id=movement.id,
+                    origin="MOVEMENT_CONFIRM",
+                    notes=movement.notes,
+                ),
+                action_context=action_context,
+            )
+            if transitioned is None:
+                continue
+            item.state_after = transitioned.current_state
+            db.add(item)
+            _apply_target_state_custody(
+                db,
+                cylinder=transitioned,
+                movement=movement,
+                target_state=target_state,
+                action_context=action_context,
+            )
+            continue
+
+        item.state_after = cylinder.current_state
+        db.add(item)
+        _apply_target_state_custody(
+            db,
+            cylinder=cylinder,
+            movement=movement,
+            target_state=target_state,
+            action_context=action_context,
+        )
+
+
 def confirm_movement(
     db: Session,
     *,
@@ -262,70 +348,12 @@ def confirm_movement(
     previous_status = movement.status
     movement.status = "COMPLETADO"
     db.add(movement)
-    movement_type = get_movement_type(db, code=movement.movement_type)
-    if movement_type is not None and movement_type.moves_cylinders and movement_type.target_state:
-        for item in list_movement_items(db, movement_id=movement.id):
-            if item.cylinder_id is None:
-                continue
-            cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=item.cylinder_id)
-            if cylinder is None:
-                continue
-            if cylinder.current_state != movement_type.target_state:
-                transitioned = transition_cylinder(
-                    db,
-                    tenant_id=tenant_id,
-                    cylinder_id=cylinder.id,
-                    payload=CylinderTransitionRequest(
-                        to_state=movement_type.target_state,
-                        movement_id=movement.id,
-                        origin="MOVEMENT_CONFIRM",
-                        notes=movement.notes,
-                    ),
-                    action_context=action_context,
-                )
-                if transitioned is not None:
-                    item.state_after = transitioned.current_state
-                    db.add(item)
-                    if movement_type.target_state in {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}:
-                        register_ownership_change(
-                            db,
-                            cylinder=transitioned,
-                            movement_id=movement.id,
-                            customer_id=movement.customer_id,
-                            customer_name=movement.customer_name,
-                            notes=movement.notes,
-                            action_context=action_context,
-                        )
-                    elif movement_type.target_state in {"EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN"}:
-                        register_ownership_change(
-                            db,
-                            cylinder=transitioned,
-                            movement_id=movement.id,
-                            customer_id=None,
-                            customer_name="ALMACEN",
-                            notes=movement.notes,
-                            action_context=action_context,
-                        )
-            elif movement_type.target_state in {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}:
-                register_ownership_change(
-                    db,
-                    cylinder=cylinder,
-                    movement_id=movement.id,
-                    customer_id=movement.customer_id,
-                    customer_name=movement.customer_name,
-                    notes=movement.notes,
-                    action_context=action_context,
-                )
-            elif movement_type.target_state in {"EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN"}:
-                register_ownership_change(
-                    db,
-                    cylinder=cylinder,
-                    movement_id=movement.id,
-                    customer_id=None,
-                    customer_name="ALMACEN",
-                    notes=movement.notes,
-                    action_context=action_context,
-                )
+    apply_cylinder_effects_for_movement(
+        db,
+        tenant_id=tenant_id,
+        movement=movement,
+        action_context=action_context,
+    )
     record_movement_status_change(
         db,
         movement=movement,

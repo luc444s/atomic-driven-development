@@ -41,6 +41,14 @@ export function AddressSection({ value, onChange }: AddressSectionProps) {
         <span>Teléfono</span>
         <Input value={value.contact_phone ?? ""} onChange={(event) => onChange({ ...value, contact_phone: event.target.value })} />
       </label>
+      <label className="flex items-center gap-2 text-sm text-foreground md:col-span-2">
+        <input
+          type="checkbox"
+          checked={value.is_operational_site}
+          onChange={(event) => onChange({ ...value, is_operational_site: event.target.checked })}
+        />
+        <span>Marcar como sede / establecimiento operativo</span>
+      </label>
     </div>
   );
 }

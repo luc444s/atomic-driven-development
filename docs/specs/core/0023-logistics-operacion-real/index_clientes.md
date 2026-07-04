@@ -2,7 +2,7 @@
 
 ## Estado
 
-Propuesta
+Implementada
 
 ## Propósito
 
@@ -92,16 +92,16 @@ Pero frente a la operacion real descrita por el cliente en `Grab2`, el modulo to
 | NIF/CIF/NIE Espana | Necesario y con semantica real | Si | Parcial | Parcial-bajo | Validacion y reglas espanolas mas finas | `crm` | `0023AB` |
 | Codigo cliente / codigo interno | Importa para operacion y contabilidad | Si | Parcial (`external_code`) | Parcial | Confirmar semantica y uso visible | `crm` | `0023D` |
 | Codigo contable | Se usa para exportar y enlazar contabilidad | Si | No | Gap fuerte | Campo y contrato de exportacion | `crm` + futuro facturacion | `0023AK` |
-| Cliente fiscal vs establecimiento | Una empresa puede tener varios puntos/establecimientos | Si | Parcial | Parcial | Unificar mejor modelo `crm` + `delivery_points` | `crm` + `logistics` | `0023Q` |
-| Direccion fiscal | Necesaria | Si | Si | Bien | Ajustes menores | `crm` | `0023Q` |
-| Direccion de entrega | Necesaria y distinta de la fiscal | Si | Parcial | Parcial | Aterrizarla operativamente | `crm` + `logistics` | `0023Q` |
-| Varias sedes | Necesarias | Si | Parcial | Parcial | Modelo mas rico por establecimiento | `crm` | `0023Q` |
-| Contacto por sede | Necesario | Si | Parcial | Parcial | Contactos vinculados al punto correcto | `crm` | `0023R` |
-| Responsable que recibe | Existe operativamente, aunque no siempre se use | Si | Bajo | Gap fuerte | Modelo y UX flexible | `crm` + `logistics` | `0023R` |
-| Varios responsables | Existe en negocio real | Si | Parcial | Parcial | Mejor modelado y UX | `crm` | `0023R` |
-| Agente comercial asignado | Necesario | Si | Bajo | Gap fuerte | Owner comercial por cliente/establecimiento | `crm` | `0023S` |
-| Supervisor de zona | Aparece en operacion | Parcial | No | Gap medio/alto | Modelo comercial minimo | `crm` | `0023S` |
-| Ruta asociada al cliente | Importa para reparto | Si | Parcial | Parcial | Definir frontera CRM vs logistics | `logistics` con referencia a `crm` | `0023Q` |
+| Cliente fiscal vs establecimiento | Una empresa puede tener varios puntos/establecimientos | Si | Parcial | Parcial | Unificar mejor modelo `crm` + `delivery_points` | `crm` + `logistics` | `0023D` |
+| Direccion fiscal | Necesaria | Si | Si | Bien | Ajustes menores | `crm` | `0023D` |
+| Direccion de entrega | Necesaria y distinta de la fiscal | Si | Parcial | Parcial | Aterrizarla operativamente | `crm` + `logistics` | `0023D` |
+| Varias sedes | Necesarias | Si | Parcial | Parcial | Modelo mas rico por establecimiento | `crm` | `0023D` |
+| Contacto por sede | Necesario | Si | Si | Bien | Contactos vinculados a direccion, con proposito y primary por scope | `crm` | `0023R` |
+| Responsable que recibe | Existe operativamente, aunque no siempre se use | Si | Si | Bien | Contacto con rol, telefono, email vinculado a direccion | `crm` + `logistics` | `0023R` |
+| Varios responsables | Existe en negocio real | Si | Si | Bien | Multiples contactos por cliente con filtros por sede y proposito | `crm` | `0023R` |
+| Agente comercial asignado | Necesario | Si | Si | Bien | Owner comercial por cliente/establecimiento con roles AGENT/SUPERVISOR | `crm` | `0023S` |
+| Supervisor de zona | Aparece en operacion | Parcial | Si | Bien | Modelo comercial minimo con primary por scope | `crm` | `0023S` |
+| Ruta asociada al cliente | Importa para reparto | Si | Parcial | Parcial | Definir frontera CRM vs logistics | `logistics` con referencia a `crm` | `0023D` |
 | Coordenadas / geolocalizacion | Utiles para reparto y nuevas altas | Si | Si base | Bien parcial | Mejor captura operativa | `crm` | `0023T` |
 | Forma de pago base | Critica | Si | Si base | Bien parcial | Ampliar semantica y uso | `crm` | `0023X` |
 | Facturacion mensual vs por operacion | Critica | Si | Parcial (`billing_type`) | Parcial | Integrar con modulo futuro | `crm` + futuro facturacion | `0023X` |
@@ -126,23 +126,26 @@ Pero frente a la operacion real descrita por el cliente en `Grab2`, el modulo to
 
 ### Prioridad alta
 
-1. `0023Q` Cliente comercial/fiscal y direcciones
-2. `0023R` Contactos y responsables
-3. `0023S` Gestion comercial
-4. `0023X` Formas de pago
-5. `0023AB` Fiscal Espana
+1. `0023D` Cliente comercial/fiscal y direcciones — implementada
+2. `0023R` Contactos y responsables — implementada
+3. `0023S` Gestion comercial — implementada
+4. `0023XA` Condiciones comerciales, fiscalidad y cobro del cliente — implementada
+5. `0023XB` Frontend de condiciones comerciales — implementada
 
-### Prioridad media
+### Nota de consolidacion
 
-1. `0023AJ` Datos bancarios
-2. `0023AK` Codigo contable y exportacion base
-3. `0023U` Precios especiales por cliente
-4. `0023V` Presupuestos
+Para reducir fragmentacion artificial del backlog, las lineas que antes aparecian como:
 
-### Prioridad posterior
+- `0023X` Formas de pago
+- `0023AJ` Datos bancarios
+- `0023AK` Codigo contable y exportacion base
+- `0023AB` Fiscal Espana
+- `0023U` Precios especiales por cliente
+- `0023V` Presupuestos
+- `0023Y` Remesas
+- `0023Z` Cuentas por cobrar
 
-1. `0023Y` Remesas
-2. `0023Z` Cuentas por cobrar
+se consolidan en `0023XA`, manteniendo dentro del documento la separacion de ownership entre `crm`, `productos`, `ventas`, `facturacion` y `cobros`.
 
 ## Criterio de implementacion
 
@@ -156,4 +159,4 @@ La regla principal es:
 
 - `crm` es dueno de la identidad, contacto, direcciones, documento fiscal y estado base del cliente;
 - `logistics` es dueno de los puntos de entrega y operacion diaria de reparto;
-- precios especiales, remesas, cuentas por cobrar y exportaciones contables requieren sub-specs propias aunque dependan del cliente.
+- precios especiales, remesas, cuentas por cobrar y exportaciones contables no deben mezclarse por accidente dentro del customer core, aunque ahora se lean de forma consolidada en `0023XA`.

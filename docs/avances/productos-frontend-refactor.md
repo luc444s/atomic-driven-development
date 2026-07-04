@@ -1,4 +1,8 @@
-# Refactor: Productos a Modales
+# Refactor: Productos a Modales — IMPLEMENTADO
+
+## Estado: ✅ COMPLETADO
+
+Este refactor ya fue implementado. Los modales (`ModalNuevoProducto`, `ModalDetalleProducto`, `ModalCatalogo`) están funcionando en `plugins/productos/frontend/components/`.
 
 ## Objetivo
 

@@ -7,6 +7,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { adjustStock, listWarehousesCatalog, stockKeys } from "../api";
 import type { LogisticsWarehouseOption, StockBalanceItem } from "../types";
 
@@ -80,6 +81,7 @@ export function ModalAjusteStock({
     },
     onSuccess: async (balance) => {
       await queryClient.invalidateQueries({ queryKey: stockKeys.all });
+      toast.success("Ajuste de stock registrado");
       onSaved?.(balance);
       onClose();
     },

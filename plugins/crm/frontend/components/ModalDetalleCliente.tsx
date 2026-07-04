@@ -7,6 +7,7 @@ import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { listDeliveryPoints, logisticsKeys } from "../../../logistics/frontend/api";
 import {
   createCustomerAddress,
@@ -149,6 +150,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const createAddressMutation = useMutation({
     mutationFn: () => createCustomerAddress(customerId, addressForm),
     onSuccess: async () => {
+      toast.success("Dirección creada");
       setAddressForm(EMPTY_ADDRESS);
       setDetailError(null);
       await refreshCustomer();
@@ -158,6 +160,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const setFiscalMutation = useMutation({
     mutationFn: (addressId: string) => setFiscalAddress(customerId, addressId),
     onSuccess: async () => {
+      toast.success("Dirección fiscal actualizada");
       setDetailError(null);
       await refreshCustomer();
     },
@@ -166,6 +169,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const updateAddressMutation = useMutation({
     mutationFn: () => updateCustomerAddress(editingAddressId!, addressForm),
     onSuccess: async () => {
+      toast.success("Dirección actualizada");
       setAddressForm(EMPTY_ADDRESS);
       setEditingAddressId(null);
       setDetailError(null);
@@ -176,6 +180,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const deleteAddressMutation = useMutation({
     mutationFn: (addressId: string) => deleteCustomerAddress(addressId),
     onSuccess: async () => {
+      toast.success("Dirección eliminada");
       setDetailError(null);
       await refreshCustomer();
     },
@@ -184,6 +189,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const createContactMutation = useMutation({
     mutationFn: () => createCustomerContact(customerId, contactForm),
     onSuccess: async () => {
+      toast.success("Contacto creado");
       setContactForm(EMPTY_CONTACT);
       setEditingContactId(null);
       setDetailError(null);
@@ -194,6 +200,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const updateContactMutation = useMutation({
     mutationFn: () => updateCustomerContact(editingContactId!, contactForm),
     onSuccess: async () => {
+      toast.success("Contacto actualizado");
       setContactForm(EMPTY_CONTACT);
       setEditingContactId(null);
       setDetailError(null);
@@ -204,6 +211,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const deleteContactMutation = useMutation({
     mutationFn: (contactId: string) => deleteCustomerContact(contactId),
     onSuccess: async () => {
+      toast.success("Contacto eliminado");
       setDetailError(null);
       await refreshCustomer();
     },
@@ -212,6 +220,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const createCommercialAssignmentMutation = useMutation({
     mutationFn: () => createCustomerCommercialAssignment(customerId, commercialAssignmentForm),
     onSuccess: async () => {
+      toast.success("Asignación comercial creada");
       setCommercialAssignmentForm(EMPTY_COMMERCIAL_ASSIGNMENT);
       setEditingCommercialAssignmentId(null);
       setDetailError(null);
@@ -222,6 +231,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const updateCommercialAssignmentMutation = useMutation({
     mutationFn: () => updateCustomerCommercialAssignment(editingCommercialAssignmentId!, commercialAssignmentForm),
     onSuccess: async () => {
+      toast.success("Asignación comercial actualizada");
       setCommercialAssignmentForm(EMPTY_COMMERCIAL_ASSIGNMENT);
       setEditingCommercialAssignmentId(null);
       setDetailError(null);
@@ -232,6 +242,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const deleteCommercialAssignmentMutation = useMutation({
     mutationFn: (assignmentId: string) => deleteCustomerCommercialAssignment(assignmentId),
     onSuccess: async () => {
+      toast.success("Asignación comercial eliminada");
       setDetailError(null);
       await refreshCustomer();
     },

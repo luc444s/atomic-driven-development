@@ -180,19 +180,7 @@ export async function listProducts(params: Record<string, unknown>): Promise<Pro
 }
 
 export async function listAllProducts(params: Record<string, unknown> = {}): Promise<ProductListItem[]> {
-  const items: ProductListItem[] = [];
-  const limit = 100;
-  let offset = 0;
-
-  while (true) {
-    const page = await listProducts({ ...params, limit, offset });
-    items.push(...page.items);
-    offset += page.items.length;
-
-    if (page.items.length === 0 || items.length >= page.total) {
-      return items;
-    }
-  }
+  return apiRequest(`${PRODUCTOS_BASE}/products/flat${buildQuery(params)}`);
 }
 
 export async function searchProducts(query: string, limit = 20): Promise<ProductSearchItem[]> {

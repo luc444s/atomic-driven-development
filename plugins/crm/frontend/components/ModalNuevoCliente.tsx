@@ -2,6 +2,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
+import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
@@ -12,6 +13,7 @@ import {
   getCustomer,
   listCountries,
   listDocumentTypes,
+  listPaymentTerms,
   setFiscalAddress,
   updateCustomer,
   updateCustomerAddress,
@@ -36,6 +38,12 @@ const EMPTY_CUSTOMER: CustomerPayload = {
   payment_term_code: null,
   billing_type: "por_operacion",
   is_exempt: false,
+  accounting_code: null,
+  is_intracommunity: false,
+  fiscal_operation_key: null,
+  tax_regime_code: null,
+  equivalence_surcharge_applicable: false,
+  cash_criterion_applicable: false,
   first_name: null,
   last_name: null,
   birth_date: null,
@@ -67,6 +75,7 @@ function emptyAddress(address_type = "FISCAL"): CustomerAddressPayload {
     contact_name: null,
     contact_phone: null,
     contact_email: null,
+    is_operational_site: false,
     notes: null,
     ubigeo_code: null,
   };
@@ -102,6 +111,11 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
     queryFn: () => listDocumentTypes(formState.country_code),
     enabled: open,
   });
+  const paymentTermsQuery = useQuery({
+    queryKey: crmKeys.catalogs.paymentTerms,
+    queryFn: listPaymentTerms,
+    enabled: open,
+  });
 
   useEffect(() => {
     if (!detailQuery.data) {
@@ -122,6 +136,12 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
       payment_term_code: detailQuery.data.payment_term_code,
       billing_type: detailQuery.data.billing_type,
       is_exempt: detailQuery.data.is_exempt,
+      accounting_code: detailQuery.data.accounting_code,
+      is_intracommunity: detailQuery.data.is_intracommunity,
+      fiscal_operation_key: detailQuery.data.fiscal_operation_key,
+      tax_regime_code: detailQuery.data.tax_regime_code,
+      equivalence_surcharge_applicable: detailQuery.data.equivalence_surcharge_applicable,
+      cash_criterion_applicable: detailQuery.data.cash_criterion_applicable,
       first_name: detailQuery.data.first_name,
       last_name: detailQuery.data.last_name,
       birth_date: detailQuery.data.birth_date,
@@ -153,6 +173,7 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
           contact_name: item.contact_name,
           contact_phone: item.contact_phone,
           contact_email: item.contact_email,
+          is_operational_site: item.is_operational_site,
           notes: item.notes,
           ubigeo_code: item.ubigeo_code,
         }))
@@ -252,6 +273,12 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
               label: item.name,
               keywords: [item.code, item.description ?? ""],
             }))}
+            accountingCode={formState.accounting_code}
+            isIntracommunity={formState.is_intracommunity}
+            fiscalOperationKey={formState.fiscal_operation_key}
+            taxRegimeCode={formState.tax_regime_code}
+            equivalenceSurchargeApplicable={formState.equivalence_surcharge_applicable}
+            cashCriterionApplicable={formState.cash_criterion_applicable}
             onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value }))}
           />
           <div className="grid gap-4 md:grid-cols-2">
@@ -270,49 +297,92 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
             mobile={formState.mobile ?? ""}
             onChange={(field, value) => setFormState((current) => ({ ...current, [field]: value || null }))}
           />
+          <div className="rounded-md border border-border p-4">
+            <p className="mb-3 text-sm font-medium text-foreground">Condiciones comerciales</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="block space-y-2 text-sm text-foreground">
+                <span>Forma de pago</span>
+                <Combobox
+                  value={formState.payment_term_code ?? ""}
+                  onChange={(value) => setFormState((current) => ({ ...current, payment_term_code: value || null }))}
+                  options={(paymentTermsQuery.data ?? []).map((term) => ({
+                    value: term.code,
+                    label: `${term.name} (${term.payment_mode})`,
+                    keywords: [term.code, term.name, term.payment_mode],
+                  }))}
+                  placeholder="Seleccionar forma de pago"
+                  searchPlaceholder="Buscar..."
+                />
+              </label>
+              <label className="block space-y-2 text-sm text-foreground">
+                <span>Tipo de facturación</span>
+                <Combobox
+                  value={formState.billing_type ?? ""}
+                  onChange={(value) => setFormState((current) => ({ ...current, billing_type: value || null }))}
+                  options={[
+                    { value: "por_operacion", label: "Por operación", keywords: ["operacion"] },
+                    { value: "mensual", label: "Mensual", keywords: ["mensual"] },
+                    { value: "anticipada", label: "Anticipada", keywords: ["anticipada"] },
+                  ]}
+                  placeholder="Seleccionar tipo"
+                  searchPlaceholder="Buscar..."
+                />
+              </label>
+            </div>
+            <label className="mt-3 flex items-center gap-2 text-sm text-foreground">
+              <input
+                type="checkbox"
+                checked={formState.is_exempt}
+                onChange={(event) => setFormState((current) => ({ ...current, is_exempt: event.target.checked }))}
+              />
+              <span>Cliente exento</span>
+            </label>
+          </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Direcciones</CardTitle>
-          <CardDescription>
-            Dirección fiscal, comercial, entrega u otras. La primera dirección con tipo "Fiscal" se usará como domicilio fiscal.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {addressesState.map((addr, i) => (
-            <div key={i} className="space-y-3 rounded-lg border border-border p-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-semibold text-foreground">
-                  Dirección {i + 1}
-                  {i === 0 ? <span className="ml-2 text-xs font-normal text-muted-foreground">(fiscal por defecto)</span> : null}
-                </span>
-                {addressesState.length > 1 ? (
-                  <button
-                    type="button"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                    onClick={() => setAddressesState((prev) => prev.filter((_, j) => j !== i))}
-                  >
-                    x
-                  </button>
-                ) : null}
+      {!customerId ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Direcciones</CardTitle>
+            <CardDescription>
+              Dirección fiscal, comercial, entrega u otras. La primera dirección con tipo "Fiscal" se usará como domicilio fiscal.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {addressesState.map((addr, i) => (
+              <div key={i} className="space-y-3 rounded-lg border border-border p-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground">
+                    Dirección {i + 1}
+                    {i === 0 ? <span className="ml-2 text-xs font-normal text-muted-foreground">(fiscal por defecto)</span> : null}
+                  </span>
+                  {addressesState.length > 1 ? (
+                    <button
+                      type="button"
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                      onClick={() => setAddressesState((prev) => prev.filter((_, j) => j !== i))}
+                    >
+                      x
+                    </button>
+                  ) : null}
+                </div>
+                <AddressSection
+                  value={addr}
+                  onChange={(updated) => setAddressesState((prev) => prev.map((item, j) => (j === i ? updated : item)))}
+                />
               </div>
-              <AddressSection
-                value={addr}
-                onChange={(updated) => setAddressesState((prev) => prev.map((item, j) => (j === i ? updated : item)))}
-              />
-            </div>
-          ))}
-          <button
-            type="button"
-            className="text-sm font-medium text-primary hover:underline"
-            onClick={() => setAddressesState((prev) => [...prev, emptyAddress("COMERCIAL")])}
-          >
-            + Agregar dirección
-          </button>
-        </CardContent>
-      </Card>
+            ))}
+            <button
+              type="button"
+              className="text-sm font-medium text-primary hover:underline"
+              onClick={() => setAddressesState((prev) => [...prev, emptyAddress("COMERCIAL")])}
+            >
+              + Agregar dirección
+            </button>
+          </CardContent>
+        </Card>
+      ) : null}
 
       {detailQuery.data ? (
         <Card>

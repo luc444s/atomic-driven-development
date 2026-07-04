@@ -9,6 +9,7 @@ import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { DropdownMenu, type DropdownItem } from "../../../../apps/web/src/shared/ui/dropdown-menu";
 import { Checkbox, Input, Switch, Textarea } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import {
   createProductAdr,
   createProductBarcode,
@@ -118,6 +119,7 @@ export function ProductDetailPage() {
       });
     },
     onSuccess: async () => {
+      toast.success("Código de barras creado");
       setBarcodeValue("");
       await refreshDetail();
     },
@@ -132,6 +134,7 @@ export function ProductDetailPage() {
         valid_from: today(),
       }),
     onSuccess: async () => {
+      toast.success("Precio creado");
       setPriceAmount("");
       await refreshDetail();
     },
@@ -146,6 +149,7 @@ export function ProductDetailPage() {
         valid_from: today(),
       }),
     onSuccess: async () => {
+      toast.success("Costo creado");
       setCostAmount("");
       await refreshDetail();
     },
@@ -170,7 +174,10 @@ export function ProductDetailPage() {
           },
         ],
       }),
-    onSuccess: refreshDetail,
+    onSuccess: async () => {
+      toast.success("Impuesto actualizado");
+      await refreshDetail();
+    },
   });
 
   const adrMutation = useMutation({
@@ -191,6 +198,7 @@ export function ProductDetailPage() {
         valid_from: adrForm.valid_from,
       }),
     onSuccess: async () => {
+      toast.success("ADR registrado");
       await refreshDetail();
     },
   });
@@ -209,6 +217,7 @@ export function ProductDetailPage() {
         is_active: promotionForm.is_active,
       }),
     onSuccess: async () => {
+      toast.success("Promoción creada");
       setPromotionForm((current) => ({ ...current, name: "", qty_required: "", discount_percent: "", unit_price: "", box_price: "" }));
       await refreshDetail();
     },
@@ -222,6 +231,7 @@ export function ProductDetailPage() {
       return uploadProductMedia(productId!, { media_type: mediaType, is_primary: false, file: mediaFile });
     },
     onSuccess: async () => {
+      toast.success("Media subida");
       setMediaFile(null);
       await refreshDetail();
     },

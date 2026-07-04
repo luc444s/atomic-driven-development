@@ -9,6 +9,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { DropdownMenu, type DropdownItem } from "../../../../apps/web/src/shared/ui/dropdown-menu";
 import { Input, Switch, Textarea } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import {
   createProductAdr,
   createProductBarcode,
@@ -150,6 +151,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
       });
     },
     onSuccess: async () => {
+      toast.success("Código de barras creado");
       setBarcodeValue("");
       await refreshDetail();
     },
@@ -164,6 +166,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         valid_from: today(),
       }),
     onSuccess: async () => {
+      toast.success("Precio creado");
       setPriceAmount("");
       await refreshDetail();
     },
@@ -178,6 +181,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         valid_from: today(),
       }),
     onSuccess: async () => {
+      toast.success("Costo creado");
       setCostAmount("");
       await refreshDetail();
     },
@@ -202,7 +206,10 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
           },
         ],
       }),
-    onSuccess: refreshDetail,
+    onSuccess: async () => {
+      toast.success("Impuesto actualizado");
+      await refreshDetail();
+    },
   });
 
   const adrMutation = useMutation({
@@ -223,6 +230,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         valid_from: adrForm.valid_from,
       }),
     onSuccess: async () => {
+      toast.success("ADR registrado");
       await refreshDetail();
     },
   });
@@ -241,6 +249,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         is_active: promotionForm.is_active,
       }),
     onSuccess: async () => {
+      toast.success("Promoción creada");
       setPromotionForm((current) => ({ ...current, name: "", qty_required: "", discount_percent: "", unit_price: "", box_price: "" }));
       await refreshDetail();
     },
@@ -254,6 +263,7 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
       return uploadProductMedia(productId, { media_type: mediaType, is_primary: false, file: mediaFile });
     },
     onSuccess: async () => {
+      toast.success("Media subida");
       setMediaFile(null);
       await refreshDetail();
     },

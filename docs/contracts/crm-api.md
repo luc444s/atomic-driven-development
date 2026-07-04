@@ -13,6 +13,12 @@ Vigente para implementacion de `SPEC 0013` y refactor de integracion con `logist
 - `crm.customer.read`
 - `crm.customer.create`
 - `crm.customer.update`
+- `crm.commercial.read`
+- `crm.commercial.manage`
+- `crm.financial.read`
+- `crm.financial.manage`
+- `crm.pricing.read`
+- `crm.pricing.manage`
 - `crm.catalog.read`
 - `crm.geography.read`
 - `crm.geography.manage`
@@ -24,6 +30,18 @@ Vigente para implementacion de `SPEC 0013` y refactor de integracion con `logist
 - `crm.customer.status_changed`
 - `crm.customer.address_added`
 - `crm.customer.address_removed`
+- `crm.customer.contact_added`
+- `crm.customer.contact_updated`
+- `crm.customer.contact_removed`
+- `crm.customer.commercial_assignment_added`
+- `crm.customer.commercial_assignment_updated`
+- `crm.customer.commercial_assignment_removed`
+- `crm.customer.bank_account_added`
+- `crm.customer.bank_account_updated`
+- `crm.customer.bank_account_removed`
+- `crm.customer.pricing_term_added`
+- `crm.customer.pricing_term_updated`
+- `crm.customer.pricing_term_removed`
 
 ## Reglas transversales
 
@@ -32,6 +50,7 @@ Vigente para implementacion de `SPEC 0013` y refactor de integracion con `logist
 - `customer_name` no es campo de entrada en CRM ni en los flujos refactorizados de logistics;
 - `document_type_code + document_number` debe ser unico por tenant;
 - `fiscal_address_id` debe apuntar a una direccion del mismo cliente;
+- `address_id` en contactos o asignaciones comerciales debe apuntar a una direccion del mismo cliente;
 - `crm_geography` es catalogo global, no por tenant.
 
 ## Errores comunes
@@ -106,6 +125,7 @@ Response:
     "description": null,
     "days": 0,
     "operation_type": "CONTADO",
+    "payment_mode": "CONTADO",
     "is_active": true
   }
 ]
@@ -214,6 +234,12 @@ Response:
       "payment_term_code": "CONTADO",
       "billing_type": "por_operacion",
       "is_exempt": false,
+      "accounting_code": null,
+      "is_intracommunity": false,
+      "fiscal_operation_key": null,
+      "tax_regime_code": null,
+      "equivalence_surcharge_applicable": false,
+      "cash_criterion_applicable": false,
       "is_active": true,
       "fiscal_address_id": "uuid|null",
       "created_at": "2026-06-27T00:00:00Z",
@@ -295,6 +321,12 @@ Response:
   "payment_term_code": "CONTADO",
   "billing_type": "por_operacion",
   "is_exempt": false,
+  "accounting_code": "43000001",
+  "is_intracommunity": false,
+  "fiscal_operation_key": null,
+  "tax_regime_code": null,
+  "equivalence_surcharge_applicable": false,
+  "cash_criterion_applicable": false,
   "first_name": null,
   "last_name": null,
   "birth_date": null,
@@ -331,6 +363,12 @@ Request:
   "payment_term_code": "CONTADO",
   "billing_type": "por_operacion",
   "is_exempt": false,
+  "accounting_code": "43000001",
+  "is_intracommunity": false,
+  "fiscal_operation_key": null,
+  "tax_regime_code": null,
+  "equivalence_surcharge_applicable": false,
+  "cash_criterion_applicable": false,
   "first_name": null,
   "last_name": null,
   "birth_date": null,
@@ -508,16 +546,220 @@ Request:
 
 ```json
 {
+  "full_name": "Maria Cobranza",
+  "role": "Responsable de cobranzas",
+  "phone": "014448888",
+  "email": "cobranzas@glpnorte.pe",
+  "address_id": "uuid|null",
+  "contact_purpose": "COBRANZA",
   "contact_type": "EMAIL",
-  "value": "cobranzas@glpnorte.pe",
   "label": "Cobranza",
+  "notes": null,
   "is_primary": false
 }
 ```
 
+### PUT `/contacts/{id}`
+
+Permiso: `crm.customer.update`
+
+Puede actualizar cualquier campo del contacto, incluyendo:
+
+- `full_name`
+- `label`
+- `role`
+- `phone`
+- `email`
+- `address_id`
+- `contact_purpose`
+- `contact_type`
+- `notes`
+- `is_primary`
+- `is_active`
+
 ### DELETE `/contacts/{id}`
 
 Permiso: `crm.customer.update`
+
+Valores validos de `contact_purpose`:
+
+- `GENERAL`
+- `FACTURACION`
+- `COBRANZA`
+- `COMPRAS`
+- `OPERACIONES`
+- `RECEPCION`
+- `OTRO`
+
+## Gestión comercial
+
+### GET `/commercial/users`
+
+Permiso: `crm.commercial.read`
+
+Lista usuarios activos del tenant que pueden asignarse como owner comercial.
+
+### GET `/customers/{id}/commercial-assignments`
+
+Permiso: `crm.commercial.read`
+
+Query params opcionales:
+
+- `address_id`
+- `assignment_role`
+- `active_only`
+
+### POST `/customers/{id}/commercial-assignments`
+
+Permiso: `crm.commercial.manage`
+
+Request:
+
+```json
+{
+  "address_id": "uuid|null",
+  "user_id": "uuid",
+  "assignment_role": "AGENT",
+  "notes": null,
+  "is_primary": true
+}
+```
+
+### PUT `/commercial-assignments/{id}`
+
+Permiso: `crm.commercial.manage`
+
+### DELETE `/commercial-assignments/{id}`
+
+Permiso: `crm.commercial.manage`
+
+Valores validos de `assignment_role`:
+
+- `AGENT`
+- `SUPERVISOR`
+
+## Datos bancarios
+
+### GET `/customers/{id}/bank-accounts`
+
+Permiso: `crm.financial.read`
+
+Response:
+
+```json
+[
+  {
+    "id": "uuid",
+    "customer_id": "uuid",
+    "bank_name": "BBVA",
+    "account_holder": "GLP Norte SAC",
+    "iban": "ES9121000418450200051332",
+    "bic_swift": "BBVAESMM",
+    "is_primary": true,
+    "is_active": true,
+    "notes": "Cuenta principal",
+    "created_at": "2026-07-04T00:00:00Z",
+    "updated_at": "2026-07-04T00:00:00Z"
+  }
+]
+```
+
+### POST `/customers/{id}/bank-accounts`
+
+Permiso: `crm.financial.manage`
+
+Request:
+
+```json
+{
+  "bank_name": "Santander",
+  "account_holder": "GLP Norte SAC",
+  "iban": "ES4500493492412322413742",
+  "bic_swift": null,
+  "is_primary": false,
+  "notes": null
+}
+```
+
+Reglas:
+
+- Solo una cuenta puede ser `is_primary = true` por cliente. Si se crea una nueva como primary, la anterior se desmarca automaticamente.
+- El IBAN se normaliza (mayusculas, sin espacios).
+
+### PUT `/bank-accounts/{id}`
+
+Permiso: `crm.financial.manage`
+
+### DELETE `/bank-accounts/{id}`
+
+Permiso: `crm.financial.manage`
+
+Response: `204 No Content`
+
+## Condiciones de precio por cliente
+
+### GET `/customers/{id}/pricing-terms`
+
+Permiso: `crm.pricing.read`
+
+Response:
+
+```json
+[
+  {
+    "id": "uuid",
+    "customer_id": "uuid",
+    "product_id": "uuid|null",
+    "scope_type": "GLOBAL",
+    "pricing_mode": "PERCENT_DISCOUNT",
+    "fixed_amount": null,
+    "discount_percent": "12.500",
+    "currency": "EUR",
+    "valid_from": "2026-01-01T00:00:00Z",
+    "valid_to": null,
+    "source_quote_ref": null,
+    "approved_by": "uuid",
+    "is_active": true,
+    "notes": null,
+    "created_at": "2026-07-04T00:00:00Z",
+    "updated_at": "2026-07-04T00:00:00Z"
+  }
+]
+```
+
+### POST `/customers/{id}/pricing-terms`
+
+Permiso: `crm.pricing.manage`
+
+Request:
+
+```json
+{
+  "scope_type": "GLOBAL",
+  "pricing_mode": "PERCENT_DISCOUNT",
+  "discount_percent": "12.500",
+  "currency": "EUR",
+  "valid_from": "2026-01-01T00:00:00Z",
+  "source_quote_ref": null,
+  "notes": null
+}
+```
+
+Reglas:
+
+- `scope_type = PRODUCT`: `product_id` obligatorio, `pricing_mode = FIXED_PRICE`: `fixed_amount` obligatorio, `pricing_mode = PERCENT_DISCOUNT`: `discount_percent` obligatorio.
+- `scope_type = GLOBAL`: `product_id` no debe enviarse.
+- Primer corte solo soporta alcance `PRODUCT` o `GLOBAL`. Linea/grupo no implementados aun.
+
+### PUT `/pricing-terms/{id}`
+
+Permiso: `crm.pricing.manage`
+
+### DELETE `/pricing-terms/{id}`
+
+Permiso: `crm.pricing.manage`
+
+Response: `204 No Content`
 
 ## Integracion con logistics
 

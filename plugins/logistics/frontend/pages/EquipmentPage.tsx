@@ -20,6 +20,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 
 const controlClassName =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
@@ -49,6 +50,7 @@ export function EquipmentPage() {
       equipment_type: equipType || undefined,
     }),
     onSuccess: () => {
+      toast.success("Equipo creado");
       setIsCreateOpen(false);
       setEquipName("");
       setEquipType("");
@@ -63,6 +65,7 @@ export function EquipmentPage() {
       notes: assignNotes || undefined,
     }),
     onSuccess: () => {
+      toast.success("Equipo asignado");
       setIsAssignOpen(false);
       setAssignEquipId("");
       setAssignNotes("");
@@ -74,7 +77,11 @@ export function EquipmentPage() {
   const returnMutation = useMutation({
     mutationFn: (eqId: string) => returnMovementEquipment(selectedMovementId!, eqId),
     onSuccess: () => {
+      toast.success("Equipo devuelto");
       queryClient.invalidateQueries({ queryKey: equipmentKeys.movementEquipment(selectedMovementId!) });
+    },
+    onError: () => {
+      toast.error("Error al devolver equipo");
     },
   });
 

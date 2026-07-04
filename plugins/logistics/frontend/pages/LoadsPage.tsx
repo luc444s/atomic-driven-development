@@ -9,6 +9,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 
 type LoadFormState = {
   route_id: string;
@@ -42,6 +43,7 @@ export function LoadsPage() {
   const assignMutation = useMutation({
     mutationFn: () => bulkCreateLoads({ route_id: formState.route_id, stop_id: formState.stop_id || null, cylinder_ids: formState.cylinder_ids }),
     onSuccess: async () => {
+      toast.success("Cargas asignadas");
       setFormState((current) => ({ ...current, cylinder_ids: [] }));
       setError(null);
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.loads(formState.route_id) });
@@ -50,11 +52,15 @@ export function LoadsPage() {
   const confirmMutation = useMutation({
     mutationFn: () => confirmLoads(formState.route_id),
     onSuccess: async () => {
+      toast.success("Cargas confirmadas");
       setError(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: logisticsKeys.loads(formState.route_id) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.cylinders.all() }),
       ]);
+    },
+    onError: () => {
+      toast.error("Error al confirmar cargas");
     },
   });
 

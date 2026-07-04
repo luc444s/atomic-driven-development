@@ -22,6 +22,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 
 const controlClassName =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
@@ -63,6 +64,7 @@ export function ReceptionPage() {
       notes: receiveNotes || undefined,
     }),
     onSuccess: () => {
+      toast.success("Recepción registrada");
       setIsReceiveOpen(false);
       setSelectedMovement(null);
       setReceiveNotes("");
@@ -82,6 +84,7 @@ export function ReceptionPage() {
       description: incidentDesc || undefined,
     }),
     onSuccess: () => {
+      toast.success("Incidencia registrada");
       setIsIncidentOpen(false);
       setIncidentCylinderId("");
       setIncidentReason("");

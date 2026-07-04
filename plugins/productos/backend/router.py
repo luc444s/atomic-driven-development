@@ -44,6 +44,7 @@ from plugins.productos.backend.schemas import (
     ProductLineCreateRequest,
     ProductLineRead,
     ProductLineUpdateRequest,
+    ProductListItemRead,
     ProductMediaRead,
     ProductPageRead,
     ProductPriceBulkUpdateRequest,
@@ -748,6 +749,26 @@ def get_product_search(
     db: Session = DB_SESSION,
 ) -> list[ProductSearchItemRead]:
     return search_products(db, tenant_id=tenant_context.current_tenant_id, query=q, limit=limit)
+
+
+@router.get(
+    "/products/flat",
+    response_model=list[ProductListItemRead],
+    dependencies=[REQUIRE_PRODUCT_READ],
+)
+def get_products_flat(
+    is_active: bool | None = Query(default=None),
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[ProductListItemRead]:
+    items, _ = list_products(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        is_active=is_active,
+        limit=10000,
+        offset=0,
+    )
+    return items
 
 
 @router.get(

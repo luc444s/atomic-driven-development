@@ -113,13 +113,13 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
 |---|---|---|---|---|---|---|---|
-| Nombre fiscal vs comercial | Son distintos y ambos importan | Si implicito | Bajo | Gap fuerte | CRM actual se queda corto | `crm` | `SPEC 0023Q` Cliente comercial/fiscal |
-| Varios establecimientos | Una empresa puede tener varias sedes/lugares de entrega | Si | Parcial por delivery points | Parcial | Falta modelo comercial completo y acople UX | `crm` + `logistics` | `SPEC 0023Q` |
-| Domicilio fiscal | Relevante para factura/contabilidad | Si | Bajo | Gap fuerte | Falta modelado fuerte o exposicion adecuada | `crm` | `SPEC 0023Q` |
-| Lugar de entrega | Relevante para logistica, distinto al fiscal | Si | Parcial | Parcial | Delivery points existen, pero falta amarre completo al modelo cliente | `crm` + `logistics` | `SPEC 0023Q` |
+| Nombre fiscal vs comercial | Son distintos y ambos importan | Si implicito | Bajo | Gap fuerte | CRM actual se queda corto | `crm` | `SPEC 0023D` Cliente comercial/fiscal |
+| Varios establecimientos | Una empresa puede tener varias sedes/lugares de entrega | Si | Parcial por delivery points | Parcial | Falta modelo comercial completo y acople UX | `crm` + `logistics` | `SPEC 0023D` |
+| Domicilio fiscal | Relevante para factura/contabilidad | Si | Bajo | Gap fuerte | Falta modelado fuerte o exposicion adecuada | `crm` | `SPEC 0023D` |
+| Lugar de entrega | Relevante para logistica, distinto al fiscal | Si | Parcial | Parcial | Delivery points existen, pero falta amarre completo al modelo cliente | `crm` + `logistics` | `SPEC 0023D` |
 | Responsable/contacto | Puede ser distinto del cliente/empresa | Si | Bajo/medio | Gap fuerte | Falta modelo rico de contactos | `crm` | `SPEC 0023R` Contactos y responsables |
 | Asignacion de agente comercial | Cliente pertenece a agente/comercial | Si | Bajo | Gap fuerte | Falta owner comercial por cliente | `crm` | `SPEC 0023S` Gestion comercial |
-| Ruta asociada a cliente/establecimiento | El cliente puede estar asociado a ruta/zona | Si | Parcial | Parcial | Falta la vision comercial-operativa completa | `crm` + `logistics` | `SPEC 0023Q/0023F` |
+| Ruta asociada a cliente/establecimiento | El cliente puede estar asociado a ruta/zona | Si | Parcial | Parcial | Falta la vision comercial-operativa completa | `crm` + `logistics` | `SPEC 0023D/0023F` |
 | Coordenadas geograficas | Utiles para reparto y nuevos clientes | Si operativo, no critico inicial | Muy bajo | Gap medio | Falta captura simple | `crm` + futura app | `SPEC 0023T` Geolocalizacion minima |
 
 ## 6. Precios, presupuestos y condiciones especiales

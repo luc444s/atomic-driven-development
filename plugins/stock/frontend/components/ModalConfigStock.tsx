@@ -7,6 +7,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input, Switch } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { listWarehousesCatalog, stockKeys, upsertConfig } from "../api";
 import type { LogisticsWarehouseOption, StockConfig } from "../types";
 
@@ -73,6 +74,7 @@ export function ModalConfigStock({
     },
     onSuccess: async (config) => {
       await queryClient.invalidateQueries({ queryKey: stockKeys.all });
+      toast.success("Configuración de stock guardada");
       onSaved?.(config);
       onClose();
     },

@@ -2,7 +2,32 @@
 
 ## Estado
 
-Propuesta
+Implementada
+
+## Nota de cierre
+
+`0023D` se considera cerrada como spec de fortalecimiento del customer core para:
+
+- identidad fiscal y comercial del cliente;
+- busqueda operativa multi-criterio;
+- direcciones base separadas por proposito;
+- contactos base enriquecidos;
+- visualizacion conjunta de cliente, direcciones y delivery points relacionados;
+- frontera CRM vs logistics suficientemente explicita para esta etapa.
+
+El cierre de esta spec **no** significa que todo el dominio cliente este terminado.
+
+Quedan deliberadamente fuera y se mantienen como trabajo posterior:
+
+- `0023R` contactos y responsables avanzados por sede / contexto operativo;
+- `0023S` gestion comercial;
+- `0023X` formas de pago con semantica mas rica;
+- `0023AB` fiscalidad espanola ampliada;
+- specs futuras de cobros, precios especiales y datos bancarios.
+
+Regla de lectura a partir de este punto:
+
+- cuando haya contradiccion entre el modelo inicial de `SPEC 0013` y el cierre documental/codigo de esta spec, para este alcance prevalece `0023D`.
 
 ## Contexto
 
@@ -122,7 +147,29 @@ La direccion fiscal sigue siendo parte del customer core.
 
 Los puntos de entrega usados en reparto siguen siendo operados por `logistics`, pero deben poder referenciar correctamente la estructura del cliente.
 
-### 4. Busqueda operativa
+### 4. Contactos base enriquecidos
+
+El customer core debe soportar contactos base del cliente con suficiente riqueza para no depender solo de un par `tipo`/`valor` generico.
+
+Como minimo debe poder guardar:
+
+- persona o nombre visible del contacto;
+- etiqueta opcional de uso rapido;
+- cargo / rol;
+- telefono;
+- email;
+- vinculacion opcional a una direccion base del mismo cliente.
+
+Reglas:
+
+- estos contactos pertenecen al cliente como entidad comercial/fiscal, no al reparto diario;
+- un contacto base puede tener telefono y email simultaneamente;
+- `contact_type` puede sobrevivir como clasificacion liviana o compatibilidad, pero no debe gobernar por si solo la UX;
+- el responsable que recibe una entrega concreta sigue siendo parte del punto operativo en `logistics`.
+
+Este cierre absorbe el **primer corte imprescindible** de lo que luego podra ampliarse en `0023R`, sin esperar una sub-spec nueva para dejar de depender del modelo plano heredado de `0013`.
+
+### 5. Busqueda operativa
 
 La busqueda de cliente debe soportar, como minimo:
 
@@ -136,7 +183,7 @@ La busqueda de cliente debe soportar, como minimo:
 
 No todos los criterios tienen que verse como columnas visibles, pero si deben entrar en el filtro de busqueda.
 
-### 5. Alta minima y enriquecimiento posterior
+### 6. Alta minima y enriquecimiento posterior
 
 Debe existir un flujo minimo para crear rapido un cliente nuevo con:
 
@@ -231,6 +278,40 @@ Agregar si hace falta:
 
 - `is_operational_site` boolean para distinguir direcciones que son sede/establecimiento operable aunque no sean aun `delivery_point`.
 
+Nota:
+
+- `contact_name` / `contact_phone` / `contact_email` a nivel address sirven como captura rapida asociada a una direccion concreta;
+- no reemplazan la tabla de contactos base del cliente ni la necesidad de personas/canales reutilizables.
+
+### `crm_customer_contacts`
+
+El modelo generico original de `SPEC 0013` (`contact_type` + `value` + `label`) ya no es suficiente para cerrar `0023D`.
+
+Para este corte, los contactos base del cliente deben enriquecerse al menos con:
+
+- `full_name` nullable;
+- `label` nullable;
+- `role` nullable;
+- `phone` nullable;
+- `email` nullable;
+- `address_id` nullable como FK opcional a `crm_customer_addresses` del mismo cliente;
+- `contact_type` mantenido como clasificacion simple o compatibilidad (`PHONE`, `EMAIL`, `OTHER`), pero no como unica fuente semantica del contacto;
+- `is_primary`.
+
+Reglas:
+
+- `phone` y `email` dejan de viajar codificados dentro de un `value` generico;
+- un mismo contacto puede representar una persona con varios canales, no solo una fila por canal;
+- `label` se mantiene como alias corto opcional para oficina;
+- si `address_id` existe, debe pertenecer al mismo cliente;
+- este modelo sigue siendo **contacto base del cliente**, no responsable operativo por entrega.
+
+Queda fuera de esta spec y se reserva para `0023R`:
+
+- responsables multiples por sede con jerarquia o vigencia;
+- contactos puramente operativos por punto de entrega;
+- reglas de prioridad mas avanzadas por canal / establecimiento / contexto.
+
 ### `lg_delivery_points`
 
 No mover ownership a CRM.
@@ -323,6 +404,22 @@ Decision:
 - CRM puede guardar contactos generales del cliente;
 - el responsable que recibe en reparto debe vivir ligado al punto operativo o delivery point.
 
+### 5.b El contacto base del cliente debe seguir modelado como `type/value` generico?
+
+Respuesta: **no como modelo principal**.
+
+Justificacion:
+
+- el negocio real no solo necesita un telefono o un email aislado, sino personas, cargos y relacion con una direccion base;
+- el legacy y la operacion muestran que un mismo contacto puede tener mas de un canal;
+- obligar a oficina a pensar cada dato como una fila `PHONE` / `EMAIL` degrada la UX y deja corto el contrato.
+
+Decision:
+
+- `crm_customer_contacts` debe evolucionar a contacto base enriquecido;
+- `contact_type` puede conservarse como clasificacion ligera o compatibilidad, pero no como driver unico del formulario;
+- el responsable operativo de recepcion sigue fuera de este modelo y vive en `logistics`.
+
 ### 6. La busqueda por poblacion, telefono y nombre comercial es requerida o solo deseable?
 
 Respuesta: **requerida**.
@@ -368,6 +465,12 @@ Decision:
 | `billing_type` | Si | Grab2 + CRM actual | No | `crm` | Solo base; semantica se amplia despues |
 | `fiscal_address_id` | Si | CRM actual | Si para cliente completo | `crm` | No confundir con entrega |
 | `notes` | Si | CRM actual | No | `crm` | Mantener visible |
+| `crm_customer_contacts.full_name` | Si | Grab2 + legacy + CRM enriquecido | No | `crm` | Persona visible del contacto base |
+| `crm_customer_contacts.label` | Si | Operacion oficina + CRM enriquecido | No | `crm` | Alias corto opcional |
+| `crm_customer_contacts.role` | Si | Grab2 + legacy | No | `crm` | Cargo / rol de la persona |
+| `crm_customer_contacts.phone` | Si | Grab2 + legacy | No | `crm` | Canal directo; entra en UX y contrato |
+| `crm_customer_contacts.email` | Si | Grab2 + legacy | No | `crm` | Canal directo; no debe depender de `value` |
+| `crm_customer_contacts.address_id` | Si | CRM enriquecido | No | `crm` | Vinculo opcional a direccion base |
 | Direcciones `FISCAL` | Si | legacy + CRM actual | Si | `crm` | Base de cumplimiento |
 | Direcciones `COMERCIAL` | Parcial | Grab2 + legacy | No | `crm` | Debe reforzarse |
 | Direcciones `ENTREGA` | Parcial | Grab2 + legacy | No en CRM core | `logistics` / `crm` coordinado | Operacion diaria |
@@ -388,15 +491,16 @@ Decision:
 
 1. revisar contrato actual de `crm_customers` y `crm_customer_addresses`
 2. confirmar si falta algun campo minimo para `0023D`
-3. ampliar backend de busqueda multi-criterio
-4. crear o adoptar `Combobox` compartido en core frontend
-5. ampliar `CustomerSearchDialog` para criterios operativos reales
-6. decidir que flujos usan `Combobox` y cuales usan `SearchDialog`
-7. ampliar alta/edicion para dejar clara la diferencia fiscal/comercial
-8. revisar detalle de cliente para visualizar mejor direcciones y establecimientos
-9. revisar integracion con `lg_delivery_points` sin duplicar ownership
-10. correr tests de CRM
-11. correr tests de logistics que dependan de `customer_id`
+3. formalizar contrato enriquecido de `crm_customer_contacts`
+4. ampliar backend de busqueda multi-criterio
+5. crear o adoptar `Combobox` compartido en core frontend
+6. ampliar `CustomerSearchDialog` para criterios operativos reales
+7. decidir que flujos usan `Combobox` y cuales usan `SearchDialog`
+8. ampliar alta/edicion para dejar clara la diferencia fiscal/comercial
+9. revisar detalle de cliente para visualizar mejor direcciones, contactos y establecimientos
+10. revisar integracion con `lg_delivery_points` sin duplicar ownership
+11. correr tests de CRM
+12. correr tests de logistics que dependan de `customer_id`
 
 ## API / contrato esperado
 
@@ -406,9 +510,10 @@ Se debe garantizar que el contrato de cliente permita:
 
 1. devolver nombre fiscal y comercial;
 2. devolver varias direcciones con `address_type`;
-3. filtrar por busqueda multi-criterio;
-4. distinguir claramente la direccion fiscal actual;
-5. exponer suficientes datos para que `CustomerSearchDialog` sea util a oficina.
+3. devolver contactos base enriquecidos (`full_name`, `label`, `role`, `phone`, `email`, `address_id`, `is_primary`);
+4. filtrar por busqueda multi-criterio;
+5. distinguir claramente la direccion fiscal actual;
+6. exponer suficientes datos para que `CustomerSearchDialog` sea util a oficina.
 
 ### Logistics
 
@@ -467,7 +572,7 @@ Debe mostrar claramente:
 - nombre comercial;
 - direccion fiscal;
 - direcciones adicionales / establecimientos;
-- contactos.
+- contactos con persona, cargo, telefono, email y direccion base vinculada cuando exista.
 
 ### Detalle de cliente
 
@@ -496,8 +601,9 @@ Debe poder mostrar:
 1. el cliente puede existir con nombre fiscal y nombre comercial diferenciados;
 2. la busqueda permite ubicar clientes por criterios operativos reales;
 3. una empresa puede tener varias direcciones/establecimientos sin confundirlos con la direccion fiscal;
-4. el detalle de cliente muestra direcciones y puntos operativos relacionados de forma comprensible;
-5. `logistics` sigue usando `customer_id` real sin volver a texto libre.
+4. los contactos base del cliente soportan al menos persona, cargo, telefono y/o email sin depender de un `value` generico como modelo principal;
+5. el detalle de cliente muestra direcciones, contactos y puntos operativos relacionados de forma comprensible;
+6. `logistics` sigue usando `customer_id` real sin volver a texto libre.
 
 ### De ownership
 
@@ -515,8 +621,9 @@ Debe poder mostrar:
 
 1. cierre del modelo base de cliente comercial/fiscal;
 2. criterios claros de busqueda operativa;
-3. frontera CRM vs logistics documentada y reflejada en codigo;
-4. base lista para abrir despues:
+3. cierre del primer gap fuerte de contactos base sin esperar `0023R` completa;
+4. frontera CRM vs logistics documentada y reflejada en codigo;
+5. base lista para abrir despues:
    - `0023R-contactos-y-responsables`
    - `0023S-gestion-comercial`
    - `0023X-formas-de-pago`

@@ -12,6 +12,7 @@ import { Dialog } from "../../../apps/web/src/shared/ui/dialog";
 import { DropdownMenu, type DropdownItem } from "../../../apps/web/src/shared/ui/dropdown-menu";
 import { Input, Textarea } from "../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../apps/web/src/shared/ui/toast";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { getProduct, listAllProducts, listBrands as listProductBrands, listSubline, productosKeys } from "../../productos/frontend/api";
 import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
@@ -332,6 +333,7 @@ export function LogisticsPage() {
   const createMutation = useMutation({
     mutationFn: createCylinder,
     onSuccess: async (cylinder) => {
+      toast.success("Envase creado");
       setSelectedCylinder(cylinder);
       setIsCreateOpen(false);
       resetCreateDialog();
@@ -343,6 +345,7 @@ export function LogisticsPage() {
     mutationFn: ({ cylinderId, payload }: { cylinderId: string; payload: ReturnType<typeof buildCylinderPayload> }) =>
       updateCylinder(cylinderId, payload),
     onSuccess: async (cylinder) => {
+      toast.success("Envase actualizado");
       setSelectedCylinder(cylinder);
       setIsEditOpen(false);
       setDetailError(null);
@@ -354,6 +357,7 @@ export function LogisticsPage() {
     mutationFn: ({ cylinderId, toState }: { cylinderId: string; toState: string }) =>
       transitionCylinder(cylinderId, { to_state: toState }),
     onSuccess: async (cylinder) => {
+      toast.success("Transición aplicada");
       setSelectedCylinder(cylinder);
       setNextState("");
       setDetailError(null);
@@ -369,6 +373,7 @@ export function LogisticsPage() {
         notes: toNullable(hydrotestForm.notes),
       }),
     onSuccess: async () => {
+      toast.success("Prueba hidráulica registrada");
       setIsHydrotestOpen(false);
       setHydrotestForm(EMPTY_HYDROTEST_FORM);
       setDetailError(null);
@@ -384,6 +389,7 @@ export function LogisticsPage() {
         description: toNullable(warrantyForm.description),
       }),
     onSuccess: async () => {
+      toast.success("Garantía registrada");
       setIsWarrantyOpen(false);
       setWarrantyForm(EMPTY_WARRANTY_FORM);
       setDetailError(null);
@@ -415,6 +421,7 @@ export function LogisticsPage() {
         notes: toNullable(retimbradoForm.notes),
       }),
     onSuccess: async () => {
+      toast.success("Retimbrado registrado");
       setIsRetimbradoOpen(false);
       setRetimbradoForm(EMPTY_RETIMBRADO_FORM);
       setDetailError(null);
@@ -440,6 +447,7 @@ export function LogisticsPage() {
         total_amount: toNumberOrNull(serviceForm.total_amount),
       }),
     onSuccess: async () => {
+      toast.success("Servicio registrado");
       setIsServiceOpen(false);
       setServiceForm(EMPTY_SERVICE_FORM);
       setDetailError(null);
@@ -451,14 +459,22 @@ export function LogisticsPage() {
     mutationFn: ({ serviceId, status }: { serviceId: string; status: string }) =>
       updateCylinderService(selectedCylinderId, serviceId, { status }),
     onSuccess: async () => {
+      toast.success("Servicio completado");
       await invalidateCylinderCollections(selectedCylinderId);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Error al completar servicio");
     },
   });
 
   const deleteServiceMutation = useMutation({
     mutationFn: (serviceId: string) => deleteCylinderService(selectedCylinderId, serviceId),
     onSuccess: async () => {
+      toast.success("Servicio eliminado");
       await invalidateCylinderCollections(selectedCylinderId);
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : "Error al eliminar servicio");
     },
   });
 
@@ -471,6 +487,7 @@ export function LogisticsPage() {
         copies: Number(printLabelForm.copies || "1"),
       }),
     onSuccess: async () => {
+      toast.success("Impresión registrada");
       setIsPrintLabelOpen(false);
       setPrintLabelForm(EMPTY_PRINT_LABEL_FORM);
       setDetailError(null);
@@ -488,6 +505,7 @@ export function LogisticsPage() {
         gps_lng: toNumberOrNull(scanForm.gps_lng),
       }),
     onSuccess: async (log) => {
+      toast.success("Escaneo procesado");
       setIsScanOpen(false);
       setScanForm(EMPTY_SCAN_FORM);
       setDetailError(null);

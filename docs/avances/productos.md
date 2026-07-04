@@ -15,24 +15,75 @@ Este documento debe leerse antes de implementar o refactorizar cualquier parte d
 | Propiedad | Valor |
 |---|---|
 | Plugin ID | `productos` |
-| Estado | Documentado, listo para implementación |
+| Estado | **Implementado** |
 | ADR principal | `docs/adr/0015-productos-plugin.md` |
 | Spec principal | `docs/specs/core/0015-productos-plugin/index.md` |
-| Implementación real | Aún no iniciada |
+| Implementación real | Backend + Frontend completos |
 
 ### Situación del dominio
 
-- el sistema no tiene todavía un catálogo maestro de productos;
-- `logistics` contiene `lg_gas_products` y `lg_brands`, pero ambos quedaron definidos como catálogos transitorios;
+- **EL PLUGIN ESTÁ IMPLEMENTADO** — backend + frontend completos;
+- `logistics` sigue operando con `lg_gas_products` y `lg_brands` (catálogos transitorios);
 - el legacy `Producto` mezclaba identidad, precios, costos, ADR, impuestos, imágenes y stock en una sola tabla;
 - ADR 0015 y SPEC 0015 ya cerraron la separación del dominio y su ownership.
 
 ### Lectura correcta del estado
 
-- `productos` ya está diseñado, pero todavía no existe como plugin implementado;
-- `logistics` sigue operando con su modelo actual;
+- `productos` **SÍ existe como plugin implementado** con todos los modelos, endpoints y frontend;
+- `logistics` sigue operando con su modelo actual (convivencia temporal);
 - la creación de `productos` no implica todavía una migración profunda de `logistics`;
 - la integración completa con `logistics` está definida por fases, no para la primera iteración.
+
+---
+
+## 1.1 Inventario de implementación real
+
+### Backend (`plugins/productos/backend/`)
+
+| Archivo | Estado | Líneas | Contenido |
+|---------|--------|--------|-----------|
+| `models.py` | ✅ Completo | 424 | Todos los modelos ORM: ProductCondition, ProductStatus, ProductCategory, ProductLine, ProductSubline, ProductBrand, ProductInsumoType, ProductUnit, ProductSubcategory, ProductGroup, Product, ProductBarcode, ProductPrice, ProductCost, ProductTaxConfig, ProductAdr, ProductMedia, ProductPromotion |
+| `schemas.py` | ✅ Completo | ~600 | Todos los schemas Pydantic para request/response |
+| `router.py` | ✅ Completo | 1549 | Todos los endpoints: catálogos, productos, precios, costos, barcodes, ADR, impuestos, media, promociones |
+| `plugin.py` | ✅ Completo | - | Registro del plugin con rutas |
+| `common.py` | ✅ Completo | - | Utilidades compartidas |
+| `services/products.py` | ✅ Completo | - | CRUD productos, búsqueda |
+| `services/catalog.py` | ✅ Completo | - | CRUD catálogos base |
+| `services/pricing.py` | ✅ Completo | - | Gestión precios historificados |
+| `services/barcode.py` | ✅ Completo | - | Gestión códigos de barras |
+| `services/adr.py` | ✅ Completo | - | Gestión ADR con vigencias |
+| `services/media.py` | ✅ Completo | - | Upload/gestión imágenes |
+| `services/promotions.py` | ✅ Completo | - | Gestión promociones |
+
+### Frontend (`plugins/productos/frontend/`)
+
+| Archivo | Estado | Contenido |
+|---------|--------|-----------|
+| `register.tsx` | ✅ Completo | Registro de rutas y componentes |
+| `api.ts` | ✅ Completo | Funciones API |
+| `types.ts` | ✅ Completo | Tipos TypeScript |
+| `components/ModalNuevoProducto.tsx` | ✅ Completo | Formulario creación/edición |
+| `components/ModalDetalleProducto.tsx` | ✅ Completo | Vista detalle completa |
+| `components/ModalCatalogo.tsx` | ✅ Completo | Gestión catálogos |
+| `components/ProductSearchDialog.tsx` | ✅ Completo | Búsqueda reutilizable |
+| `components/ProductosSection.tsx` | ✅ Completo | Sección contenedora |
+| `pages/ProductListPage.tsx` | ✅ Completo | Listado principal |
+| `pages/ProductFormPage.tsx` | ✅ Completo | Formulario (legacy, reemplazado por modal) |
+| `pages/ProductDetailPage.tsx` | ✅ Completo | Detalle (legacy, reemplazado por modal) |
+| `pages/CatalogManagerPage.tsx` | ✅ Completo | Catálogos (legacy, reemplazado por modal) |
+
+### Migraciones
+
+| Archivo | Estado |
+|---------|--------|
+| `migrations/001_initial_productos.py` | ✅ Completa |
+
+### Permisos y eventos
+
+| Tipo | Estado | Cantidad |
+|------|--------|----------|
+| Permisos | ✅ Completos | 15 (catalog, product, price, cost, adr, media, promotion) |
+| Eventos | ✅ Completos | 14 (product, brand, line, promotion) |
 
 ---
 

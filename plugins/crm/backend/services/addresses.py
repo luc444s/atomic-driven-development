@@ -9,6 +9,7 @@ from plugins.crm.backend.schemas import (
     CustomerAddressCreateRequest,
     CustomerAddressUpdateRequest,
     CustomerContactCreateRequest,
+    CustomerContactUpdateRequest,
 )
 from plugins.crm.backend.services.geography import get_geography
 
@@ -69,6 +70,7 @@ def create_address(
         contact_name=payload.contact_name,
         contact_phone=payload.contact_phone,
         contact_email=payload.contact_email,
+        is_operational_site=payload.is_operational_site,
         notes=payload.notes,
         captured_by=action_context.actor_user_id,
         captured_at=None,
@@ -130,6 +132,7 @@ def update_address(
         "contact_name",
         "contact_phone",
         "contact_email",
+        "is_operational_site",
         "notes",
         "ubigeo_code",
     ]:
@@ -204,18 +207,27 @@ def delete_address(
     db.delete(address)
 
 
-def list_contacts(db: Session, *, tenant_id: str, customer_id: str) -> list[CrmCustomerContact]:
-    return list(
-        db.scalars(
-            select(CrmCustomerContact)
-            .where(
-                CrmCustomerContact.tenant_id == tenant_id,
-                CrmCustomerContact.customer_id == customer_id,
-                CrmCustomerContact.is_active.is_(True),
-            )
-            .order_by(CrmCustomerContact.is_primary.desc(), CrmCustomerContact.created_at.asc())
-        ).all()
+def list_contacts(
+    db: Session,
+    *,
+    tenant_id: str,
+    customer_id: str,
+    address_id: str | None = None,
+    contact_purpose: str | None = None,
+    active_only: bool = True,
+) -> list[CrmCustomerContact]:
+    stmt = select(CrmCustomerContact).where(
+        CrmCustomerContact.tenant_id == tenant_id,
+        CrmCustomerContact.customer_id == customer_id,
     )
+    if active_only:
+        stmt = stmt.where(CrmCustomerContact.is_active.is_(True))
+    if address_id is not None:
+        stmt = stmt.where(CrmCustomerContact.address_id == address_id)
+    if contact_purpose is not None:
+        stmt = stmt.where(CrmCustomerContact.contact_purpose == contact_purpose)
+    stmt = stmt.order_by(CrmCustomerContact.is_primary.desc(), CrmCustomerContact.created_at.asc())
+    return list(db.scalars(stmt).all())
 
 
 def create_contact(
@@ -224,22 +236,142 @@ def create_contact(
     tenant_id: str,
     customer: CrmCustomer,
     payload: CustomerContactCreateRequest,
+    action_context: CrmActionContext,
 ) -> CrmCustomerContact:
+    _validate_contact_address(
+        db,
+        tenant_id=tenant_id,
+        customer=customer,
+        address_id=payload.address_id,
+    )
     if payload.is_primary:
-        for contact in list_contacts(db, tenant_id=tenant_id, customer_id=customer.id):
-            if contact.contact_type == payload.contact_type:
-                contact.is_primary = False
-                db.add(contact)
+        _clear_primary_contacts(
+            db,
+            tenant_id=tenant_id,
+            customer_id=customer.id,
+            address_id=payload.address_id,
+            contact_purpose=payload.contact_purpose,
+        )
     contact = CrmCustomerContact(
         tenant_id=tenant_id,
         customer_id=customer.id,
-        contact_type=payload.contact_type,
-        value=payload.value.strip(),
+        full_name=payload.full_name,
         label=payload.label,
+        role=payload.role,
+        phone=payload.phone,
+        email=payload.email,
+        address_id=payload.address_id,
+        contact_purpose=payload.contact_purpose,
+        contact_type=payload.contact_type,
+        notes=payload.notes,
         is_primary=payload.is_primary,
     )
     db.add(contact)
     db.flush()
+    audit_crm_action(
+        db,
+        context=action_context,
+        action="customer.contact.create",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        details={
+            "customer_id": customer.id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
+    emit_crm_event(
+        db,
+        context=action_context,
+        event_name="crm.customer.contact_added",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        payload={
+            "customer_id": customer.id,
+            "contact_id": contact.id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
+    return contact
+
+
+def update_contact(
+    db: Session,
+    *,
+    tenant_id: str,
+    customer: CrmCustomer,
+    contact: CrmCustomerContact,
+    payload: CustomerContactUpdateRequest,
+    action_context: CrmActionContext,
+) -> CrmCustomerContact:
+    address_was_provided = "address_id" in payload.model_fields_set
+    next_address_id = payload.address_id if address_was_provided else contact.address_id
+    next_contact_purpose = (
+        payload.contact_purpose if payload.contact_purpose is not None else contact.contact_purpose
+    )
+    next_is_primary = payload.is_primary if payload.is_primary is not None else contact.is_primary
+    _validate_contact_address(
+        db,
+        tenant_id=tenant_id,
+        customer=customer,
+        address_id=next_address_id,
+    )
+    if next_is_primary:
+        _clear_primary_contacts(
+            db,
+            tenant_id=tenant_id,
+            customer_id=customer.id,
+            address_id=next_address_id,
+            contact_purpose=next_contact_purpose,
+            exclude_contact_id=contact.id,
+        )
+    for field in [
+        "full_name",
+        "label",
+        "role",
+        "phone",
+        "email",
+        "address_id",
+        "contact_purpose",
+        "contact_type",
+        "notes",
+    ]:
+        if field not in payload.model_fields_set:
+            continue
+        value = getattr(payload, field)
+        setattr(contact, field, value.strip() if isinstance(value, str) else value)
+    if payload.is_primary is not None:
+        contact.is_primary = payload.is_primary
+    if payload.is_active is not None:
+        contact.is_active = payload.is_active
+    db.add(contact)
+    db.flush()
+    audit_crm_action(
+        db,
+        context=action_context,
+        action="customer.contact.update",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        details={
+            "customer_id": customer.id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
+    emit_crm_event(
+        db,
+        context=action_context,
+        event_name="crm.customer.contact_updated",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        payload={
+            "customer_id": customer.id,
+            "contact_id": contact.id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
     return contact
 
 
@@ -252,8 +384,79 @@ def get_contact(db: Session, *, tenant_id: str, contact_id: str) -> CrmCustomerC
     )
 
 
-def delete_contact(db: Session, *, contact: CrmCustomerContact) -> None:
+def delete_contact(
+    db: Session,
+    *,
+    contact: CrmCustomerContact,
+    action_context: CrmActionContext,
+) -> None:
+    audit_crm_action(
+        db,
+        context=action_context,
+        action="customer.contact.delete",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        details={
+            "customer_id": contact.customer_id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
+    emit_crm_event(
+        db,
+        context=action_context,
+        event_name="crm.customer.contact_removed",
+        entity_type="customer_contact",
+        entity_id=contact.id,
+        payload={
+            "customer_id": contact.customer_id,
+            "contact_id": contact.id,
+            "address_id": contact.address_id,
+            "contact_purpose": contact.contact_purpose,
+        },
+    )
     db.delete(contact)
+
+
+def _clear_primary_contacts(
+    db: Session,
+    *,
+    tenant_id: str,
+    customer_id: str,
+    address_id: str | None,
+    contact_purpose: str,
+    exclude_contact_id: str | None = None,
+) -> None:
+    contacts = list_contacts(
+        db,
+        tenant_id=tenant_id,
+        customer_id=customer_id,
+        active_only=False,
+    )
+    for existing in contacts:
+        if exclude_contact_id is not None and existing.id == exclude_contact_id:
+            continue
+        if existing.contact_purpose != contact_purpose:
+            continue
+        if existing.address_id != address_id:
+            continue
+        if existing.is_primary:
+            existing.is_primary = False
+            db.add(existing)
+
+
+def _validate_contact_address(
+    db: Session,
+    *,
+    tenant_id: str,
+    customer: CrmCustomer,
+    address_id: str | None,
+) -> None:
+    if address_id is None:
+        return
+    address = get_address(db, tenant_id=tenant_id, address_id=address_id)
+    if address is None or address.customer_id != customer.id:
+        raise ValueError("La dirección vinculada no pertenece al cliente")
 
 
 def _validate_address_payload(

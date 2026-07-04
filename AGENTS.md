@@ -27,12 +27,13 @@ SYSTUTOR OSS se construye con estas reglas base:
 
 Antes de trabajar, todo agente debe leer en este orden:
 
-1. `AGENTS.md`
-2. `docs/avances/<modulo>.md` — documento de avance del módulo afectado (si existe)
-3. ADR relacionado con la tarea
-4. Spec de la feature
-5. Contrato de datos/API si existe
-6. Archivos afectados
+1. **Engram memory** — llamar `mem_context` y `mem_search` con palabras clave de la tarea para recuperar decisiones, bugs, patrones y contexto de sesiones anteriores. Engram tiene prioridad sobre cualquier archivo .md.
+2. `AGENTS.md`
+3. `docs/avances/<modulo>.md` — documento de avance del módulo afectado (si existe)
+4. ADR relacionado con la tarea
+5. Spec de la feature
+6. Contrato de datos/API si existe
+7. Archivos afectados
 
 No implementar únicamente a partir de una conversación o instrucción aislada.
 

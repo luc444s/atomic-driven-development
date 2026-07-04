@@ -1,14 +1,21 @@
 import { apiRequest } from "../../../apps/web/src/shared/api/client";
 
 import type {
+  CommercialUserOption,
   Customer,
   CustomerAddress,
   CustomerAddressPayload,
+  CustomerBankAccount,
+  CustomerBankAccountPayload,
   CustomerBrief,
+  CustomerCommercialAssignment,
+  CustomerCommercialAssignmentPayload,
   CustomerContact,
   CustomerContactPayload,
   CustomerPage,
   CustomerPayload,
+  CustomerPricingTerm,
+  CustomerPricingTermPayload,
   DocumentType,
   GeographyItem,
   PaymentTerm,
@@ -24,7 +31,13 @@ export const crmKeys = {
     detail: (customerId: string) => ["crm", "customers", customerId] as const,
     addresses: (customerId: string) => ["crm", "customers", customerId, "addresses"] as const,
     contacts: (customerId: string) => ["crm", "customers", customerId, "contacts"] as const,
+    commercialAssignments: (customerId: string) => ["crm", "customers", customerId, "commercial-assignments"] as const,
+    bankAccounts: (customerId: string) => ["crm", "customers", customerId, "bank-accounts"] as const,
+    pricingTerms: (customerId: string) => ["crm", "customers", customerId, "pricing-terms"] as const,
     search: (query: string) => ["crm", "customers", "search", query] as const,
+  },
+  commercial: {
+    users: ["crm", "commercial", "users"] as const,
   },
   catalogs: {
     documentTypes: (countryCode: string | null) => ["crm", "catalog", "document-types", countryCode] as const,
@@ -125,8 +138,47 @@ export async function createCustomerContact(customerId: string, payload: Custome
   });
 }
 
+export async function updateCustomerContact(contactId: string, payload: Partial<CustomerContactPayload> & { is_active?: boolean }): Promise<CustomerContact> {
+  return apiRequest<CustomerContact>(`${CRM_BASE}/contacts/${contactId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
 export async function deleteCustomerContact(contactId: string): Promise<void> {
   await apiRequest(`${CRM_BASE}/contacts/${contactId}`, { method: "DELETE" });
+}
+
+export async function listCommercialUsers(): Promise<CommercialUserOption[]> {
+  return apiRequest<CommercialUserOption[]>(`${CRM_BASE}/commercial/users`);
+}
+
+export async function listCustomerCommercialAssignments(customerId: string): Promise<CustomerCommercialAssignment[]> {
+  return apiRequest<CustomerCommercialAssignment[]>(`${CRM_BASE}/customers/${customerId}/commercial-assignments`);
+}
+
+export async function createCustomerCommercialAssignment(
+  customerId: string,
+  payload: CustomerCommercialAssignmentPayload
+): Promise<CustomerCommercialAssignment> {
+  return apiRequest<CustomerCommercialAssignment>(`${CRM_BASE}/customers/${customerId}/commercial-assignments`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCustomerCommercialAssignment(
+  assignmentId: string,
+  payload: Partial<CustomerCommercialAssignmentPayload>
+): Promise<CustomerCommercialAssignment> {
+  return apiRequest<CustomerCommercialAssignment>(`${CRM_BASE}/commercial-assignments/${assignmentId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteCustomerCommercialAssignment(assignmentId: string): Promise<void> {
+  await apiRequest(`${CRM_BASE}/commercial-assignments/${assignmentId}`, { method: "DELETE" });
 }
 
 export async function listDocumentTypes(countryCode?: string | null): Promise<DocumentType[]> {
@@ -151,4 +203,60 @@ export async function listProvinces(departmentId: string): Promise<GeographyItem
 
 export async function listDistricts(provinceId: string): Promise<GeographyItem[]> {
   return apiRequest<GeographyItem[]>(`${CRM_BASE}/geography/districts${buildQuery({ province_id: provinceId })}`);
+}
+
+export async function listCustomerBankAccounts(customerId: string): Promise<CustomerBankAccount[]> {
+  return apiRequest<CustomerBankAccount[]>(`${CRM_BASE}/customers/${customerId}/bank-accounts`);
+}
+
+export async function createCustomerBankAccount(
+  customerId: string,
+  payload: CustomerBankAccountPayload
+): Promise<CustomerBankAccount> {
+  return apiRequest<CustomerBankAccount>(`${CRM_BASE}/customers/${customerId}/bank-accounts`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCustomerBankAccount(
+  bankAccountId: string,
+  payload: Partial<CustomerBankAccountPayload> & { is_active?: boolean }
+): Promise<CustomerBankAccount> {
+  return apiRequest<CustomerBankAccount>(`${CRM_BASE}/bank-accounts/${bankAccountId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteCustomerBankAccount(bankAccountId: string): Promise<void> {
+  await apiRequest(`${CRM_BASE}/bank-accounts/${bankAccountId}`, { method: "DELETE" });
+}
+
+export async function listCustomerPricingTerms(customerId: string): Promise<CustomerPricingTerm[]> {
+  return apiRequest<CustomerPricingTerm[]>(`${CRM_BASE}/customers/${customerId}/pricing-terms`);
+}
+
+export async function createCustomerPricingTerm(
+  customerId: string,
+  payload: CustomerPricingTermPayload
+): Promise<CustomerPricingTerm> {
+  return apiRequest<CustomerPricingTerm>(`${CRM_BASE}/customers/${customerId}/pricing-terms`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateCustomerPricingTerm(
+  pricingTermId: string,
+  payload: Partial<CustomerPricingTermPayload> & { is_active?: boolean }
+): Promise<CustomerPricingTerm> {
+  return apiRequest<CustomerPricingTerm>(`${CRM_BASE}/pricing-terms/${pricingTermId}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteCustomerPricingTerm(pricingTermId: string): Promise<void> {
+  await apiRequest(`${CRM_BASE}/pricing-terms/${pricingTermId}`, { method: "DELETE" });
 }

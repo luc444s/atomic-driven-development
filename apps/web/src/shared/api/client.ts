@@ -76,11 +76,16 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
 
   const contentType = response.headers.get("content-type") ?? "";
   const isJson = contentType.includes("application/json");
-  const payload = isJson ? await response.json() : null;
+  let payload: Record<string, unknown> | null = null;
+  if (isJson && response.status !== 204) {
+    const text = await response.text();
+    payload = text ? JSON.parse(text) : null;
+  }
 
   if (!response.ok) {
-    const message =
-      payload?.detail ?? payload?.error?.message ?? `HTTP ${response.status} al consultar la API`;
+    const detail = payload?.detail as string | undefined;
+    const error = payload?.error as { message?: string } | undefined;
+    const message = detail ?? error?.message ?? `HTTP ${response.status} al consultar la API`;
     throw new ApiError(String(message), response.status);
   }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from decimal import Decimal
 from uuid import uuid4
 
 from sqlalchemy import (
@@ -10,6 +11,7 @@ from sqlalchemy import (
     Float,
     ForeignKey,
     Integer,
+    Numeric,
     String,
     Text,
     UniqueConstraint,
@@ -49,6 +51,7 @@ class CrmPaymentTerm(Base):
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     days: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     operation_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    payment_mode: Mapped[str] = mapped_column(String(20), nullable=False, default="CONTADO")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
@@ -112,6 +115,14 @@ class CrmCustomer(Base):
     )
     billing_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_exempt: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    accounting_code: Mapped[str | None] = mapped_column(String(20), nullable=True, index=True)
+    is_intracommunity: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    fiscal_operation_key: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    tax_regime_code: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    equivalence_surcharge_applicable: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
+    cash_criterion_applicable: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     first_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     last_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     birth_date: Mapped[date | None] = mapped_column(Date, nullable=True)
@@ -129,6 +140,18 @@ class CrmCustomer(Base):
         cascade="all, delete-orphan",
     )
     contacts: Mapped[list[CrmCustomerContact]] = relationship(
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+    commercial_assignments: Mapped[list[CrmCustomerCommercialAssignment]] = relationship(
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+    bank_accounts: Mapped[list[CrmCustomerBankAccount]] = relationship(
+        back_populates="customer",
+        cascade="all, delete-orphan",
+    )
+    pricing_terms: Mapped[list[CrmCustomerPricingTerm]] = relationship(
         back_populates="customer",
         cascade="all, delete-orphan",
     )
@@ -164,6 +187,7 @@ class CrmCustomerAddress(Base):
     contact_name: Mapped[str | None] = mapped_column(String(100), nullable=True)
     contact_phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     contact_email: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    is_operational_site: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notes: Mapped[str | None] = mapped_column(String(250), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     captured_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
@@ -185,9 +209,17 @@ class CrmCustomerContact(Base):
     customer_id: Mapped[str] = mapped_column(
         ForeignKey("crm_customers.id"), nullable=False, index=True
     )
-    contact_type: Mapped[str] = mapped_column(String(20), nullable=False)
-    value: Mapped[str] = mapped_column(String(200), nullable=False)
+    full_name: Mapped[str | None] = mapped_column(String(200), nullable=True)
     label: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    role: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    email: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    address_id: Mapped[str | None] = mapped_column(
+        ForeignKey("crm_customer_addresses.id"), nullable=True, index=True
+    )
+    contact_purpose: Mapped[str] = mapped_column(String(30), nullable=False, default="GENERAL")
+    contact_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(250), nullable=True)
     is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
@@ -196,3 +228,87 @@ class CrmCustomerContact(Base):
     )
 
     customer: Mapped[CrmCustomer] = relationship(back_populates="contacts")
+
+
+class CrmCustomerCommercialAssignment(Base):
+    __tablename__ = "crm_customer_commercial_assignments"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=False, index=True
+    )
+    address_id: Mapped[str | None] = mapped_column(
+        ForeignKey("crm_customer_addresses.id"), nullable=True, index=True
+    )
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    assignment_role: Mapped[str] = mapped_column(String(30), nullable=False)
+    notes: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    customer: Mapped[CrmCustomer] = relationship(back_populates="commercial_assignments")
+
+
+class CrmCustomerBankAccount(Base):
+    __tablename__ = "crm_customer_bank_accounts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=False, index=True
+    )
+    bank_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    account_holder: Mapped[str] = mapped_column(String(200), nullable=False)
+    iban: Mapped[str] = mapped_column(String(34), nullable=False)
+    bic_swift: Mapped[str | None] = mapped_column(String(11), nullable=True)
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notes: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    customer: Mapped[CrmCustomer] = relationship(back_populates="bank_accounts")
+
+
+class CrmCustomerPricingTerm(Base):
+    __tablename__ = "crm_customer_pricing_terms"
+    __table_args__ = (
+        UniqueConstraint(
+            "tenant_id",
+            "customer_id",
+            "product_id",
+            "scope_type",
+            name="uq_crm_customer_pricing_tenant_customer_product_scope",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=False, index=True
+    )
+    product_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    scope_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    pricing_mode: Mapped[str] = mapped_column(String(20), nullable=False)
+    fixed_amount: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
+    discount_percent: Mapped[Decimal | None] = mapped_column(Numeric(6, 3), nullable=True)
+    currency: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    valid_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    valid_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    source_quote_ref: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    approved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    notes: Mapped[str | None] = mapped_column(String(250), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )
+
+    customer: Mapped[CrmCustomer] = relationship(back_populates="pricing_terms")

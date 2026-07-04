@@ -5,6 +5,7 @@ import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import {
   createCustomerPricingTerm,
   crmKeys,
@@ -61,6 +62,7 @@ export function PricingTermsSection({ customerId, canManage = false }: PricingTe
   const createMutation = useMutation({
     mutationFn: () => createCustomerPricingTerm(customerId, form),
     onSuccess: async () => {
+      toast.success("Precio especial creado");
       setForm(EMPTY_PRICING);
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.pricingTerms(customerId) });
     },
@@ -69,6 +71,7 @@ export function PricingTermsSection({ customerId, canManage = false }: PricingTe
   const updateMutation = useMutation({
     mutationFn: () => updateCustomerPricingTerm(editingId!, form),
     onSuccess: async () => {
+      toast.success("Precio especial actualizado");
       setForm(EMPTY_PRICING);
       setEditingId(null);
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.pricingTerms(customerId) });
@@ -78,6 +81,7 @@ export function PricingTermsSection({ customerId, canManage = false }: PricingTe
   const deleteMutation = useMutation({
     mutationFn: (pricingTermId: string) => deleteCustomerPricingTerm(pricingTermId),
     onSuccess: async () => {
+      toast.success("Precio especial eliminado");
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.pricingTerms(customerId) });
     },
   });

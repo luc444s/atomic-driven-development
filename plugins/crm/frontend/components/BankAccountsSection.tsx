@@ -4,6 +4,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import {
   createCustomerBankAccount,
   crmKeys,
@@ -41,6 +42,7 @@ export function BankAccountsSection({ customerId, canManage = false }: BankAccou
   const createMutation = useMutation({
     mutationFn: () => createCustomerBankAccount(customerId, form),
     onSuccess: async () => {
+      toast.success("Cuenta bancaria creada");
       setForm(EMPTY_BANK_ACCOUNT);
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.bankAccounts(customerId) });
     },
@@ -49,6 +51,7 @@ export function BankAccountsSection({ customerId, canManage = false }: BankAccou
   const updateMutation = useMutation({
     mutationFn: () => updateCustomerBankAccount(editingId!, form),
     onSuccess: async () => {
+      toast.success("Cuenta bancaria actualizada");
       setForm(EMPTY_BANK_ACCOUNT);
       setEditingId(null);
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.bankAccounts(customerId) });
@@ -58,6 +61,7 @@ export function BankAccountsSection({ customerId, canManage = false }: BankAccou
   const deleteMutation = useMutation({
     mutationFn: (bankAccountId: string) => deleteCustomerBankAccount(bankAccountId),
     onSuccess: async () => {
+      toast.success("Cuenta bancaria eliminada");
       await queryClient.invalidateQueries({ queryKey: crmKeys.customers.bankAccounts(customerId) });
     },
   });

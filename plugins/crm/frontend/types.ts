@@ -15,6 +15,7 @@ export type PaymentTerm = {
   description: string | null;
   days: number;
   operation_type: string;
+  payment_mode: string;
   is_active: boolean;
 };
 
@@ -31,9 +32,37 @@ export type GeographyItem = {
 
 export type CustomerContact = {
   id: string;
-  contact_type: "PHONE" | "EMAIL" | "OTHER";
-  value: string;
+  full_name: string | null;
   label: string | null;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+  address_id: string | null;
+  contact_purpose: string;
+  contact_type: string;
+  notes: string | null;
+  is_primary: boolean;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CommercialUserOption = {
+  id: string;
+  full_name: string;
+  email: string;
+  is_active: boolean;
+};
+
+export type CustomerCommercialAssignment = {
+  id: string;
+  customer_id: string;
+  address_id: string | null;
+  user_id: string;
+  user_display_name: string;
+  user_email: string;
+  assignment_role: string;
+  notes: string | null;
   is_primary: boolean;
   is_active: boolean;
   created_at: string;
@@ -65,6 +94,7 @@ export type CustomerAddress = {
   contact_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
+  is_operational_site: boolean;
   notes: string | null;
   is_active: boolean;
   captured_by: string | null;
@@ -103,6 +133,12 @@ export type CustomerListItem = {
   payment_term_code: string | null;
   billing_type: string | null;
   is_exempt: boolean;
+  accounting_code: string | null;
+  is_intracommunity: boolean;
+  fiscal_operation_key: string | null;
+  tax_regime_code: string | null;
+  equivalence_surcharge_applicable: boolean;
+  cash_criterion_applicable: boolean;
   is_active: boolean;
   fiscal_address_id: string | null;
   created_at: string;
@@ -146,6 +182,12 @@ export type CustomerPayload = {
   payment_term_code: string | null;
   billing_type: string | null;
   is_exempt: boolean;
+  accounting_code: string | null;
+  is_intracommunity: boolean;
+  fiscal_operation_key: string | null;
+  tax_regime_code: string | null;
+  equivalence_surcharge_applicable: boolean;
+  cash_criterion_applicable: boolean;
   first_name: string | null;
   last_name: string | null;
   birth_date: string | null;
@@ -176,13 +218,84 @@ export type CustomerAddressPayload = {
   contact_name: string | null;
   contact_phone: string | null;
   contact_email: string | null;
+  is_operational_site: boolean;
   notes: string | null;
   ubigeo_code: string | null;
 };
 
 export type CustomerContactPayload = {
-  contact_type: "PHONE" | "EMAIL" | "OTHER";
-  value: string;
+  full_name: string | null;
   label: string | null;
+  role: string | null;
+  phone: string | null;
+  email: string | null;
+  address_id: string | null;
+  contact_purpose: string;
+  contact_type: string;
+  notes: string | null;
   is_primary: boolean;
+};
+
+export type CustomerCommercialAssignmentPayload = {
+  address_id: string | null;
+  user_id: string;
+  assignment_role: string;
+  notes: string | null;
+  is_primary: boolean;
+  is_active?: boolean;
+};
+
+export type CustomerBankAccount = {
+  id: string;
+  customer_id: string;
+  bank_name: string;
+  account_holder: string;
+  iban: string;
+  bic_swift: string | null;
+  is_primary: boolean;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerBankAccountPayload = {
+  bank_name: string;
+  account_holder: string;
+  iban: string;
+  bic_swift: string | null;
+  is_primary: boolean;
+  notes: string | null;
+};
+
+export type CustomerPricingTerm = {
+  id: string;
+  customer_id: string;
+  product_id: string | null;
+  scope_type: "GLOBAL" | "PRODUCT";
+  pricing_mode: "FIXED_PRICE" | "PERCENT_DISCOUNT";
+  fixed_amount: string | null;
+  discount_percent: string | null;
+  currency: string | null;
+  valid_from: string;
+  valid_to: string | null;
+  source_quote_ref: string | null;
+  approved_by: string | null;
+  is_active: boolean;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CustomerPricingTermPayload = {
+  product_id: string | null;
+  scope_type: "GLOBAL" | "PRODUCT";
+  pricing_mode: "FIXED_PRICE" | "PERCENT_DISCOUNT";
+  fixed_amount: string | null;
+  discount_percent: string | null;
+  currency: string | null;
+  valid_from: string;
+  valid_to: string | null;
+  source_quote_ref: string | null;
+  notes: string | null;
 };

@@ -33,6 +33,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 
 const controlClassName =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-slate-50 outline-none transition focus:border-ring";
@@ -94,6 +95,7 @@ export function MovementsPage() {
   const createMutation = useMutation({
     mutationFn: createMovement,
     onSuccess: async (movement) => {
+      toast.success("Movimiento creado");
       setSelectedMovementId(movement.id);
       setIsOpen(false);
       setFormState(EMPTY_FORM);
@@ -104,22 +106,31 @@ export function MovementsPage() {
   const confirmMutation = useMutation({
     mutationFn: confirmMovement,
     onSuccess: async () => {
+      toast.success("Movimiento confirmado");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.history(selectedMovementId!) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.cylinders.all() }),
       ]);
     },
+    onError: () => {
+      toast.error("Error al confirmar movimiento");
+    },
   });
   const cancelMutation = useMutation({
     mutationFn: (movementId: string) => cancelMovement(movementId, "Cancelado desde panel"),
     onSuccess: async () => {
+      toast.success("Movimiento cancelado");
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() });
+    },
+    onError: () => {
+      toast.error("Error al cancelar movimiento");
     },
   });
   const guideMutation = useMutation({
     mutationFn: () => assignDispatchGuide(selectedMovementId!, { document_series: guideSeries }),
     onSuccess: async () => {
+      toast.success("Guía asignada");
       setIsGuideOpen(false);
       setGuideSeries("");
       setError(null);
@@ -129,8 +140,12 @@ export function MovementsPage() {
   const closeDispatchMutation = useMutation({
     mutationFn: () => closeDispatch(selectedMovementId!),
     onSuccess: async () => {
+      toast.success("Despacho cerrado");
       setError(null);
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.movements.all() });
+    },
+    onError: () => {
+      toast.error("Error al cerrar despacho");
     },
   });
   const vehicleReturnMutation = useMutation({
@@ -139,6 +154,7 @@ export function MovementsPage() {
       notes: returnNotes || undefined,
     }),
     onSuccess: async () => {
+      toast.success("Retorno de vehículo registrado");
       setIsVehicleReturnOpen(false);
       setReturnCylinderIds("");
       setReturnNotes("");

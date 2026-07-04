@@ -7,6 +7,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { listWarehousesCatalog, stockKeys, transferStock } from "../api";
 import type { LogisticsWarehouseOption, StockTransferResult } from "../types";
 
@@ -73,6 +74,7 @@ export function ModalTransferenciaStock({
     },
     onSuccess: async (result) => {
       await queryClient.invalidateQueries({ queryKey: stockKeys.all });
+      toast.success("Transferencia de stock registrada");
       onSaved?.(result);
       onClose();
     },

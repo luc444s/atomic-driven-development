@@ -6,6 +6,7 @@ import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { Checkbox, Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import {
   createProduct,
   getProduct,
@@ -107,6 +108,7 @@ export function ProductFormPage() {
   const createMutation = useMutation({
     mutationFn: createProduct,
     onSuccess: async (product) => {
+      toast.success("Producto creado");
       await queryClient.invalidateQueries({ queryKey: productosKeys.products.all });
       navigate(`/app/productos/${product.id}`);
     },
@@ -115,6 +117,7 @@ export function ProductFormPage() {
   const updateMutation = useMutation({
     mutationFn: async (payload: ProductPayload) => updateProduct(productId!, payload),
     onSuccess: async (product) => {
+      toast.success("Producto actualizado");
       await queryClient.invalidateQueries({ queryKey: productosKeys.products.all });
       await queryClient.invalidateQueries({ queryKey: productosKeys.products.detail(product.id) });
     },

@@ -26,6 +26,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input, Switch } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { toast } from "../../../../apps/web/src/shared/ui/toast";
 
 const COVERAGE_COLORS: Record<string, string> = {
   verde: "text-emerald-400",
@@ -160,6 +161,7 @@ export function PlanningPage() {
   const planMutation = useMutation({
     mutationFn: (orderId: string) => postPlanOrder(orderId, { mode: planMode, permit_without_stock: permitNoStock }),
     onSuccess: async () => {
+      toast.success("Pedido planificado");
       setSelectedOrder(null);
       setError(null);
       await Promise.all([
@@ -177,6 +179,7 @@ export function PlanningPage() {
       notes: null,
     }),
     onSuccess: () => {
+      toast.success("Precarga generada");
       setIsPreloadOpen(false);
       setPreloadDate("");
       setError(null);
@@ -188,18 +191,26 @@ export function PlanningPage() {
   const acceptMutation = useMutation({
     mutationFn: acceptPreload,
     onSuccess: () => {
+      toast.success("Precarga aceptada");
       setSelectedPreload(null);
       queryClient.invalidateQueries({ queryKey: planningKeys.preloads.all() });
       queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) });
+    },
+    onError: () => {
+      toast.error("Error al aceptar precarga");
     },
   });
 
   const cancelPreloadMutation = useMutation({
     mutationFn: cancelPreload,
     onSuccess: () => {
+      toast.success("Precarga cancelada");
       setSelectedPreload(null);
       queryClient.invalidateQueries({ queryKey: planningKeys.preloads.all() });
       queryClient.invalidateQueries({ queryKey: planningKeys.stock(warehouseFilter) });
+    },
+    onError: () => {
+      toast.error("Error al cancelar precarga");
     },
   });
 

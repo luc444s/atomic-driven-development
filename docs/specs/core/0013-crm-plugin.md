@@ -377,6 +377,11 @@ Reglas:
 
 Contactos adicionales (telefonos, correos) por cliente.
 
+Nota de evolucion documental:
+
+- este bloque describe el modelo generico inicial de `contact_type` + `value` + `label`;
+- para el cierre mas fuerte del customer core, `SPEC 0023D` lo supersede parcialmente y enriquece `crm_customer_contacts` con persona, cargo, telefono, email y vinculo opcional a direccion base.
+
 ```sql
 CREATE TABLE crm_customer_contacts (
     id VARCHAR(36) PRIMARY KEY,
@@ -859,6 +864,10 @@ Formulario multi-pestana:
 - Lista de telefonos y correos adicionales
 - Boton "Agregar contacto" → modal con tipo (PHONE/EMAIL), valor, etiqueta
 
+Nota:
+- esta UX corresponde al corte inicial de `0013`;
+- `0023D` eleva este bloque a contactos base enriquecidos y deja el modelo generico como antecedente historico, no como limite final del customer core.
+
 **Pestana 5: Puntos de entrega**
 - Vista embebida de los `delivery_points` del cliente consumiendo endpoints de logistics
 - Boton "Nuevo punto de entrega" navega o abre modal del flujo de logistics
@@ -978,6 +987,7 @@ export interface CustomerAddress {
 }
 
 export interface CustomerContact {
+    // Modelo inicial de 0013. Ver 0023D para el contrato enriquecido posterior.
     id: string;
     contact_type: 'PHONE' | 'EMAIL' | 'OTHER';
     value: string;

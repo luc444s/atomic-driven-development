@@ -54,6 +54,12 @@ def create_customer(
         payment_term_code=payload.payment_term_code,
         billing_type=payload.billing_type,
         is_exempt=payload.is_exempt,
+        accounting_code=payload.accounting_code,
+        is_intracommunity=payload.is_intracommunity,
+        fiscal_operation_key=payload.fiscal_operation_key,
+        tax_regime_code=payload.tax_regime_code,
+        equivalence_surcharge_applicable=payload.equivalence_surcharge_applicable,
+        cash_criterion_applicable=payload.cash_criterion_applicable,
         first_name=payload.first_name,
         last_name=payload.last_name,
         birth_date=payload.birth_date,
@@ -139,6 +145,24 @@ def update_customer(
         if payload.billing_type is not None
         else customer.billing_type,
         is_exempt=payload.is_exempt if payload.is_exempt is not None else customer.is_exempt,
+        accounting_code=payload.accounting_code
+        if payload.accounting_code is not None
+        else customer.accounting_code,
+        is_intracommunity=payload.is_intracommunity
+        if payload.is_intracommunity is not None
+        else customer.is_intracommunity,
+        fiscal_operation_key=payload.fiscal_operation_key
+        if payload.fiscal_operation_key is not None
+        else customer.fiscal_operation_key,
+        tax_regime_code=payload.tax_regime_code
+        if payload.tax_regime_code is not None
+        else customer.tax_regime_code,
+        equivalence_surcharge_applicable=payload.equivalence_surcharge_applicable
+        if payload.equivalence_surcharge_applicable is not None
+        else customer.equivalence_surcharge_applicable,
+        cash_criterion_applicable=payload.cash_criterion_applicable
+        if payload.cash_criterion_applicable is not None
+        else customer.cash_criterion_applicable,
         first_name=payload.first_name if payload.first_name is not None else customer.first_name,
         last_name=payload.last_name if payload.last_name is not None else customer.last_name,
         birth_date=payload.birth_date if payload.birth_date is not None else customer.birth_date,
@@ -163,6 +187,9 @@ def update_customer(
         "economic_activity_description",
         "payment_term_code",
         "billing_type",
+        "accounting_code",
+        "fiscal_operation_key",
+        "tax_regime_code",
         "first_name",
         "last_name",
         "birth_date",
@@ -176,6 +203,25 @@ def update_customer(
     if payload.is_exempt is not None and customer.is_exempt != payload.is_exempt:
         customer.is_exempt = payload.is_exempt
         changed_fields.append("is_exempt")
+    if (
+        payload.is_intracommunity is not None
+        and customer.is_intracommunity != payload.is_intracommunity
+    ):
+        customer.is_intracommunity = payload.is_intracommunity
+        changed_fields.append("is_intracommunity")
+    if (
+        payload.equivalence_surcharge_applicable is not None
+        and customer.equivalence_surcharge_applicable
+        != payload.equivalence_surcharge_applicable
+    ):
+        customer.equivalence_surcharge_applicable = payload.equivalence_surcharge_applicable
+        changed_fields.append("equivalence_surcharge_applicable")
+    if (
+        payload.cash_criterion_applicable is not None
+        and customer.cash_criterion_applicable != payload.cash_criterion_applicable
+    ):
+        customer.cash_criterion_applicable = payload.cash_criterion_applicable
+        changed_fields.append("cash_criterion_applicable")
     db.add(customer)
     db.flush()
     audit_crm_action(

@@ -5,8 +5,10 @@ import { Link, useParams } from "../../../../apps/web/src/lib/router";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
+import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { DropdownMenu, type DropdownItem } from "../../../../apps/web/src/shared/ui/dropdown-menu";
+import { Checkbox, Input, Switch, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import {
   createProductAdr,
   createProductBarcode,
@@ -39,6 +41,7 @@ export function ProductDetailPage() {
   const { productId } = useParams();
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
   const [barcodeType, setBarcodeType] = useState("INTERNAL");
   const [barcodeValue, setBarcodeValue] = useState("");
   const [priceList, setPriceList] = useState("UNITARIO");
@@ -248,14 +251,13 @@ export function ProductDetailPage() {
           <Link to={`/app/productos/${productId}`}>
             <Button variant="secondary">Editar ficha</Button>
           </Link>
-          <Button
-            variant="secondary"
-            onClick={() =>
-              submitMutation(() => toggleProduct(productId, !(detailQuery.data?.is_active ?? true), "Cambio manual"))
-            }
-          >
-            {detailQuery.data?.is_active ? "Desactivar" : "Activar"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={detailQuery.data?.is_active ?? true}
+              onChange={(event) => submitMutation(() => toggleProduct(productId, event.target.checked, "Cambio manual"))}
+            />
+            <span className="text-sm text-muted-foreground">{detailQuery.data?.is_active ? "Activo" : "Inactivo"}</span>
+          </div>
         </div>
       }
     >
@@ -303,12 +305,16 @@ export function ProductDetailPage() {
                   key: "actions",
                   header: "Acciones",
                   render: (row) => (
-                    <div className="flex gap-2">
-                      {!row.is_primary ? (
-                        <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductBarcode(productId, row.id))}>Principal</Button>
-                      ) : null}
-                      <Button variant="secondary" onClick={() => submitMutation(() => deleteProductBarcode(productId, row.id))}>Eliminar</Button>
-                    </div>
+                    <DropdownMenu
+                      align="end"
+                      trigger={<Button variant="secondary" className="h-7 w-7 px-0 py-0">⋮</Button>}
+                      items={[
+                        ...(!row.is_primary
+                          ? [{ label: "Marcar principal", onClick: () => submitMutation(() => setPrimaryProductBarcode(productId, row.id)) } as DropdownItem]
+                          : []),
+                        { label: "Eliminar", destructive: true, onClick: () => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deleteProductBarcode(productId, row.id)) }) },
+                      ]}
+                    />
                   ),
                 },
               ]}
@@ -391,7 +397,7 @@ export function ProductDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-foreground">
             <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2">
-              <input type="checkbox" checked={taxValues.igv_exempt} onChange={(event) => setTaxValues((current) => ({ ...current, igv_exempt: event.target.checked }))} />
+              <Checkbox checked={taxValues.igv_exempt} onChange={(event) => setTaxValues((current) => ({ ...current, igv_exempt: event.target.checked }))} />
               IGV exonerado
             </label>
             <div className="grid gap-4 md:grid-cols-2">
@@ -436,8 +442,8 @@ export function ProductDetailPage() {
                 ))}
               </select>
             </div>
-            <textarea
-              className="min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
+            <Textarea
+              className="min-h-20"
               value={adrForm.cargo_description}
               onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
               placeholder="Mercancía / descripción"
@@ -491,10 +497,16 @@ export function ProductDetailPage() {
                   key: "actions",
                   header: "Acciones",
                   render: (row) => (
-                    <div className="flex gap-2">
-                      {!row.is_primary ? <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductMedia(productId, row.id))}>Principal</Button> : null}
-                      <Button variant="secondary" onClick={() => submitMutation(() => deleteProductMedia(productId, row.id))}>Eliminar</Button>
-                    </div>
+                    <DropdownMenu
+                      align="end"
+                      trigger={<Button variant="secondary" className="h-7 w-7 px-0 py-0">⋮</Button>}
+                      items={[
+                        ...(!row.is_primary
+                          ? [{ label: "Marcar principal", onClick: () => submitMutation(() => setPrimaryProductMedia(productId, row.id)) } as DropdownItem]
+                          : []),
+                        { label: "Eliminar", destructive: true, onClick: () => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deleteProductMedia(productId, row.id)) }) },
+                      ]}
+                    />
                   ),
                 },
               ]}
@@ -535,7 +547,11 @@ export function ProductDetailPage() {
                 {
                   key: "actions",
                   header: "Acciones",
-                  render: (row) => <Button variant="secondary" onClick={() => submitMutation(() => deletePromotion(row.id))}>Eliminar</Button>,
+                  render: (row) => (
+                    <Button variant="secondary" onClick={() => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deletePromotion(row.id)) })}>
+                      Eliminar
+                    </Button>
+                  ),
                 },
               ]}
               rows={detailQuery.data?.promotions ?? []}
@@ -545,6 +561,19 @@ export function ProductDetailPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          confirmDelete?.onConfirm();
+          setConfirmDelete(null);
+        }}
+        title="Confirmar eliminación"
+        description="¿Estás seguro de eliminar este elemento?"
+        destructive
+        confirmLabel="Eliminar"
+      />
     </ProductosSection>
   );
 }

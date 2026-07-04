@@ -6,9 +6,11 @@ import { useAuthStore } from "../../../apps/web/src/features/auth/store";
 import { Alert } from "../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../apps/web/src/shared/ui/card";
+import { ConfirmDialog } from "../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../apps/web/src/shared/ui/input";
+import { DropdownMenu, type DropdownItem } from "../../../apps/web/src/shared/ui/dropdown-menu";
+import { Input, Textarea } from "../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../apps/web/src/shared/ui/select";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { getProduct, listAllProducts, listBrands as listProductBrands, listSubline, productosKeys } from "../../productos/frontend/api";
@@ -75,9 +77,6 @@ import {
 } from "./cylinders/forms/cylinder-payload";
 import { toNullable, toNumberOrNull, toIntegerOrNull, formatDate, formatDateTime, InfoBlock, DataCard, Field } from "./cylinders/utils/formatters";
 
-const controlClassName =
-  "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring";
-
 export function LogisticsPage() {
   const queryClient = useQueryClient();
   const permissions = useAuthStore((state) => state.permissions);
@@ -123,6 +122,7 @@ export function LogisticsPage() {
   const [scanForm, setScanForm] = useState<ScanFormState>(EMPTY_SCAN_FORM);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
 
   const selectedCylinderId = selectedCylinder?.id ?? "";
 
@@ -1128,21 +1128,18 @@ export function LogisticsPage() {
                         key: "actions",
                         header: "Acciones",
                         render: (row) => (
-                          <div className="flex gap-2">
-                            {canServiceManage && row.status !== "REALIZADO" ? (
-                              <Button
-                                variant="secondary"
-                                onClick={() => serviceStatusMutation.mutate({ serviceId: row.id, status: "REALIZADO" })}
-                              >
-                                Completar
-                              </Button>
-                            ) : null}
-                            {canServiceManage ? (
-                              <Button variant="secondary" onClick={() => deleteServiceMutation.mutate(row.id)}>
-                                Eliminar
-                              </Button>
-                            ) : null}
-                          </div>
+                          canServiceManage ? (
+                            <DropdownMenu
+                              align="end"
+                              trigger={<Button variant="secondary" className="h-7 w-7 px-0 py-0">⋮</Button>}
+                              items={[
+                                ...(row.status !== "REALIZADO"
+                                  ? [{ label: "Completar", onClick: () => serviceStatusMutation.mutate({ serviceId: row.id, status: "REALIZADO" }) } as DropdownItem]
+                                  : []),
+                                { label: "Eliminar", destructive: true, onClick: () => setConfirmDelete({ id: row.id, onConfirm: () => deleteServiceMutation.mutate(row.id) }) },
+                              ]}
+                            />
+                          ) : null
                         ),
                       },
                     ]}
@@ -1203,7 +1200,7 @@ export function LogisticsPage() {
             </Field>
           </div>
           <Field label="Notas">
-            <textarea className={controlClassName} rows={4} value={hydrotestForm.notes} onChange={(event) => setHydrotestForm((current) => ({ ...current, notes: event.target.value }))} />
+            <Textarea rows={4} value={hydrotestForm.notes} onChange={(event) => setHydrotestForm((current) => ({ ...current, notes: event.target.value }))} />
           </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setIsHydrotestOpen(false)}>Cancelar</Button>
@@ -1225,7 +1222,7 @@ export function LogisticsPage() {
             </Field>
           </div>
           <Field label="Detalle">
-            <textarea className={controlClassName} rows={4} value={warrantyForm.description} onChange={(event) => setWarrantyForm((current) => ({ ...current, description: event.target.value }))} />
+            <Textarea rows={4} value={warrantyForm.description} onChange={(event) => setWarrantyForm((current) => ({ ...current, description: event.target.value }))} />
           </Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setIsWarrantyOpen(false)}>Cancelar</Button>
@@ -1264,7 +1261,7 @@ export function LogisticsPage() {
             <Field label="Nro ONU"><Input value={retimbradoForm.un_number} onChange={(event) => setRetimbradoForm((current) => ({ ...current, un_number: event.target.value }))} /></Field>
             <Field label="Registro alimentario"><Input value={retimbradoForm.food_registry} onChange={(event) => setRetimbradoForm((current) => ({ ...current, food_registry: event.target.value }))} /></Field>
           </div>
-          <Field label="Notas"><textarea className={controlClassName} rows={4} value={retimbradoForm.notes} onChange={(event) => setRetimbradoForm((current) => ({ ...current, notes: event.target.value }))} /></Field>
+          <Field label="Notas"><Textarea rows={4} value={retimbradoForm.notes} onChange={(event) => setRetimbradoForm((current) => ({ ...current, notes: event.target.value }))} /></Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setIsRetimbradoOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={retimbradoMutation.isPending}>Registrar retimbrado</Button>
@@ -1292,7 +1289,7 @@ export function LogisticsPage() {
             <Field label="Desc monto"><Input type="number" value={serviceForm.discount_amount} onChange={(event) => setServiceForm((current) => ({ ...current, discount_amount: event.target.value }))} /></Field>
             <Field label="Total"><Input type="number" value={serviceForm.total_amount} onChange={(event) => setServiceForm((current) => ({ ...current, total_amount: event.target.value }))} /></Field>
           </div>
-          <Field label="Notas"><textarea className={controlClassName} rows={4} value={serviceForm.notes} onChange={(event) => setServiceForm((current) => ({ ...current, notes: event.target.value }))} /></Field>
+          <Field label="Notas"><Textarea rows={4} value={serviceForm.notes} onChange={(event) => setServiceForm((current) => ({ ...current, notes: event.target.value }))} /></Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setIsServiceOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={serviceMutation.isPending}>Registrar servicio</Button>
@@ -1314,7 +1311,7 @@ export function LogisticsPage() {
             <Field label="Impresora"><Input value={printLabelForm.printer_name} onChange={(event) => setPrintLabelForm((current) => ({ ...current, printer_name: event.target.value }))} /></Field>
             <Field label="Copias"><Input type="number" value={printLabelForm.copies} onChange={(event) => setPrintLabelForm((current) => ({ ...current, copies: event.target.value }))} /></Field>
           </div>
-          <Field label="Motivo"><textarea className={controlClassName} rows={3} value={printLabelForm.reason} onChange={(event) => setPrintLabelForm((current) => ({ ...current, reason: event.target.value }))} /></Field>
+          <Field label="Motivo"><Textarea rows={3} value={printLabelForm.reason} onChange={(event) => setPrintLabelForm((current) => ({ ...current, reason: event.target.value }))} /></Field>
           <div className="flex justify-end gap-2">
             <Button type="button" variant="secondary" onClick={() => setIsPrintLabelOpen(false)}>Cancelar</Button>
             <Button type="submit" disabled={printLabelMutation.isPending}>Registrar impresión</Button>
@@ -1376,6 +1373,19 @@ export function LogisticsPage() {
           </div>
         </form>
       </Dialog>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          confirmDelete?.onConfirm();
+          setConfirmDelete(null);
+        }}
+        title="Confirmar eliminación"
+        description="¿Estás seguro de eliminar este servicio?"
+        destructive
+        confirmLabel="Eliminar"
+      />
     </LogisticsSection>
     </>
   );

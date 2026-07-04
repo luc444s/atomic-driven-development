@@ -5,7 +5,7 @@ import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Checkbox, Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import {
   createProduct,
   getProduct,
@@ -189,8 +189,8 @@ export function ModalNuevoProducto({ open, productId, onClose, onSaved, onOpenDe
           </div>
             <label className="block space-y-2 text-sm text-foreground">
               <span>Descripción</span>
-              <textarea
-                className="min-h-24 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
+              <Textarea
+                className="min-h-24"
               value={formState.description ?? ""}
               onChange={(event) => setFormState((current) => ({ ...current, description: event.target.value || null }))}
             />
@@ -313,7 +313,7 @@ export function ModalNuevoProducto({ open, productId, onClose, onSaved, onOpenDe
               <Input value={formState.delivery_time ?? ""} onChange={(event) => setFormState((current) => ({ ...current, delivery_time: event.target.value || null }))} />
             </label>
             <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
-              <input type="checkbox" checked={formState.is_service} onChange={(event) => setFormState((current) => ({ ...current, is_service: event.target.checked }))} />
+              <Checkbox checked={formState.is_service} onChange={(event) => setFormState((current) => ({ ...current, is_service: event.target.checked }))} />
               Servicio
             </label>
           </div>

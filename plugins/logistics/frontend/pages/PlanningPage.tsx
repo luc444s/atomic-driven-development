@@ -24,7 +24,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input, Switch } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 const COVERAGE_COLORS: Record<string, string> = {
@@ -371,10 +371,10 @@ export function PlanningPage() {
                     { value: "all", label: "Todo" },
                   ]} />
               </label>
-              <label className="flex items-center gap-2 pt-5 text-sm text-foreground">
-                <input type="checkbox" checked={permitNoStock} onChange={(e) => setPermitNoStock(e.target.checked)} />
-                Permitir sin stock
-              </label>
+              <div className="flex items-center gap-2 pt-5 text-sm text-foreground">
+                <Switch checked={permitNoStock} onChange={(e) => setPermitNoStock(e.target.checked)} />
+                <span>Permitir sin stock</span>
+              </div>
             </div>
             <DataTable
               columns={[

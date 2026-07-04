@@ -1,6 +1,10 @@
 import { InputHTMLAttributes, forwardRef } from "react";
 import { cn } from "./cn";
 
+export { Checkbox } from "./checkbox";
+export { Switch } from "./switch";
+export { Textarea } from "./textarea";
+
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className, ...props }, ref) {
     return (

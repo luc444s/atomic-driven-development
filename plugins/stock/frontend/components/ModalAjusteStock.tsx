@@ -5,13 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { adjustStock, listWarehousesCatalog, stockKeys } from "../api";
 import type { LogisticsWarehouseOption, StockBalanceItem } from "../types";
-
-const fieldClassName =
-  "w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 type ModalAjusteStockProps = {
   open: boolean;
@@ -145,8 +142,8 @@ export function ModalAjusteStock({
         </label>
         <label className="block space-y-2 text-sm text-foreground">
           <span>Motivo</span>
-          <textarea
-            className={`${fieldClassName} min-h-24`}
+          <Textarea
+            className="min-h-24"
             value={reason}
             onChange={(event) => setReason(event.target.value)}
             placeholder="Ajuste por conteo físico"

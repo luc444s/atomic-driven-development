@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input, Switch } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listWarehousesCatalog, stockKeys, upsertConfig } from "../api";
 import type { LogisticsWarehouseOption, StockConfig } from "../types";
@@ -131,10 +131,10 @@ export function ModalConfigStock({
           <span>Máximo</span>
           <Input type="number" step="0.001" value={maxQuantity} onChange={(event) => setMaxQuantity(event.target.value)} />
         </label>
-        <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
-          <input type="checkbox" checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
-          Configuración activa
-        </label>
+        <div className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
+          <Switch checked={isActive} onChange={(event) => setIsActive(event.target.checked)} />
+          <span>Configuración activa</span>
+        </div>
       </div>
       <div className="flex justify-end gap-2">
         <Button type="button" variant="secondary" onClick={onClose}>

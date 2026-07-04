@@ -4,9 +4,11 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
+import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { DropdownMenu, type DropdownItem } from "../../../../apps/web/src/shared/ui/dropdown-menu";
+import { Input, Switch, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import {
   createProductAdr,
   createProductBarcode,
@@ -61,6 +63,7 @@ const DETAIL_SECTION_ITEMS: Array<{ key: DetailSection; label: string; descripti
 export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, asPage }: ModalDetalleProductoProps) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
   const [selectedSection, setSelectedSection] = useState<DetailSection | null>(null);
   const [barcodeType, setBarcodeType] = useState("INTERNAL");
   const [barcodeValue, setBarcodeValue] = useState("");
@@ -305,16 +308,16 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
                     key: "actions",
                     header: "Acciones",
                     render: (row) => (
-                      <div className="flex gap-2">
-                        {!row.is_primary ? (
-                          <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductBarcode(productId, row.id))}>
-                            Principal
-                          </Button>
-                        ) : null}
-                        <Button variant="secondary" onClick={() => submitMutation(() => deleteProductBarcode(productId, row.id))}>
-                          Eliminar
-                        </Button>
-                      </div>
+                      <DropdownMenu
+                      align="end"
+                      trigger={<Button variant="secondary" className="h-7 w-7 px-0 py-0">⋮</Button>}
+                      items={[
+                        ...(!row.is_primary
+                          ? [{ label: "Marcar principal", onClick: () => submitMutation(() => setPrimaryProductBarcode(productId, row.id)) } as DropdownItem]
+                          : []),
+                        { label: "Eliminar", destructive: true, onClick: () => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deleteProductBarcode(productId, row.id)) }) },
+                      ]}
+                    />
                     ),
                   },
                 ]}
@@ -464,8 +467,8 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
                   ))}
                 </select>
               </div>
-              <textarea
-                className="min-h-20 w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring"
+              <Textarea
+                className="min-h-20"
                 value={adrForm.cargo_description}
                 onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
                 placeholder="Mercancía / descripción"
@@ -521,16 +524,16 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
                     key: "actions",
                     header: "Acciones",
                     render: (row) => (
-                      <div className="flex gap-2">
-                        {!row.is_primary ? (
-                          <Button variant="secondary" onClick={() => submitMutation(() => setPrimaryProductMedia(productId, row.id))}>
-                            Principal
-                          </Button>
-                        ) : null}
-                        <Button variant="secondary" onClick={() => submitMutation(() => deleteProductMedia(productId, row.id))}>
-                          Eliminar
-                        </Button>
-                      </div>
+                      <DropdownMenu
+                        align="end"
+                        trigger={<Button variant="secondary" className="h-7 w-7 px-0 py-0">⋮</Button>}
+                        items={[
+                          ...(!row.is_primary
+                            ? [{ label: "Marcar principal", onClick: () => submitMutation(() => setPrimaryProductMedia(productId, row.id)) } as DropdownItem]
+                            : []),
+                          { label: "Eliminar", destructive: true, onClick: () => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deleteProductMedia(productId, row.id)) }) },
+                        ]}
+                      />
                     ),
                   },
                 ]}
@@ -573,7 +576,11 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
                   {
                     key: "actions",
                     header: "Acciones",
-                    render: (row) => <Button variant="secondary" onClick={() => submitMutation(() => deletePromotion(row.id))}>Eliminar</Button>,
+                    render: (row) => (
+                      <Button variant="secondary" onClick={() => setConfirmDelete({ id: row.id, onConfirm: () => submitMutation(() => deletePromotion(row.id)) })}>
+                        Eliminar
+                      </Button>
+                    ),
                   },
                 ]}
                 rows={detailQuery.data?.promotions ?? []}
@@ -622,12 +629,13 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" onClick={() => onEditProduct?.(productId)}>Editar ficha</Button>
-          <Button
-            variant="secondary"
-            onClick={() => submitMutation(() => toggleProduct(productId, !(detailQuery.data?.is_active ?? true), "Cambio manual"))}
-          >
-            {detailQuery.data?.is_active ? "Desactivar" : "Activar"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Switch
+              checked={detailQuery.data?.is_active ?? true}
+              onChange={(event) => submitMutation(() => toggleProduct(productId, event.target.checked, "Cambio manual"))}
+            />
+            <span className="text-sm text-muted-foreground">{detailQuery.data?.is_active ? "Activo" : "Inactivo"}</span>
+          </div>
         </div>
       </div>
 
@@ -666,6 +674,19 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
           </div>
         </CardContent>
       </Card>
+
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        onClose={() => setConfirmDelete(null)}
+        onConfirm={() => {
+          confirmDelete?.onConfirm();
+          setConfirmDelete(null);
+        }}
+        title="Confirmar eliminación"
+        description="¿Estás seguro de eliminar este elemento?"
+        destructive
+        confirmLabel="Eliminar"
+      />
     </div>
   );
 

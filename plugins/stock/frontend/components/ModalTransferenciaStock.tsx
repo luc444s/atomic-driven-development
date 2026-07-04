@@ -5,13 +5,10 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listWarehousesCatalog, stockKeys, transferStock } from "../api";
 import type { LogisticsWarehouseOption, StockTransferResult } from "../types";
-
-const fieldClassName =
-  "w-full rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
 
 type ModalTransferenciaStockProps = {
   open: boolean;
@@ -154,8 +151,8 @@ export function ModalTransferenciaStock({
       </div>
       <label className="block space-y-2 text-sm text-foreground">
         <span>Notas</span>
-        <textarea
-          className={`${fieldClassName} min-h-24`}
+        <Textarea
+          className="min-h-24"
           value={notes}
           onChange={(event) => setNotes(event.target.value)}
           placeholder="Traslado a almacén de reparto"

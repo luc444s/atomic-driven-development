@@ -1,4 +1,4 @@
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
+import { Checkbox, Input, Switch } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
 import { Field, FormRow } from "../utils/formatters";
 import type { CylinderFormState } from "./cylinder-form-state";
@@ -78,7 +78,7 @@ export function CylinderFormFields({
         <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Precio"><Input type="number" value={form.price} onChange={(event) => updateField("price", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-6 xl:col-span-5" label="Es servicio">
         <label className="flex items-center gap-2 text-sm text-foreground">
-          <input type="checkbox" checked={form.is_service} onChange={(event) => updateField("is_service", event.target.checked)} />
+          <Checkbox checked={form.is_service} onChange={(event) => updateField("is_service", event.target.checked)} />
           Producto de servicio
         </label>
       </Field>
@@ -126,10 +126,10 @@ export function CylinderFormFields({
       </FormRow>
       {includeActivation ? (
         <Field label="Activo">
-          <label className="flex items-center gap-2 text-sm text-foreground">
-            <input type="checkbox" checked={form.is_active} onChange={(event) => updateField("is_active", event.target.checked)} />
-            Envase activo
-          </label>
+          <div className="flex items-center gap-2 text-sm text-foreground">
+            <Switch checked={form.is_active} onChange={(event) => updateField("is_active", event.target.checked)} />
+            <span>Envase activo</span>
+          </div>
         </Field>
       ) : null}
     </div>

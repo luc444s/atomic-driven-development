@@ -28,6 +28,7 @@ from plugins.stock.backend.services.balances import (
     get_balance_detail,
     list_balances,
     list_configs,
+    list_global_ledger,
     list_ledger_entries,
     list_product_balances,
 )
@@ -285,6 +286,41 @@ def get_product_warehouse_ledger(
         )
     except Exception as exc:
         _raise_service_error(exc)
+
+
+@router.get(
+    "/ledger",
+    response_model=list[StockLedgerRead],
+    dependencies=[REQUIRE_BALANCE_READ],
+)
+def get_global_ledger(
+    request: Request,
+    product_id: str | None = Query(default=None),
+    warehouse_id: str | None = Query(default=None),
+    operation: str | None = Query(default=None),
+    limit: int = Query(default=100, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[StockLedgerRead]:
+    if warehouse_id is not None:
+        _ensure_warehouse_access(
+            db,
+            tenant_context=tenant_context,
+            request=request,
+            warehouse_id=warehouse_id,
+            action="ledger.read",
+        )
+    return list_global_ledger(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        product_id=product_id,
+        warehouse_id=warehouse_id,
+        operation=operation,
+        allowed_warehouse_ids=tenant_context.current_warehouse_ids,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post(

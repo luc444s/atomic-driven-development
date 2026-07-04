@@ -2,7 +2,7 @@
 
 ## Estado
 
-Propuesta
+Propuesta — Verificado contra código: 2026-07-04
 
 ## Contexto
 
@@ -71,6 +71,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Trazabilidad medicinal | Para medicinal es obligatorio poder reconstruir recorrido completo | No formalizado asi en docs, pero consistente con trazabilidad legacy | Bajo/medio | Gap fuerte | Falta un corte explicito de cumplimiento o trazabilidad reforzada | `logistics` | `SPEC 0023D` Trazabilidad medicinal |
 | Etiquetado de cilindro | Cada bombona debe llevar codigo y etiqueta operativa | Si | Si | Bien encaminado | Validar formato final y flujo real de impresion en campo | `logistics` | incluir en `0023A/0023C` |
 
+> **Code Reality Check (2026-07-04):** 0023A está **cerrado** — todos los campos técnicos (30+) están visibles y editables en frontend. 0023B (peso real) tiene backend completo, falta el fallback de peso promedio que no existe. 0023C (trazabilidad) tiene datos en 7+ tablas relacionadas, falta enriquecer vista. 0023D (trazabilidad medicinal) no tiene **absolutamente nada** — ni un flag booleano, es greenfield total. Etiquetado tiene modelo completo, falta integración física con impresora.
+
 ## 2. Carga, reparto y almacen movil
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -82,6 +84,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Escaneo al cargar | Se debe escanear al subir al camion | Legacy si operaba con escaneo por envase | Parcial: el sistema tiene escaneo y loads, pero no ese flujo unificado | Parcial | Falta el flujo exacto en UI/app | `logistics` | `SPEC 0023H` Escaneo de carga |
 | Confirmacion de carga por conductor | El conductor debe aceptar que la carga esta correcta | Legacy lo sugiere por operacion | Bajo | Gap fuerte | Falta aceptacion explicita previa a salida | `logistics` | `SPEC 0023I` Confirmacion de conductor |
 | Retorno a almacen | Lo que no se vende/regresa debe volver a almacen o quedar en camion trazado | Si | Parcial | Parcial | Falta cierre claro de remanente de camion/almacen movil | `logistics` | `SPEC 0023E/0023G` |
+
+> **Code Reality Check (2026-07-04):** 0023E (almacén móvil) — existe estado `CARGA_EN_VEHICULO` pero no modelo de ubicación. 0023F (agenda→carga) — **no existe el flujo**, es el gap operativo más crítico del dominio. 0023G (stock libre) — modelo de comprometido sólido, cero de stock extra. 0023H (escaneo) — infraestructura de scan sólida pero atada a movements, no a loads. 0023I (confirmación conductor) — `confirm_loads` existe pero sin identidad de conductor. Retorno a almacén: `vehicle_return` + recepción existen, falta conciliación automática.
 
 ## 3. Carta porte, albaran y documentos de transporte
 
@@ -98,6 +102,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Entregas y retiros en albaran | Debe registrar llenas entregadas, vacias retiradas y excepciones | Si | Bajo/medio | Gap fuerte | Falta documento operativo rico | `logistics` | `SPEC 0023K` |
 | Numeracion de albaran por sede | M-, S-, etc. por delegacion | No claro antes; ahora si | No visible | Gap concreto | Falta correlativo por centro | `logistics` | `SPEC 0023L` Numeracion por sede |
 
+> **Code Reality Check (2026-07-04):** 0023J (carta porte por movimiento) — correcto, waybill es por movimiento. 0023J (editable en ruta) — **no existe versionado**, gap crítico real. 0023J-A/B (interna/externa) — **no hay distinción de tipo**, gap crítico real. 0023J-C (firma) — no existe en waybill. 0023K (albarán) — backend tiene endpoints separados pero el esquema es idéntico al waybill; `quantity_in/out` existen en el modelo pero el waybill los colapsa a 1 sola cifra. 0023L (numeración) — infraestructura de `document_series`/`document_number` existe, secuencial por warehouse, falta scope por branch/sede.
+
 ## 4. ADR, peso y mercancia peligrosa
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -108,6 +114,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Peso por producto transportado | Las equivalencias deben existir para descontar y calcular | Parcial en legacy y Excel | Bajo/medio | Gap fuerte | Falta tabla o regla clara de equivalencias | `productos` + `logistics` | `SPEC 0023O` Equivalencias de transporte |
 | ADR visible al usuario | No solo calculo backend; debe ayudar a decidir | Parcial docs, backend existe | Backend si, frontend no | Gap importante | Falta UX ADR | `logistics` | `SPEC 0023P` ADR operativo |
 | Seleccion de vehiculo segura | La capacidad/peso/compatibilidad debe afectar salida real | Legacy lo trataba mas por operacion que por UI | Parcial backend | Gap importante | Integracion final con carga/salida | `logistics` | `SPEC 0023P` |
+
+> **Code Reality Check (2026-07-04):** 0023M (peso transportado) — backend completo (`validate_route_weight_limit`, `build_load_weight_summary`), frontend de carga no muestra el peso. 0023N (umbral 1000 kg + reporte anual ADR) — **no existe absolutamente nada**, riesgo regulatorio real. 0023O (equivalencias) — no existen en logistics ni en productos. 0023P (ADR visible) — **corrección: frontend SÍ muestra ADR** en detalle de cilindro, waybill y formulario; el gap real es UX a nivel ruta/carga. 0023P (selección vehículo) — backend funcional (eligible-vehicles + restrictions), frontend no integrado.
 
 ## 5. Cliente, establecimientos y direcciones
 
@@ -122,6 +130,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Ruta asociada a cliente/establecimiento | El cliente puede estar asociado a ruta/zona | Si | Parcial | Parcial | Falta la vision comercial-operativa completa | `crm` + `logistics` | `SPEC 0023D/0023F` |
 | Coordenadas geograficas | Utiles para reparto y nuevos clientes | Si operativo, no critico inicial | Muy bajo | Gap medio | Falta captura simple | `crm` + futura app | `SPEC 0023T` Geolocalizacion minima |
 
+> **Code Reality Check (2026-07-04):** Dominio cubierto por CRM cerrado (0023D, 0023R, 0023S, 0023XA/XB). Los gaps señalados son correctos y corresponden a futuros módulos de facturación/cobros, no a logistics.
+
 ## 6. Precios, presupuestos y condiciones especiales
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -133,6 +143,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Presupuesto previo | El comercial manda oferta y luego eso se convierte en condicion o venta | Si | No claro | Gap fuerte | Falta workflow presupuesto -> aprobacion -> pedido/despacho | futuro ventas/comercial | `SPEC 0023V` Presupuestos |
 | Restriccion por rol | El comercial puede ofrecer pero no grabar cambios finales en ciertos casos | Si | No | Gap fuerte | Falta permisos por rol comercial | `crm` / ventas | `SPEC 0023V` |
 | Condiciones comerciales persistentes | Lo pactado debe quedar visible para otros | Si | No | Gap fuerte | Falta historial/visibilidad comercial | `crm` | `SPEC 0023U/0023V` |
+
+> **Code Reality Check (2026-07-04):** Dominio cubierto parcialmente por CRM cerrado (0023XA/XB). El motor de precios, descuentos y presupuestos es un gap real que vivirá en futuros módulos comerciales/facturación, no en logistics.
 
 ## 7. Facturacion, pagos y remesas
 
@@ -146,6 +158,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Anticipos | Puede cobrarse antes de ejecutar trabajo | Si | No | Gap medio/alto | Falta anticipo/adelanto | facturacion | `SPEC 0023AA` Anticipos |
 | Facturacion inmediata vs fin de mes | Depende del cliente/servicio | Si | No | Gap fuerte | Falta politica de facturacion por cliente | facturacion | `SPEC 0023W/0023X` |
 
+> **Code Reality Check (2026-07-04):** Dominio completo de futuros módulos. Todos los gaps señalados son reales — ninguno debe implementarse en logistics.
+
 ## 8. Impuestos, NIF/CIF y casos fiscales
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -156,6 +170,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Criterio de caja | Puede aplicar segun cliente | Si | No | Gap fuerte | Falta soporte tributario | facturacion | `SPEC 0023AB` |
 | Exento / reducido / normal | El tipo fiscal no siempre es el mismo | Si | No | Gap fuerte | Falta modelo minimo de tratamiento fiscal | facturacion | `SPEC 0023AB` |
 | Fianza sin IVA | Hay conceptos que no llevan IVA | Si | No | Gap concreto | Falta tipos especiales de concepto | facturacion | `SPEC 0023AC` Conceptos especiales |
+
+> **Code Reality Check (2026-07-04):** Dominio de futuros módulos fiscales/facturación. El soporte NIF/CIF en CRM es básico, el resto no existe.
 
 ## 9. Contratos de envases
 
@@ -168,6 +184,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Generacion previa | Puede mandarse antes de entregar | Si operativo | No | Gap medio | Falta workflow documental | `logistics` | `SPEC 0023AD` |
 | Firma del contrato | Puede ser fisica ahora; digital despues | Si operativo | No | Gap medio | Falta estrategia de firma por etapas | `logistics` | `SPEC 0023AE` Firma contractual |
 
+> **Code Reality Check (2026-07-04):** **No existe absolutamente nada** en código. Es uno de los gaps más grandes de logistics — submódulo completo por construir. 0 modelos, 0 endpoints, 0 UI. Prioridad: crítica.
+
 ## 10. Numeracion, delegaciones y multi-sede
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -175,6 +193,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Correlativo por delegacion | M-, S-, etc. con secuencia por sede | Si por operacion real ahora | No | Gap concreto | Falta diseno de series por centro | `logistics` + futura facturacion | `SPEC 0023L` |
 | Visibilidad por centro | Cada sede solo debe ver lo suyo; central ve todo | Si | Parcial por tenancy/warehouse | Parcial | Falta trasladarlo a clientes/facturacion/comercial | `core` + `crm` + `logistics` | `SPEC 0023AF` Scope por delegacion |
 | Permisos por establecimiento | Repartidor/comercial debe ver solo su centro | Si | Parcial | Parcial | Falta aterrizarlo en modulos nuevos | `core` | `SPEC 0023AF` |
+
+> **Code Reality Check (2026-07-04):** 0023L (correlativo) — infraestructura de `document_series`/`document_number` existe con secuencial por warehouse, falta scope por branch/sede. 0023AF (visibilidad) — warehouse-scope funciona en logistics endpoint por endpoint, no hay middleware global.
 
 ## 11. Productos, componentes y equivalencias
 
@@ -185,6 +205,8 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Servicios como producto | Un "producto" tambien puede ser un servicio | Si operativo | Muy bajo | Gap fuerte | Falta taxonomia simple de tipo de producto | `productos` | `SPEC 0023AG` |
 | Producto fisico vs virtual | Un servicio o fianza no es bombona fisica | Si | No | Gap fuerte | Falta distincion de dominio | `productos` + facturacion | `SPEC 0023AG/0023AC` |
 
+> **Code Reality Check (2026-07-04):** Gaps de `productos`, no de `logistics`. Las equivalencias de transporte (0023O) no existen en ningún módulo — es el gap transversal más urgente de este dominio.
+
 ## 12. Reportes y operacion gerencial
 
 | Tema | Regla / hallazgo de Grab2 | Legacy documentado | Sistema nuevo | Estado comparado | Gap exacto | Owner natural | Spec / sub-spec sugerida |
@@ -194,19 +216,23 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Reportes obligatorios ADR | Deben existir por cumplimiento | Si por necesidad legal | No | Gap fuerte | Falta reporting regulatorio | `logistics` | `SPEC 0023N` |
 | Estado de deuda/cobros | Debe verse por cliente | Si | No | Gap fuerte | Falta modulo simple de deuda por cliente | cobros/facturacion | `SPEC 0023Z` |
 
-## Lectura consolidada
+> **Code Reality Check (2026-07-04):** Reportes ADR (0023N) y estado de deuda (0023Z) son gaps fuertes reales. Consistencia documental (0023AH) y reportes gerenciales (0023AI) no existen. Los 5 reportes operativos existentes (route-agenda, dispatch-ticket, transfer-albaran, load-summary, adr-summary) están consolidados y funcionales.
+
+## Lectura consolidada (verificada contra código)
 
 ### Lo que ya esta fuerte en el sistema nuevo
 
-- envases;
-- trazabilidad base;
+- envases (incluyendo ficha técnica completa — 0023A cerrado);
+- trazabilidad base (datos en 7+ tablas, vista por enriquecer);
 - rutas base;
 - carga base;
 - movimientos base;
 - planificacion base;
 - recepcion base;
 - equipos;
-- `waybill` base.
+- `waybill` base (por movimiento, bien alineado);
+- ADR en backend (config, incompatibilidades, puntos, vehículos elegibles);
+- ADR visible en frontend (cilindro, waybill, formulario — gap 0023P corregido).
 
 ### Lo que estaba mas presente en legacy/documentacion
 
@@ -216,30 +242,114 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 - forms de operacion logistica;
 - tecnica historica de reportes.
 
-### Lo que `Grab2` revela como gap real
+### Lo que `Grab2` revela como gap real (confirmado)
 
-- cliente comercial/fiscal rico;
-- contratos de envases;
-- precio especial por cliente;
-- remesas y formas de pago;
-- almacen movil real;
-- agenda -> carga -> camion -> reparto;
-- carta porte viva/digital;
-- albaran operativo real;
-- pesos promedio/reales;
-- reporting ADR >1000 kg;
-- correlativos por delegacion.
+- ~~cliente comercial/fiscal rico~~ → CRM cerrado (0023D, 0023R, 0023S);
+- **contratos de envases** → no existe nada, crítica;
+- precio especial por cliente → futuro comercial;
+- remesas y formas de pago → futura facturación;
+- **almacén movil real** → existe estado CARGA_EN_VEHICULO, no modelo;
+- **agenda → carga → camion → reparto** → no existe el flujo, crítica operativa;
+- **carta porte viva/digital** → no existe versionado, crítica;
+- **albaran operativo real** → endpoints existen, datos idénticos a waybill;
+- **pesos promedio/reales** → real weight existe, fallback promedio no;
+- **reporting ADR >1000 kg** → no existe, riesgo regulatorio;
+- **correlativos por delegacion** → infra existe, scope branch falta.
 
-## Estructura sugerida de sub-specs
+## Estructura sugerida de sub-specs (actualizada post-verificación)
 
-- `0023A-envase-ficha-tecnica-y-pesos.md`
-- `0023B-agenda-carga-y-almacen-movil.md`
-- `0023C-carta-porte-y-albaran-operativo.md`
-- `0023D-cliente-comercial-fiscal-y-direcciones.md`
-- `0023E-precios-condiciones-y-presupuestos.md`
-- `0023F-facturacion-formas-de-pago-y-remesas.md`
-- `0023G-contratos-de-envases.md`
-- `0023H-adr-reportes-y-mercancia-peligrosa.md`
+### Envases (prioridad alta)
+- `0023A-envase-ficha-tecnica-y-pesos.md` — **gap cerrado**, solo auditar
+- `0023B-peso-real-y-promedio.md` — crear modelo de fallback
+- `0023C-trazabilidad-operativa-extendida.md` — enriquecer vista existente
+- `0023D-trazabilidad-medicinal.md` — greenfield, compliance
+- `0023AD-contratos-de-envases.md` — submódulo completo
+
+### Carga y reparto (prioridad alta)
+- `0023E-almacen-movil.md` — modelar vehículo como ubicación
+- `0023F-agenda-carga-vehiculo.md` — flujo core operativo
+- `0023G-stock-libre-reparto.md` — modelo de carga extra
+- `0023H-escaneo-de-carga.md` — integrar scan con loads
+- `0023I-confirmacion-conductor.md` — workflow de aceptación
+
+### Documentos de transporte (prioridad alta)
+- `0023J-carta-porte-digital.md` — versionado + interna/externa + firma
+- `0023K-albaran-operativo.md` — separar de waybill, valorado/no
+- `0023L-numeracion-por-sede.md` — series por branch
+
+### ADR y regulatorio (prioridad media)
+- `0023M-peso-de-transporte.md` — frontend de carga
+- `0023N-reporte-ADR-anual.md` — umbral 1000 kg + reporte anual
+- `0023O-equivalencias-de-transporte.md` — tabla de densidades
+- `0023P-ADR-operativo.md` — UX + selección vehículo
+
+### Reportes (prioridad media-baja)
+- `0023AH-consistencia-documental.md`
+- `0023AI-reportes-gerenciales.md`
+- `0023Z-CxC-minimo.md` — estado de deuda
+
+### Diferidos a otros módulos
+- `0023D-cliente-comercial-fiscal-y-direcciones.md` → CRM (cerrado)
+- `0023R-contactos-y-responsables.md` → CRM (cerrado)
+- `0023S-gestion-comercial.md` → CRM (cerrado)
+- `0023XA/XB-condiciones-comerciales.md` → CRM (cerrado)
+- `0023U-precios-comerciales.md` → futuro comercial
+- `0023V-presupuestos.md` → futuro ventas
+- `0023W-facturacion-programada.md` → futuro facturación
+- `0023X-formas-de-pago.md` → futuro facturación
+- `0023Y-remesas.md` → futuro cobros
+- `0023Z-CxC.md` → futuro cobros
+- `0023AA-anticipos.md` → futuro facturación
+- `0023AB-fiscal-espana.md` → futuro facturación
+- `0023AC-conceptos-especiales.md` → futuro facturación
+- `0023AE-firma-contractual.md` → futuro (post-contratos)
+- `0023AF-scope-por-delegacion.md` → core
+- `0023AG-clasificacion-productos.md` → productos
+- `0023T-geolocalizacion.md` → crm + futura app
+
+## Backlog priorizado (orden de implementación sugerido)
+
+### Fase 1 — Envases (lo que toca cilindros directamente)
+| Prio | Gap | Spec | Esfuerzo | Depende de |
+|------|-----|------|----------|------------|
+| 1 | Trazabilidad medicinal | 0023D | Medio | — |
+| 2 | Contratos de envases | 0023AD | Alto (submódulo) | — |
+| 3 | Peso promedio fallback | 0023B | Bajo | — |
+| 4 | Trazabilidad extendida (UI) | 0023C | Bajo (solo vista) | — |
+
+### Fase 2 — Carga y reparto (flujo operativo core)
+| Prio | Gap | Spec | Esfuerzo | Depende de |
+|------|-----|------|----------|------------|
+| 5 | Agenda → carga → vehículo | 0023F | Alto | Fase 1 |
+| 6 | Stock libre en reparto | 0023G | Medio | 0023F |
+| 7 | Camión como almacén móvil | 0023E | Medio | 0023F, 0023G |
+| 8 | Confirmación de conductor | 0023I | Bajo | 0023F |
+| 9 | Escaneo al cargar | 0023H | Medio | 0023F, infra scan exists |
+
+### Fase 3 — Documentos de transporte
+| Prio | Gap | Spec | Esfuerzo | Depende de |
+|------|-----|------|----------|------------|
+| 10 | Carta porte versionada (editable en ruta) | 0023J | Alto | Fase 2 |
+| 11 | Carta porte interna/externa | 0023J-A/B | Medio | 0023J |
+| 12 | Firma digital en carta porte | 0023J-C | Medio | 0023J |
+| 13 | Albarán operativo (separado de waybill) | 0023K | Alto | 0023J |
+| 14 | Numeración por sede | 0023L | Bajo | — |
+
+### Fase 4 — ADR y regulatorio
+| Prio | Gap | Spec | Esfuerzo | Depende de |
+|------|-----|------|----------|------------|
+| 15 | Peso transportado visible en carga (UI) | 0023M | Bajo | — |
+| 16 | Umbral 1000 kg ADR | 0023N | Medio | 0023O |
+| 17 | Reporte anual ADR | 0023N | Medio | 0023N (umbral) |
+| 18 | Equivalencias de transporte | 0023O | Medio | productos |
+| 19 | UX ADR + selección vehículo | 0023P | Medio | — |
+
+### Fase 5 — Reportes y cierre
+| Prio | Gap | Spec | Esfuerzo | Depende de |
+|------|-----|------|----------|------------|
+| 20 | Estado de deuda/cobros mínimo | 0023Z | Medio | futura facturación |
+| 21 | Consistencia documental | 0023AH | Medio | Fase 3 |
+| 22 | Reportes gerenciales | 0023AI | Alto | Fase 3+ |
 
 ## Criterio de implementacion
 

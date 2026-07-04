@@ -6,6 +6,8 @@ Documentar el estado real del plugin `stock`, qué partes de SPEC 0016 ya quedar
 
 Este documento debe leerse antes de extender `plugins/stock/`.
 
+> **Estado: Cerrado** — El plugin está completo para su integración con otros módulos via eventos, auditoría, y endpoints documentados. No se requiere desarrollo adicional en stock salvo la integración operativa con ventas/logistics cuando esos módulos existan.
+
 ---
 
 ## 1. Estado actual
@@ -15,7 +17,7 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 | Propiedad | Valor |
 |---|---|
 | Plugin ID | `stock` |
-| Estado | Implementación funcional + cierre 16.1 parcial |
+| Estado | **Cerrado** — listo para integración con otros plugins |
 | ADR principal | `docs/adr/0016-stock-plugin.md` |
 | Spec principal | `docs/specs/core/0016-stock-plugin/index.md` |
 | Dependencias | `logistics`, `productos` |
@@ -27,14 +29,19 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 - FKs reales a `prod_products` y `lg_warehouses`;
 - migración inicial `001_initial_stock.py`;
 - endpoints de balance, ledger, ajuste, transferencia y configuración;
+- **endpoint de ledger global (`GET /ledger`)** para consultar movimientos entre productos;
 - auditoría y eventos para ajustes y transferencias;
 - idempotencia por `reference_id` / `idempotency_key`;
 - frontend inicial con página de balances y modales;
+- **página de lista de configuraciones (`StockConfigPage`)** en `/stock/configs`;
 - prueba de integración backend del flujo principal;
+- **22 tests de integración** cubriendo flujos principales, validación de errores, idempotencia, scope y búsqueda;
 - soporte real de claims contextuales `warehouse_id` en core;
 - `lg_warehouses.branch_id` y derivación de branch operativo desde almacén;
 - enforcement de scope por almacén en endpoints de `stock`;
 - compilación frontend validada.
+- `permissions/` y `events/` tienen `__init__.py` (consistente con `productos`).
+- **5 tests de concurrencia sobre PostgreSQL real** validando `SELECT FOR UPDATE` con 10/20 threads concurrentes, lost update detection, mixed-sign adjustments y transfers.
 
 ---
 
@@ -105,7 +112,6 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 
 ### Implementado parcialmente
 
-- concurrencia: la lógica de locking está implementada en servicio, pero la validación automatizada actual ocurre sobre SQLite de tests, no sobre PostgreSQL real;
 - fallback routes frontend: existen para detalle, ajuste, transferencia y config, pero la UX principal sigue siendo modal desde la página de balances.
 
 ---
@@ -136,6 +142,7 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 - `plugins/stock/frontend/api.ts`
 - `plugins/stock/frontend/types.ts`
 - `plugins/stock/frontend/pages/StockBalancePage.tsx`
+- `plugins/stock/frontend/pages/StockConfigPage.tsx`
 - `plugins/stock/frontend/components/ModalAjusteStock.tsx`
 - `plugins/stock/frontend/components/ModalTransferenciaStock.tsx`
 - `plugins/stock/frontend/components/ModalConfigStock.tsx`
@@ -147,7 +154,8 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 
 - `apps/api/tests/test_core_management_apis.py`
 - `apps/api/tests/test_logistics_plugin.py`
-- `apps/api/tests/test_stock_plugin.py`
+- `apps/api/tests/test_stock_plugin.py` (23 tests SQLite)
+- `apps/api/tests/test_stock_concurrency_postgres.py` (5 tests PostgreSQL, con `SYSTUTOR_PG_TEST=1`)
 
 ---
 
@@ -171,12 +179,12 @@ Estado al cierre de esta iteración:
 
 ### Riesgos abiertos
 
-- el test de concurrencia real sobre PostgreSQL sigue pendiente;
 - el modelo de claims contextuales existe, pero hoy solo se usa para `warehouse_id`; si aparecen más claims, habrá que decidir si el API de administración se generaliza o sigue por caso de uso.
 
 ### Siguiente trabajo recomendado
 
-1. agregar pruebas adicionales de concurrencia real sobre PostgreSQL;
-2. decidir si la administración de `warehouse_id` claims se expondrá mejor en UI del core;
-3. ampliar frontend con filtros más ricos, edición visual de config y mejor navegación de ledger;
-4. cuando existan integraciones operativas con ventas/logistics, emitir o consumir eventos de stock desde esos módulos sin dual-write.
+1. ~~agregar pruebas adicionales de concurrencia real sobre PostgreSQL~~ → `test_stock_concurrency_postgres.py` (5 tests, ejecutar con `SYSTUTOR_PG_TEST=1`);
+2. ~~agregar endpoint de ledger global~~ → `GET /ledger` implementado;
+3. ~~agregar vista frontend de lista de configuraciones~~ → `StockConfigPage` en `/stock/configs`;
+4. cuando existan integraciones operativas con ventas/logistics, emitir o consumir eventos de stock desde esos módulos sin dual-write;
+5. widget de dashboard "Low stock alerts" para el shell principal.

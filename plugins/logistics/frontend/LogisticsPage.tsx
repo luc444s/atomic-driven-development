@@ -801,6 +801,7 @@ export function LogisticsPage() {
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>PH: {formatDate(row.next_hydrotest_date)}</p>
                 <p>ADR: {row.adr_un_number || "-"}</p>
+                {row.is_medical ? <p className="font-medium text-amber-500">MEDICINAL</p> : null}
               </div>
             ),
           },
@@ -892,11 +893,16 @@ export function LogisticsPage() {
                 <div><span className="text-muted-foreground">ADR UN:</span> {selectedCylinder.adr_un_number || "-"}</div>
                 <div><span className="text-muted-foreground">ADR etiqueta:</span> {selectedCylinder.adr_label || "-"}</div>
                 <div><span className="text-muted-foreground">ADR mercancía:</span> {selectedCylinder.adr_merchandise || "-"}</div>
+                <div>{selectedCylinder.is_medical ? <span className="font-medium text-amber-500">&#9679; Medicinal</span> : null}</div>
               </CardContent>
             </Card>
 
             {!selectedCylinder.barcode2 ? (
               <Alert title="Falta matrícula de etiqueta">Este envase aún no tiene `barcode2` para etiqueta y escaneo.</Alert>
+            ) : null}
+
+            {selectedCylinder.is_medical ? (
+              <Alert title="Uso medicinal">Este envase está marcado para uso medicinal. La trazabilidad debe ser completa y auditable.</Alert>
             ) : null}
 
             <Card>
@@ -957,6 +963,10 @@ export function LogisticsPage() {
               <Alert title="PH pendiente">Este envase no tiene una PH vigente registrada.</Alert>
             ) : null}
 
+            {selectedCylinder.is_medical ? (
+              <Alert title="Uso medicinal">Este envase está marcado para uso medicinal. La trazabilidad debe ser completa y auditable.</Alert>
+            ) : null}
+
             <div className="flex flex-wrap gap-2">
               <CylinderStateBadge state={selectedCylinder.current_state} />
               {canUpdate ? <Button variant="secondary" onClick={openEditDialog}>Editar ficha</Button> : null}
@@ -990,6 +1000,7 @@ export function LogisticsPage() {
                 <InfoBlock label="ADR UN" value={selectedCylinder.adr_un_number} />
                 <InfoBlock label="ADR etiqueta" value={selectedCylinder.adr_label} />
                 <InfoBlock label="ADR mercancía" value={selectedCylinder.adr_merchandise} />
+                {selectedCylinder.is_medical ? <InfoBlock label="Uso medicinal" value={selectedCylinder.medical_notes || "Sí"} /> : null}
               </CardContent>
             </Card>
 

@@ -82,6 +82,17 @@ export function CylinderFormFields({
           Producto de servicio
         </label>
       </Field>
+      <Field className="col-span-full md:col-span-6 xl:col-span-5" label="Uso medicinal">
+        <label className="flex items-center gap-2 text-sm text-foreground">
+          <Checkbox checked={form.is_medical} onChange={(event) => updateField("is_medical", event.target.checked)} />
+          Envase para uso medicinal
+        </label>
+      </Field>
+      {form.is_medical ? (
+        <Field className="col-span-full" label="Notas medicinales">
+          <Input value={form.medical_notes} onChange={(event) => updateField("medical_notes", event.target.value)} placeholder="Ej: Oxígeno medicinal USP, lote..." />
+        </Field>
+      ) : null}
       </div>
       </FormRow>
 

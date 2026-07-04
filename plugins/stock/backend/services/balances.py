@@ -281,3 +281,57 @@ def list_configs(
         )
         for config, product, warehouse in rows
     ]
+
+
+def list_global_ledger(
+    db: Session,
+    *,
+    tenant_id: str,
+    product_id: str | None,
+    warehouse_id: str | None,
+    operation: str | None,
+    allowed_warehouse_ids: tuple[str, ...] | None,
+    limit: int,
+    offset: int,
+) -> list[StockLedgerRead]:
+    stmt = (
+        select(StockLedger, Product, LogisticsWarehouse)
+        .join(Product, Product.id == StockLedger.product_id)
+        .join(LogisticsWarehouse, LogisticsWarehouse.id == StockLedger.warehouse_id)
+        .where(StockLedger.tenant_id == tenant_id)
+    )
+    if product_id is not None:
+        stmt = stmt.where(StockLedger.product_id == product_id)
+    if warehouse_id is not None:
+        require_warehouse(db, tenant_id=tenant_id, warehouse_id=warehouse_id)
+        stmt = stmt.where(StockLedger.warehouse_id == warehouse_id)
+    if allowed_warehouse_ids is not None:
+        stmt = stmt.where(StockLedger.warehouse_id.in_(allowed_warehouse_ids))
+    if operation is not None:
+        stmt = stmt.where(StockLedger.operation == operation)
+    rows = db.execute(
+        stmt.order_by(StockLedger.created_at.desc(), StockLedger.id.desc())
+        .offset(offset)
+        .limit(limit)
+    ).all()
+    return [
+        StockLedgerRead(
+            id=ledger.id,
+            tenant_id=ledger.tenant_id,
+            product_id=ledger.product_id,
+            product_sku=product.sku,
+            product_name=product.name,
+            warehouse_id=ledger.warehouse_id,
+            warehouse_code=warehouse.code,
+            warehouse_name=warehouse.name,
+            operation=ledger.operation,
+            quantity=_as_float(ledger.quantity) or 0.0,
+            balance_after=_as_float(ledger.balance_after) or 0.0,
+            reference_type=ledger.reference_type,
+            reference_id=ledger.reference_id,
+            notes=ledger.notes,
+            created_by=ledger.created_by,
+            created_at=ledger.created_at,
+        )
+        for ledger, product, warehouse in rows
+    ]

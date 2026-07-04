@@ -8,6 +8,7 @@ import { ModalConfigStock } from "./components/ModalConfigStock";
 import { ModalDetalleStock } from "./components/ModalDetalleStock";
 import { ModalTransferenciaStock } from "./components/ModalTransferenciaStock";
 import { StockBalancePage } from "./pages/StockBalancePage";
+import { StockConfigPage } from "./pages/StockConfigPage";
 
 function AjusteFallback() {
   return createElement(ModalAjusteStock, {
@@ -71,6 +72,12 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         title: "Configurar stock",
         component: ConfigFallback,
         requiredPermissions: ["stock.config.manage"],
+      },
+      {
+        path: "stock/configs",
+        title: "Configuraciones de stock",
+        component: StockConfigPage,
+        requiredPermissions: ["stock.config.read"],
       },
       {
         path: "stock/:productId/:warehouseId",

@@ -225,6 +225,8 @@ def build_label_data(db: Session, *, cylinder: LogisticsCylinder) -> dict[str, o
         "next_hydrotest_date": cylinder.next_hydrotest_date,
         "adr_label": cylinder.adr_label,
         "adr_un_number": cylinder.adr_un_number,
+        "is_medical": cylinder.is_medical,
+        "medical_notes": cylinder.medical_notes,
         "label_origin": latest_label.origin if latest_label else None,
     }
 

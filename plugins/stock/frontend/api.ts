@@ -24,6 +24,8 @@ export const stockKeys = {
     byProduct: (productId: string) => ["stock", "balances", productId] as const,
   },
   ledger: {
+    all: (params: Record<string, unknown>) =>
+      ["stock", "ledger", params] as const,
     byProduct: (productId: string, params: Record<string, unknown>) =>
       ["stock", "ledger", productId, params] as const,
     byWarehouse: (productId: string, warehouseId: string, params: Record<string, unknown>) =>
@@ -68,6 +70,12 @@ export async function listProductWarehouseLedger(
   params: Record<string, unknown>,
 ): Promise<StockLedgerItem[]> {
   return apiRequest(`${STOCK_BASE}/ledger/${productId}/${warehouseId}${buildQuery(params)}`);
+}
+
+export async function listGlobalLedger(
+  params: Record<string, unknown>,
+): Promise<StockLedgerItem[]> {
+  return apiRequest(`${STOCK_BASE}/ledger${buildQuery(params)}`);
 }
 
 export async function adjustStock(payload: StockAdjustPayload): Promise<StockBalanceItem> {

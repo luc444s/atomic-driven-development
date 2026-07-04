@@ -158,16 +158,21 @@ def create_product(client: TestClient, headers: dict[str, str]) -> dict[str, str
     return response.json()
 
 
-def test_stock_plugin_inventory_flow(app) -> None:
+def _setup_stock_env(app):
+    """Set up demo seed + all required plugins for stock tests."""
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
         )
-
     enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
     enable_productos_plugin(app, seeded_demo)
     enable_stock_plugin(app, seeded_demo)
+    return seeded_demo
+
+
+def test_stock_plugin_inventory_flow(app) -> None:
+    seeded_demo = _setup_stock_env(app)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
@@ -378,3 +383,662 @@ def test_stock_plugin_inventory_flow(app) -> None:
     assert audit_actions.count("balance.adjust") == 2
     assert audit_actions.count("transfer.create") == 1
     assert audit_actions.count("balance.read") >= 1
+
+
+# ── edge case & validation tests ────────────────────────────────────────
+
+
+def test_adjust_zero_quantity_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH1", name="Almacen 1")
+        product = create_product(client, headers)
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 0,
+                "reason": "cero",
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "diferente de cero" in response.text
+
+
+def test_adjust_insufficient_stock_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH2", name="Almacen 2")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 3,
+            },
+        )
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": -9,
+                "reason": "reducir de más",
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "insuficiente" in response.text.lower()
+
+
+def test_adjust_nonexistent_product_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH3", name="Almacen 3")
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": "nonexistent-product-id",
+                "warehouse_id": warehouse["id"],
+                "quantity": 5,
+            },
+        )
+        assert response.status_code == 404, response.text
+
+
+def test_multiple_sequential_adjustments(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH4", name="Almacen 4")
+        product = create_product(client, headers)
+
+        for q in (10, 5, -3):
+            response = client.post(
+                "/api/v1/plugins/stock/adjust",
+                headers=headers,
+                json={
+                    "product_id": product["id"],
+                    "warehouse_id": warehouse["id"],
+                    "quantity": q,
+                },
+            )
+            assert response.status_code == 201, response.text
+
+        detail = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert detail.status_code == 200, detail.text
+        assert detail.json()["quantity"] == 12.0
+
+
+def test_adjust_without_idempotency_creates_unique_references(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH5", name="Almacen 5")
+        product = create_product(client, headers)
+
+        for _ in range(3):
+            r = client.post(
+                "/api/v1/plugins/stock/adjust",
+                headers=headers,
+                json={
+                    "product_id": product["id"],
+                    "warehouse_id": warehouse["id"],
+                    "quantity": 1,
+                },
+            )
+            assert r.status_code == 201, r.text
+
+        ledger = client.get(
+            f"/api/v1/plugins/stock/ledger/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        refs = [item["reference_id"] for item in ledger.json()]
+        assert len(refs) == 3
+        assert len(set(refs)) == 3
+
+
+def test_transfer_same_warehouse_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH6", name="Almacen 6")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 10,
+            },
+        )
+        response = client.post(
+            "/api/v1/plugins/stock/transfer",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "from_warehouse_id": warehouse["id"],
+                "to_warehouse_id": warehouse["id"],
+                "quantity": 2,
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "diferentes" in response.text.lower()
+
+
+def test_transfer_insufficient_stock_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh_a = create_warehouse(client, headers, code="WH7A", name="Almacen 7A")
+        wh_b = create_warehouse(client, headers, code="WH7B", name="Almacen 7B")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh_a["id"],
+                "quantity": 5,
+            },
+        )
+        response = client.post(
+            "/api/v1/plugins/stock/transfer",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "from_warehouse_id": wh_a["id"],
+                "to_warehouse_id": wh_b["id"],
+                "quantity": 20,
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "insuficiente" in response.text.lower()
+
+
+def test_transfer_zero_quantity_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh_a = create_warehouse(client, headers, code="WH8A", name="Almacen 8A")
+        wh_b = create_warehouse(client, headers, code="WH8B", name="Almacen 8B")
+        product = create_product(client, headers)
+        response = client.post(
+            "/api/v1/plugins/stock/transfer",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "from_warehouse_id": wh_a["id"],
+                "to_warehouse_id": wh_b["id"],
+                "quantity": 0,
+            },
+        )
+        assert response.status_code == 422, response.text
+
+
+def test_transfer_nonexistent_product_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh_a = create_warehouse(client, headers, code="WH9A", name="Almacen 9A")
+        wh_b = create_warehouse(client, headers, code="WH9B", name="Almacen 9B")
+        response = client.post(
+            "/api/v1/plugins/stock/transfer",
+            headers=headers,
+            json={
+                "product_id": "nonexistent",
+                "from_warehouse_id": wh_a["id"],
+                "to_warehouse_id": wh_b["id"],
+                "quantity": 1,
+            },
+        )
+        assert response.status_code == 404, response.text
+
+
+def test_config_negative_min_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH10", name="Almacen 10")
+        product = create_product(client, headers)
+        response = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": -1,
+                "max_quantity": 10,
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "negativa" in response.text.lower()
+
+
+def test_config_max_less_than_min_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH11", name="Almacen 11")
+        product = create_product(client, headers)
+        response = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 20,
+                "max_quantity": 5,
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert "máxima no puede ser menor" in response.text.lower()
+
+
+def test_config_update_existing(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH12", name="Almacen 12")
+        product = create_product(client, headers)
+
+        first = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 5,
+                "max_quantity": 20,
+            },
+        )
+        assert first.status_code == 200, first.text
+        assert first.json()["min_quantity"] == 5.0
+
+        second = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 10,
+                "max_quantity": 30,
+                "is_active": False,
+            },
+        )
+        assert second.status_code == 200, second.text
+        assert second.json()["min_quantity"] == 10.0
+        assert second.json()["max_quantity"] == 30.0
+        assert second.json()["is_active"] is False
+
+
+def test_config_max_none(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH13", name="Almacen 13")
+        product = create_product(client, headers)
+        response = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 5,
+                "max_quantity": None,
+            },
+        )
+        assert response.status_code == 200, response.text
+        assert response.json()["max_quantity"] is None
+
+
+def test_virtual_zero_balance(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH14", name="Almacen 14")
+        product = create_product(client, headers)
+        response = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        data = response.json()
+        assert data["quantity"] == 0.0
+        assert data["is_below_min"] is False
+
+
+def test_balance_page_search(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH15", name="Almacen 15")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 7,
+            },
+        )
+        client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 10,
+                "max_quantity": 30,
+            },
+        )
+
+        matches = client.get(
+            "/api/v1/plugins/stock/balance",
+            headers=headers,
+            params={"q": product["sku"]},
+        )
+        assert matches.status_code == 200, matches.text
+        assert len(matches.json()["items"]) >= 1
+
+        below = client.get(
+            "/api/v1/plugins/stock/balance",
+            headers=headers,
+            params={"below_min_only": "true"},
+        )
+        assert below.status_code == 200, below.text
+        assert any(item["is_below_min"] for item in below.json()["items"])
+
+        by_product = client.get(
+            "/api/v1/plugins/stock/balance",
+            headers=headers,
+            params={"product_id": product["id"]},
+        )
+        assert by_product.status_code == 200, by_product.text
+        assert len(by_product.json()["items"]) == 1
+
+        by_warehouse = client.get(
+            "/api/v1/plugins/stock/balance",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert by_warehouse.status_code == 200, by_warehouse.text
+        assert len(by_warehouse.json()["items"]) == 1
+
+
+def test_config_list(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH16", name="Almacen 16")
+        product = create_product(client, headers)
+        client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "min_quantity": 8,
+                "max_quantity": 20,
+            },
+        )
+        all_configs = client.get("/api/v1/plugins/stock/config", headers=headers)
+        assert all_configs.status_code == 200, all_configs.text
+        assert len(all_configs.json()) >= 1
+
+        by_product = client.get(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            params={"product_id": product["id"]},
+        )
+        assert by_product.status_code == 200, by_product.text
+        assert len(by_product.json()) == 1
+        assert by_product.json()[0]["min_quantity"] == 8.0
+
+
+def test_negative_adjustment_works(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH17", name="Almacen 17")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 10,
+            },
+        )
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": -4,
+                "reason": "devolución a proveedor",
+            },
+        )
+        assert response.status_code == 201, response.text
+        assert response.json()["quantity"] == 6.0
+
+
+def test_product_balances_endpoint(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh_a = create_warehouse(client, headers, code="WH18A", name="Almacen 18A")
+        wh_b = create_warehouse(client, headers, code="WH18B", name="Almacen 18B")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh_a["id"],
+                "quantity": 3,
+            },
+        )
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh_b["id"],
+                "quantity": 7,
+            },
+        )
+        response = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}",
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        balances = response.json()
+        assert len(balances) == 2
+        quantities = {b["warehouse_id"]: b["quantity"] for b in balances}
+        assert quantities[wh_a["id"]] == 3.0
+        assert quantities[wh_b["id"]] == 7.0
+
+
+def test_ledger_filtered_by_operation(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH19", name="Almacen 19")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 5,
+            },
+        )
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": -1,
+            },
+        )
+        response = client.get(
+            f"/api/v1/plugins/stock/ledger/{product['id']}",
+            headers=headers,
+            params={"operation": "adjust"},
+        )
+        assert response.status_code == 200, response.text
+        items = response.json()
+        assert len(items) == 2
+        assert all(item["operation"] == "adjust" for item in items)
+
+
+def test_catalog_warehouses_all(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        create_warehouse(client, headers, code="WH20A", name="Almacen 20A")
+        create_warehouse(client, headers, code="WH20B", name="Almacen 20B")
+        response = client.get(
+            "/api/v1/plugins/stock/catalog/warehouses",
+            headers=headers,
+        )
+        assert response.status_code == 200, response.text
+        codes = [item["code"] for item in response.json()]
+        assert "WH20A" in codes
+        assert "WH20B" in codes
+
+
+def test_config_put_requires_warehouse_access(app) -> None:
+    seeded_demo = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh_a = create_warehouse(client, headers, code="WH21A", name="Almacen 21A")
+        wh_b = create_warehouse(client, headers, code="WH21B", name="Almacen 21B")
+        product = create_product(client, headers)
+
+        role_resp = client.post(
+            "/api/v1/core/roles",
+            headers=headers,
+            json={"name": "config-mgr", "permission_names": ["stock.config.manage"]},
+        )
+        role_id = role_resp.json()["id"]
+        user_resp = client.post(
+            "/api/v1/core/users",
+            headers=headers,
+            json={
+                "name": "Config Mgr",
+                "email": "config-mgr@example.com",
+                "password": "ConfigMgr123!",
+                "branch_id": seeded_demo["branch_id"],
+                "role_ids": [role_id],
+                "warehouse_ids": [wh_a["id"]],
+            },
+        )
+        assert user_resp.status_code == 201, user_resp.text
+
+        limited = auth_headers(client, email="config-mgr@example.com", password="ConfigMgr123!")
+
+        allowed = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=limited,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh_a["id"],
+                "min_quantity": 1,
+                "max_quantity": 10,
+            },
+        )
+        assert allowed.status_code == 200, allowed.text
+
+        denied = client.put(
+            "/api/v1/plugins/stock/config",
+            headers=limited,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh_b["id"],
+                "min_quantity": 1,
+                "max_quantity": 10,
+            },
+        )
+        assert denied.status_code == 403, denied.text
+
+
+def test_global_ledger(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH22", name="Almacen 22")
+        product = create_product(client, headers)
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 5,
+                "reason": "inicial",
+            },
+        )
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": -1,
+                "reason": "correccion",
+            },
+        )
+
+        all_entries = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"limit": 10},
+        )
+        assert all_entries.status_code == 200, all_entries.text
+        data = all_entries.json()
+        assert len(data) == 2
+        assert data[0]["created_at"] >= data[1]["created_at"]
+
+        filtered = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"product_id": product["id"]},
+        )
+        assert filtered.status_code == 200, filtered.text
+        assert len(filtered.json()) == 2
+
+        by_op = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"operation": "adjust"},
+        )
+        assert by_op.status_code == 200, by_op.text
+        assert all(item["operation"] == "adjust" for item in by_op.json())
+
+        by_wh = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert by_wh.status_code == 200, by_wh.text
+        assert len(by_wh.json()) == 2

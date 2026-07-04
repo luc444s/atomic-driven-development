@@ -113,6 +113,8 @@ class LogisticsCylinder(Base):
     adr_unit_measure: Mapped[str | None] = mapped_column(String(20), nullable=True)
     location: Mapped[str | None] = mapped_column(String(100), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    is_medical: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    medical_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

@@ -40,6 +40,8 @@ export type LogisticsCylinder = {
   adr_unit_measure: string | null;
   location: string | null;
   is_active: boolean;
+  is_medical: boolean;
+  medical_notes: string | null;
   created_at: string;
   updated_at: string;
 };

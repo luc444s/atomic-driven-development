@@ -35,6 +35,8 @@ export type CylinderFormState = {
   adr_unit_measure: string;
   location: string;
   is_active: boolean;
+  is_medical: boolean;
+  medical_notes: string;
 };
 
 export type HydrotestFormState = {
@@ -146,6 +148,8 @@ export const EMPTY_CYLINDER_FORM: CylinderFormState = {
   adr_unit_measure: "",
   location: "",
   is_active: true,
+  is_medical: false,
+  medical_notes: "",
 };
 
 export const EMPTY_HYDROTEST_FORM: HydrotestFormState = {

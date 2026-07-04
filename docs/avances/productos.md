@@ -15,14 +15,14 @@ Este documento debe leerse antes de implementar o refactorizar cualquier parte d
 | Propiedad | Valor |
 |---|---|
 | Plugin ID | `productos` |
-| Estado | **Implementado** |
+| Estado | **Cerrado** — listo para integración con otros plugins |
 | ADR principal | `docs/adr/0015-productos-plugin.md` |
 | Spec principal | `docs/specs/core/0015-productos-plugin/index.md` |
 | Implementación real | Backend + Frontend completos |
 
 ### Situación del dominio
 
-- **EL PLUGIN ESTÁ IMPLEMENTADO** — backend + frontend completos;
+- **EL PLUGIN ESTÁ CERRADO** — backend + frontend completos, listo para integración con otros plugins;
 - `logistics` sigue operando con `lg_gas_products` y `lg_brands` (catálogos transitorios);
 - el legacy `Producto` mezclaba identidad, precios, costos, ADR, impuestos, imágenes y stock en una sola tabla;
 - ADR 0015 y SPEC 0015 ya cerraron la separación del dominio y su ownership.
@@ -138,7 +138,7 @@ Cuando otro módulo necesite resolver el precio efectivo de venta:
 ### 2.8 Stock no entra en esta iteración
 
 - stock actual, stock mínimo y stock por almacén no se implementan en `productos`;
-- ese ownership queda para el futuro módulo `stock`.
+- ese ownership pertenece al módulo `stock` (ya implementado).
 
 ### 2.9 Moneda explícita
 
@@ -245,10 +245,10 @@ Fase 3:
 - `productos` no debe duplicar esa lógica;
 - cualquier cálculo de precio efectivo debe respetar la precedencia ya definida.
 
-### Con futuro `stock`
+### Con `stock`
 
 - `productos` define el catálogo;
-- `stock` define existencias, mínimos, máximos, ledger y disponibilidad.
+- `stock` define existencias, mínimos, máximos, ledger y disponibilidad (ya implementado).
 
 ---
 
@@ -422,6 +422,6 @@ Si un agente necesita una regla rápida:
 - catálogo maestro de productos: `productos`
 - pricing base y promociones: `productos`
 - tarifa por cliente: `crm`
-- stock: futuro `stock`
+- stock: módulo `stock` (ya implementado)
 - retimbrado y ciclo de vida del cilindro: `logistics`
 - `lg_gas_products` y `lg_brands`: compatibilidad transitoria, no destino final

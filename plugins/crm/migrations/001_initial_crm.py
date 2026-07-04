@@ -70,9 +70,15 @@ def upgrade(db) -> None:
             text(
                 """
                 INSERT INTO crm_payment_terms
-                    (code, name, description, days, operation_type, is_active, created_at)
+                    (
+                        code, name, description, days, operation_type,
+                        payment_mode, is_active, created_at
+                    )
                 VALUES
-                    (:code, :name, :description, :days, :operation_type, true, CURRENT_TIMESTAMP)
+                    (
+                        :code, :name, :description, :days, :operation_type,
+                        :payment_mode, true, CURRENT_TIMESTAMP
+                    )
                 ON CONFLICT (code) DO NOTHING
                 """
             ),

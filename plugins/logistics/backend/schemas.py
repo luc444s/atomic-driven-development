@@ -68,6 +68,8 @@ class CylinderRead(BaseModel):
     adr_unit_measure: str | None
     location: str | None
     is_active: bool
+    is_medical: bool
+    medical_notes: str | None
     created_at: datetime
     updated_at: datetime
 
@@ -93,6 +95,8 @@ class CylinderCreateRequest(BaseModel):
     country_code: str | None = Field(default=None, max_length=100)
     box_number: str | None = Field(default=None, max_length=50)
     is_service: bool = False
+    is_medical: bool = False
+    medical_notes: str | None = Field(default=None, max_length=500)
     manufacturer_date: date | None = None
     manufacturer_code: str | None = Field(default=None, max_length=50)
     manufacture_year: int | None = None
@@ -157,6 +161,8 @@ class CylinderUpdateRequest(BaseModel):
     country_code: str | None = Field(default=None, max_length=100)
     box_number: str | None = Field(default=None, max_length=50)
     is_service: bool | None = None
+    is_medical: bool | None = None
+    medical_notes: str | None = Field(default=None, max_length=500)
     manufacturer_date: date | None = None
     manufacturer_code: str | None = Field(default=None, max_length=50)
     manufacture_year: int | None = None

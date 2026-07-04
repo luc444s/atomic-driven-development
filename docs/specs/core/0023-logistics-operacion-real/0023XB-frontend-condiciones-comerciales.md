@@ -2,7 +2,7 @@
 
 ## Estado
 
-Implementada
+Cerrada — 2026-07-04
 
 > Nota de cierre: El selector de productos quedó implementado completamente vía `GET /products/flat` de `productos` + Combobox, superando el alcance original que lo dejaba como placeholder.
 

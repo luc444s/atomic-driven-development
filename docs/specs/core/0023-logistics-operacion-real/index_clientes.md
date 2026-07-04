@@ -2,7 +2,7 @@
 
 ## Estado
 
-Implementada
+**CERRADA** — 2026-07-04
 
 ## Propósito
 

@@ -38,6 +38,15 @@ interface DetailMenuDialogProps {
   formatDate: (date: string | null | undefined) => string;
 }
 
+function isActiveContractForCylinder(contract: LogisticsCylinderContract, cylinderId: string) {
+  if (contract.status === "CANCELLED" || contract.status === "EXPIRED") {
+    return false;
+  }
+  return contract.items.some(
+    (item) => item.cylinder_id === cylinderId && item.returned_at === null
+  );
+}
+
 export function DetailMenuDialog({
   selectedCylinder,
   isDetailMenuOpen,
@@ -68,6 +77,13 @@ export function DetailMenuDialog({
   closeDetailContext,
   formatDate,
 }: DetailMenuDialogProps) {
+  const currentContract = selectedCylinder
+    ? contractList.find((contract) =>
+        isActiveContractForCylinder(contract, selectedCylinder.id)
+      ) ?? null
+    : null;
+  const hasContractHistory = contractList.length > 0;
+
   return (
     <Dialog
       open={isDetailMenuOpen && selectedCylinder !== null}
@@ -103,15 +119,14 @@ export function DetailMenuDialog({
               <div><span className="text-muted-foreground">ADR etiqueta:</span> {selectedCylinder.adr_label || "-"}</div>
               <div><span className="text-muted-foreground">ADR mercancía:</span> {selectedCylinder.adr_merchandise || "-"}</div>
               <div>{selectedCylinder.is_medical ? <span className="font-medium text-amber-500">&bull; Medicinal</span> : null}</div>
-              <div><span className="text-muted-foreground">Contratos:</span>{' '}
-                {contractList.length === 0 ? (
-                  <span className="text-muted-foreground">Sin contratos</span>
+              <div><span className="text-muted-foreground">Contrato actual:</span>{' '}
+                {currentContract === null ? (
+                  <span className="text-muted-foreground">Sin contrato activo</span>
                 ) : (
-                  contractList.map((c) => (
-                    <span key={c.id} className="mr-2">
-                      {c.contract_number || "Sin Nro"} <ContractStatusBadge status={c.status} />
-                    </span>
-                  ))
+                  <span>
+                    {currentContract.contract_number || "Sin Nro"}{" "}
+                    <ContractStatusBadge status={currentContract.status} />
+                  </span>
                 )}
               </div>
             </CardContent>
@@ -129,31 +144,35 @@ export function DetailMenuDialog({
             <Card>
               <CardHeader>
                 <CardTitle>Contrato asignado</CardTitle>
-                <CardDescription>Relación contractual activa o histórica del envase.</CardDescription>
+                <CardDescription>Relacion contractual actual del envase y su contexto historico.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {canContractView && contractList.length > 0 ? (
-                  contractList.map((contract) => (
-                    <div key={contract.id} className="rounded-lg border border-border bg-surface p-4 text-sm text-foreground">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium">{contract.contract_number || "Sin Nro"}</span>
-                        <ContractStatusBadge status={contract.status} />
-                      </div>
-                      <div className="mt-2 grid gap-2 md:grid-cols-2">
-                        <div><span className="text-muted-foreground">Tipo:</span> {contract.contract_type}</div>
-                        <div><span className="text-muted-foreground">Cliente:</span> {contract.customer_name || contract.customer_id}</div>
-                        <div><span className="text-muted-foreground">Inicio:</span> {formatDate(contract.start_date) || "-"}</div>
-                        <div><span className="text-muted-foreground">Fin:</span> {formatDate(contract.end_date) || "-"}</div>
-                      </div>
+                {canContractView && currentContract ? (
+                  <div className="rounded-lg border border-border bg-surface p-4 text-sm text-foreground">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-medium">{currentContract.contract_number || "Sin Nro"}</span>
+                      <ContractStatusBadge status={currentContract.status} />
                     </div>
-                  ))
+                    <div className="mt-2 grid gap-2 md:grid-cols-2">
+                      <div><span className="text-muted-foreground">Tipo:</span> {currentContract.contract_type}</div>
+                      <div><span className="text-muted-foreground">Cliente:</span> {currentContract.customer_name || currentContract.customer_id}</div>
+                      <div><span className="text-muted-foreground">Inicio:</span> {formatDate(currentContract.start_date) || "-"}</div>
+                      <div><span className="text-muted-foreground">Fin:</span> {formatDate(currentContract.end_date) || "-"}</div>
+                    </div>
+                  </div>
                 ) : (
                   <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-muted-foreground">
-                    Este envase no tiene contrato asignado.
+                    Este envase no tiene contrato activo asignado.
                   </div>
                 )}
 
-                {contractList.length === 0 && canContractCreate ? (
+                {canContractView && hasContractHistory ? (
+                  <p className="text-xs text-muted-foreground">
+                    Historial contractual detectado: {contractList.length} registro(s) relacionado(s) con este envase.
+                  </p>
+                ) : null}
+
+                {currentContract === null && canContractCreate ? (
                   <div className="flex justify-end">
                     <button
                       type="button"

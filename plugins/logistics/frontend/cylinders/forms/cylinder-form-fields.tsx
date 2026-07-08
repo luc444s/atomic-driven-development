@@ -5,9 +5,8 @@ import type { CylinderFormState } from "./cylinder-form-state";
 
 type CylinderFormFieldsProps = {
   form: CylinderFormState;
-  gasProducts: Array<{ id: string; name: string }>;
+  gasProducts: Array<{ id: string; name: string; content_kg?: number | null }>;
   brands: Array<{ id: string; name: string }>;
-  adrSublineOptions: Array<{ value: string; label: string }>;
   conditions: Array<{ code: string; name: string }>;
   includeActivation: boolean;
   onChange: (next: CylinderFormState) => void;
@@ -17,7 +16,6 @@ export function CylinderFormFields({
   form,
   gasProducts,
   brands,
-  adrSublineOptions,
   conditions,
   includeActivation,
   onChange,
@@ -25,10 +23,6 @@ export function CylinderFormFields({
   function updateField<Key extends keyof CylinderFormState>(key: Key, value: CylinderFormState[Key]) {
     onChange({ ...form, [key]: value });
   }
-
-  const sublineOptions = form.adr_subline && !adrSublineOptions.some((item) => item.value === form.adr_subline)
-    ? [{ value: form.adr_subline, label: `${form.adr_subline} (actual)` }, ...adrSublineOptions]
-    : adrSublineOptions;
 
   return (
     <div className="space-y-4">
@@ -48,7 +42,13 @@ export function CylinderFormFields({
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Gas">
           <Select
             value={form.gas_group_id}
-            onChange={(value) => updateField("gas_group_id", value)}
+            onChange={(value) => {
+              updateField("gas_group_id", value);
+              const product = gasProducts.find((p) => p.id === value);
+              if (product?.content_kg && !form.weight_origin) {
+                updateField("weight_origin", product.content_kg.toString());
+              }
+            }}
             placeholder="Sin asignar"
             options={gasProducts.map((item) => ({ value: item.id, label: item.name }))}
           />
@@ -108,33 +108,6 @@ export function CylinderFormFields({
       </div>
       </FormRow>
 
-      <FormRow title="ADR">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Categoría"><Input value={form.adr_category} onChange={(event) => updateField("adr_category", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="UN"><Input value={form.adr_un_number} onChange={(event) => updateField("adr_un_number", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Etiqueta"><Input value={form.adr_label} onChange={(event) => updateField("adr_label", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Tipo bulto"><Input value={form.adr_package_type} onChange={(event) => updateField("adr_package_type", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Peso kg"><Input type="number" value={form.adr_weight_kg} onChange={(event) => updateField("adr_weight_kg", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Túnel"><Input value={form.adr_tunnel} onChange={(event) => updateField("adr_tunnel", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Sublínea">
-          <Select
-            value={form.adr_subline}
-            onChange={(value) => updateField("adr_subline", value)}
-            placeholder="Sin asignar"
-            options={sublineOptions}
-          />
-        </Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Factor"><Input type="number" value={form.adr_factor} onChange={(event) => updateField("adr_factor", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Puntos"><Input type="number" value={form.adr_points} onChange={(event) => updateField("adr_points", event.target.value)} /></Field>
-        <Field className="col-span-full md:col-span-1 xl:col-span-1" label="Unidad"><Input value={form.adr_unit_measure} onChange={(event) => updateField("adr_unit_measure", event.target.value)} /></Field>
-      </div>
-      </FormRow>
-
-      <FormRow title="Mercancía ADR">
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-6 xl:col-span-12" label="Mercancía"><Input value={form.adr_merchandise} onChange={(event) => updateField("adr_merchandise", event.target.value)} /></Field>
-      </div>
-      </FormRow>
       {includeActivation ? (
         <Field label="Activo">
           <div className="flex items-center gap-2 text-sm text-foreground">

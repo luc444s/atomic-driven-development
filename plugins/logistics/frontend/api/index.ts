@@ -1,0 +1,25 @@
+// Auto-generado por split_api.py
+// Re-exporta todo para retrocompatibilidad.
+// ruff: noqa: F401
+
+export * from "./cylinders";
+export * from "./cylinder-list";
+export * from "./cylinder-weight";
+export * from "./traceability";
+export * from "./warehouses";
+export * from "./zones";
+export * from "./vehicles";
+export * from "./delivery-points";
+export * from "./orders";
+export * from "./routes";
+export * from "./loads";
+export * from "./movements";
+export * from "./agenda";
+export * from "./planning";
+export * from "./reception";
+export * from "./waybill";
+export * from "./reports";
+export * from "./equipment";
+export * from "./adr";
+export * from "./keys";
+export * from "./contracts";

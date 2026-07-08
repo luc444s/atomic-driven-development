@@ -6,11 +6,8 @@ from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
-    LogisticsBrand,
-    LogisticsCylinderCondition,
     LogisticsCylinderState,
     LogisticsDeliveryPoint,
-    LogisticsGasProduct,
     LogisticsMovementType,
     LogisticsServiceType,
     LogisticsStateTransition,
@@ -18,7 +15,6 @@ from plugins.logistics.backend.models import (
     LogisticsWarehouse,
     LogisticsZone,
 )
-from plugins.productos.backend.models import Product, ProductBrand
 
 STATE_DEFINITIONS: tuple[tuple[str, bool, str], ...] = (
     ("CREADO_VACIO", False, "Cilindro nuevo registrado"),
@@ -102,13 +98,6 @@ SERVICE_TYPE_DEFINITIONS: tuple[tuple[str, str], ...] = (
     ("INSPECCION", "Inspeccion"),
 )
 
-CONDITION_DEFINITIONS: tuple[tuple[str, str], ...] = (
-    ("CILPRO", "Cilindro propio"),
-    ("CILCLI", "Cilindro del cliente"),
-    ("CILPROV", "Cilindro del proveedor"),
-    ("CILGAR", "Cilindro en garantia"),
-)
-
 
 def list_cylinder_states(db: Session) -> list[LogisticsCylinderState]:
     return list(
@@ -184,32 +173,8 @@ def list_zones_catalog(db: Session, *, tenant_id: str) -> list[LogisticsZone]:
     )
 
 
-def list_gas_products_catalog(db: Session, *, tenant_id: str) -> list[LogisticsGasProduct]:
-    _ensure_tenant_envase_catalogs(db, tenant_id=tenant_id)
-    return list(
-        db.scalars(
-            select(LogisticsGasProduct)
-            .where(
-                LogisticsGasProduct.tenant_id == tenant_id, LogisticsGasProduct.is_active.is_(True)
-            )
-            .order_by(LogisticsGasProduct.name)
-        ).all()
-    )
-
-
-def list_brands_catalog(db: Session, *, tenant_id: str) -> list[LogisticsBrand]:
-    _ensure_tenant_envase_catalogs(db, tenant_id=tenant_id)
-    return list(
-        db.scalars(
-            select(LogisticsBrand)
-            .where(LogisticsBrand.tenant_id == tenant_id, LogisticsBrand.is_active.is_(True))
-            .order_by(LogisticsBrand.name)
-        ).all()
-    )
-
-
 def list_service_types_catalog(db: Session, *, tenant_id: str) -> list[LogisticsServiceType]:
-    _ensure_tenant_envase_catalogs(db, tenant_id=tenant_id)
+    _ensure_service_types_seeded(db, tenant_id=tenant_id)
     return list(
         db.scalars(
             select(LogisticsServiceType)
@@ -222,67 +187,11 @@ def list_service_types_catalog(db: Session, *, tenant_id: str) -> list[Logistics
     )
 
 
-def list_conditions_catalog(db: Session) -> list[LogisticsCylinderCondition]:
-    _ensure_condition_catalog(db)
-    return list(
-        db.scalars(
-            select(LogisticsCylinderCondition)
-            .where(LogisticsCylinderCondition.is_active.is_(True))
-            .order_by(LogisticsCylinderCondition.code)
-        ).all()
-    )
-
-
-def _ensure_tenant_envase_catalogs(db: Session, *, tenant_id: str) -> None:
-    has_gases = db.scalar(
-        select(LogisticsGasProduct.id).where(LogisticsGasProduct.tenant_id == tenant_id).limit(1)
-    )
-    if has_gases is None:
-        gas_products = db.scalars(
-            select(Product)
-            .where(
-                Product.tenant_id == tenant_id,
-                Product.condition_code == "GAS",
-                Product.is_active.is_(True),
-            )
-            .order_by(Product.name)
-        ).all()
-        for product in gas_products:
-            db.add(
-                LogisticsGasProduct(
-                    tenant_id=tenant_id,
-                    code=product.sku,
-                    name=product.name,
-                    content_kg=float(product.weight_kg) if product.weight_kg is not None else None,
-                    unit="KG",
-                )
-            )
-
-    has_brands = db.scalar(
-        select(LogisticsBrand.id).where(LogisticsBrand.tenant_id == tenant_id).limit(1)
-    )
-    if has_brands is None:
-        brands = db.scalars(
-            select(ProductBrand)
-            .where(ProductBrand.tenant_id == tenant_id, ProductBrand.is_active.is_(True))
-            .order_by(ProductBrand.name)
-        ).all()
-        for brand in brands:
-            db.add(LogisticsBrand(tenant_id=tenant_id, code=brand.code, name=brand.name))
-
+def _ensure_service_types_seeded(db: Session, *, tenant_id: str) -> None:
     has_service_types = db.scalar(
         select(LogisticsServiceType.id).where(LogisticsServiceType.tenant_id == tenant_id).limit(1)
     )
     if has_service_types is None:
         for code, name in SERVICE_TYPE_DEFINITIONS:
             db.add(LogisticsServiceType(tenant_id=tenant_id, code=code, name=name))
-
-    db.flush()
-
-
-def _ensure_condition_catalog(db: Session) -> None:
-    has_conditions = db.scalar(select(LogisticsCylinderCondition.code).limit(1))
-    if has_conditions is None:
-        for code, name in CONDITION_DEFINITIONS:
-            db.add(LogisticsCylinderCondition(code=code, name=name))
         db.flush()

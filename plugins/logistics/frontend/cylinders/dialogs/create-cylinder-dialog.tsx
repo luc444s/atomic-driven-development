@@ -1,6 +1,7 @@
 import type { FormEvent } from "react";
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
+import { Combobox, type ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
@@ -19,6 +20,7 @@ type CreateCylinderDialogProps = {
   onCreateMetaChange: (meta: CylinderCreateMetaState) => void;
   gasOptions: Array<{ id: string; name: string }>;
   brandOptions: Array<{ id: string; name: string }>;
+  warehouseOptions: ComboboxOption[];
   sublineOptions: Array<{ value: string; label: string }>;
   conditions: Array<{ code: string; name: string }>;
   isPending: boolean;
@@ -36,6 +38,7 @@ export function CreateCylinderDialog({
   onCreateMetaChange,
   gasOptions,
   brandOptions,
+  warehouseOptions,
   sublineOptions,
   conditions,
   isPending,
@@ -54,9 +57,9 @@ export function CreateCylinderDialog({
         <Card>
           <CardHeader>
             <CardTitle>Origen operativo</CardTitle>
-            <CardDescription>Define la rama de alta y la referencia documental obligatoria.</CardDescription>
+            <CardDescription>Define como entra el envase al almacen y desde que origen operativo.</CardDescription>
           </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Rama de alta">
               <Select
                 value={createMeta.entry_mode}
@@ -74,28 +77,19 @@ export function CreateCylinderDialog({
                 ]}
               />
             </Field>
-            <Field label="Tipo de documento">
-              <Input
-                value={createMeta.document_type}
-                onChange={(event) =>
+            <Field label="Almacen de alta">
+              <Combobox
+                value={createMeta.warehouse_id}
+                onChange={(value) =>
                   onCreateMetaChange({
                     ...createMeta,
-                    document_type: event.target.value.toUpperCase(),
+                    warehouse_id: value,
                   })
                 }
-                placeholder="FACTURA, GUIA, OC"
-              />
-            </Field>
-            <Field label="Numero de documento">
-              <Input
-                value={createMeta.document_number}
-                onChange={(event) =>
-                  onCreateMetaChange({
-                    ...createMeta,
-                    document_number: event.target.value.toUpperCase(),
-                  })
-                }
-                placeholder="F001-000123"
+                options={warehouseOptions}
+                placeholder="Seleccionar almacen"
+                searchPlaceholder="Buscar almacen..."
+                emptyMessage="Sin almacenes disponibles."
               />
             </Field>
             {createMeta.entry_mode === "EMPTY_FROM_CUSTOMER" ? (
@@ -106,20 +100,13 @@ export function CreateCylinderDialog({
                     : "Seleccionar cliente"}
                 </Button>
               </Field>
-            ) : (
-              <Field label="Contexto stock">
-                <p className="rounded-md border border-border bg-surface px-3 py-2 text-sm text-muted-foreground">
-                  Esta rama dejara contrapartida minima en stock usando el almacen activo del usuario.
-                </p>
-              </Field>
-            )}
+            ) : null}
           </CardContent>
         </Card>
         <CylinderFormFields
           form={cylinderForm}
           gasProducts={gasOptions}
           brands={brandOptions}
-          adrSublineOptions={sublineOptions}
           conditions={conditions}
           onChange={onCylinderFormChange}
           includeActivation={false}

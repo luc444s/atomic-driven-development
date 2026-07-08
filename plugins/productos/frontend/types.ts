@@ -218,7 +218,6 @@ export type Product = {
   weight_kg: number | null;
   content_m3: number | null;
   country_code: string | null;
-  delivery_time: string | null;
   is_service: boolean;
   is_active: boolean;
   created_by: string;
@@ -262,7 +261,6 @@ export type ProductPayload = {
   weight_kg: number | null;
   content_m3: number | null;
   country_code: string | null;
-  delivery_time: string | null;
   is_service: boolean;
   is_active: boolean;
 };

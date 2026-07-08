@@ -2,7 +2,11 @@
 
 ## Estado
 
-En implementacion
+Historica como bootstrap del plugin — 2026-07-08
+
+> Esta spec describe el corte de arranque de `logistics`.
+> No debe usarse como guia activa de estructura de archivos, ownership final ni descomposicion frontend/backend.
+> Para backlog y direccion actual prevalecen `0014-1`, `0021`, `0022` y `docs/specs/core/0023-logistics-operacion-real/index.md`.
 
 ## Contexto
 
@@ -14,6 +18,8 @@ SYSTUTOR OSS dispone de:
 - documentacion del negocio GLP: ciclo de vida del cilindro, flujo de reparto, maquina de estados, reglas ADR/PH
 
 El proyecto es una reescritura completa desde cero. No existe SQL Server, no existen stored procedures, no existen triggers. Todo es PostgreSQL + Python + React.
+
+Este documento queda compacto como baseline historica del nacimiento del plugin.
 
 ## Objetivo
 

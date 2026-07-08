@@ -1,35 +1,58 @@
 from __future__ import annotations
 
-from typing import Any
-
-from sqlalchemy import inspect, text
+from sqlalchemy import Column, DateTime, MetaData, Numeric, String, Table, Boolean, UniqueConstraint, inspect, text
 from sqlalchemy.schema import CreateColumn
-from sqlalchemy.sql.schema import Table
 
 from plugins.logistics.backend.models import (
-    LogisticsBrand,
     LogisticsCylinder,
     LogisticsCylinderLabelHistory,
     LogisticsCylinderOwnership,
     LogisticsCylinderRetimbrado,
     LogisticsCylinderService,
-    LogisticsGasProduct,
     LogisticsScanLog,
     LogisticsServiceType,
 )
 
 revision = "0004"
 
+_meta = MetaData()
 
-def _create_table(table: Table | Any, bind) -> None:
+_LegacyGasProduct = Table(
+    "lg_gas_products", _meta,
+    Column("id", String(36), primary_key=True),
+    Column("tenant_id", String(36), nullable=False, index=True),
+    Column("name", String(120), nullable=False),
+    Column("code", String(20), nullable=False),
+    Column("content_kg", Numeric(10, 2), nullable=True),
+    Column("unit", String(20), nullable=True),
+    Column("is_active", Boolean, nullable=False, default=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("tenant_id", "code", name="uq_lg_gas_product_tenant_code"),
+)
+
+_LegacyBrand = Table(
+    "lg_brands", _meta,
+    Column("id", String(36), primary_key=True),
+    Column("tenant_id", String(36), nullable=False, index=True),
+    Column("name", String(100), nullable=False),
+    Column("code", String(20), nullable=False),
+    Column("is_active", Boolean, nullable=False, default=True),
+    Column("created_at", DateTime(timezone=True), nullable=False),
+    Column("updated_at", DateTime(timezone=True), nullable=False),
+    UniqueConstraint("tenant_id", "code", name="uq_lg_brand_tenant_code"),
+)
+
+
+def _create_table(table, bind) -> None:
     table.create(bind=bind, checkfirst=True)
 
 
-def _drop_table(table: Table | Any, bind) -> None:
+def _drop_table(table, bind) -> None:
     table.drop(bind=bind, checkfirst=True)
 
 
-def _add_missing_column(bind, table: Table | Any, column_name: str) -> None:
+def _add_missing_column(bind, table, column_name: str) -> None:
     existing_columns = {column["name"] for column in inspect(bind).get_columns(table.name)}
     if column_name in existing_columns:
         return
@@ -67,8 +90,8 @@ def upgrade(db) -> None:
         _add_missing_column(bind, cylinder_table, column_name)
 
     for table in [
-        LogisticsGasProduct.__table__,
-        LogisticsBrand.__table__,
+        _LegacyGasProduct,
+        _LegacyBrand,
         LogisticsServiceType.__table__,
         LogisticsCylinderRetimbrado.__table__,
         LogisticsCylinderOwnership.__table__,
@@ -103,7 +126,7 @@ def downgrade(db) -> None:
         LogisticsCylinderOwnership.__table__,
         LogisticsCylinderRetimbrado.__table__,
         LogisticsServiceType.__table__,
-        LogisticsBrand.__table__,
-        LogisticsGasProduct.__table__,
+        _LegacyBrand,
+        _LegacyGasProduct,
     ]:
         _drop_table(table, bind)

@@ -44,7 +44,6 @@ export function EditCylinderDialog({
           form={cylinderForm}
           gasProducts={gasOptions}
           brands={brandOptions}
-          adrSublineOptions={sublineOptions}
           conditions={conditions}
           onChange={onCylinderFormChange}
           includeActivation

@@ -31,6 +31,7 @@ describe("logistics frontend helpers", () => {
       manufacture_year: 2025,
       weight_origin: 12.5,
       weight_current: 12.4,
+      average_weight_source: null,
       last_hydrotest_date: "2026-01-01",
       next_hydrotest_date: "2031-01-01",
       adr_category: "2F",
@@ -46,6 +47,8 @@ describe("logistics frontend helpers", () => {
       adr_unit_measure: "KG",
       location: "Patio norte",
       is_active: true,
+      is_medical: false,
+      medical_notes: null,
       created_at: "2026-06-27T00:00:00Z",
       updated_at: "2026-06-27T00:00:00Z",
     });

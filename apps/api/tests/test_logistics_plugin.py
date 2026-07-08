@@ -240,7 +240,25 @@ def create_product(client: TestClient, headers: dict[str, str], *, sku: str, nam
         },
     )
     assert product.status_code == 201, product.text
-    return product.json()
+    product_data = product.json()
+    adr = client.post(
+        f"/api/v1/plugins/productos/products/{product_data['id']}/adr",
+        headers=headers,
+        json={
+            "category": "2F",
+            "packaging_type": "CIL",
+            "net_weight_kg": 10,
+            "un_number": "1047",
+            "cargo_description": "Gas licuado de petroleo",
+            "label": "GLP",
+            "tunnel_restriction": "B/D",
+            "factor": 1,
+            "points": 3,
+            "unit_measure": "KG",
+        },
+    )
+    assert adr.status_code == 201, adr.text
+    return product_data
 
 
 def create_scoped_logistics_user(
@@ -323,6 +341,7 @@ def test_logistics_plugin_cylinder_flow(app) -> None:
         )
     enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
 
     with TestClient(app) as client:
         headers = auth_headers(client)
@@ -375,16 +394,16 @@ def test_logistics_plugin_cylinder_flow(app) -> None:
             missing_adr_or_ph_response.json()["detail"]
         )
 
+        product = create_product(client, headers, sku="GLP-FLOW-01", name="GLP Flow Test")
+
         valid_create_response = client.post(
             "/api/v1/plugins/logistics/cylinders",
             headers=headers,
             json={
                 "serial": "GL-000002",
+                "product_id": product["id"],
                 "location": "Planta norte",
                 "next_hydrotest_date": (datetime.now(UTC) + timedelta(days=365)).date().isoformat(),
-                "adr_category": "2F",
-                "adr_un_number": "1047",
-                "adr_label": "GLP",
             },
         )
         assert valid_create_response.status_code == 201, valid_create_response.text
@@ -447,6 +466,88 @@ def test_logistics_plugin_cylinder_flow(app) -> None:
     assert any(event.event_name == "logistics.cylinder.state_changed" for event in events)
 
 
+def test_logistics_cylinder_medical_filter_and_traceability(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+
+        create_response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=headers,
+            json={
+                "serial": "GL-MED-0001",
+                "is_medical": True,
+                "medical_notes": "Uso hospitalario",
+                "location": "Almacen medicinal",
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        cylinder = create_response.json()
+        assert cylinder["is_medical"] is True
+        assert cylinder["medical_notes"] == "Uso hospitalario"
+
+        medical_list_response = client.get(
+            "/api/v1/plugins/logistics/cylinders?is_medical=true",
+            headers=headers,
+        )
+        assert medical_list_response.status_code == 200, medical_list_response.text
+        assert [item["id"] for item in medical_list_response.json()] == [cylinder["id"]]
+
+        non_medical_list_response = client.get(
+            "/api/v1/plugins/logistics/cylinders?is_medical=false",
+            headers=headers,
+        )
+        assert non_medical_list_response.status_code == 200, non_medical_list_response.text
+        assert non_medical_list_response.json() == []
+
+        update_response = client.patch(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}",
+            headers=headers,
+            json={"is_medical": False, "medical_notes": "Baja de uso medicinal"},
+        )
+        assert update_response.status_code == 200, update_response.text
+        assert update_response.json()["is_medical"] is False
+        assert update_response.json()["medical_notes"] == "Baja de uso medicinal"
+
+        medical_after_update_response = client.get(
+            "/api/v1/plugins/logistics/cylinders?is_medical=true",
+            headers=headers,
+        )
+        assert medical_after_update_response.status_code == 200, medical_after_update_response.text
+        assert medical_after_update_response.json() == []
+
+        non_medical_after_update_response = client.get(
+            "/api/v1/plugins/logistics/cylinders?is_medical=false",
+            headers=headers,
+        )
+        assert non_medical_after_update_response.status_code == 200, non_medical_after_update_response.text
+        assert [item["id"] for item in non_medical_after_update_response.json()] == [cylinder["id"]]
+
+        traceability_response = client.get(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/traceability",
+            headers=headers,
+        )
+        assert traceability_response.status_code == 200, traceability_response.text
+        traceability = traceability_response.json()
+        medical_events = [
+            item
+            for item in traceability["events"]
+            if item["event_type"] == "medical_flag_changed"
+        ]
+        assert len(medical_events) == 1
+        assert medical_events[0]["metadata"]["old_value"] is True
+        assert medical_events[0]["metadata"]["new_value"] is False
+        assert traceability["summary"]["total_events"] >= 2
+        assert traceability["summary"]["first_event"] is not None
+        assert traceability["summary"]["last_event"] is not None
+
+
 def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -492,10 +593,9 @@ def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
             headers=limited_headers,
             json={
                 "serial": "GL-ENTRY-EMPTY-01",
+                "warehouse_id": warehouse["id"],
                 "condition": "CILCLI",
                 "entry_mode": "EMPTY_FROM_CUSTOMER",
-                "document_type": "GUIA",
-                "document_number": "G001-000123",
                 "customer_id": customer["id"],
             },
         )
@@ -546,12 +646,11 @@ def test_logistics_create_cylinder_full_from_supplier_adjusts_stock(app) -> None
             headers=limited_headers,
             json={
                 "serial": "GL-ENTRY-FULL-01",
+                "warehouse_id": warehouse["id"],
                 "condition": "CILPRO",
                 "product_id": product["id"],
                 "content_kg": 10,
                 "entry_mode": "FULL_FROM_SUPPLIER",
-                "document_type": "FACTURA",
-                "document_number": "F001-000555",
             },
         )
         assert create_response.status_code == 201, create_response.text
@@ -588,8 +687,6 @@ def test_logistics_create_cylinder_entry_requires_resolved_active_warehouse(app)
             json={
                 "serial": "GL-ENTRY-ERR-01",
                 "entry_mode": "EMPTY_FROM_CUSTOMER",
-                "document_type": "GUIA",
-                "document_number": "G001-000999",
                 "customer_id": customer["id"],
             },
         )
@@ -691,11 +788,9 @@ def test_logistics_plugin_operations_flow(app) -> None:
             headers=headers,
             json={
                 "serial": "GL-100001",
+                "product_id": product["id"],
                 "location": "Planta Norte",
                 "next_hydrotest_date": (datetime.now(UTC) + timedelta(days=365)).date().isoformat(),
-                "adr_category": "2F",
-                "adr_un_number": "1047",
-                "adr_label": "GLP",
             },
         )
         assert cylinder_response.status_code == 201, cylinder_response.text
@@ -870,7 +965,7 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
 
         product = create_product(client, headers, sku="GLP-ENV-10", name="GLP Envase 10kg")
 
-        brands_response = client.get("/api/v1/plugins/logistics/catalog/brands", headers=headers)
+        brands_response = client.get("/api/v1/plugins/productos/catalog/brands", headers=headers)
         assert brands_response.status_code == 200, brands_response.text
         brand = brands_response.json()[0]
 
@@ -1611,3 +1706,6 @@ def test_logistics_movement_item_empty_cylinder_id_is_normalized_to_none(app) ->
         items = items_response.json()
         assert len(items) == 1
         assert items[0]["cylinder_id"] is None
+
+
+# ── Average Weight (0023B) Tests ──────────────────────────────────

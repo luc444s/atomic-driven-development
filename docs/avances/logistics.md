@@ -13,7 +13,8 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 - `SPEC 0019` ya empezó a implementarse con catálogos remotos de `productos` para envases.
 - `SPEC 0021` quedó implementada: el alta de envase ya soporta ramas `EMPTY_FROM_CUSTOMER` y `FULL_FROM_SUPPLIER`, con trazabilidad operativa inicial y contrapartida mínima en `stock` para el caso lleno desde proveedor.
 - En `frontend/pages/PlanningPage.tsx`, la tarjeta `Stock disponible` ya consume balances reales del módulo owner `stock` vía REST (`/api/v1/plugins/stock/balance`) y combina reservas/precargas de `logistics` en frontend.
-- Para el estado funcional más reciente, tomar como referencia inmediata `plugins/logistics/README.md` y `docs/specs/core/0014-logistics-complete/index.md`.
+- Para el estado funcional más reciente, tomar como referencia inmediata `plugins/logistics/README.md`, `docs/specs/core/0014-1-logistics-gap-closure.md` y `docs/specs/core/0023-logistics-operacion-real/index.md`.
+- `docs/specs/core/0014-logistics-complete/index.md` queda como inventario historico de origen, no como roadmap vigente.
 - Los cinco parciales operativos de planificacion quedan desglosados en `docs/specs/core/0020-logistics-planificacion-parciales.md`.
 
 ## Matriz 0014

@@ -1,0 +1,255 @@
+import { useEffect, useState, type FormEvent } from "react";
+import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
+import { FileUpload } from "../../../../../apps/web/src/shared/ui/file-upload";
+import { Input } from "../../../../../apps/web/src/shared/ui/input";
+import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
+import { SearchDialog } from "../../../../../apps/web/src/shared/ui/search-dialog";
+import { useQuery } from "../../../../../apps/web/src/lib/react-query";
+import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
+import { listCylinders } from "../../api/cylinders";
+import { listContractTypes } from "../../api/contracts";
+import { listWarehouses } from "../../api/warehouses";
+import type { LogisticsCylinder } from "../../api/cylinders";
+import type { ContractFormState } from "../forms/contract-form-state";
+
+type ContractFormDialogProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  form: ContractFormState;
+  onFormChange: (form: ContractFormState) => void;
+  isPending: boolean;
+  error: string | null;
+  title: string;
+  onSubmit: (e: FormEvent<HTMLFormElement>) => void;
+  onCylinderSelect: (cylinderId: string, serial: string) => void;
+  onFileSelect: (file: File | null) => void;
+  showNotes?: boolean;
+  initialCylinderSerial?: string;
+  lockCylinder?: boolean;
+};
+
+export function ContractFormDialog({
+  open,
+  onOpenChange,
+  form,
+  onFormChange,
+  isPending,
+  error,
+  title,
+  onSubmit,
+  onCylinderSelect,
+  onFileSelect,
+  showNotes = true,
+  initialCylinderSerial = "",
+  lockCylinder = false,
+}: ContractFormDialogProps) {
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
+  const [isCylinderSearchOpen, setIsCylinderSearchOpen] = useState(false);
+  const [cylinderSerial, setCylinderSerial] = useState("");
+  const contractTypesQuery = useQuery({ queryKey: ["logistics", "contract-types"], queryFn: listContractTypes });
+  const warehousesQuery = useQuery({ queryKey: ["logistics", "warehouses"], queryFn: listWarehouses });
+
+  const field = (key: keyof ContractFormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
+    onFormChange({ ...form, [key]: e.target.value });
+
+  useEffect(() => {
+    if (!open) setCylinderSerial("");
+  }, [open]);
+
+  useEffect(() => {
+    if (open) {
+      setCylinderSerial(initialCylinderSerial);
+    }
+  }, [initialCylinderSerial, open]);
+
+  return (
+    <Dialog
+      open={open}
+      title={title}
+      maxWidthClassName="max-w-xl"
+      onClose={() => onOpenChange(false)}
+    >
+      <form className="space-y-4" onSubmit={onSubmit}>
+        {error && <Alert variant="error">{error}</Alert>}
+
+        <div className="grid gap-3">
+          <Labeled label="Tipo de contrato">
+            <Select
+              value={form.contract_type}
+              onChange={(v) => onFormChange({ ...form, contract_type: v })}
+              options={(contractTypesQuery.data ?? []).map((item) => ({ value: item.code, label: item.name }))}
+            />
+          </Labeled>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Cliente">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={form.customer_name}
+                  readOnly
+                  placeholder="Seleccione un cliente..."
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setIsCustomerSearchOpen(true)}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsCustomerSearchOpen(true)}
+                >
+                  Buscar
+                </Button>
+              </div>
+            </Labeled>
+
+            <Labeled label="Envase">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={cylinderSerial}
+                  readOnly
+                  placeholder="Seleccione envase..."
+                  className="flex-1 cursor-pointer"
+                  onClick={() => {
+                    if (!lockCylinder) {
+                      setIsCylinderSearchOpen(true);
+                    }
+                  }}
+                />
+                {!lockCylinder ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsCylinderSearchOpen(true)}
+                  >
+                    Buscar
+                  </Button>
+                ) : null}
+              </div>
+            </Labeled>
+
+            <Labeled label="Almacen">
+              <Select
+                value={form.warehouse_id}
+                onChange={(v) => onFormChange({ ...form, warehouse_id: v })}
+                options={[
+                  { value: "", label: "Seleccione almacen" },
+                  ...(warehousesQuery.data ?? []).map((warehouse) => ({
+                    value: warehouse.id,
+                    label: `${warehouse.code} - ${warehouse.name}`,
+                  })),
+                ]}
+              />
+            </Labeled>
+          </div>
+
+          <CustomerSearchDialog
+            open={isCustomerSearchOpen}
+            onOpenChange={setIsCustomerSearchOpen}
+            onSelect={(customer) =>
+              onFormChange({
+                ...form,
+                customer_id: customer.id,
+                customer_name: customer.display_name,
+              })
+            }
+          />
+
+          <SearchDialog<LogisticsCylinder>
+            open={isCylinderSearchOpen && !lockCylinder}
+            onOpenChange={setIsCylinderSearchOpen}
+            title="Buscar envase"
+            placeholder="Número de serie..."
+            columns={[
+              { key: "serial", header: "Serie", render: (c: LogisticsCylinder) => c.serial },
+              { key: "gas", header: "Gas", render: (c: LogisticsCylinder) => c.gas_group_id ?? "-" },
+              { key: "state", header: "Estado", render: (c: LogisticsCylinder) => c.current_state },
+            ]}
+            fetchFn={(q) => listCylinders({ search: q || undefined, active: undefined })}
+            onSelect={(cyl) => {
+              onFormChange({ ...form, cylinder_type_id: cyl.gas_group_id ?? "" });
+              onCylinderSelect(cyl.id, cyl.serial);
+              setCylinderSerial(cyl.serial);
+            }}
+            getRowId={(c) => c.id}
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Fecha inicio">
+              <Input type="date" value={form.start_date} onChange={field("start_date")} />
+            </Labeled>
+
+            <Labeled label="Fecha fin">
+              <Input type="date" value={form.end_date} onChange={field("end_date")} />
+            </Labeled>
+          </div>
+
+          <Labeled label="Tipo de renovación">
+            <Select
+              value={form.renewal_type}
+              onChange={(v) => onFormChange({ ...form, renewal_type: v })}
+              options={[
+                { value: "", label: "Manual" },
+                { value: "AUTO", label: "Automática" },
+                { value: "NONE", label: "Sin renovación" },
+              ]}
+            />
+          </Labeled>
+
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Cantidad">
+              <Input type="number" value={form.quantity} onChange={field("quantity")} min="1" />
+            </Labeled>
+            <Labeled label="Precio unitario">
+              <Input type="number" value={form.unit_price} onChange={field("unit_price")} step="0.01" min="0" />
+            </Labeled>
+          </div>
+
+          <Labeled label="Archivo contrato">
+            <div className="space-y-2">
+              {form.contract_file_path ? (
+                <div className="text-xs text-muted-foreground break-all">
+                  Archivo actual: {form.contract_file_path}
+                </div>
+              ) : null}
+              <FileUpload
+                onFiles={(files) => onFileSelect(files[0] ?? null)}
+                accept=".pdf,.png,.jpg,.jpeg"
+                maxSize={10 * 1024 * 1024}
+                className="p-4"
+              />
+            </div>
+          </Labeled>
+
+          {showNotes && (
+            <Labeled label="Notas">
+              <Input value={form.notes} onChange={field("notes")} placeholder="Notas opcionales..." />
+            </Labeled>
+          )}
+
+          <Labeled label="Observaciones">
+            <Input value={form.observations} onChange={field("observations")} placeholder="Observaciones del contrato..." />
+          </Labeled>
+        </div>
+
+        <div className="flex justify-end gap-2 pt-2">
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Guardando..." : "Guardar"}
+          </Button>
+        </div>
+      </form>
+    </Dialog>
+  );
+}
+
+function Labeled({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-sm font-medium mb-1">{label}</div>
+      {children}
+    </div>
+  );
+}

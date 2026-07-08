@@ -1,7 +1,7 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.common import (
@@ -47,23 +47,39 @@ def process_scan(
     action_context: LogisticsActionContext,
 ) -> LogisticsScanLog:
     normalized_service_type = payload.service_type.strip().upper()
-    movement = db.scalar(
-        select(LogisticsMovement).where(
-            LogisticsMovement.id == payload.movement_id,
-            LogisticsMovement.tenant_id == tenant_id,
-        )
-    )
-    if movement is None:
-        raise ValueError("Movimiento no encontrado")
 
+    movement: LogisticsMovement | None = None
+    if payload.movement_id:
+        movement = db.scalar(
+            select(LogisticsMovement).where(
+                LogisticsMovement.id == payload.movement_id,
+                LogisticsMovement.tenant_id == tenant_id,
+            )
+        )
     cylinder = get_cylinder_by_serial(
         db, tenant_id=tenant_id, serial_or_barcode=payload.barcode_serial
     )
+    if movement is None and cylinder is not None:
+        last_item = db.scalar(
+            select(LogisticsMovementItem)
+            .where(
+                LogisticsMovementItem.cylinder_id == cylinder.id,
+            )
+            .order_by(desc(LogisticsMovementItem.created_at))
+            .limit(1)
+        )
+        if last_item is not None:
+            movement = db.scalar(
+                select(LogisticsMovement).where(
+                    LogisticsMovement.id == last_item.movement_id,
+                    LogisticsMovement.tenant_id == tenant_id,
+                )
+            )
     if cylinder is None:
         log = _record_scan(
             db,
             tenant_id=tenant_id,
-            movement_id=movement.id,
+            movement_id=movement.id if movement else None,
             cylinder_id=None,
             barcode_scanned=payload.barcode_serial,
             service_type=normalized_service_type,
@@ -77,6 +93,25 @@ def process_scan(
         )
         raise ValueError(log.error_reason or "Envase no encontrado")
 
+    if movement is None:
+        log = _record_scan(
+            db,
+            tenant_id=tenant_id,
+            movement_id=None,
+            cylinder_id=cylinder.id,
+            barcode_scanned=payload.barcode_serial,
+            service_type=normalized_service_type,
+            result="OK",
+            error_reason=None,
+            adr_validated=False,
+            hydrotest_validated=False,
+            gps_lat=payload.gps_lat,
+            gps_lng=payload.gps_lng,
+            action_context=action_context,
+        )
+        db.flush()
+        return log
+
     duplicate = db.scalar(
         select(LogisticsScanLog).where(
             LogisticsScanLog.tenant_id == tenant_id,
@@ -86,7 +121,7 @@ def process_scan(
             LogisticsScanLog.result == "OK",
         )
     )
-    if duplicate is not None:
+    if movement is not None and duplicate is not None:
         raise ValueError("El envase ya fue escaneado para este movimiento y servicio")
 
     target_state = _resolve_target_state(
@@ -102,7 +137,7 @@ def process_scan(
         log = _record_scan(
             db,
             tenant_id=tenant_id,
-            movement_id=movement.id,
+            movement_id=movement.id if movement else None,
             cylinder_id=cylinder.id,
             barcode_scanned=payload.barcode_serial,
             service_type=normalized_service_type,
@@ -116,14 +151,14 @@ def process_scan(
         )
         raise ValueError(log.error_reason or "Transición inválida")
 
-    adr_validated = not transition.requires_adr or has_valid_adr(cylinder)
+    adr_validated = not transition.requires_adr or has_valid_adr(db, cylinder)
     hydrotest_validated = not transition.requires_hydrotest or has_valid_hydrotest(cylinder)
     if not adr_validated or not hydrotest_validated:
         reason = "Transition requires valid ADR and hydrotest data"
         log = _record_scan(
             db,
             tenant_id=tenant_id,
-            movement_id=movement.id,
+            movement_id=movement.id if movement else None,
             cylinder_id=cylinder.id,
             barcode_scanned=payload.barcode_serial,
             service_type=normalized_service_type,
@@ -271,7 +306,7 @@ def _record_scan(
     db: Session,
     *,
     tenant_id: str,
-    movement_id: str,
+    movement_id: str | None,
     cylinder_id: str | None,
     barcode_scanned: str,
     service_type: str,

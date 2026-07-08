@@ -2,7 +2,11 @@
 
 ## Estado
 
-**Versión actualizada** — 2026-06-29. Refleja la existencia de `plugins/stock/`, `plugins/productos/`, claims `warehouse_id` y `lg_warehouses.branch_id`. Pendiente de implementación.
+Historica como inventario de origen — 2026-07-08
+
+> Este documento se conserva como inventario original de los 15 bloques detectados en `logistics`.
+> No debe usarse como roadmap vigente ni como fuente de decisiones nuevas de arquitectura.
+> Para estado funcional y backlog actual usar `docs/specs/core/0014-1-logistics-gap-closure.md` y `docs/specs/core/0023-logistics-operacion-real/index.md`.
 
 ## Contexto
 
@@ -10,17 +14,18 @@ El plugin `logistics` (v0.3.0) implementa el núcleo operativo de logística: ge
 
 El legacy (`modulo_logistica/`) opera sobre SQL Server con 27 tablas, 135 SP, 52 vistas, 24 formularios VB6 y Crystal Reports. El módulo actual corre sobre PostgreSQL con **29 tablas**, **~89 endpoints REST**, **22 eventos** y frontend React.
 
-Esta spec describe **los 15 módulos pendientes** con especificaciones detalladas para cada uno. No son features opcionales — todos son necesarios para reemplazar el legacy en producción.
+Esta spec describe **los 15 módulos pendientes** tal como fueron inventariados en ese momento. Varias piezas ya fueron implementadas, redefinidas o absorbidas por specs posteriores.
 
 ## Nota de estado
 
+- Este documento queda compacto como referencia historica de origen, no como plan maestro activo.
 - Esta spec fue actualizada para reflejar el ecosistema actual del proyecto: `plugins/stock/` ya existe, `plugins/productos/` ya existe, claims `warehouse_id` están implementados en core, `lg_warehouses` tiene `branch_id`.
 - Cualquier referencia a producto debe usar `prod_products` (`plugins/productos/`), no `lg_gas_products`.
 - La planificación debe consumir `stk_balance` del plugin stock, no contar cilindros por estado manualmente.
 - Toda operación nueva debe respetar claims `warehouse_id` (alcance por almacén).
 - Toda tabla nueva multi-almacén debe considerar `branch_id` derivado.
 - Esta spec queda cerrada para implementación con una decisión explícita: `stk_balance` mantiene solo stock real; `StockComprometido` y `StockPlanificado` viven en `logistics` y se derivan por query, no por columnas nuevas en `stock`.
-- La integración `logistics` -> `stock` para cambios de stock real se hace por llamada directa de servicio Python con idempotencia, no por subscribers de eventos.
+- La integración `logistics` -> `stock` descrita aquí debe leerse como decision historica del momento. Para decisiones vigentes inter-plugin prevalecen ADRs y specs posteriores.
 
 ## No objetivos
 

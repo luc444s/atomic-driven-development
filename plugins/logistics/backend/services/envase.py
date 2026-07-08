@@ -11,19 +11,21 @@ from plugins.logistics.backend.common import (
     emit_logistics_event,
 )
 from plugins.logistics.backend.models import (
-    LogisticsBrand,
     LogisticsCylinder,
     LogisticsCylinderLabelHistory,
     LogisticsCylinderOwnership,
     LogisticsCylinderRetimbrado,
     LogisticsCylinderService,
-    LogisticsGasProduct,
 )
 from plugins.logistics.backend.schemas import (
     CylinderRetimbradoCreateRequest,
     CylinderServiceCreateRequest,
     CylinderServiceUpdateRequest,
     PrintLabelRequest,
+)
+from plugins.logistics.backend.services.product_bridge import (
+    resolve_brand_name,
+    resolve_gas_product_name,
 )
 from plugins.productos.backend.models import Product
 
@@ -80,10 +82,6 @@ def create_retimbrado(
         cylinder.weight_origin = payload.weight_origin
     if payload.weight_current is not None:
         cylinder.weight_current = payload.weight_current
-    if payload.adr_label:
-        cylinder.adr_label = payload.adr_label.strip().upper()
-    if payload.un_number:
-        cylinder.adr_un_number = payload.un_number.strip().upper()
     db.add(cylinder)
     db.add(retimbrado)
     db.flush()
@@ -186,16 +184,12 @@ def list_label_history(db: Session, *, cylinder_id: str) -> list[LogisticsCylind
 
 
 def build_label_data(db: Session, *, cylinder: LogisticsCylinder) -> dict[str, object | None]:
-    brand_name = db.scalar(
-        select(LogisticsBrand.name).where(LogisticsBrand.id == cylinder.brand_id)
-    )
+    brand_name = resolve_brand_name(db, cylinder.brand_id) if cylinder.brand_id else None
     gas_name = None
     if cylinder.product_id is not None:
         gas_name = db.scalar(select(Product.name).where(Product.id == cylinder.product_id))
-    if gas_name is None:
-        gas_name = db.scalar(
-            select(LogisticsGasProduct.name).where(LogisticsGasProduct.id == cylinder.gas_group_id)
-        )
+    if gas_name is None and cylinder.gas_group_id is not None:
+        gas_name = resolve_gas_product_name(db, cylinder.gas_group_id, cylinder.tenant_id)
     latest_retimbrado = db.scalar(
         select(LogisticsCylinderRetimbrado)
         .where(LogisticsCylinderRetimbrado.cylinder_id == cylinder.id)

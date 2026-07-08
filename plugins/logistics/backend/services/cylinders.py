@@ -12,7 +12,6 @@ from plugins.logistics.backend.common import (
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsCylinderStateLog,
-    LogisticsGasProduct,
 )
 from plugins.logistics.backend.schemas import (
     CylinderCreateRequest,
@@ -41,6 +40,11 @@ ENTRY_MODE_MOVEMENT_TYPE = {
     ENTRY_MODE_FULL_FROM_SUPPLIER: "IFP",
 }
 
+ENTRY_MODE_DOCUMENT_TYPE = {
+    ENTRY_MODE_EMPTY_FROM_CUSTOMER: "IC",
+    ENTRY_MODE_FULL_FROM_SUPPLIER: "IP",
+}
+
 
 def list_cylinders(
     db: Session,
@@ -49,6 +53,7 @@ def list_cylinders(
     search: str | None = None,
     state: str | None = None,
     active: bool | None = None,
+    is_medical: bool | None = None,
 ) -> list[LogisticsCylinder]:
     stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
     if search:
@@ -66,6 +71,8 @@ def list_cylinders(
         stmt = stmt.where(LogisticsCylinder.current_state == state)
     if active is not None:
         stmt = stmt.where(LogisticsCylinder.is_active == active)
+    if is_medical is not None:
+        stmt = stmt.where(LogisticsCylinder.is_medical == is_medical)
     stmt = stmt.order_by(LogisticsCylinder.created_at.desc(), LogisticsCylinder.serial.asc())
     return list(db.scalars(stmt).all())
 
@@ -195,6 +202,8 @@ def create_cylinder(
             "state": cylinder.current_state,
             "entry_mode": payload.entry_mode,
             "warehouse_id": warehouse_id,
+            "is_medical": cylinder.is_medical,
+            "medical_notes": cylinder.medical_notes,
         },
     )
     emit_logistics_event(
@@ -208,6 +217,7 @@ def create_cylinder(
             "current_state": cylinder.current_state,
             "entry_mode": payload.entry_mode or "MANUAL",
             "warehouse_id": warehouse_id,
+            "is_medical": cylinder.is_medical,
         },
     )
     return cylinder
@@ -220,21 +230,33 @@ def update_cylinder(
     payload: CylinderUpdateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinder:
+    previous_is_medical = cylinder.is_medical
+    previous_medical_notes = cylinder.medical_notes
     _apply_cylinder_payload(cylinder, payload, partial=True)
     db.add(cylinder)
     db.flush()
+    audit_details: dict[str, object] = {
+        "serial": cylinder.serial,
+        "barcode1": cylinder.barcode1,
+        "barcode2": cylinder.barcode2,
+        "state": cylinder.current_state,
+        "is_medical": cylinder.is_medical,
+        "medical_notes": cylinder.medical_notes,
+    }
+    if previous_is_medical != cylinder.is_medical:
+        audit_details["old_is_medical"] = previous_is_medical
+        audit_details["new_is_medical"] = cylinder.is_medical
+        audit_details["trace_origin"] = "ACTUALIZACION_FICHA"
+    if previous_medical_notes != cylinder.medical_notes:
+        audit_details["old_medical_notes"] = previous_medical_notes
+        audit_details["new_medical_notes"] = cylinder.medical_notes
     audit_logistics_action(
         db,
         context=action_context,
         action="cylinder.update",
         entity_type="cylinder",
         entity_id=cylinder.id,
-        details={
-            "serial": cylinder.serial,
-            "barcode1": cylinder.barcode1,
-            "barcode2": cylinder.barcode2,
-            "state": cylinder.current_state,
-        },
+        details=audit_details,
     )
     emit_logistics_event(
         db,
@@ -246,6 +268,7 @@ def update_cylinder(
             "serial": cylinder.serial,
             "barcode1": cylinder.barcode1,
             "barcode2": cylinder.barcode2,
+            "is_medical": cylinder.is_medical,
         },
     )
     return cylinder
@@ -347,20 +370,9 @@ def _apply_cylinder_payload(
         "condition": payload.condition.strip().upper() if payload.condition else None,
         "country_code": payload.country_code.strip().upper() if payload.country_code else None,
         "box_number": payload.box_number.strip().upper() if payload.box_number else None,
+        "medical_notes": payload.medical_notes.strip() if payload.medical_notes else None,
         "manufacturer_code": payload.manufacturer_code.strip().upper()
         if payload.manufacturer_code
-        else None,
-        "adr_category": payload.adr_category.strip().upper() if payload.adr_category else None,
-        "adr_un_number": payload.adr_un_number.strip().upper() if payload.adr_un_number else None,
-        "adr_label": payload.adr_label.strip().upper() if payload.adr_label else None,
-        "adr_package_type": payload.adr_package_type.strip().upper()
-        if payload.adr_package_type
-        else None,
-        "adr_merchandise": payload.adr_merchandise.strip() if payload.adr_merchandise else None,
-        "adr_tunnel": payload.adr_tunnel.strip().upper() if payload.adr_tunnel else None,
-        "adr_subline": payload.adr_subline.strip().upper() if payload.adr_subline else None,
-        "adr_unit_measure": payload.adr_unit_measure.strip().upper()
-        if payload.adr_unit_measure
         else None,
         "location": payload.location.strip() if payload.location else None,
     }
@@ -383,15 +395,15 @@ def _apply_cylinder_payload(
         "weight_current",
         "last_hydrotest_date",
         "next_hydrotest_date",
-        "adr_weight_kg",
-        "adr_factor",
-        "adr_points",
     ]:
         if should_apply(field_name):
             setattr(cylinder, field_name, getattr(payload, field_name))
 
     if should_apply("is_service") and payload.is_service is not None:
         cylinder.is_service = payload.is_service
+    is_medical = getattr(payload, "is_medical", None)
+    if should_apply("is_medical") and is_medical is not None:
+        cylinder.is_medical = is_medical
     is_active = getattr(payload, "is_active", None)
     if should_apply("is_active") and is_active is not None:
         cylinder.is_active = is_active
@@ -408,10 +420,6 @@ def _validate_initial_entry_payload(
         raise ValueError(
             "No se pudo resolver un almacen activo unico para el usuario. Ajusta el contexto operativo antes de crear el envase."
         )
-    if not payload.document_type:
-        raise ValueError("El tipo de documento es obligatorio para el alta operativa del envase")
-    if not payload.document_number:
-        raise ValueError("El numero de documento es obligatorio para el alta operativa del envase")
     if payload.entry_mode == ENTRY_MODE_EMPTY_FROM_CUSTOMER and not payload.customer_id:
         raise ValueError("customer_id es obligatorio cuando el envase entra vacio desde cliente")
     if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER:
@@ -422,6 +430,10 @@ def _validate_initial_entry_payload(
 
 
 def _build_document_reference(payload: CylinderCreateRequest) -> str | None:
+    if payload.entry_mode is not None and payload.document_number:
+        document_type = ENTRY_MODE_DOCUMENT_TYPE.get(payload.entry_mode, payload.document_type)
+        if document_type:
+            return f"{document_type}:{payload.document_number}"
     if not payload.document_type or not payload.document_number:
         return None
     return f"{payload.document_type}:{payload.document_number}"
@@ -455,6 +467,8 @@ def _build_initial_state_metadata(
         "entry_mode": payload.entry_mode,
         "warehouse_id": warehouse_id,
     }
+    if payload.entry_mode is not None:
+        data["entry_document_type"] = ENTRY_MODE_DOCUMENT_TYPE.get(payload.entry_mode)
     if document_reference is not None:
         data["document_reference"] = document_reference
     if payload.customer_id is not None:
@@ -469,38 +483,19 @@ def _resolve_stock_product_for_gas(
     product_id: str | None,
     gas_group_id: str,
 ) -> Product:
-    if product_id is not None:
-        product = db.scalar(
-            select(Product).where(
-                Product.tenant_id == tenant_id,
-                Product.id == product_id,
-                Product.is_active.is_(True),
-            )
-        )
-        if product is None:
-            raise LookupError(
-                "No se encontro el producto maestro asociado al envase. Ajusta el catalogo antes de crear un envase lleno desde proveedor."
-            )
-        return product
-    gas = db.scalar(
-        select(LogisticsGasProduct).where(
-            LogisticsGasProduct.tenant_id == tenant_id,
-            LogisticsGasProduct.id == gas_group_id,
-        )
-    )
-    if gas is None:
-        raise LookupError("Gas product not found")
+    target_id = product_id or gas_group_id
+    if target_id is None:
+        raise LookupError("Se requiere product_id o gas_group_id")
     product = db.scalar(
         select(Product).where(
             Product.tenant_id == tenant_id,
-            Product.sku == gas.code,
-            Product.condition_code == "GAS",
+            Product.id == target_id,
             Product.is_active.is_(True),
         )
     )
     if product is None:
         raise LookupError(
-            f"No se encontro el producto maestro para el gas {gas.code}. Ajusta el catalogo antes de crear un envase lleno desde proveedor."
+            "No se encontro el producto maestro asociado al envase. Ajusta el catalogo antes de crear un envase lleno desde proveedor."
         )
     return product
 
@@ -535,7 +530,7 @@ def _register_initial_entry(
         payload=MovementCreateRequest(
             branch_id=payload.branch_id,
             movement_type=ENTRY_MODE_MOVEMENT_TYPE[payload.entry_mode or ENTRY_MODE_EMPTY_FROM_CUSTOMER],
-            document_series=payload.document_type,
+            document_series=ENTRY_MODE_DOCUMENT_TYPE.get(payload.entry_mode or ""),
             document_number=payload.document_number,
             customer_id=payload.customer_id,
             warehouse_id=warehouse_id,

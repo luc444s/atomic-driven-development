@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.models import LogisticsCylinder, LogisticsStateTransition
+from plugins.logistics.backend.services.product_bridge import resolve_product_adr
 
 FINAL_STATES = {"BLOQUEADO", "OBSERVADO", "DE_BAJA", "PERDIDO"}
 
@@ -52,9 +53,9 @@ def ensure_transition_allowed(
             f"Transition {cylinder.current_state} -> {to_state} is not allowed"
         )
 
-    if transition.requires_adr and not has_valid_adr(cylinder):
+    if transition.requires_adr and not has_valid_adr(db, cylinder):
         raise StateTransitionError(
-            "Transition requires ADR data (`adr_category`, `adr_un_number`, `adr_label`)"
+            "Transition requires ADR data from the associated product"
         )
     if transition.requires_hydrotest and not has_valid_hydrotest(cylinder):
         raise StateTransitionError("Transition requires a valid `next_hydrotest_date`")
@@ -62,8 +63,12 @@ def ensure_transition_allowed(
     return transition
 
 
-def has_valid_adr(cylinder: LogisticsCylinder) -> bool:
-    return bool(cylinder.adr_category and cylinder.adr_un_number and cylinder.adr_label)
+def has_valid_adr(db: Session, cylinder: LogisticsCylinder) -> bool:
+    product_id = cylinder.product_id or cylinder.gas_group_id
+    if not product_id:
+        return False
+    adr = resolve_product_adr(db, product_id)
+    return bool(adr and adr.category and adr.un_number and adr.label)
 
 
 def has_valid_hydrotest(cylinder: LogisticsCylinder) -> bool:

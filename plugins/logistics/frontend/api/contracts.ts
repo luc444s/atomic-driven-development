@@ -1,0 +1,248 @@
+import { API_PREFIX, withQuery } from "./_shared";
+import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+
+export type LogisticsCylinderContract = {
+  id: string;
+  document_type_code: number;
+  document_prefix: string;
+  warehouse_id: string | null;
+  series: string | null;
+  number: number | null;
+  contract_number: string | null;
+  contract_type: string;
+  status: string;
+  customer_id: string;
+  customer_name: string | null;
+  start_date: string;
+  end_date: string | null;
+  renewal_type: string | null;
+  cylinder_type_id: string | null;
+  cylinder_condition: string | null;
+  quantity: number;
+  unit_price: number;
+  signed_flag: boolean;
+  signed_at: string | null;
+  signed_by: string | null;
+  contract_file_path: string | null;
+  notes: string | null;
+  observations: string | null;
+  created_at: string;
+  items: LogisticsCylinderContractItem[];
+};
+
+export type LogisticsContractType = {
+  code: string;
+  name: string;
+  duration_unit: string;
+  duration_value: number;
+};
+
+export type LogisticsContractHistory = {
+  id: string;
+  contract_id: string;
+  event_type: string;
+  description: string | null;
+  occurred_at: string;
+  created_by: string | null;
+};
+
+export type LogisticsCylinderContractItem = {
+  id: string;
+  contract_id: string;
+  cylinder_id: string | null;
+  serial: string | null;
+  quantity: number;
+  unit_price: number;
+  delivered_at: string | null;
+  returned_at: string | null;
+};
+
+export type CreateContractPayload = {
+  contract_type: string;
+  customer_id: string;
+  warehouse_id: string;
+  start_date: string;
+  end_date?: string | null;
+  renewal_type?: string | null;
+  cylinder_type_id?: string | null;
+  cylinder_condition?: string | null;
+  quantity: number;
+  unit_price: number;
+  contract_file_path?: string | null;
+  notes?: string | null;
+  observations?: string | null;
+};
+
+export type UpdateContractPayload = Partial<CreateContractPayload>;
+
+export type CreateContractItemPayload = {
+  cylinder_id?: string | null;
+  serial?: string | null;
+  quantity?: number;
+  unit_price: number;
+  delivered_at?: string | null;
+};
+
+export type TerminateContractPayload = {
+  reason: string;
+};
+
+export type RenewContractPayload = {
+  end_date: string;
+  renewal_type?: string | null;
+  notes?: string | null;
+  observations?: string | null;
+};
+
+export type SignContractPayload = {
+  signed_at?: string | null;
+  signed_by?: string | null;
+  signature_type?: string | null;
+  contract_file_path?: string | null;
+};
+
+export function listContractTypes() {
+  return apiRequest<LogisticsContractType[]>(`${API_PREFIX}/cylinders/contracts/types`);
+}
+
+export function listContracts(filters: {
+  customer_id?: string;
+  status?: string;
+  type?: string;
+  date_from?: string;
+  date_to?: string;
+}) {
+  return apiRequest<LogisticsCylinderContract[]>(
+    withQuery(`${API_PREFIX}/cylinders/contracts`, {
+      customer_id: filters.customer_id,
+      status: filters.status,
+      type: filters.type,
+      date_from: filters.date_from,
+      date_to: filters.date_to,
+    })
+  );
+}
+
+export function listContractsByCylinder(cylinderId: string) {
+  return apiRequest<LogisticsCylinderContract[]>(
+    `${API_PREFIX}/cylinders/contracts/by-cylinder/${cylinderId}`
+  );
+}
+
+export function getContract(contractId: string) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}`
+  );
+}
+
+export function createContract(payload: CreateContractPayload) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function updateContract(contractId: string, payload: UpdateContractPayload) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function activateContract(contractId: string) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/issue`,
+    { method: "POST", body: JSON.stringify({}) }
+  );
+}
+
+export function signContract(contractId: string, payload: SignContractPayload = {}) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/sign`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function uploadContractFile(contractId: string, file: File) {
+  const form = new FormData();
+  form.append("file", file);
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/file`,
+    {
+      method: "POST",
+      body: form,
+    }
+  );
+}
+
+export function terminateContract(contractId: string, payload: TerminateContractPayload) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/terminate`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function cancelContract(contractId: string) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/cancel`,
+    { method: "POST" }
+  );
+}
+
+export function renewContract(contractId: string, payload: RenewContractPayload) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/renew`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function listContractHistory(contractId: string) {
+  return apiRequest<LogisticsContractHistory[]>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/history`
+  );
+}
+
+export function listContractItems(contractId: string) {
+  return apiRequest<LogisticsCylinderContractItem[]>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/items`
+  );
+}
+
+export function addContractItem(contractId: string, payload: CreateContractItemPayload) {
+  return apiRequest<LogisticsCylinderContractItem>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/items`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function deliverContractItem(contractId: string, itemId: string) {
+  return apiRequest<LogisticsCylinderContractItem>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/items/${itemId}/deliver`,
+    { method: "PATCH" }
+  );
+}
+
+export function returnContractItem(contractId: string, itemId: string) {
+  return apiRequest<LogisticsCylinderContractItem>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/items/${itemId}/return`,
+    { method: "PATCH" }
+  );
+}

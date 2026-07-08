@@ -237,9 +237,9 @@ class Product(Base):
         ForeignKey("prod_conditions.code"), nullable=False, index=True
     )
     weight_kg: Mapped[float | None] = mapped_column(Numeric(10, 3), nullable=True)
+    default_weight_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)
     content_m3: Mapped[float | None] = mapped_column(Numeric(10, 4), nullable=True)
     country_code: Mapped[str | None] = mapped_column(String(5), nullable=True)
-    delivery_time: Mapped[str | None] = mapped_column(String(500), nullable=True)
     is_service: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True, index=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)

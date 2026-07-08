@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Any
 
 from sqlalchemy import delete, func, or_, select
 from sqlalchemy.orm import Session
@@ -28,6 +29,7 @@ from plugins.logistics.backend.schemas import (
     AdrIncompatibilityCreateRequest,
     AdrProductConfigUpsertRequest,
     AgendaDailySummaryBucket,
+    AverageWeightSourceRead,
     CylinderWeightRead,
     DriverParameterRead,
     DriverParametersUpsertRequest,
@@ -42,6 +44,10 @@ from plugins.logistics.backend.schemas import (
     VehicleDeliveryPointRead,
     VehicleEligibilityRead,
     VehicleRouteRestrictionUpsertRequest,
+)
+from plugins.logistics.backend.services.product_bridge import (
+    resolve_product_adr,
+    resolve_product_adr_subline_name,
 )
 from plugins.productos.backend.models import Product
 
@@ -463,10 +469,79 @@ def replace_route_weekdays(
     ]
 
 
-def _cylinder_weight(cylinder: LogisticsCylinder | None) -> float:
+def enrich_cylinder_with_weight_source(
+    db: Session, cylinder_read: Any, cylinder: LogisticsCylinder
+) -> None:
+    if cylinder_read.weight_current or cylinder_read.weight_origin:
+        return
+    product_weight = _get_product_default_weight(db, cylinder)
+    if product_weight is not None:
+        cylinder_read.average_weight_source = AverageWeightSourceRead(
+            weight_kg=product_weight,
+            matched_by=["product_default"],
+            source_id=cylinder.product_id or cylinder.gas_group_id or "",
+        )
+
+
+def cylinder_to_read(db: Session, cylinder: LogisticsCylinder) -> Any:
+    from plugins.logistics.backend.schemas import CylinderRead
+
+    read = CylinderRead.model_validate(cylinder)
+    enrich_cylinder_with_weight_source(db, read, cylinder)
+    enrich_cylinder_with_product_adr(db, read, cylinder)
+    return read
+
+
+def enrich_cylinder_with_product_adr(
+    db: Session, cylinder_read: Any, cylinder: LogisticsCylinder
+) -> None:
+    product_id = cylinder.product_id or cylinder.gas_group_id
+    if not product_id:
+        return
+    adr = resolve_product_adr(db, product_id)
+    if adr is None:
+        return
+    cylinder_read.adr_category = adr.category
+    cylinder_read.adr_un_number = adr.un_number
+    cylinder_read.adr_label = adr.label
+    cylinder_read.adr_package_type = adr.packaging_type
+    cylinder_read.adr_weight_kg = (
+        float(adr.net_weight_kg) if adr.net_weight_kg is not None else None
+    )
+    cylinder_read.adr_merchandise = adr.cargo_description
+    cylinder_read.adr_tunnel = adr.tunnel_restriction
+    cylinder_read.adr_subline = resolve_product_adr_subline_name(db, adr.subline_id)
+    cylinder_read.adr_factor = float(adr.factor) if adr.factor is not None else None
+    cylinder_read.adr_points = adr.points
+    cylinder_read.adr_unit_measure = adr.unit_measure
+
+
+def _cylinder_weight(cylinder: LogisticsCylinder | None, db: Session | None = None) -> float:
     if cylinder is None:
         return 0.0
-    return float(cylinder.weight_current or cylinder.weight_origin or 0)
+    if cylinder.weight_current:
+        return float(cylinder.weight_current)
+    if cylinder.weight_origin:
+        return float(cylinder.weight_origin)
+    if db is not None:
+        weight = _get_product_default_weight(db, cylinder)
+        if weight is not None:
+            return weight
+    return 0.0
+
+
+def _get_product_default_weight(db: Session, cylinder: LogisticsCylinder) -> float | None:
+    from plugins.productos.backend.models import Product
+
+    product_id = cylinder.product_id or cylinder.gas_group_id
+    if not product_id:
+        return None
+    product = db.get(Product, product_id)
+    if product is not None and product.default_weight_kg is not None:
+        return float(product.default_weight_kg)
+    if product is not None and product.weight_kg is not None:
+        return float(product.weight_kg)
+    return None
 
 
 def build_load_weight_summary(db: Session, *, route: LogisticsRoute) -> LoadWeightSummaryRead:
@@ -475,7 +550,7 @@ def build_load_weight_summary(db: Session, *, route: LogisticsRoute) -> LoadWeig
         cylinder = db.scalar(
             select(LogisticsCylinder).where(LogisticsCylinder.id == load.cylinder_id)
         )
-        total_weight += _cylinder_weight(cylinder)
+        total_weight += _cylinder_weight(cylinder, db)
     vehicle = (
         db.scalar(select(LogisticsVehicle).where(LogisticsVehicle.id == route.vehicle_id))
         if route.vehicle_id
@@ -500,7 +575,7 @@ def validate_route_weight_limit(
 ) -> None:
     summary = build_load_weight_summary(db, route=route)
     cylinder = db.scalar(select(LogisticsCylinder).where(LogisticsCylinder.id == cylinder_id))
-    if summary.total_weight_kg + _cylinder_weight(cylinder) > summary.weight_limit_kg:
+    if summary.total_weight_kg + _cylinder_weight(cylinder, db) > summary.weight_limit_kg:
         raise ValueError("La carga de la ruta excede el límite de peso configurado")
 
 

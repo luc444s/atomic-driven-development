@@ -24,6 +24,7 @@ from plugins.productos.backend.models import (
     ProductUnit,
 )
 from plugins.productos.backend.schemas import (
+    GasProductRead,
     NamedCatalogCreateRequest,
     NamedCatalogRead,
     NamedCatalogUpdateRequest,
@@ -96,6 +97,7 @@ from plugins.productos.backend.services.catalog import (
     list_brands,
     list_categories,
     list_conditions,
+    list_gas_products,
     list_groups,
     list_insumo_types,
     list_lines,
@@ -689,6 +691,29 @@ def put_group(
     )
     db.commit()
     return ProductGroupRead.model_validate(item)
+
+
+@router.get(
+    "/catalog/gas-products",
+    response_model=list[GasProductRead],
+    dependencies=[REQUIRE_CATALOG_READ],
+)
+def get_gas_products(
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[GasProductRead]:
+    return [
+        GasProductRead(
+            id=p.id,
+            name=p.name,
+            code=p.sku,
+            content_kg=float(p.weight_kg) if p.weight_kg is not None else None,
+            is_active=p.is_active,
+            created_at=p.created_at,
+            updated_at=p.updated_at,
+        )
+        for p in list_gas_products(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.get(

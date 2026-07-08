@@ -26,6 +26,7 @@ import {
   updateCustomerContact,
 } from "../api";
 import { BankAccountsSection } from "./BankAccountsSection";
+import { CustomerContractsButton } from "./CustomerContractsButton";
 import { CustomerInfoCard } from "./CustomerInfoCard";
 import { DeliveryPointsSection } from "./DeliveryPointsSection";
 import { PricingTermsSection } from "./PricingTermsSection";
@@ -356,6 +357,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                   <Button variant="secondary" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
                   <Button variant="secondary" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
                   <Button variant="secondary" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
+                  <CustomerContractsButton customerId={customerId} />
                 </div>
               </CardContent>
             </Card>

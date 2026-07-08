@@ -2,11 +2,19 @@
 
 ## Estado
 
-Implementada
+Implementada; historica como baseline de envases — 2026-07-08
+
+> Esta spec sigue siendo util para entender el baseline implementado del envase.
+> No debe usarse como fuente activa para nuevos cambios de trazabilidad, medicinal, contratos o fallback de peso.
+> Esos gaps vivos quedaron absorbidos por specs posteriores:
+> - `0023C-trazabilidad-operativa.md`
+> - `00023CA-trazabilidad-medicinal.md`
+> - `0023AD-contratos-envases.md`
+> - `0023AN-pesos-promedio-catalogos-y-visibilidad.md`
 
 ## Contexto
 
-La implementacion actual del plugin `logistics` (SPEC 0011) cubre el state machine, operaciones (pedidos, rutas, carga, movimientos, agenda) y el frontend multi-pantalla. Sin embargo, el modelo del envase (`lg_cylinders`) es esqueletico comparado con el legacy `Producto` que funciona como ficha maestra del cilindro.
+La implementacion actual del plugin `logistics` (SPEC 0011) cubre el state machine, operaciones (pedidos, rutas, carga, movimientos, agenda) y el frontend multi-pantalla. Sin embargo, el modelo del envase (`lg_cylinders`) era esqueletico comparado con el legacy `Producto` que funciona como ficha maestra del cilindro.
 
 El proyecto ya usa y soporta validaciones locales con `pyright` y `ruff` dentro de este repositorio. Ambos deben considerarse herramientas activas del flujo normal de desarrollo y cierre tecnico.
 
@@ -25,6 +33,7 @@ Esta spec describe el corte implementado de `logistics` al momento de construir 
 - No representan el destino final del catálogo maestro de productos.
 - Desde ADR 0015 y SPEC 0015, ambos catálogos quedan definidos como transitorios y deberán migrarse a `prod_products` y `prod_brands` del plugin `productos`.
 - Esta spec no debe usarse como argumento para volver a centralizar precios, costos o catálogo maestro dentro de `logistics`.
+- Esta spec tampoco debe interpretarse como documento activo de trazabilidad extendida: el enriquecimiento de la ficha y el corte medicinal viven fuera de `0012`.
 
 ## Objetivo
 

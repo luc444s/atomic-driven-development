@@ -26,6 +26,17 @@ class CylinderTransitionRead(BaseModel):
     description: str | None
 
 
+class AverageWeightSourceRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    weight_kg: float
+    matched_by: list[str]
+    source_id: str
+    brand_name: str | None = None
+    gas_name: str | None = None
+    condition_name: str | None = None
+
+
 class CylinderRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,6 +66,7 @@ class CylinderRead(BaseModel):
     weight_current: float | None
     last_hydrotest_date: date | None
     next_hydrotest_date: date | None
+    average_weight_source: AverageWeightSourceRead | None = None
     adr_category: str | None
     adr_un_number: str | None
     adr_label: str | None
@@ -77,6 +89,7 @@ class CylinderRead(BaseModel):
 class CylinderCreateRequest(BaseModel):
     serial: str = Field(min_length=1, max_length=50)
     branch_id: str | None = None
+    warehouse_id: str | None = None
     entry_mode: str | None = Field(default=None, max_length=50)
     document_type: str | None = Field(default=None, max_length=20)
     document_number: str | None = Field(default=None, max_length=50)
@@ -104,17 +117,6 @@ class CylinderCreateRequest(BaseModel):
     weight_current: float | None = None
     last_hydrotest_date: date | None = None
     next_hydrotest_date: date | None = None
-    adr_category: str | None = Field(default=None, max_length=50)
-    adr_un_number: str | None = Field(default=None, max_length=10)
-    adr_label: str | None = Field(default=None, max_length=50)
-    adr_package_type: str | None = Field(default=None, max_length=50)
-    adr_weight_kg: float | None = None
-    adr_merchandise: str | None = Field(default=None, max_length=200)
-    adr_tunnel: str | None = Field(default=None, max_length=10)
-    adr_subline: str | None = Field(default=None, max_length=50)
-    adr_factor: float | None = None
-    adr_points: int | None = None
-    adr_unit_measure: str | None = Field(default=None, max_length=20)
     location: str | None = Field(default=None, max_length=100)
 
     @field_validator("entry_mode")
@@ -170,19 +172,43 @@ class CylinderUpdateRequest(BaseModel):
     weight_current: float | None = None
     last_hydrotest_date: date | None = None
     next_hydrotest_date: date | None = None
-    adr_category: str | None = Field(default=None, max_length=50)
-    adr_un_number: str | None = Field(default=None, max_length=10)
-    adr_label: str | None = Field(default=None, max_length=50)
-    adr_package_type: str | None = Field(default=None, max_length=50)
-    adr_weight_kg: float | None = None
-    adr_merchandise: str | None = Field(default=None, max_length=200)
-    adr_tunnel: str | None = Field(default=None, max_length=10)
-    adr_subline: str | None = Field(default=None, max_length=50)
-    adr_factor: float | None = None
-    adr_points: int | None = None
-    adr_unit_measure: str | None = Field(default=None, max_length=20)
     location: str | None = Field(default=None, max_length=100)
     is_active: bool | None = None
+
+
+class TraceabilityEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    timestamp: datetime
+    event_type: str
+    description: str
+    actor: str | None = None
+    metadata: dict[str, object] = Field(default_factory=dict)
+
+
+class TraceabilityPagination(BaseModel):
+    page: int
+    per_page: int
+    total: int
+    total_pages: int
+
+
+class TraceabilitySummary(BaseModel):
+    total_events: int
+    first_event: datetime | None = None
+    last_event: datetime | None = None
+    current_state: str | None = None
+    current_location: str | None = None
+    gps_lat: float | None = None
+    gps_lng: float | None = None
+
+
+class CylinderTraceabilityRead(BaseModel):
+    cylinder_id: str
+    serial: str
+    events: list[TraceabilityEventRead]
+    pagination: TraceabilityPagination
+    summary: TraceabilitySummary
 
 
 class CylinderStateLogRead(BaseModel):
@@ -842,32 +868,6 @@ class WarrantyCreateRequest(BaseModel):
     return_date: datetime | None = None
 
 
-class GasProductRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    tenant_id: str
-    name: str
-    code: str
-    content_kg: float | None
-    unit: str | None
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-
-class BrandRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    tenant_id: str
-    name: str
-    code: str
-    is_active: bool
-    created_at: datetime
-    updated_at: datetime
-
-
 class ServiceTypeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -878,15 +878,6 @@ class ServiceTypeRead(BaseModel):
     is_active: bool
     created_at: datetime
     updated_at: datetime
-
-
-class CylinderConditionRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    code: str
-    name: str
-    is_active: bool
-    created_at: datetime
 
 
 class CylinderRetimbradoRead(BaseModel):
@@ -998,7 +989,7 @@ class CylinderLabelDataRead(BaseModel):
 
 
 class ScanRequest(BaseModel):
-    movement_id: str
+    movement_id: str | None = None
     barcode_serial: str = Field(min_length=1, max_length=150)
     service_type: str = Field(min_length=1, max_length=20)
     gps_lat: float | None = None
@@ -1010,7 +1001,7 @@ class ScanLogRead(BaseModel):
 
     id: str
     tenant_id: str
-    movement_id: str
+    movement_id: str | None = None
     cylinder_id: str | None
     barcode_scanned: str
     service_type: str
@@ -1510,3 +1501,148 @@ class LoadSummaryReportRead(BaseModel):
     vehicle_id: str | None
     total_weight_kg: float
     items: list[LoadSummaryItemRead]
+
+
+class ContractStatus(str):
+    DRAFT = "DRAFT"
+    PENDING_SIGNATURE = "PENDING_SIGNATURE"
+    ACTIVE = "ACTIVE"
+    EXPIRED = "EXPIRED"
+    CANCELLED = "CANCELLED"
+
+
+class ContractType(str):
+    DAILY = "DAILY"
+    MONTHLY = "MONTHLY"
+    ANNUAL = "ANNUAL"
+
+
+class ContractTypeRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    code: str
+    name: str
+    duration_unit: str
+    duration_value: int
+
+
+class ContractHistoryRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    contract_id: str
+    event_type: str
+    description: str | None = None
+    occurred_at: datetime
+    created_by: str | None = None
+
+
+class CylinderContractItemRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    contract_id: str
+    cylinder_id: str | None = None
+    serial: str | None = None
+    quantity: int = 1
+    unit_price: float
+    delivered_at: datetime | None = None
+    returned_at: datetime | None = None
+
+
+class CylinderContractRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    document_type_code: int
+    document_prefix: str
+    warehouse_id: str | None = None
+    series: str | None = None
+    number: int | None = None
+    contract_number: str | None = None
+    contract_type: str
+    status: str
+    customer_id: str
+    customer_name: str | None = None
+    start_date: date
+    end_date: date | None = None
+    renewal_type: str | None = None
+    cylinder_type_id: str | None = None
+    cylinder_condition: str | None = None
+    quantity: int
+    unit_price: float
+    signed_flag: bool = False
+    signed_at: datetime | None = None
+    signed_by: str | None = None
+    contract_file_path: str | None = None
+    notes: str | None = None
+    observations: str | None = None
+    created_at: datetime
+    items: list[CylinderContractItemRead] = []
+
+
+class CylinderContractCreate(BaseModel):
+    contract_type: str
+    customer_id: str
+    warehouse_id: str
+    start_date: date
+    end_date: date | None = None
+    renewal_type: str | None = None
+    cylinder_type_id: str | None = None
+    cylinder_condition: str | None = None
+    quantity: int
+    unit_price: float
+    contract_file_path: str | None = None
+    notes: str | None = None
+    observations: str | None = None
+
+
+class CylinderContractUpdate(BaseModel):
+    contract_type: str | None = None
+    customer_id: str | None = None
+    warehouse_id: str | None = None
+    start_date: date | None = None
+    end_date: date | None = None
+    renewal_type: str | None = None
+    cylinder_type_id: str | None = None
+    cylinder_condition: str | None = None
+    quantity: int | None = None
+    unit_price: float | None = None
+    contract_file_path: str | None = None
+    notes: str | None = None
+    observations: str | None = None
+
+
+class CylinderContractItemCreate(BaseModel):
+    cylinder_id: str | None = None
+    serial: str | None = None
+    quantity: int = 1
+    unit_price: float
+    delivered_at: datetime | None = None
+
+
+class CylinderContractItemUpdate(BaseModel):
+    delivered_at: datetime | None = None
+    returned_at: datetime | None = None
+
+
+class CylinderContractActivate(BaseModel):
+    pass
+
+
+class CylinderContractSign(BaseModel):
+    signed_at: datetime | None = None
+    signed_by: str | None = None
+    signature_type: str | None = None
+    contract_file_path: str | None = None
+
+
+class CylinderContractTerminate(BaseModel):
+    reason: str
+
+
+class CylinderContractRenew(BaseModel):
+    end_date: date | None = None
+    renewal_type: str | None = None
+    notes: str | None = None
+    observations: str | None = None

@@ -156,6 +156,18 @@ class ProductGroupUpdateRequest(BaseModel):
     is_active: bool | None = None
 
 
+class GasProductRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    name: str
+    code: str
+    content_kg: float | None = None
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
 class ProductConditionRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -448,9 +460,9 @@ class ProductCreateRequest(BaseModel):
     status_code: str = Field(default="ACTIVO", min_length=1, max_length=20)
     condition_code: str = Field(default="PRODUCTO", min_length=1, max_length=20)
     weight_kg: float | None = None
+    default_weight_kg: float | None = None
     content_m3: float | None = None
     country_code: str | None = Field(default=None, max_length=5)
-    delivery_time: str | None = Field(default=None, max_length=500)
     is_service: bool = False
     is_active: bool = True
 
@@ -473,9 +485,9 @@ class ProductUpdateRequest(BaseModel):
     status_code: str | None = Field(default=None, min_length=1, max_length=20)
     condition_code: str | None = Field(default=None, min_length=1, max_length=20)
     weight_kg: float | None = None
+    default_weight_kg: float | None = None
     content_m3: float | None = None
     country_code: str | None = Field(default=None, max_length=5)
-    delivery_time: str | None = Field(default=None, max_length=500)
     is_service: bool | None = None
     is_active: bool | None = None
 
@@ -507,9 +519,9 @@ class ProductRead(BaseModel):
     status_code: str
     condition_code: str
     weight_kg: float | None
+    default_weight_kg: float | None = None
     content_m3: float | None
     country_code: str | None
-    delivery_time: str | None
     is_service: bool
     is_active: bool
     created_by: str

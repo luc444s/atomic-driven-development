@@ -84,9 +84,9 @@ def create_product(
         status_code=payload.status_code,
         condition_code=payload.condition_code,
         weight_kg=payload.weight_kg,
+        default_weight_kg=payload.default_weight_kg,
         content_m3=payload.content_m3,
         country_code=payload.country_code,
-        delivery_time=payload.delivery_time,
         is_service=payload.is_service,
         is_active=payload.is_active,
         created_by=actor_user_id,
@@ -147,13 +147,13 @@ def update_product(
             payload.condition_code if payload.condition_code is not None else product.condition_code
         ),
         weight_kg=payload.weight_kg if payload.weight_kg is not None else product.weight_kg,
+        default_weight_kg=(
+            payload.default_weight_kg if payload.default_weight_kg is not None else product.default_weight_kg
+        ),
         content_m3=payload.content_m3 if payload.content_m3 is not None else product.content_m3,
         country_code=payload.country_code
         if payload.country_code is not None
         else product.country_code,
-        delivery_time=(
-            payload.delivery_time if payload.delivery_time is not None else product.delivery_time
-        ),
         is_service=payload.is_service if payload.is_service is not None else product.is_service,
         is_active=payload.is_active if payload.is_active is not None else product.is_active,
     )
@@ -184,7 +184,6 @@ def update_product(
         "weight_kg",
         "content_m3",
         "country_code",
-        "delivery_time",
         "is_service",
         "is_active",
     ]:

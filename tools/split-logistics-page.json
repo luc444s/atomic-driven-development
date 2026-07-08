@@ -1,0 +1,180 @@
+{
+  "output_dir": "plugins/logistics/frontend/cylinders/dialogs",
+  "sections": [
+    {
+      "name": "DetailMenuDialog",
+      "start": 864,
+      "end": 945,
+      "props": [
+        "selectedCylinder",
+        "isDetailMenuOpen",
+        "detailError",
+        "productById",
+        "gasById",
+        "brandById",
+        "canUpdate",
+        "canMaintenance",
+        "canTransition",
+        "canRetimbrado",
+        "canServiceManage",
+        "canLabelPrint",
+        "canScan",
+        "openEditDialog",
+        "setIsHydrotestOpen",
+        "setIsWarrantyOpen",
+        "setIsTransitionOpen",
+        "setIsRetimbradoOpen",
+        "setIsServiceOpen",
+        "setIsPrintLabelOpen",
+        "setIsScanOpen",
+        "openViewSection",
+        "closeDetailContext"
+      ]
+    },
+    {
+      "name": "FullDetailInfoDialog",
+      "start": 947,
+      "end": 1200,
+      "props": [
+        "selectedCylinder",
+        "isFullDetailOpen",
+        "detailError",
+        "productById",
+        "gasById",
+        "brandById",
+        "canUpdate",
+        "canMaintenance",
+        "canTransition",
+        "canRetimbrado",
+        "canServiceManage",
+        "canLabelPrint",
+        "canScan",
+        "openEditDialog",
+        "setIsHydrotestOpen",
+        "setIsWarrantyOpen",
+        "setIsTransitionOpen",
+        "setIsRetimbradoOpen",
+        "setIsServiceOpen",
+        "setIsPrintLabelOpen",
+        "setIsScanOpen",
+        "closeDetailContext",
+        "transitionsQuery",
+        "traceQuery",
+        "hydrotestsQuery",
+        "warrantiesQuery",
+        "retimbradosQuery",
+        "ownershipQuery",
+        "labelHistoryQuery",
+        "servicesQuery",
+        "labelDataQuery",
+        "filteredScans",
+        "serviceTypeById",
+        "nextState",
+        "setNextState",
+        "handleTransition",
+        "transitionMutation",
+        "serviceStatusMutation",
+        "deleteServiceMutation",
+        "setConfirmDelete",
+        "getCylinderStateLabel",
+        "formatDate",
+        "formatDateTime"
+      ]
+    },
+    {
+      "name": "HydrotestDialog",
+      "start": 1216,
+      "end": 1239,
+      "props": [
+        "isHydrotestOpen",
+        "setIsHydrotestOpen",
+        "hydrotestForm",
+        "setHydrotestForm",
+        "handleHydrotest",
+        "hydrotestMutation"
+      ]
+    },
+    {
+      "name": "WarrantyDialog",
+      "start": 1241,
+      "end": 1261,
+      "props": [
+        "isWarrantyOpen",
+        "setIsWarrantyOpen",
+        "warrantyForm",
+        "setWarrantyForm",
+        "handleWarranty",
+        "warrantyMutation",
+        "setIsWarrantyCustomerSearchOpen"
+      ]
+    },
+    {
+      "name": "RetimbradoDialog",
+      "start": 1271,
+      "end": 1299,
+      "props": [
+        "isRetimbradoOpen",
+        "setIsRetimbradoOpen",
+        "retimbradoForm",
+        "setRetimbradoForm",
+        "handleRetimbrado",
+        "retimbradoMutation"
+      ]
+    },
+    {
+      "name": "ServiceDialog",
+      "start": 1301,
+      "end": 1327,
+      "props": [
+        "isServiceOpen",
+        "setIsServiceOpen",
+        "serviceForm",
+        "setServiceForm",
+        "handleService",
+        "serviceMutation",
+        "serviceTypesQuery"
+      ]
+    },
+    {
+      "name": "PrintLabelDialog",
+      "start": 1329,
+      "end": 1349,
+      "props": [
+        "isPrintLabelOpen",
+        "setIsPrintLabelOpen",
+        "printLabelForm",
+        "setPrintLabelForm",
+        "handlePrintLabel",
+        "printLabelMutation"
+      ]
+    },
+    {
+      "name": "TransitionDialog",
+      "start": 1351,
+      "end": 1377,
+      "props": [
+        "isTransitionOpen",
+        "setIsTransitionOpen",
+        "nextState",
+        "setNextState",
+        "handleTransition",
+        "transitionMutation",
+        "transitionsQuery",
+        "getCylinderStateLabel"
+      ]
+    },
+    {
+      "name": "ScanDialog",
+      "start": 1379,
+      "end": 1404,
+      "props": [
+        "isScanOpen",
+        "setIsScanOpen",
+        "scanForm",
+        "setScanForm",
+        "handleScan",
+        "scanMutation"
+      ]
+    }
+  ]
+}

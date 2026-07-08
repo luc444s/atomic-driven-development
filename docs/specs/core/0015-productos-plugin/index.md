@@ -208,7 +208,7 @@ UK: `(tenant_id, code)`
 | weight_kg | Numeric(10,3) | NULL | `peso_producto` legacy |
 | content_m3 | Numeric(10,4) | NULL | `M3` legacy |
 | country_code | String(5) | NULL, default NULL | Solo informativo, sin lógica de país |
-| delivery_time | String(500) | NULL | `tiempoi` legacy |
+| delivery_time | Eliminado | — | No vive en productos; corresponde al dominio de envases/logistics |
 | is_service | Boolean | NN, default FALSE | `servicio` legacy |
 | is_active | Boolean | NN, default TRUE | |
 | created_by | String(36) | FK → users, NN | |

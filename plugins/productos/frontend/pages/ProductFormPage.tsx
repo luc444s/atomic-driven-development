@@ -45,7 +45,6 @@ const EMPTY_PRODUCT: ProductPayload = {
   weight_kg: null,
   content_m3: null,
   country_code: null,
-  delivery_time: null,
   is_service: false,
   is_active: true,
 };
@@ -99,7 +98,6 @@ export function ProductFormPage() {
       weight_kg: detailQuery.data.weight_kg,
       content_m3: detailQuery.data.content_m3,
       country_code: detailQuery.data.country_code,
-      delivery_time: detailQuery.data.delivery_time,
       is_service: detailQuery.data.is_service,
       is_active: detailQuery.data.is_active,
     });
@@ -304,10 +302,6 @@ export function ProductFormPage() {
               <label className="block space-y-2 text-sm text-foreground">
                 <span>Contenido m3</span>
                 <Input type="number" value={formState.content_m3 ?? ""} onChange={(event) => setFormState((current) => ({ ...current, content_m3: event.target.value ? Number(event.target.value) : null }))} />
-              </label>
-              <label className="block space-y-2 text-sm text-foreground">
-                <span>Tiempo entrega</span>
-                <Input value={formState.delivery_time ?? ""} onChange={(event) => setFormState((current) => ({ ...current, delivery_time: event.target.value || null }))} />
               </label>
               <label className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground">
                 <Checkbox checked={formState.is_service} onChange={(event) => setFormState((current) => ({ ...current, is_service: event.target.checked }))} />

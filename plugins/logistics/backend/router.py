@@ -27,8 +27,6 @@ from plugins.logistics.backend.schemas import (
     AgendaTaskRead,
     AgendaTaskTypeRead,
     AgendaTaskUpdateRequest,
-    BrandRead,
-    CylinderConditionRead,
     CylinderCreateRequest,
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
@@ -56,7 +54,6 @@ from plugins.logistics.backend.schemas import (
     DriverParametersUpsertRequest,
     EquipmentCreateRequest,
     EquipmentRead,
-    GasProductRead,
     HydrostaticTestCreateRequest,
     HydrostaticTestRead,
     IncidentReasonRead,
@@ -139,11 +136,8 @@ from plugins.logistics.backend.services.agenda import (
 )
 from plugins.logistics.backend.services.catalog import (
     list_agenda_task_types,
-    list_brands_catalog,
-    list_conditions_catalog,
     list_cylinder_states,
     list_delivery_points_catalog,
-    list_gas_products_catalog,
     list_movement_types,
     list_service_types_catalog,
     list_vehicles_catalog,
@@ -193,6 +187,7 @@ from plugins.logistics.backend.services.extensions import (
     build_load_weight_summary,
     create_adr_incompatibility,
     create_equipment,
+    cylinder_to_read,
     delete_adr_incompatibility,
     get_adr_product_config,
     get_agenda_daily_summary,
@@ -341,8 +336,6 @@ REQUIRE_LABEL_READ = Depends(require_permission("logistics.label.read"))
 REQUIRE_OWNERSHIP_READ = Depends(require_permission("logistics.ownership.read"))
 REQUIRE_SERVICE_READ = Depends(require_permission("logistics.service.read"))
 REQUIRE_SERVICE_MANAGE = Depends(require_permission("logistics.service.manage"))
-REQUIRE_GAS_CATALOG_READ = Depends(require_permission("logistics.gas.read"))
-REQUIRE_BRAND_CATALOG_READ = Depends(require_permission("logistics.brand.read"))
 
 
 def _conflict(exc: IntegrityError) -> HTTPException:
@@ -391,6 +384,25 @@ def _resolve_active_warehouse_id(tenant_context: TenantContext) -> str:
             "No se pudo resolver un almacen activo unico para el usuario. Ajusta el contexto operativo antes de crear el envase."
         )
     return warehouse_ids[0]
+
+
+def _resolve_entry_warehouse_id(
+    db: Session,
+    tenant_context: TenantContext,
+    warehouse_id: str | None,
+) -> str:
+    if warehouse_id:
+        if not tenant_context.has_warehouse_access(warehouse_id):
+            raise ValueError("No tienes acceso al almacen seleccionado para el alta operativa")
+        warehouse = get_warehouse(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            warehouse_id=warehouse_id,
+        )
+        if warehouse is None:
+            raise LookupError("Warehouse not found")
+        return warehouse.id
+    return _resolve_active_warehouse_id(tenant_context)
 
 
 @router.get("/catalog/cylinder-states", response_model=list[CylinderStateRead])
@@ -465,42 +477,6 @@ def get_zone_catalog(
     ]
 
 
-@router.get("/catalog/conditions", response_model=list[CylinderConditionRead])
-def get_condition_catalog(
-    db: Session = DB_SESSION,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[CylinderConditionRead]:
-    return [CylinderConditionRead.model_validate(item) for item in list_conditions_catalog(db)]
-
-
-@router.get("/catalog/gas-products", response_model=list[GasProductRead])
-def get_gas_product_catalog(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_GAS_CATALOG_READ,
-) -> list[GasProductRead]:
-    items = [
-        GasProductRead.model_validate(item)
-        for item in list_gas_products_catalog(db, tenant_id=tenant_context.current_tenant_id)
-    ]
-    db.commit()
-    return items
-
-
-@router.get("/catalog/brands", response_model=list[BrandRead])
-def get_brand_catalog(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_BRAND_CATALOG_READ,
-) -> list[BrandRead]:
-    items = [
-        BrandRead.model_validate(item)
-        for item in list_brands_catalog(db, tenant_id=tenant_context.current_tenant_id)
-    ]
-    db.commit()
-    return items
-
-
 @router.get("/catalog/service-types", response_model=list[ServiceTypeRead])
 def get_service_type_catalog(
     db: Session = DB_SESSION,
@@ -520,18 +496,20 @@ def get_cylinders(
     search: str | None = Query(default=None),
     state: str | None = Query(default=None),
     active: bool | None = Query(default=True),
+    is_medical: bool | None = Query(default=None),
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_CYLINDER_READ,
 ) -> list[CylinderRead]:
     return [
-        CylinderRead.model_validate(cylinder)
+        cylinder_to_read(db, cylinder)
         for cylinder in list_cylinders(
             db,
             tenant_id=tenant_context.current_tenant_id,
             search=search,
             state=state,
             active=active,
+            is_medical=is_medical,
         )
     ]
 
@@ -592,7 +570,7 @@ def get_cylinder_by_serial_endpoint(
     )
     if cylinder is None:
         raise _not_found("Cylinder")
-    return CylinderRead.model_validate(cylinder)
+    return cylinder_to_read(db, cylinder)
 
 
 @router.get("/cylinders/{cylinder_id}", response_model=CylinderRead)
@@ -605,7 +583,7 @@ def get_cylinder_detail(
     cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
     if cylinder is None:
         raise _not_found("Cylinder")
-    return CylinderRead.model_validate(cylinder)
+    return cylinder_to_read(db, cylinder)
 
 
 @router.patch("/cylinders/{cylinder_id}", response_model=CylinderRead)
@@ -631,7 +609,7 @@ def update_cylinder_endpoint(
     except IntegrityError as exc:
         db.rollback()
         raise _conflict(exc) from exc
-    return CylinderRead.model_validate(cylinder)
+    return cylinder_to_read(db, cylinder)
 
 
 @router.get("/cylinders/{cylinder_id}/trace", response_model=list[CylinderStateLogRead])
@@ -934,7 +912,9 @@ def create_cylinder_endpoint(
 ) -> CylinderRead:
     try:
         resolved_warehouse_id = (
-            _resolve_active_warehouse_id(tenant_context) if payload.entry_mode is not None else None
+            _resolve_entry_warehouse_id(db, tenant_context, payload.warehouse_id)
+            if payload.entry_mode is not None
+            else None
         )
         cylinder = create_cylinder(
             db,
@@ -950,7 +930,7 @@ def create_cylinder_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return CylinderRead.model_validate(cylinder)
+    return cylinder_to_read(db, cylinder)
 
 
 @router.post(
@@ -1003,7 +983,7 @@ def transition_cylinder_endpoint(
     except StateTransitionError as exc:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return CylinderRead.model_validate(cylinder)
+    return cylinder_to_read(db, cylinder)
 
 
 @router.get("/warehouses", response_model=list[WarehouseRead])

@@ -11,6 +11,7 @@ from plugins.productos.backend.common import (
     emit_productos_event,
 )
 from plugins.productos.backend.models import (
+    Product,
     ProductBrand,
     ProductCategory,
     ProductCondition,
@@ -102,6 +103,19 @@ def list_conditions(db: Session) -> list[ProductCondition]:
             select(ProductCondition)
             .where(ProductCondition.is_active.is_(True))
             .order_by(ProductCondition.code.asc())
+        ).all()
+    )
+
+
+def list_gas_products(db: Session, *, tenant_id: str) -> list[Product]:
+    return list(
+        db.scalars(
+            select(Product)
+            .where(
+                Product.tenant_id == tenant_id,
+                Product.is_active.is_(True),
+            )
+            .order_by(Product.name.asc())
         ).all()
     )
 

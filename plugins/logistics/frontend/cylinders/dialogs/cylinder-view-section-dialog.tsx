@@ -2,9 +2,9 @@ import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent } from "../../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { getCylinderStateLabel } from "../../CylinderStateBadge";
+import { CylinderTraceabilityTimeline } from "../../traceability/CylinderTraceabilityTimeline";
 import { formatDate, formatDateTime, InfoBlock } from "../utils/formatters";
-import type { LogisticsCylinderTrace, LogisticsHydrostaticTest, LogisticsWarranty } from "../../api";
+import type { LogisticsHydrostaticTest, LogisticsWarranty } from "../../api";
 import type { LogisticsRetimbrado } from "../../api";
 import type { LogisticsOwnership, LogisticsLabelHistory } from "../../api";
 import type { LogisticsCylinderService, LogisticsScanLog } from "../../api";
@@ -17,7 +17,6 @@ type CylinderViewSectionDialogProps = {
   section: ViewSection | null;
   cylinderId: string;
   onBack: () => void;
-  traceData: LogisticsCylinderTrace[];
   hydrotestsData: LogisticsHydrostaticTest[];
   warrantiesData: LogisticsWarranty[];
   retimbradosData: LogisticsRetimbrado[];
@@ -41,8 +40,8 @@ const TITLES: Record<ViewSection, { title: string; description: string }> = {
 export function CylinderViewSectionDialog({
   open,
   section,
+  cylinderId,
   onBack,
-  traceData,
   hydrotestsData,
   warrantiesData,
   retimbradosData,
@@ -60,7 +59,7 @@ export function CylinderViewSectionDialog({
   const titles = TITLES[section];
 
   return (
-    <Dialog open title={titles.title} description={titles.description} maxWidthClassName="max-w-5xl" onClose={onBack}>
+    <Dialog open={open} title={titles.title} description={titles.description} maxWidthClassName="max-w-5xl" onClose={onBack}>
       <div className="space-y-4">
         <Button variant="secondary" onClick={onBack}>
           ← Volver al menú
@@ -69,25 +68,7 @@ export function CylinderViewSectionDialog({
         {section === "trace" ? (
           <Card>
             <CardContent className="pt-6">
-              <DataTable
-                columns={[
-                  { key: "when", header: "Fecha", render: (row) => formatDateTime(row.created_at) },
-                  {
-                    key: "change",
-                    header: "Cambio",
-                    render: (row: LogisticsCylinderTrace) => (
-                      <span className="text-sm text-foreground">
-                        {row.from_state ? getCylinderStateLabel(row.from_state) : "Inicio"} → {getCylinderStateLabel(row.to_state)}
-                      </span>
-                    ),
-                  },
-                  { key: "origin", header: "Origen", render: (row) => row.origin || "-" },
-                  { key: "notes", header: "Notas", render: (row) => row.notes || "-" },
-                ]}
-                rows={traceData}
-                rowKey={(row) => String(row.id)}
-                emptyMessage="Aún no hay trazas registradas."
-              />
+              <CylinderTraceabilityTimeline cylinderId={cylinderId} />
             </CardContent>
           </Card>
         ) : null}

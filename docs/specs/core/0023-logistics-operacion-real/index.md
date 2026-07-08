@@ -68,10 +68,10 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 | Peso real del envase | Si la bombona tiene peso real, ese es el dato valido para operacion | Implicito en legacy por retimbrado y campos tecnicos | Parcial: hay peso actual/origen y endpoints de peso | Parcial | Falta convertirlo en regla visible y operativa en carga/transporte | `logistics` | `SPEC 0023B` Peso real y promedio |
 | Peso promedio del envase | Si no hay peso real, usar un peso promedio por tipo/material/capacidad | En legacy aparece por Excel/operacion, no formalizado limpio | Bajo | Gap fuerte | Falta modelo, UI y regla backend de fallback | `logistics` + `productos` | `SPEC 0023B` |
 | Trazabilidad completa por cilindro | Debe poder verse por donde paso cada bombona, especialmente medicinal | Si, legacy ya tenia trazabilidad fuerte | Si, base buena en `lg_cylinder_state_log` y vistas del frontend | Parcial alto | Falta garantizar que la trazabilidad incluya camion/almacen movil/ruta/cliente de forma operativa y auditable | `logistics` | `SPEC 0023C` Trazabilidad operativa extendida |
-| Trazabilidad medicinal | Para medicinal es obligatorio poder reconstruir recorrido completo | No formalizado asi en docs, pero consistente con trazabilidad legacy | Bajo/medio | Gap fuerte | Falta un corte explicito de cumplimiento o trazabilidad reforzada | `logistics` | `SPEC 0023D` Trazabilidad medicinal |
+| Trazabilidad medicinal | Para medicinal es obligatorio poder reconstruir recorrido completo | No formalizado asi en docs, pero consistente con trazabilidad legacy | Bajo/medio | Gap fuerte | Falta aterrizar el filtro medicinal, la persistencia auditada del flag y el enriquecimiento de `Trazabilidad de estado` en la ficha | `logistics` | `SPEC 00023CA` Trazabilidad medicinal |
 | Etiquetado de cilindro | Cada bombona debe llevar codigo y etiqueta operativa | Si | Si | Bien encaminado | Validar formato final y flujo real de impresion en campo | `logistics` | incluir en `0023A/0023C` |
 
-> **Code Reality Check (2026-07-04):** 0023A está **cerrado** — todos los campos técnicos (30+) están visibles y editables en frontend. 0023B (peso real) tiene backend completo, falta el fallback de peso promedio que no existe. 0023C (trazabilidad) tiene datos en 7+ tablas relacionadas, falta enriquecer vista. 0023D (trazabilidad medicinal) no tiene **absolutamente nada** — ni un flag booleano, es greenfield total. Etiquetado tiene modelo completo, falta integración física con impresora.
+> **Code Reality Check (2026-07-08):** 0023A está **cerrado** — todos los campos técnicos (30+) están visibles y editables en frontend. 0023B (peso real) tiene backend completo, falta el fallback de peso promedio que no existe. 0023C (trazabilidad) ya tiene endpoint unificado `GET /cylinders/{id}/traceability`, pero la ficha sigue usando la vista vieja basada solo en `StateLog`. `00023CA` (trazabilidad medicinal) ya tiene base minima en codigo: `is_medical` booleano y `medical_notes` en cilindro. El gap real es persistencia completa del flag en update, filtro en listado, auditoria del cambio y enriquecimiento de `Trazabilidad de estado`. Etiquetado tiene modelo completo, falta integración física con impresora.
 
 ## 2. Carga, reparto y almacen movil
 
@@ -262,7 +262,7 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 - `0023A-envase-ficha-tecnica-y-pesos.md` — **gap cerrado**, solo auditar
 - `0023B-peso-real-y-promedio.md` — crear modelo de fallback
 - `0023C-trazabilidad-operativa-extendida.md` — enriquecer vista existente
-- `0023D-trazabilidad-medicinal.md` — greenfield, compliance
+- `00023CA-trazabilidad-medicinal.md` — compliance sobre trazabilidad existente
 - `0023AD-contratos-de-envases.md` — submódulo completo
 
 ### Carga y reparto (prioridad alta)
@@ -312,7 +312,7 @@ Esta tabla es critica para implementar `SPEC 0023` y sus sub-specs.
 ### Fase 1 — Envases (lo que toca cilindros directamente)
 | Prio | Gap | Spec | Esfuerzo | Depende de |
 |------|-----|------|----------|------------|
-| 1 | Trazabilidad medicinal | 0023D | Medio | — |
+| 1 | Trazabilidad medicinal | 00023CA | Medio | — |
 | 2 | Contratos de envases | 0023AD | Alto (submódulo) | — |
 | 3 | Peso promedio fallback | 0023B | Bajo | — |
 | 4 | Trazabilidad extendida (UI) | 0023C | Bajo (solo vista) | — |

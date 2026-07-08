@@ -5,6 +5,7 @@ from typing import cast
 
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 
+from apps.api.app.core.cache import close_cache, init_cache
 from apps.api.app.core.config import get_settings
 from apps.api.app.core.database import build_session_factory
 from apps.api.app.core.logging import get_logger
@@ -85,6 +86,8 @@ async def lifespan(app: FastAPI):
     settings = app.state.settings
     plugin_registry = app.state.plugin_registry
 
+    init_cache(settings.redis_url)
+
     logger.info(
         "application_started",
         extra={
@@ -101,6 +104,7 @@ async def lifespan(app: FastAPI):
         },
     )
     yield
+    close_cache()
     logger.info("application_stopped", extra={"app_name": settings.app_name, "env": settings.env})
 
 

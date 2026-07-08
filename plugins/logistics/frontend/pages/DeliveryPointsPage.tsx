@@ -36,6 +36,7 @@ type DeliveryPointFormState = {
   instructions: string;
 };
 
+
 const EMPTY_FORM: DeliveryPointFormState = {
   customer_id: "",
   customer_name: "",

@@ -15,6 +15,7 @@ import { ReceptionPage } from "./pages/ReceptionPage";
 import { RoutesPage } from "./pages/RoutesPage";
 import { VehiclesPage } from "./pages/VehiclesPage";
 import { WarehousesPage } from "./pages/WarehousesPage";
+import { ContractsPage } from "./pages/ContractsPage";
 import { LogisticsSummaryWidget } from "./LogisticsSummaryWidget";
 
 export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegistration {
@@ -44,12 +45,6 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         title: "Carga",
         component: LoadsPage,
         requiredPermissions: ["logistics.load.manage"],
-      },
-      {
-        path: "logistics/movements",
-        title: "Movimientos",
-        component: MovementsPage,
-        requiredPermissions: ["logistics.movement.read"],
       },
       {
         path: "logistics/planning",
@@ -93,6 +88,12 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         component: DeliveryPointsPage,
         requiredPermissions: ["logistics.route.read"],
       },
+      {
+        path: "logistics/contracts",
+        title: "Contratos",
+        component: ContractsPage,
+        requiredPermissions: ["logistics.contract.view"],
+      },
     ],
     navigation: [
       { to: `${ctx.appBasePath}/logistics/cylinders`, label: "Envases", requiredPermissions: ["logistics.cylinder.read"], group: "Logistics" },
@@ -107,6 +108,7 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
       { to: `${ctx.appBasePath}/logistics/warehouses`, label: "Almacenes", requiredPermissions: ["logistics.warehouse.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/vehicles`, label: "Vehiculos", requiredPermissions: ["logistics.vehicle.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/delivery-points`, label: "Entregas", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/contracts`, label: "Contratos", requiredPermissions: ["logistics.contract.view"], group: "Logistics" },
     ],
     widgets: [
       {

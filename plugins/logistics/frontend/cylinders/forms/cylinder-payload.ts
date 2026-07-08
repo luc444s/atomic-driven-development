@@ -91,9 +91,8 @@ export function buildCylinderPayload(form: CylinderFormState) {
 export function buildCreateCylinderPayload(form: CylinderFormState, meta: CylinderCreateMetaState) {
   return {
     ...buildCylinderPayload(form),
+    warehouse_id: toNullable(meta.warehouse_id),
     entry_mode: meta.entry_mode,
-    document_type: toNullable(meta.document_type),
-    document_number: toNullable(meta.document_number),
     customer_id:
       meta.entry_mode === "EMPTY_FROM_CUSTOMER" ? toNullable(meta.customer_id) : null,
   };

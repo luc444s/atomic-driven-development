@@ -194,6 +194,35 @@ export function LocationPicker({
   }, []);
 
   const defaultCenter: LatLng = value ?? { lat: 40.4168, lng: -3.7038 };
+  const [address, setAddress] = useState<string | null>(null);
+  const [resolving, setResolving] = useState(false);
+
+  useEffect(() => {
+    if (!value) {
+      setAddress(null);
+      return;
+    }
+    let cancelled = false;
+    setResolving(true);
+    fetch(
+      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${value.lat}&lon=${value.lng}`,
+      { headers: { "Accept-Language": "es" } },
+    )
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (!cancelled) {
+          setAddress(data?.display_name ?? null);
+          setResolving(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setAddress(null);
+          setResolving(false);
+        }
+      });
+    return () => { cancelled = true; };
+  }, [value?.lat, value?.lng]);
 
   return (
     <div className={cn("space-y-2", className)}>
@@ -208,7 +237,7 @@ export function LocationPicker({
       >
         <MapContainer
           center={[defaultCenter.lat, defaultCenter.lng]}
-          zoom={value ? DEFAULT_ZOOM : 5}
+          zoom={value ? DEFAULT_ZOOM : 6}
           className="h-full w-full"
           ref={mapRef}
           whenReady={handleMapReady}
@@ -222,9 +251,16 @@ export function LocationPicker({
         </MapContainer>
       </div>
       {value ? (
-        <p className="text-xs text-muted-foreground">
-          {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
-        </p>
+        <div className="space-y-1">
+          <p className="text-xs text-muted-foreground">
+            {value.lat.toFixed(6)}, {value.lng.toFixed(6)}
+          </p>
+          {resolving ? (
+            <p className="text-xs text-muted-foreground italic">Resolviendo direcci\u00f3n...</p>
+          ) : address ? (
+            <p className="text-xs text-muted-foreground">{address}</p>
+          ) : null}
+        </div>
       ) : (
         <p className="text-xs text-muted-foreground">
           {placeholder ?? "Haz clic en el mapa para seleccionar una ubicaci\u00f3n"}

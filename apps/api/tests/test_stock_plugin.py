@@ -149,7 +149,6 @@ def create_product(client: TestClient, headers: dict[str, str]) -> dict[str, str
             "weight_kg": 10,
             "content_m3": 0.1,
             "country_code": "PE",
-            "delivery_time": "24h",
             "is_service": False,
             "is_active": True,
         },

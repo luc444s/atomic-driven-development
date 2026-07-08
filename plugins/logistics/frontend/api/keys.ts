@@ -1,0 +1,110 @@
+// Auto-generado por split_api.py
+import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+
+export const logisticsKeys = {
+  all: ["logistics"] as const,
+  cylinders: {
+    all: () => [...logisticsKeys.all, "cylinders"] as const,
+    list: (filters: Record<string, string | boolean | undefined>) =>
+      [...logisticsKeys.cylinders.all(), "list", filters] as const,
+    detail: (id: string) => [...logisticsKeys.cylinders.all(), id] as const,
+    trace: (id: string) => [...logisticsKeys.cylinders.detail(id), "trace"] as const,
+    retimbrados: (id: string) => [...logisticsKeys.cylinders.detail(id), "retimbrados"] as const,
+    ownership: (id: string) => [...logisticsKeys.cylinders.detail(id), "ownership"] as const,
+    labelData: (id: string) => [...logisticsKeys.cylinders.detail(id), "label-data"] as const,
+    labelHistory: (id: string) => [...logisticsKeys.cylinders.detail(id), "label-history"] as const,
+    services: (id: string) => [...logisticsKeys.cylinders.detail(id), "services"] as const,
+    allowedTransitions: (id: string) =>
+      [...logisticsKeys.cylinders.detail(id), "allowed-transitions"] as const,
+    summary: () => [...logisticsKeys.cylinders.all(), "summary"] as const,
+  },
+  states: () => [...logisticsKeys.all, "states"] as const,
+  conditions: () => [...logisticsKeys.all, "conditions"] as const,
+  gasProducts: () => [...logisticsKeys.all, "gas-products"] as const,
+  brands: () => [...logisticsKeys.all, "brands"] as const,
+  serviceTypes: () => [...logisticsKeys.all, "service-types"] as const,
+  warehouses: () => [...logisticsKeys.all, "warehouses"] as const,
+  zones: () => [...logisticsKeys.all, "zones"] as const,
+  vehicles: () => [...logisticsKeys.all, "vehicles"] as const,
+  deliveryPoints: () => [...logisticsKeys.all, "delivery-points"] as const,
+  orders: {
+    all: () => [...logisticsKeys.all, "orders"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.orders.all(), "list", filters] as const,
+    detail: (id: string) => [...logisticsKeys.orders.all(), id] as const,
+    items: (id: string) => [...logisticsKeys.orders.detail(id), "items"] as const,
+  },
+  routes: {
+    all: () => [...logisticsKeys.all, "routes"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.routes.all(), "list", filters] as const,
+    detail: (id: string) => [...logisticsKeys.routes.all(), id] as const,
+    stops: (id: string) => [...logisticsKeys.routes.detail(id), "stops"] as const,
+  },
+  loads: (routeId: string) => [...logisticsKeys.all, "loads", routeId] as const,
+  movementTypes: () => [...logisticsKeys.all, "movement-types"] as const,
+  movements: {
+    all: () => [...logisticsKeys.all, "movements"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.movements.all(), "list", filters] as const,
+    detail: (id: string) => [...logisticsKeys.movements.all(), id] as const,
+    items: (id: string) => [...logisticsKeys.movements.detail(id), "items"] as const,
+    history: (id: string) => [...logisticsKeys.movements.detail(id), "history"] as const,
+  },
+  taskTypes: () => [...logisticsKeys.all, "task-types"] as const,
+  agenda: {
+    all: () => [...logisticsKeys.all, "agenda"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.agenda.all(), "list", filters] as const,
+    detail: (id: string) => [...logisticsKeys.agenda.all(), id] as const,
+  },
+  scans: {
+    all: () => [...logisticsKeys.all, "scans"] as const,
+    list: () => [...logisticsKeys.scans.all(), "list"] as const,
+    byMovement: (movementId: string) => [...logisticsKeys.scans.all(), movementId] as const,
+  },
+};
+
+export function getCylinderQueryKeys(cylinderId?: string) {
+  const keys: (readonly (string | number)[])[] = [
+    logisticsKeys.cylinders.all(),
+    logisticsKeys.cylinders.summary(),
+  ];
+  if (cylinderId) {
+    keys.push(
+      logisticsKeys.cylinders.detail(cylinderId),
+      logisticsKeys.cylinders.trace(cylinderId),
+      logisticsKeys.cylinders.allowedTransitions(cylinderId),
+      logisticsKeys.cylinders.retimbrados(cylinderId),
+      logisticsKeys.cylinders.ownership(cylinderId),
+      logisticsKeys.cylinders.labelData(cylinderId),
+      logisticsKeys.cylinders.labelHistory(cylinderId),
+      logisticsKeys.cylinders.services(cylinderId),
+    );
+  }
+  return keys;
+}
+
+export const planningKeys = {
+  stock: (wh?: string) => [...logisticsKeys.all, "planning", "stock", wh] as const,
+  stockSummary: () => [...logisticsKeys.all, "planning", "stock-summary"] as const,
+  pendingOrders: (wh?: string) => [...logisticsKeys.all, "planning", "pending-orders", wh] as const,
+  preloads: {
+    all: () => [...logisticsKeys.all, "planning", "preloads"] as const,
+    list: (wh?: string) => [...planningKeys.preloads.all(), "list", wh] as const,
+    detail: (id: string) => [...planningKeys.preloads.all(), id] as const,
+  },
+};
+
+export const receptionKeys = {
+  pending: () => [...logisticsKeys.all, "reception", "pending"] as const,
+  detail: (id: string) => [...logisticsKeys.all, "reception", id] as const,
+  incidentReasons: () => [...logisticsKeys.all, "reception", "incident-reasons"] as const,
+};
+
+export const equipmentKeys = {
+  all: () => [...logisticsKeys.all, "equipment"] as const,
+  list: () => [...equipmentKeys.all(), "list"] as const,
+  movementEquipment: (id: string) => [...logisticsKeys.all, "movements", id, "equipment"] as const,
+};
+

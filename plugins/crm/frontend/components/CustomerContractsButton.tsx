@@ -38,7 +38,7 @@ export function CustomerContractsButton({ customerId }: CustomerContractsButtonP
 
   return (
     <>
-      <Button variant="secondary" onClick={() => setIsOpen(true)}>
+      <Button variant="outline" onClick={() => setIsOpen(true)}>
         Contratos
       </Button>
 

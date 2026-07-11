@@ -27,7 +27,7 @@ import {
 } from "../api";
 import { BankAccountsSection } from "./BankAccountsSection";
 import { CustomerContractsButton } from "./CustomerContractsButton";
-import { CustomerInfoCard } from "./CustomerInfoCard";
+import { CustomerOverviewCard } from "./CustomerOverviewCard";
 import { DeliveryPointsSection } from "./DeliveryPointsSection";
 import { PricingTermsSection } from "./PricingTermsSection";
 import type {
@@ -310,55 +310,37 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
 
       {detailQuery.data ? (
         <>
-          <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                window.location.href = `/app/logistics/movements?customerId=${customerId}`;
-              }}
-            >
-              Ver movimientos
-            </Button>
-          </div>
+          <div className="space-y-6">
+            <CustomerOverviewCard customer={detailQuery.data} />
 
-          <div className="grid gap-6 xl:grid-cols-[1fr,1.1fr]">
-            <CustomerInfoCard customer={detailQuery.data} />
             <Card>
               <CardHeader>
-                <CardTitle>Resumen del cliente</CardTitle>
-                <CardDescription>Vista rápida del maestro CRM antes de abrir sus gestiones específicas.</CardDescription>
+                <CardTitle>Acciones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6 text-sm text-foreground">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="rounded-md border border-border p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Direcciones</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{detailQuery.data.addresses.length}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Fiscal activa: {detailQuery.data.addresses.find((item) => item.id === detailQuery.data.fiscal_address_id)?.label || "-"}
-                    </p>
-                  </div>
-                  <div className="rounded-md border border-border p-4">
-                    <p className="text-xs uppercase tracking-wide text-muted-foreground">Contactos base</p>
-                    <p className="mt-2 text-2xl font-semibold text-foreground">{detailQuery.data.contacts.length}</p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Principal: {detailQuery.data.contacts.find((item) => item.is_primary)?.label || detailQuery.data.contacts.find((item) => item.is_primary)?.full_name || "-"}
-                    </p>
-                  </div>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Notas</p>
-                  <p>{detailQuery.data.notes ?? "-"}</p>
-                </div>
+              <CardContent className="space-y-4 text-sm text-foreground">
                 <div className="flex flex-wrap gap-3">
-                  <Button variant="secondary" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
-                  <Button variant="secondary" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
-                  <Button variant="secondary" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
-                  <Button variant="secondary" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
-                  <Button variant="secondary" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
-                  <Button variant="secondary" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
+                  <Button onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
+                  <Button
+                    onClick={() => {
+                      window.location.href = `/app/logistics/movements?customerId=${customerId}`;
+                    }}
+                  >
+                    Ver movimientos
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
+                  <Button variant="outline" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
+                  <Button variant="outline" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
+                  <Button variant="outline" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
+                  <Button variant="outline" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
+                  <Button variant="outline" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
                   <CustomerContractsButton customerId={customerId} />
                 </div>
+                {detailQuery.data.notes ? (
+                  <div className="rounded-md border border-border bg-muted/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notas</p>
+                    <p className="mt-2 break-words">{detailQuery.data.notes}</p>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -924,7 +906,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
     <Dialog
       open={open}
       title="Detalle de cliente"
-      description="Vista de solo lectura del cliente y sus datos fiscales principales."
+      description="Información general del cliente, envases en posesión y acceso a secciones administrativas."
       onClose={onClose}
       maxWidthClassName="max-w-4xl"
     >

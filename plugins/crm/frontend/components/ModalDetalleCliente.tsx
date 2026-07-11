@@ -318,21 +318,15 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                 <CardTitle>Acciones</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 text-sm text-foreground">
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
-                  <Button
-                    onClick={() => {
-                      window.location.href = `/app/logistics/movements?customerId=${customerId}`;
-                    }}
-                  >
-                    Ver movimientos
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
-                  <Button variant="outline" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
-                  <Button variant="outline" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
-                  <Button variant="outline" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
-                  <Button variant="outline" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
-                  <Button variant="outline" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
+                <div className="flex flex-wrap gap-1">
+                  <Button variant="ghost" onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
+                  <Button variant="ghost" onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}>Movimientos</Button>
+                  <Button variant="ghost" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
+                  <Button variant="ghost" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
+                  <Button variant="ghost" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
+                  <Button variant="ghost" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
+                  <Button variant="ghost" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
+                  <Button variant="ghost" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
                   <CustomerContractsButton customerId={customerId} />
                 </div>
                 {detailQuery.data.notes ? (

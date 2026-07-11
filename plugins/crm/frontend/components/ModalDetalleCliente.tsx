@@ -317,8 +317,8 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
               <CardHeader>
                 <CardTitle>Acciones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4 text-sm text-foreground">
-                <div className="flex flex-wrap gap-1">
+              <CardContent className="space-y-6 text-sm text-foreground">
+                <div className="flex flex-wrap gap-3">
                   <Button variant="ghost" onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
                   <Button variant="ghost" onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}>Movimientos</Button>
                   <Button variant="ghost" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>

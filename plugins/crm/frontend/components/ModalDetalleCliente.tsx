@@ -2,13 +2,14 @@ import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Popover } from "../../../../apps/web/src/shared/ui/popover";
 import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { listDeliveryPoints, logisticsKeys } from "../../../logistics/frontend/api";
+import { listContracts, type LogisticsCylinderContract } from "../../../logistics/frontend/api/contracts";
 import {
   createCustomerAddress,
   createCustomerCommercialAssignment,
@@ -26,7 +27,6 @@ import {
   updateCustomerContact,
 } from "../api";
 import { BankAccountsSection } from "./BankAccountsSection";
-import { CustomerContractsButton } from "./CustomerContractsButton";
 import { CustomerOverviewCard } from "./CustomerOverviewCard";
 import { DeliveryPointsSection } from "./DeliveryPointsSection";
 import { PricingTermsSection } from "./PricingTermsSection";
@@ -112,6 +112,8 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const [isDeliveryPointsOpen, setIsDeliveryPointsOpen] = useState(false);
   const [isBankAccountsOpen, setIsBankAccountsOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
+  const [isContractsOpen, setIsContractsOpen] = useState(false);
+  const [envasesDialogOpen, setEnvasesDialogOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
@@ -140,6 +142,12 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
     queryKey: crmKeys.commercial.users,
     queryFn: listCommercialUsers,
     enabled: open && isCommercialOpen,
+  });
+
+  const { data: contracts = [], isLoading: contractsLoading } = useQuery({
+    queryKey: ["logistics", "contracts", "customer", customerId],
+    queryFn: () => listContracts({ customer_id: customerId }),
+    enabled: open && isContractsOpen,
   });
 
   const refreshCustomer = async () => {
@@ -311,38 +319,106 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
       {detailQuery.data ? (
         <>
           <div className="space-y-6">
-            <CustomerOverviewCard customer={detailQuery.data} />
+            <CustomerOverviewCard
+              customer={detailQuery.data}
+              envasesDialogOpen={envasesDialogOpen}
+              onEnvasesDialogClose={() => setEnvasesDialogOpen(false)}
+            />
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Acciones</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 text-sm text-foreground">
-                <div className="flex flex-wrap gap-3">
-                  <Button onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
-                  <Button
-                    onClick={() => {
-                      window.location.href = `/app/logistics/movements?customerId=${customerId}`;
-                    }}
-                  >
-                    Ver movimientos
-                  </Button>
-                  <Button variant="outline" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
-                  <Button variant="outline" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
-                  <Button variant="outline" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
-                  <Button variant="outline" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
-                  <Button variant="outline" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
-                  <Button variant="outline" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
-                  <CustomerContractsButton customerId={customerId} />
-                </div>
-                {detailQuery.data.notes ? (
-                  <div className="rounded-md border border-border bg-muted/20 p-4">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notas</p>
-                    <p className="mt-2 break-words">{detailQuery.data.notes}</p>
+            {detailQuery.data.notes ? (
+              <div className="rounded-md border border-border bg-muted/20 p-4">
+                <p className="text-xs font-semibold text-muted-foreground">Notas</p>
+                <p className="mt-2 break-words text-sm">{detailQuery.data.notes}</p>
+              </div>
+            ) : null}
+
+            <div className="flex flex-col items-center gap-3 rounded-lg border border-border p-6">
+              <Button size="lg" className="w-full max-w-xs" onClick={() => setEnvasesDialogOpen(true)}>
+                Ver envases
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  window.location.href = `/app/logistics/movements?customerId=${customerId}`;
+                }}
+              >
+                Ver movimientos
+              </Button>
+              <div className="self-end">
+                <Popover
+                  trigger={
+                    <Button variant="ghost" className="text-muted-foreground">⋯</Button>
+                  }
+                  align="end"
+                  contentClassName="w-56"
+                >
+                  <div className="py-1">
+                    <p className="px-3 py-1 text-xs font-semibold text-muted-foreground">General</p>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { onEditCustomer?.(customerId); }}
+                    >
+                      Editar
+                    </button>
+                    <div className="my-1 border-t" />
+                    <p className="px-3 py-1 text-xs font-semibold text-muted-foreground">Operación</p>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsAddressesOpen(true); }}
+                    >
+                      Direcciones
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsContactsOpen(true); }}
+                    >
+                      Contactos
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsDeliveryPointsOpen(true); }}
+                    >
+                      Puntos de entrega
+                    </button>
+                    <div className="my-1 border-t" />
+                    <p className="px-3 py-1 text-xs font-semibold text-muted-foreground">Administración</p>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsContractsOpen(true); }}
+                    >
+                      Contratos
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsPricingOpen(true); }}
+                    >
+                      Precios especiales
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsBankAccountsOpen(true); }}
+                    >
+                      Cuentas bancarias
+                    </button>
+                    <button
+                      type="button"
+                      className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                      onClick={() => { setIsCommercialOpen(true); }}
+                    >
+                      Gestión comercial
+                    </button>
                   </div>
-                ) : null}
-              </CardContent>
-            </Card>
+                </Popover>
+              </div>
+            </div>
           </div>
 
           <Dialog
@@ -879,6 +955,35 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
             maxWidthClassName="max-w-4xl"
           >
             <PricingTermsSection customerId={customerId} canManage />
+          </Dialog>
+
+          <Dialog
+            open={isContractsOpen}
+            title="Contratos de envases"
+            onClose={() => setIsContractsOpen(false)}
+            maxWidthClassName="max-w-3xl"
+          >
+            <div className="space-y-4 text-sm text-foreground">
+              {contractsLoading ? (
+                <p className="text-sm text-muted-foreground">Cargando contratos...</p>
+              ) : contracts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">Este cliente no tiene contratos de envases.</p>
+              ) : (
+                <DataTable
+                  dense
+                  rowKey={(row: LogisticsCylinderContract) => row.id}
+                  rows={contracts}
+                  columns={[
+                    { key: "contract_number", header: "Número", render: (row: LogisticsCylinderContract) => row.contract_number || "-" },
+                    { key: "type", header: "Tipo", render: (row: LogisticsCylinderContract) => row.contract_type === "ANNUAL" ? "Anual" : "Diario" },
+                    { key: "status", header: "Estado", render: (row: LogisticsCylinderContract) => row.status },
+                    { key: "quantity", header: "Cant.", render: (row: LogisticsCylinderContract) => `${row.quantity} x` },
+                    { key: "start_date", header: "Inicio", render: (row: LogisticsCylinderContract) => row.start_date },
+                    { key: "end_date", header: "Fin", render: (row: LogisticsCylinderContract) => row.end_date || "-" },
+                  ]}
+                />
+              )}
+            </div>
           </Dialog>
 
           <ConfirmDialog

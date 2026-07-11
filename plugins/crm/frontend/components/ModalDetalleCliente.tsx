@@ -8,7 +8,6 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { toast } from "../../../../apps/web/src/shared/ui/toast";
-import { listContracts, type LogisticsCylinderContract } from "../../../logistics/frontend/api/contracts";
 import { listDeliveryPoints, logisticsKeys } from "../../../logistics/frontend/api";
 import {
   createCustomerAddress,
@@ -27,6 +26,7 @@ import {
   updateCustomerContact,
 } from "../api";
 import { BankAccountsSection } from "./BankAccountsSection";
+import { CustomerContractsButton } from "./CustomerContractsButton";
 import { CustomerOverviewCard } from "./CustomerOverviewCard";
 import { DeliveryPointsSection } from "./DeliveryPointsSection";
 import { PricingTermsSection } from "./PricingTermsSection";
@@ -87,27 +87,6 @@ const EMPTY_COMMERCIAL_ASSIGNMENT: CustomerCommercialAssignmentPayload = {
   is_primary: false,
 };
 
-function SectionCard({
-  label,
-  description,
-  onClick,
-}: {
-  label: string;
-  description: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
-    >
-      <p className="text-sm font-medium text-foreground">{label}</p>
-      <p className="mt-1 text-xs text-muted-foreground">{description}</p>
-    </button>
-  );
-}
-
 export type ModalDetalleClienteProps = {
   open: boolean;
   customerId: string;
@@ -133,7 +112,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const [isDeliveryPointsOpen, setIsDeliveryPointsOpen] = useState(false);
   const [isBankAccountsOpen, setIsBankAccountsOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
-  const [isContractsOpen, setIsContractsOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string; onConfirm: () => void } | null>(null);
 
   useEffect(() => {
@@ -162,12 +140,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
     queryKey: crmKeys.commercial.users,
     queryFn: listCommercialUsers,
     enabled: open && isCommercialOpen,
-  });
-
-  const { data: contracts = [], isLoading: contractsLoading } = useQuery({
-    queryKey: ["logistics", "contracts", "customer", customerId],
-    queryFn: () => listContracts({ customer_id: customerId }),
-    enabled: open && isContractsOpen,
   });
 
   const refreshCustomer = async () => {
@@ -341,66 +313,34 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
           <div className="space-y-6">
             <CustomerOverviewCard customer={detailQuery.data} />
 
-            {detailQuery.data.notes ? (
-              <div className="rounded-md border border-border bg-muted/20 p-4">
-                <p className="text-xs font-semibold text-muted-foreground">Notas</p>
-                <p className="mt-2 break-words text-sm">{detailQuery.data.notes}</p>
-              </div>
-            ) : null}
-
             <Card>
               <CardHeader>
-                <CardTitle>Menú</CardTitle>
-                <CardDescription>Secciones administrativas y operativas del cliente.</CardDescription>
+                <CardTitle>Acciones</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  <SectionCard
-                    label="Editar"
-                    description="Actualiza los datos del cliente."
-                    onClick={() => onEditCustomer?.(customerId)}
-                  />
-                  <SectionCard
-                    label="Movimientos"
-                    description="Historial de movimientos de envases."
-                    onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}
-                  />
-                  <SectionCard
-                    label="Direcciones"
-                    description="Direcciones fiscales, comerciales y sedes operativas."
-                    onClick={() => setIsAddressesOpen(true)}
-                  />
-                  <SectionCard
-                    label="Contactos"
-                    description="Personas de contacto y canales de comunicación."
-                    onClick={() => setIsContactsOpen(true)}
-                  />
-                  <SectionCard
-                    label="Gestión comercial"
-                    description="Agentes, supervisores y asignación comercial."
-                    onClick={() => setIsCommercialOpen(true)}
-                  />
-                  <SectionCard
-                    label="Puntos de entrega"
-                    description="Puntos gestionados por logística."
-                    onClick={() => setIsDeliveryPointsOpen(true)}
-                  />
-                  <SectionCard
-                    label="Cuentas bancarias"
-                    description="IBAN, titular y banco para domiciliaciones."
-                    onClick={() => setIsBankAccountsOpen(true)}
-                  />
-                  <SectionCard
-                    label="Precios especiales"
-                    description="Condiciones comerciales fuera de tarifa base."
-                    onClick={() => setIsPricingOpen(true)}
-                  />
-                  <SectionCard
-                    label="Contratos"
-                    description="Contratos de envases activos e historial."
-                    onClick={() => setIsContractsOpen(true)}
-                  />
+              <CardContent className="space-y-4 text-sm text-foreground">
+                <div className="flex flex-wrap gap-3">
+                  <Button onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
+                  <Button
+                    onClick={() => {
+                      window.location.href = `/app/logistics/movements?customerId=${customerId}`;
+                    }}
+                  >
+                    Ver movimientos
+                  </Button>
+                  <Button variant="outline" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
+                  <Button variant="outline" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
+                  <Button variant="outline" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
+                  <Button variant="outline" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
+                  <Button variant="outline" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
+                  <Button variant="outline" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
+                  <CustomerContractsButton customerId={customerId} />
                 </div>
+                {detailQuery.data.notes ? (
+                  <div className="rounded-md border border-border bg-muted/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notas</p>
+                    <p className="mt-2 break-words">{detailQuery.data.notes}</p>
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>
@@ -939,35 +879,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
             maxWidthClassName="max-w-4xl"
           >
             <PricingTermsSection customerId={customerId} canManage />
-          </Dialog>
-
-          <Dialog
-            open={isContractsOpen}
-            title="Contratos de envases"
-            onClose={() => setIsContractsOpen(false)}
-            maxWidthClassName="max-w-3xl"
-          >
-            <div className="space-y-4 text-sm text-foreground">
-              {contractsLoading ? (
-                <p className="text-sm text-muted-foreground">Cargando contratos...</p>
-              ) : contracts.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Este cliente no tiene contratos de envases.</p>
-              ) : (
-                <DataTable
-                  dense
-                  rowKey={(row: LogisticsCylinderContract) => row.id}
-                  rows={contracts}
-                  columns={[
-                    { key: "contract_number", header: "Número", render: (row: LogisticsCylinderContract) => row.contract_number || "-" },
-                    { key: "type", header: "Tipo", render: (row: LogisticsCylinderContract) => row.contract_type === "ANNUAL" ? "Anual" : "Diario" },
-                    { key: "status", header: "Estado", render: (row: LogisticsCylinderContract) => row.status },
-                    { key: "quantity", header: "Cant.", render: (row: LogisticsCylinderContract) => `${row.quantity} x` },
-                    { key: "start_date", header: "Inicio", render: (row: LogisticsCylinderContract) => row.start_date },
-                    { key: "end_date", header: "Fin", render: (row: LogisticsCylinderContract) => row.end_date || "-" },
-                  ]}
-                />
-              )}
-            </div>
           </Dialog>
 
           <ConfirmDialog

@@ -1,6 +1,9 @@
+import { useState } from "react";
+
 import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
+import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import {
   getCustomerCylinderSummary,
@@ -11,8 +14,6 @@ import { CustomerCylinderSummaryDialog } from "./CustomerCylinderSummaryDialog";
 
 type CustomerOverviewCardProps = {
   customer: Customer;
-  envasesDialogOpen?: boolean;
-  onEnvasesDialogClose?: () => void;
 };
 
 function MetricBox({
@@ -32,12 +33,9 @@ function MetricBox({
   );
 }
 
-export function CustomerOverviewCard({
-  customer,
-  envasesDialogOpen = false,
-  onEnvasesDialogClose,
-}: CustomerOverviewCardProps) {
+export function CustomerOverviewCard({ customer }: CustomerOverviewCardProps) {
   const permissions = useAuthStore((state) => state.permissions);
+  const [open, setOpen] = useState(false);
   const canReadCylinder = permissions.includes("logistics.cylinder.read");
 
   const summaryQuery = useQuery({
@@ -119,6 +117,11 @@ export function CustomerOverviewCard({
                   <strong className="text-foreground">{summaryQuery.data.contract.active_contract_count}</strong>
                 </span>
               </div>
+              <div className="mt-3">
+                <Button variant="secondary" onClick={() => setOpen(true)}>
+                  Ver detalle de envases
+                </Button>
+              </div>
             </div>
           ) : null}
         </div>
@@ -150,8 +153,8 @@ export function CustomerOverviewCard({
 
         {summaryQuery.data ? (
           <CustomerCylinderSummaryDialog
-            open={envasesDialogOpen}
-            onClose={() => onEnvasesDialogClose?.()}
+            open={open}
+            onClose={() => setOpen(false)}
             summary={summaryQuery.data}
           />
         ) : null}

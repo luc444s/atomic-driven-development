@@ -1,5 +1,5 @@
 import { FormEvent, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "../../../apps/web/src/lib/react-query";
+import { useMutation } from "../../../apps/web/src/lib/react-query";
 import type { CustomerBrief } from "../../crm/frontend/types";
 
 import { Alert } from "../../../apps/web/src/shared/ui/alert";
@@ -51,15 +51,13 @@ import { ScanDialog } from "./cylinders/dialogs/ScanDialog";
 import { useCylinderPermissions } from "./cylinders/hooks/use-cylinder-permissions";
 import { useCylinderData } from "./cylinders/hooks/use-cylinder-data";
 import { useCylinderMutations } from "./cylinders/hooks/use-cylinder-mutations";
-import { listContractsByCylinder } from "./api/contracts";
 import { ContractFormDialog } from "./contracts/dialogs/contract-form-dialog";
 import { EMPTY_CONTRACT_FORM, type ContractFormState } from "./contracts/forms/contract-form-state";
 import { buildCreatePayload } from "./contracts/forms/contract-payload";
-import { addContractItem, createContract, uploadContractFile } from "./api/contracts";
+import { createContract, uploadContractFile } from "./api/contracts";
 
 export function LogisticsPage() {
   const permissions = useCylinderPermissions();
-  const queryClient = useQueryClient();
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [medicalOnly, setMedicalOnly] = useState(false);
@@ -110,25 +108,11 @@ export function LogisticsPage() {
     keywords: [warehouse.code, warehouse.name, warehouse.address ?? ""],
   }));
 
-  const cylinderContractsQuery = useQuery({
-    queryKey: ["logistics", "cylinder-contracts", selectedCylinderId],
-    queryFn: () => listContractsByCylinder(selectedCylinderId),
-    enabled: !!selectedCylinderId && permissions.canContractView,
-  });
-
   const createContractMutation = useMutation({
     mutationFn: async () => {
       const created = await createContract(buildCreatePayload(contractForm));
       if (selectedContractFile) {
         await uploadContractFile(created.id, selectedContractFile);
-      }
-      if (selectedCylinder) {
-        await addContractItem(created.id, {
-          cylinder_id: selectedCylinder.id,
-          serial: selectedCylinder.serial,
-          quantity: Number(contractForm.quantity || "1"),
-          unit_price: Number(contractForm.unit_price || "0"),
-        });
       }
       return created;
     },
@@ -138,9 +122,6 @@ export function LogisticsPage() {
         setIsDetailMenuOpen(true);
       }
       setSelectedContractFile(null);
-      if (selectedCylinderId) {
-        await queryClient.invalidateQueries({ queryKey: ["logistics", "cylinder-contracts", selectedCylinderId] });
-      }
     },
     onError: (error: Error) => {
       setDetailError(error.message);
@@ -410,11 +391,8 @@ export function LogisticsPage() {
           setDetailError(null);
           createContractMutation.mutate();
         }}
-        onCylinderSelect={() => {}}
         onFileSelect={setSelectedContractFile}
         showNotes={false}
-        initialCylinderSerial={selectedCylinder?.serial ?? ""}
-        lockCylinder
       />
       <LogisticsSection
       title="Control de envases"
@@ -568,7 +546,6 @@ export function LogisticsPage() {
         selectedCylinder={selectedCylinder}
         isDetailMenuOpen={isDetailMenuOpen}
         detailError={detailError}
-        contractList={cylinderContractsQuery.data ?? []}
         productById={data.productById}
         gasById={data.gasById}
         brandById={data.brandById}

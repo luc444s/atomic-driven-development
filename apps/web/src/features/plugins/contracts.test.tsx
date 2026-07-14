@@ -3,12 +3,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import {
   buildCreatePayload,
-  buildItemPayload,
   buildTerminatePayload,
 } from "../../../../../plugins/logistics/frontend/contracts/forms/contract-payload";
 import {
   EMPTY_CONTRACT_FORM,
-  EMPTY_CONTRACT_ITEM_FORM,
   EMPTY_TERMINATE_FORM,
 } from "../../../../../plugins/logistics/frontend/contracts/forms/contract-form-state";
 import { ContractStatusBadge } from "../../../../../plugins/logistics/frontend/contracts/components/contract-status-badge";
@@ -56,22 +54,6 @@ describe("contracts form builders", () => {
     expect(payload.notes).toBeNull();
     expect(payload.observations).toBeNull();
     expect(payload.quantity).toBe(1);
-  });
-
-  it("builds item payload with serial and quantity", () => {
-    const form = {
-      ...EMPTY_CONTRACT_ITEM_FORM,
-      serial: "GL-200001",
-      quantity: "3",
-      unit_price: "100.00",
-    };
-
-    const payload = buildItemPayload(form);
-
-    expect(payload.serial).toBe("GL-200001");
-    expect(payload.quantity).toBe(3);
-    expect(payload.unit_price).toBe(100.00);
-    expect(payload.cylinder_id).toBeNull();
   });
 
   it("builds terminate payload with reason", () => {

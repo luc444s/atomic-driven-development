@@ -1537,19 +1537,6 @@ class ContractHistoryRead(BaseModel):
     created_by: str | None = None
 
 
-class CylinderContractItemRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    contract_id: str
-    cylinder_id: str | None = None
-    serial: str | None = None
-    quantity: int = 1
-    unit_price: float
-    delivered_at: datetime | None = None
-    returned_at: datetime | None = None
-
-
 class CylinderContractRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -1574,11 +1561,11 @@ class CylinderContractRead(BaseModel):
     signed_flag: bool = False
     signed_at: datetime | None = None
     signed_by: str | None = None
+    signature_type: str | None = None
     contract_file_path: str | None = None
     notes: str | None = None
     observations: str | None = None
     created_at: datetime
-    items: list[CylinderContractItemRead] = []
 
 
 class CylinderContractCreate(BaseModel):
@@ -1613,19 +1600,6 @@ class CylinderContractUpdate(BaseModel):
     observations: str | None = None
 
 
-class CylinderContractItemCreate(BaseModel):
-    cylinder_id: str | None = None
-    serial: str | None = None
-    quantity: int = 1
-    unit_price: float
-    delivered_at: datetime | None = None
-
-
-class CylinderContractItemUpdate(BaseModel):
-    delivered_at: datetime | None = None
-    returned_at: datetime | None = None
-
-
 class CylinderContractActivate(BaseModel):
     pass
 
@@ -1633,6 +1607,9 @@ class CylinderContractActivate(BaseModel):
 class CylinderContractSign(BaseModel):
     signed_at: datetime | None = None
     signed_by: str | None = None
+    signer_name: str | None = None
+    signer_email: str | None = None
+    signer_phone: str | None = None
     signature_type: str | None = None
     contract_file_path: str | None = None
 

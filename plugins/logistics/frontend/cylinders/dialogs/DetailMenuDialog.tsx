@@ -4,14 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
 import type { LogisticsCylinder } from "../../api";
-import type { LogisticsCylinderContract } from "../../api/contracts";
-import { ContractStatusBadge } from "../../contracts/components/contract-status-badge";
 
 interface DetailMenuDialogProps {
   selectedCylinder: LogisticsCylinder | null;
   isDetailMenuOpen: boolean;
   detailError: string | null;
-  contractList: LogisticsCylinderContract[];
   productById: Map<string, string>;
   gasById: Map<string, string>;
   brandById: Map<string, string>;
@@ -38,20 +35,10 @@ interface DetailMenuDialogProps {
   formatDate: (date: string | null | undefined) => string;
 }
 
-function isActiveContractForCylinder(contract: LogisticsCylinderContract, cylinderId: string) {
-  if (contract.status === "CANCELLED" || contract.status === "EXPIRED") {
-    return false;
-  }
-  return contract.items.some(
-    (item) => item.cylinder_id === cylinderId && item.returned_at === null
-  );
-}
-
 export function DetailMenuDialog({
   selectedCylinder,
   isDetailMenuOpen,
   detailError,
-  contractList,
   productById,
   gasById,
   brandById,
@@ -77,13 +64,6 @@ export function DetailMenuDialog({
   closeDetailContext,
   formatDate,
 }: DetailMenuDialogProps) {
-  const currentContract = selectedCylinder
-    ? contractList.find((contract) =>
-        isActiveContractForCylinder(contract, selectedCylinder.id)
-      ) ?? null
-    : null;
-  const hasContractHistory = contractList.length > 0;
-
   return (
     <Dialog
       open={isDetailMenuOpen && selectedCylinder !== null}
@@ -119,16 +99,6 @@ export function DetailMenuDialog({
               <div><span className="text-muted-foreground">ADR etiqueta:</span> {selectedCylinder.adr_label || "-"}</div>
               <div><span className="text-muted-foreground">ADR mercancía:</span> {selectedCylinder.adr_merchandise || "-"}</div>
               <div>{selectedCylinder.is_medical ? <span className="font-medium text-amber-500">&bull; Medicinal</span> : null}</div>
-              <div><span className="text-muted-foreground">Contrato actual:</span>{' '}
-                {currentContract === null ? (
-                  <span className="text-muted-foreground">Sin contrato activo</span>
-                ) : (
-                  <span>
-                    {currentContract.contract_number || "Sin Nro"}{" "}
-                    <ContractStatusBadge status={currentContract.status} />
-                  </span>
-                )}
-              </div>
             </CardContent>
           </Card>
 
@@ -143,43 +113,22 @@ export function DetailMenuDialog({
           {canContractView || canContractCreate ? (
             <Card>
               <CardHeader>
-                <CardTitle>Contrato asignado</CardTitle>
-                <CardDescription>Relacion contractual actual del envase y su contexto historico.</CardDescription>
+                <CardTitle>Contrato de envases</CardTitle>
+                <CardDescription>Los contratos definen cantidades por producto; la asignacion real se deriva de movimientos SC/IC.</CardDescription>
               </CardHeader>
               <CardContent className="space-y-3">
-                {canContractView && currentContract ? (
-                  <div className="rounded-lg border border-border bg-surface p-4 text-sm text-foreground">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{currentContract.contract_number || "Sin Nro"}</span>
-                      <ContractStatusBadge status={currentContract.status} />
-                    </div>
-                    <div className="mt-2 grid gap-2 md:grid-cols-2">
-                      <div><span className="text-muted-foreground">Tipo:</span> {currentContract.contract_type}</div>
-                      <div><span className="text-muted-foreground">Cliente:</span> {currentContract.customer_name || currentContract.customer_id}</div>
-                      <div><span className="text-muted-foreground">Inicio:</span> {formatDate(currentContract.start_date) || "-"}</div>
-                      <div><span className="text-muted-foreground">Fin:</span> {formatDate(currentContract.end_date) || "-"}</div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-muted-foreground">
-                    Este envase no tiene contrato activo asignado.
-                  </div>
-                )}
+                <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-muted-foreground">
+                  Este envase no se vincula manualmente a un contrato. Usa movimientos confirmados para reflejar la posesion operativa del cliente.
+                </div>
 
-                {canContractView && hasContractHistory ? (
-                  <p className="text-xs text-muted-foreground">
-                    Historial contractual detectado: {contractList.length} registro(s) relacionado(s) con este envase.
-                  </p>
-                ) : null}
-
-                {currentContract === null && canContractCreate ? (
+                {canContractCreate ? (
                   <div className="flex justify-end">
                     <button
                       type="button"
                       onClick={openCreateContractDialog}
                       className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground transition hover:border-ring hover:bg-surface-alt"
                     >
-                      Crear contrato desde este envase
+                      Crear contrato con este tipo de envase
                     </button>
                   </div>
                 ) : null}

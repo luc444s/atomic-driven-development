@@ -1,12 +1,9 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { toast } from "../../../../apps/web/src/shared/ui/toast";
 import { listDeliveryPoints, logisticsKeys } from "../../../logistics/frontend/api";
 import {
@@ -25,18 +22,19 @@ import {
   updateCustomerCommercialAssignment,
   updateCustomerContact,
 } from "../api";
-import { BankAccountsSection } from "./BankAccountsSection";
+import { BankAccountsDialog } from "./BankAccountsDialog";
+import { CommercialDialog } from "./CommercialDialog";
+import { ContactosDialog } from "./ContactosDialog";
 import { CustomerContractsButton } from "./CustomerContractsButton";
 import { CustomerOverviewCard } from "./CustomerOverviewCard";
-import { DeliveryPointsSection } from "./DeliveryPointsSection";
-import { PricingTermsSection } from "./PricingTermsSection";
+import { DeliveryPointsDialog } from "./DeliveryPointsDialog";
+import { DireccionesDialog } from "./DireccionesDialog";
+import { PricingTermsDialog } from "./PricingTermsDialog";
 import type {
   CustomerAddressPayload,
   CustomerCommercialAssignmentPayload,
   CustomerContactPayload,
 } from "../types";
-import { AddressSection } from "./AddressSection";
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
 
 const EMPTY_ADDRESS: CustomerAddressPayload = {
   address_type: "COMERCIAL",
@@ -317,16 +315,72 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
               <CardHeader>
                 <CardTitle>Acciones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-6 text-sm text-foreground">
-                <div className="flex flex-wrap gap-3">
-                  <Button variant="ghost" onClick={() => onEditCustomer?.(customerId)}>Editar</Button>
-                  <Button variant="ghost" onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}>Movimientos</Button>
-                  <Button variant="ghost" onClick={() => setIsAddressesOpen(true)}>Direcciones</Button>
-                  <Button variant="ghost" onClick={() => setIsContactsOpen(true)}>Contactos</Button>
-                  <Button variant="ghost" onClick={() => setIsCommercialOpen(true)}>Gestión comercial</Button>
-                  <Button variant="ghost" onClick={() => setIsDeliveryPointsOpen(true)}>Puntos de entrega</Button>
-                  <Button variant="ghost" onClick={() => setIsBankAccountsOpen(true)}>Cuentas bancarias</Button>
-                  <Button variant="ghost" onClick={() => setIsPricingOpen(true)}>Precios especiales</Button>
+              <CardContent className="text-sm text-foreground">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => onEditCustomer?.(customerId)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Editar</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Modifica datos generales del cliente.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Movimientos</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Historial de movimientos de envases.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsAddressesOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Direcciones</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Gestiona direcciones fiscales, comerciales y sedes.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsContactsOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Contactos</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Teléfonos, emails y personas de contacto.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsCommercialOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Gestión comercial</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Asigna agente y supervisor comercial.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsDeliveryPointsOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Puntos de entrega</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Direcciones operativas para reparto.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsBankAccountsOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Cuentas bancarias</p>
+                    <p className="mt-1 text-xs text-muted-foreground">IBAN, titular y banco para domiciliaciones.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsPricingOpen(true)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="text-sm font-medium text-foreground">Precios especiales</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Condiciones comerciales por cliente.</p>
+                  </button>
                   <CustomerContractsButton customerId={customerId} />
                 </div>
                 {detailQuery.data.notes ? (
@@ -339,541 +393,123 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
             </Card>
           </div>
 
-          <Dialog
+          <DireccionesDialog
             open={isAddressesOpen}
-            title="Direcciones"
-            description="Gestiona direcciones fiscales, comerciales y otras direcciones base del cliente."
             onClose={() => setIsAddressesOpen(false)}
-            maxWidthClassName="max-w-4xl"
-          >
-            <div className="space-y-4 text-sm text-foreground">
-              <DataTable
-                dense
-                columns={[
-                  {
-                    key: "label",
-                    header: "Etiqueta",
-                    render: (row) => row.label || row.address_type,
+            addresses={detailQuery.data.addresses}
+            fiscalAddressId={detailQuery.data.fiscal_address_id}
+            addressForm={addressForm}
+            onAddressFormChange={(form) => setAddressForm(form)}
+            editingAddressId={editingAddressId}
+            onEditingAddressIdChange={setEditingAddressId}
+            onCancelEdit={() => {
+              setEditingAddressId(null);
+              setAddressForm(EMPTY_ADDRESS);
+            }}
+            onSubmit={submitAddress}
+            isCreatePending={createAddressMutation.isPending}
+            isUpdatePending={updateAddressMutation.isPending}
+            onDelete={(id) => {
+              setDetailError(null);
+              setConfirmDelete({
+                id,
+                label: "dirección",
+                onConfirm: () => deleteAddressMutation.mutate(id, {
+                  onError: (cause) => {
+                    setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar la dirección.");
                   },
-                  { key: "type", header: "Tipo", render: (row) => row.address_type },
-                  { key: "address", header: "Dirección", render: (row) => row.line1 },
-                  {
-                    key: "locality",
-                    header: "Localidad",
-                    render: (row) => row.district ?? row.city ?? row.state ?? "-",
-                  },
-                  {
-                    key: "site",
-                    header: "Sede",
-                    render: (row) => (row.is_operational_site ? "Sí" : "No"),
-                  },
-                  { key: "contact", header: "Contacto", render: (row) => row.contact_name ?? "-" },
-                  { key: "phone", header: "Teléfono", render: (row) => row.contact_phone ?? "-" },
-                  {
-                    key: "fiscal",
-                    header: "Fiscal",
-                    render: (row) => (detailQuery.data.fiscal_address_id === row.id ? "Sí" : "No"),
-                  },
-                  {
-                    key: "actions",
-                    header: "",
-                    render: (row) => {
-                      const canDelete = detailQuery.data.fiscal_address_id !== row.id;
-                      return canDelete ? (
-                        <Button
-                          variant="secondary"
-                          className="h-7 w-7 px-0 py-0"
-                          aria-label="Eliminar dirección"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            setDetailError(null);
-                            setConfirmDelete({
-                              id: row.id,
-                              label: "dirección",
-                              onConfirm: () => deleteAddressMutation.mutate(row.id, {
-                                onError: (cause) => {
-                                  setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar la dirección.");
-                                },
-                              }),
-                            });
-                          }}
-                        >
-                          x
-                        </Button>
-                      ) : null;
-                    },
-                  },
-                ]}
-                rows={detailQuery.data.addresses}
-                rowKey={(row) => row.id}
-                emptyMessage="No hay direcciones cargadas."
-                onRowClick={(row) => {
-                  setEditingAddressId(row.id);
-                  setAddressForm({
-                    address_type: row.address_type,
-                    label: row.label,
-                    geography_id: row.geography_id,
-                    line1: row.line1,
-                    line2: row.line2,
-                    city: row.city,
-                    state: row.state,
-                    district: row.district,
-                    postal_code: row.postal_code,
-                    country_code: row.country_code || "PER",
-                    latitude: row.latitude,
-                    longitude: row.longitude,
-                    place_id: row.place_id,
-                    formatted_address: row.formatted_address,
-                    street_name: row.street_name,
-                    street_number: row.street_number,
-                    geocode_source: row.geocode_source || "MANUAL",
-                    precision_meters: row.precision_meters,
-                    gps_link: row.gps_link,
-                    contact_name: row.contact_name,
-                    contact_phone: row.contact_phone,
-                    contact_email: row.contact_email,
-                    is_operational_site: row.is_operational_site,
-                    notes: row.notes,
-                    ubigeo_code: row.ubigeo_code,
-                  });
-                }}
-              />
+                }),
+              });
+            }}
+          />
 
-              <form className="space-y-3 rounded-md border border-border p-4" onSubmit={submitAddress}>
-                <div>
-                  <p className="font-medium text-foreground">{editingAddressId ? "Editar dirección" : "Nueva dirección CRM"}</p>
-                  <p className="text-xs text-muted-foreground">Úsala para sedes fiscales, comerciales u otras direcciones base del cliente.</p>
-                </div>
-                <label className="block space-y-2 text-sm text-foreground">
-                  <span>Etiqueta</span>
-                  <Input value={addressForm.label ?? ""} onChange={(event) => setAddressForm((current) => ({ ...current, label: event.target.value || null }))} />
-                </label>
-                <AddressSection value={addressForm} onChange={setAddressForm} />
-                <div className="flex justify-end gap-2">
-                  {editingAddressId ? (
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      onClick={() => {
-                        setEditingAddressId(null);
-                        setAddressForm(EMPTY_ADDRESS);
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  ) : null}
-                  <Button type="submit" disabled={createAddressMutation.isPending || updateAddressMutation.isPending}>
-                    {editingAddressId ? "Guardar cambios" : "Agregar dirección"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </Dialog>
-
-          <Dialog
+          <ContactosDialog
             open={isContactsOpen}
-            title="Contactos base"
-            description="Gestiona teléfonos, emails y otros contactos generales del cliente."
             onClose={() => setIsContactsOpen(false)}
-            maxWidthClassName="max-w-3xl"
-          >
-            <div className="space-y-4 text-sm text-foreground">
-              {(() => {
-                const contacts = detailQuery.data?.contacts ?? [];
-                const filtered = contacts.filter((c) => {
-                  if (filterContactAddress && c.address_id !== filterContactAddress) return false;
-                  if (filterContactPurpose && c.contact_purpose !== filterContactPurpose) return false;
-                  return true;
-                });
-                const addressOptions = [
-                  { value: "", label: "Todas las sedes", keywords: ["todas"] },
-                  ...(detailQuery.data?.addresses ?? []).map((a) => ({
-                    value: a.id,
-                    label: `${a.line1} (${a.address_type})`,
-                    keywords: [a.line1, a.address_type],
-                  })),
-                ];
-                const purposeOptions = [
-                  { value: "", label: "Todos los propósitos", keywords: ["todos"] },
-                  ...["GENERAL", "FACTURACION", "COBRANZA", "COMPRAS", "OPERACIONES", "RECEPCION", "OTRO"].map((p) => ({
-                    value: p,
-                    label: p.charAt(0) + p.slice(1).toLowerCase(),
-                    keywords: [p],
-                  })),
-                ];
-                return (
-                  <>
-                    <div className="flex flex-wrap gap-3">
-                      <Combobox
-                        value={filterContactAddress ?? ""}
-                        onChange={(value) => setFilterContactAddress(value || null)}
-                        options={addressOptions}
-                        placeholder="Filtrar por sede"
-                        searchPlaceholder="Buscar sede..."
-                      />
-                      <Combobox
-                        value={filterContactPurpose ?? ""}
-                        onChange={(value) => setFilterContactPurpose(value || null)}
-                        options={purposeOptions}
-                        placeholder="Filtrar por propósito"
-                        searchPlaceholder="Buscar propósito..."
-                      />
-                    </div>
-                    <DataTable
-                      dense
-                      columns={[
-                        {
-                          key: "person",
-                          header: "Persona",
-                          render: (row) => row.full_name || row.contact_type,
-                        },
-                        { key: "purpose", header: "Propósito", render: (row) => row.contact_purpose },
-                        { key: "label", header: "Etiqueta", render: (row) => row.label ?? "-" },
-                        { key: "role", header: "Cargo", render: (row) => row.role ?? "-" },
-                        { key: "phone", header: "Teléfono", render: (row) => row.phone ?? "-" },
-                        { key: "email", header: "Email", render: (row) => row.email ?? "-" },
-                        {
-                          key: "address",
-                          header: "Dirección",
-                          render: (row) => {
-                            if (!row.address_id) return "-";
-                            const addr = detailQuery.data.addresses.find((a) => a.id === row.address_id);
-                            return addr ? `${addr.line1} (${addr.address_type})` : "-";
-                          },
-                        },
-                        {
-                          key: "primary",
-                          header: "Principal",
-                          render: (row) => (row.is_primary ? "Sí" : "No"),
-                        },
-                        {
-                          key: "actions",
-                          header: "",
-                          render: (row) => (
-                            <Button
-                              variant="secondary"
-                              className="h-7 w-7 px-0 py-0"
-                              aria-label="Eliminar contacto"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                setDetailError(null);
-                                setConfirmDelete({
-                                  id: row.id,
-                                  label: "contacto",
-                                  onConfirm: () => deleteContactMutation.mutate(row.id, {
-                                    onError: (cause) => {
-                                      setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar el contacto.");
-                                    },
-                                  }),
-                                });
-                              }}
-                            >
-                              x
-                            </Button>
-                          ),
-                        },
-                      ]}
-                      rows={filtered}
-                      rowKey={(row) => row.id}
-                      emptyMessage="No hay contactos base cargados."
-                      onRowClick={(row) => {
-                        setEditingContactId(row.id);
-                        setContactForm({
-                          full_name: row.full_name,
-                          label: row.label,
-                          role: row.role,
-                          phone: row.phone,
-                          email: row.email,
-                          address_id: row.address_id,
-                          contact_purpose: row.contact_purpose,
-                          contact_type: row.contact_type,
-                          notes: row.notes,
-                          is_primary: row.is_primary,
-                        });
-                      }}
-                    />
-                  </>
-                );
-              })()}
+            contacts={detailQuery.data?.contacts ?? []}
+            addresses={detailQuery.data?.addresses ?? []}
+            filterContactAddress={filterContactAddress}
+            onFilterContactAddressChange={setFilterContactAddress}
+            filterContactPurpose={filterContactPurpose}
+            onFilterContactPurposeChange={setFilterContactPurpose}
+            contactForm={contactForm}
+            onContactFormChange={(form) => setContactForm(form)}
+            editingContactId={editingContactId}
+            onEditingContactIdChange={setEditingContactId}
+            onCancelEdit={() => {
+              setEditingContactId(null);
+              setContactForm(EMPTY_CONTACT);
+            }}
+            onSubmit={submitContact}
+            isCreatePending={createContactMutation.isPending}
+            isUpdatePending={updateContactMutation.isPending}
+            onDelete={(id) => {
+              setDetailError(null);
+              setConfirmDelete({
+                id,
+                label: "contacto",
+                onConfirm: () => deleteContactMutation.mutate(id, {
+                  onError: (cause) => {
+                    setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar el contacto.");
+                  },
+                }),
+              });
+            }}
+          />
 
-              <form className="space-y-3 rounded-md border border-border p-4" onSubmit={submitContact}>
-                <div>
-                  <p className="font-medium text-foreground">{editingContactId ? "Editar contacto base" : "Nuevo contacto base"}</p>
-                  <p className="text-xs text-muted-foreground">Registra una persona de contacto con su propósito, canales y una dirección vinculada.</p>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Nombre completo</span>
-                    <Input value={contactForm.full_name ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, full_name: event.target.value || null }))} />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Etiqueta</span>
-                    <Input value={contactForm.label ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, label: event.target.value || null }))} />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Cargo / Rol</span>
-                    <Input value={contactForm.role ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, role: event.target.value || null }))} />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Teléfono</span>
-                    <Input value={contactForm.phone ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, phone: event.target.value || null, contact_type: "PHONE" }))} />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Email</span>
-                    <Input value={contactForm.email ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, email: event.target.value || null, contact_type: "EMAIL" }))} />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Propósito</span>
-                    <Combobox
-                      value={contactForm.contact_purpose}
-                      onChange={(value) => setContactForm((current) => ({ ...current, contact_purpose: value || "GENERAL" }))}
-                      options={[
-                        { value: "GENERAL", label: "General" },
-                        { value: "FACTURACION", label: "Facturación" },
-                        { value: "COBRANZA", label: "Cobranza" },
-                        { value: "COMPRAS", label: "Compras" },
-                        { value: "OPERACIONES", label: "Operaciones" },
-                        { value: "RECEPCION", label: "Recepción" },
-                        { value: "OTRO", label: "Otro" },
-                      ]}
-                      placeholder="Seleccionar propósito"
-                      searchPlaceholder="Buscar propósito..."
-                    />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Dirección vinculada</span>
-                    <Combobox
-                      value={contactForm.address_id ?? ""}
-                      onChange={(value) => setContactForm((current) => ({ ...current, address_id: value || null }))}
-                      options={(detailQuery.data?.addresses ?? []).map((addr) => ({
-                        value: addr.id,
-                        label: `${addr.line1}${addr.city ? `, ${addr.city}` : ""} (${addr.address_type})`,
-                        keywords: [addr.line1, addr.city ?? "", addr.address_type],
-                      }))}
-                      placeholder="Sin dirección"
-                      searchPlaceholder="Buscar dirección..."
-                    />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground md:col-span-2">
-                    <span>Notas</span>
-                    <Input value={contactForm.notes ?? ""} onChange={(event) => setContactForm((current) => ({ ...current, notes: event.target.value || null }))} />
-                  </label>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={contactForm.is_primary}
-                    onChange={(event) => setContactForm((current) => ({ ...current, is_primary: event.target.checked }))}
-                  />
-                  <span>Marcar como principal</span>
-                </label>
-                <div className="flex justify-end gap-2">
-                  {editingContactId ? (
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      onClick={() => {
-                        setEditingContactId(null);
-                        setContactForm(EMPTY_CONTACT);
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  ) : null}
-                  <Button type="submit" disabled={createContactMutation.isPending || updateContactMutation.isPending}>
-                    {editingContactId ? "Guardar cambios" : "Agregar contacto"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </Dialog>
-
-          <Dialog
+          <CommercialDialog
             open={isCommercialOpen}
-            title="Gestión comercial"
-            description="Asigna agente y supervisor comercial a nivel cliente o sede, sin mezclarlo con contactos externos ni operación diaria."
             onClose={() => setIsCommercialOpen(false)}
-            maxWidthClassName="max-w-4xl"
-          >
-            <div className="space-y-4 text-sm text-foreground">
-              <DataTable
-                dense
-                columns={[
-                  { key: "role", header: "Rol", render: (row) => row.assignment_role },
-                  { key: "user", header: "Usuario", render: (row) => row.user_display_name },
-                  { key: "email", header: "Email", render: (row) => row.user_email },
-                  {
-                    key: "address",
-                    header: "Sede",
-                    render: (row) => {
-                      if (!row.address_id) return "Cliente general";
-                      const addr = detailQuery.data.addresses.find((a) => a.id === row.address_id);
-                      return addr ? `${addr.line1} (${addr.address_type})` : "-";
-                    },
+            assignments={commercialAssignmentsQuery.data ?? []}
+            addresses={detailQuery.data?.addresses ?? []}
+            users={commercialUsersQuery.data ?? []}
+            form={commercialAssignmentForm}
+            onFormChange={(form) => setCommercialAssignmentForm(form)}
+            editingId={editingCommercialAssignmentId}
+            onEditingIdChange={setEditingCommercialAssignmentId}
+            onCancelEdit={() => {
+              setEditingCommercialAssignmentId(null);
+              setCommercialAssignmentForm(EMPTY_COMMERCIAL_ASSIGNMENT);
+            }}
+            onSubmit={submitCommercialAssignment}
+            isCreatePending={createCommercialAssignmentMutation.isPending}
+            isUpdatePending={updateCommercialAssignmentMutation.isPending}
+            onEdit={(id, data) => {
+              setEditingCommercialAssignmentId(id);
+              setCommercialAssignmentForm(data);
+            }}
+            onDelete={(id) => {
+              setDetailError(null);
+              setConfirmDelete({
+                id,
+                label: "asignación comercial",
+                onConfirm: () => deleteCommercialAssignmentMutation.mutate(id, {
+                  onError: (cause) => {
+                    setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar la asignación comercial.");
                   },
-                  { key: "primary", header: "Principal", render: (row) => (row.is_primary ? "Sí" : "No") },
-                  {
-                    key: "actions",
-                    header: "Acciones",
-                    render: (row) => (
-                      <div className="flex flex-wrap gap-2">
-                        <Button
-                          variant="secondary"
-                          onClick={() => {
-                            setEditingCommercialAssignmentId(row.id);
-                            setCommercialAssignmentForm({
-                              address_id: row.address_id,
-                              user_id: row.user_id,
-                              assignment_role: row.assignment_role,
-                              notes: row.notes,
-                              is_primary: row.is_primary,
-                              is_active: row.is_active,
-                            });
-                          }}
-                        >
-                          Editar
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          className="h-7 w-7 px-0 py-0"
-                          aria-label="Eliminar asignación comercial"
-                          onClick={() => {
-                            setDetailError(null);
-                            setConfirmDelete({
-                              id: row.id,
-                              label: "asignación comercial",
-                              onConfirm: () => deleteCommercialAssignmentMutation.mutate(row.id, {
-                                onError: (cause) => {
-                                  setDetailError(cause instanceof Error ? cause.message : "No se pudo eliminar la asignación comercial.");
-                                },
-                              }),
-                            });
-                          }}
-                        >
-                          x
-                        </Button>
-                      </div>
-                    ),
-                  },
-                ]}
-                rows={commercialAssignmentsQuery.data ?? []}
-                rowKey={(row) => row.id}
-                emptyMessage="No hay asignaciones comerciales cargadas."
-              />
+                }),
+              });
+            }}
+          />
 
-              <form className="space-y-3 rounded-md border border-border p-4" onSubmit={submitCommercialAssignment}>
-                <div>
-                  <p className="font-medium text-foreground">{editingCommercialAssignmentId ? "Editar asignación comercial" : "Nueva asignación comercial"}</p>
-                  <p className="text-xs text-muted-foreground">Define ownership comercial interno por cliente o por sede.</p>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Rol comercial</span>
-                    <Combobox
-                      value={commercialAssignmentForm.assignment_role}
-                      onChange={(value) => setCommercialAssignmentForm((current) => ({ ...current, assignment_role: value || "AGENT" }))}
-                      options={[
-                        { value: "AGENT", label: "Agente" },
-                        { value: "SUPERVISOR", label: "Supervisor" },
-                      ]}
-                      placeholder="Seleccionar rol"
-                      searchPlaceholder="Buscar rol..."
-                    />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Usuario interno</span>
-                    <Combobox
-                      value={commercialAssignmentForm.user_id}
-                      onChange={(value) => setCommercialAssignmentForm((current) => ({ ...current, user_id: value || "" }))}
-                      options={(commercialUsersQuery.data ?? []).map((user) => ({
-                        value: user.id,
-                        label: `${user.full_name} (${user.email})`,
-                        keywords: [user.full_name, user.email],
-                      }))}
-                      placeholder="Seleccionar usuario"
-                      searchPlaceholder="Buscar usuario..."
-                    />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Sede vinculada</span>
-                    <Combobox
-                      value={commercialAssignmentForm.address_id ?? ""}
-                      onChange={(value) => setCommercialAssignmentForm((current) => ({ ...current, address_id: value || null }))}
-                      options={[
-                        { value: "", label: "Cliente general", keywords: ["general", "cliente"] },
-                        ...(detailQuery.data?.addresses ?? []).map((addr) => ({
-                          value: addr.id,
-                          label: `${addr.line1}${addr.city ? `, ${addr.city}` : ""} (${addr.address_type})`,
-                          keywords: [addr.line1, addr.city ?? "", addr.address_type],
-                        })),
-                      ]}
-                      placeholder="Cliente general"
-                      searchPlaceholder="Buscar sede..."
-                    />
-                  </label>
-                  <label className="block space-y-2 text-sm text-foreground">
-                    <span>Notas</span>
-                    <Input value={commercialAssignmentForm.notes ?? ""} onChange={(event) => setCommercialAssignmentForm((current) => ({ ...current, notes: event.target.value || null }))} />
-                  </label>
-                </div>
-                <label className="flex items-center gap-2 text-sm text-foreground">
-                  <input
-                    type="checkbox"
-                    checked={commercialAssignmentForm.is_primary}
-                    onChange={(event) => setCommercialAssignmentForm((current) => ({ ...current, is_primary: event.target.checked }))}
-                  />
-                  <span>Marcar como principal</span>
-                </label>
-                <div className="flex justify-end gap-2">
-                  {editingCommercialAssignmentId ? (
-                    <Button
-                      variant="secondary"
-                      type="button"
-                      onClick={() => {
-                        setEditingCommercialAssignmentId(null);
-                        setCommercialAssignmentForm(EMPTY_COMMERCIAL_ASSIGNMENT);
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                  ) : null}
-                  <Button type="submit" disabled={createCommercialAssignmentMutation.isPending || updateCommercialAssignmentMutation.isPending}>
-                    {editingCommercialAssignmentId ? "Guardar cambios" : "Agregar asignación"}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </Dialog>
-
-          <Dialog
+          <DeliveryPointsDialog
             open={isDeliveryPointsOpen}
-            title="Puntos de entrega"
-            description="Vista operativa de los puntos de entrega gestionados por logistics para este cliente."
             onClose={() => setIsDeliveryPointsOpen(false)}
-            maxWidthClassName="max-w-5xl"
-          >
-            <DeliveryPointsSection points={deliveryPoints} isLoading={deliveryPointsQuery.isLoading} />
-          </Dialog>
+            deliveryPoints={deliveryPoints}
+            isLoading={deliveryPointsQuery.isLoading}
+          />
 
-          <Dialog
+          <BankAccountsDialog
             open={isBankAccountsOpen}
-            title="Cuentas bancarias"
-            description="Gestiona IBAN, titular y banco del cliente para domiciliaciones y remesas."
             onClose={() => setIsBankAccountsOpen(false)}
-            maxWidthClassName="max-w-4xl"
-          >
-            <BankAccountsSection customerId={customerId} canManage />
-          </Dialog>
+            customerId={customerId}
+          />
 
-          <Dialog
+          <PricingTermsDialog
             open={isPricingOpen}
-            title="Precios especiales"
-            description="Condiciones comerciales del cliente. El precio base sigue viviendo en productos."
             onClose={() => setIsPricingOpen(false)}
-            maxWidthClassName="max-w-4xl"
-          >
-            <PricingTermsSection customerId={customerId} canManage />
-          </Dialog>
+            customerId={customerId}
+          />
 
           <ConfirmDialog
             open={confirmDelete !== null}
@@ -902,7 +538,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
       title="Detalle de cliente"
       description="Información general del cliente, envases en posesión y acceso a secciones administrativas."
       onClose={onClose}
-      maxWidthClassName="max-w-4xl"
+      maxWidthClassName="max-w-[1200px]"
     >
       <div className="max-h-[85vh] overflow-y-auto">{content}</div>
     </Dialog>

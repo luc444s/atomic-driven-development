@@ -26,6 +26,7 @@ export const logisticsKeys = {
   warehouses: () => [...logisticsKeys.all, "warehouses"] as const,
   zones: () => [...logisticsKeys.all, "zones"] as const,
   vehicles: () => [...logisticsKeys.all, "vehicles"] as const,
+  customerCylinderSummary: (id: string) => [...logisticsKeys.all, "customers", id, "cylinders", "summary"] as const,
   deliveryPoints: () => [...logisticsKeys.all, "delivery-points"] as const,
   orders: {
     all: () => [...logisticsKeys.all, "orders"] as const,
@@ -107,4 +108,3 @@ export const equipmentKeys = {
   list: () => [...equipmentKeys.all(), "list"] as const,
   movementEquipment: (id: string) => [...logisticsKeys.all, "movements", id, "equipment"] as const,
 };
-

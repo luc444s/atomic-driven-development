@@ -47,6 +47,12 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         requiredPermissions: ["logistics.load.manage"],
       },
       {
+        path: "logistics/movements",
+        title: "Movimientos",
+        component: MovementsPage,
+        requiredPermissions: ["logistics.movement.read"],
+      },
+      {
         path: "logistics/planning",
         title: "Planificación",
         component: PlanningPage,

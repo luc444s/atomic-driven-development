@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
 import { Link } from "../../../../apps/web/src/lib/router";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Badge } from "../../../../apps/web/src/shared/ui/badge";
@@ -38,9 +37,14 @@ export function CustomerContractsButton({ customerId }: CustomerContractsButtonP
 
   return (
     <>
-      <Button variant="ghost" onClick={() => setIsOpen(true)}>
-        Contratos
-      </Button>
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+      >
+        <p className="text-sm font-medium text-foreground">Contratos</p>
+        <p className="mt-1 text-xs text-muted-foreground">Gestiona contratos de envases del cliente.</p>
+      </button>
 
       <Dialog
         open={isOpen}

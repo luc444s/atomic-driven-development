@@ -6,7 +6,6 @@ from typing import Never
 
 from fastapi import APIRouter, Depends, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import FileResponse
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -15,14 +14,11 @@ from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, re
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
-from plugins.logistics.backend.models.contracts import LogisticsCylinderContractItem
 from plugins.logistics.backend.schemas import (
     ContractHistoryRead,
     ContractTypeRead,
     CylinderContractActivate,
     CylinderContractCreate,
-    CylinderContractItemCreate,
-    CylinderContractItemRead,
     CylinderContractRead,
     CylinderContractRenew,
     CylinderContractSign,
@@ -31,17 +27,12 @@ from plugins.logistics.backend.schemas import (
 )
 from plugins.logistics.backend.services.contracts import (
     activate_contract,
-    add_contract_item,
     cancel_contract,
     create_contract,
     get_contract,
     list_contract_history,
-    list_contract_items,
     list_contract_types,
     list_contracts,
-    list_contracts_by_cylinder,
-    mark_item_delivered,
-    mark_item_returned,
     renew_contract,
     resolve_contract_file_path,
     sign_contract,
@@ -87,15 +78,7 @@ def _extract_customer_name(contract) -> str | None:
     return None
 
 
-def _contract_to_read(contract, db: Session) -> CylinderContractRead:
-    items = [
-        CylinderContractItemRead.model_validate(item)
-        for item in db.scalars(
-            select(LogisticsCylinderContractItem).where(
-                LogisticsCylinderContractItem.contract_id == contract.id
-            )
-        ).all()
-    ]
+def _contract_to_read(contract) -> CylinderContractRead:
     return CylinderContractRead(
         id=contract.id,
         document_type_code=contract.document_type_code,
@@ -118,11 +101,11 @@ def _contract_to_read(contract, db: Session) -> CylinderContractRead:
         signed_flag=contract.signed_flag,
         signed_at=contract.signed_at,
         signed_by=contract.signed_by,
+        signature_type=contract.signature_type,
         contract_file_path=contract.contract_file_path,
         notes=contract.notes,
         observations=contract.observations,
         created_at=contract.created_at,
-        items=items,
     )
 
 
@@ -132,21 +115,6 @@ def get_contract_types(
     _: User = REQUIRE_CONTRACT_VIEW,
 ) -> list[ContractTypeRead]:
     return [ContractTypeRead.model_validate(item) for item in list_contract_types(db)]
-
-
-@router.get("/contracts/by-cylinder/{cylinder_id}", response_model=list[CylinderContractRead])
-def get_cylinder_contracts(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CONTRACT_VIEW,
-) -> list[CylinderContractRead]:
-    return [
-        _contract_to_read(contract, db)
-        for contract in list_contracts_by_cylinder(
-            db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id
-        )
-    ]
 
 
 @router.get("/contracts", response_model=list[CylinderContractRead])
@@ -163,7 +131,7 @@ def get_contracts(
     parsed_from = date.fromisoformat(date_from) if date_from else None
     parsed_to = date.fromisoformat(date_to) if date_to else None
     return [
-        _contract_to_read(contract, db)
+        _contract_to_read(contract)
         for contract in list_contracts(
             db,
             tenant_id=tenant_context.current_tenant_id,
@@ -186,7 +154,7 @@ def get_contract_detail(
     contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
     if contract is None:
         raise _not_found("Contract")
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/file", response_model=CylinderContractRead)
@@ -198,9 +166,7 @@ async def upload_contract_file_endpoint(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_CONTRACT_UPDATE,
 ) -> CylinderContractRead:
-    contract = get_contract(
-        db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id
-    )
+    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
     if contract is None:
         raise _not_found("Contract")
     try:
@@ -216,7 +182,7 @@ async def upload_contract_file_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.get("/contracts/{contract_id}/file/download/{stored_name}")
@@ -227,9 +193,7 @@ def download_contract_file_endpoint(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_CONTRACT_VIEW,
 ) -> FileResponse:
-    contract = get_contract(
-        db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id
-    )
+    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
     if contract is None:
         raise _not_found("Contract")
     try:
@@ -284,7 +248,7 @@ def create_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.patch("/contracts/{contract_id}", response_model=CylinderContractRead)
@@ -313,7 +277,7 @@ def update_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/activate", response_model=CylinderContractRead)
@@ -342,7 +306,7 @@ def activate_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/sign", response_model=CylinderContractRead)
@@ -368,7 +332,7 @@ def sign_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/renew", response_model=CylinderContractRead)
@@ -394,7 +358,7 @@ def renew_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/terminate", response_model=CylinderContractRead)
@@ -420,7 +384,7 @@ def terminate_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
+    return _contract_to_read(contract)
 
 
 @router.post("/contracts/{contract_id}/cancel", response_model=CylinderContractRead)
@@ -444,123 +408,4 @@ def cancel_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract, db)
-
-
-@router.get("/contracts/{contract_id}/items", response_model=list[CylinderContractItemRead])
-def get_contract_items(
-    contract_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CONTRACT_VIEW,
-) -> list[CylinderContractItemRead]:
-    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
-    if contract is None:
-        raise _not_found("Contract")
-    return [
-        CylinderContractItemRead.model_validate(item)
-        for item in list_contract_items(db, contract_id=contract_id)
-    ]
-
-
-@router.post(
-    "/contracts/{contract_id}/items",
-    response_model=CylinderContractItemRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def add_contract_item_endpoint(
-    contract_id: str,
-    payload: CylinderContractItemCreate,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CONTRACT_UPDATE,
-) -> CylinderContractItemRead:
-    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
-    if contract is None:
-        raise _not_found("Contract")
-    try:
-        item = add_contract_item(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            contract=contract,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return CylinderContractItemRead.model_validate(item)
-
-
-@router.patch(
-    "/contracts/{contract_id}/items/{item_id}/deliver",
-    response_model=CylinderContractItemRead,
-)
-def deliver_contract_item_endpoint(
-    contract_id: str,
-    item_id: str,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CONTRACT_UPDATE,
-) -> CylinderContractItemRead:
-    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
-    if contract is None:
-        raise _not_found("Contract")
-    item = db.scalar(
-        select(LogisticsCylinderContractItem).where(
-            LogisticsCylinderContractItem.id == item_id,
-            LogisticsCylinderContractItem.contract_id == contract_id,
-        )
-    )
-    if item is None:
-        raise _not_found("Contract item")
-    try:
-        item = mark_item_delivered(
-            db,
-            item=item,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return CylinderContractItemRead.model_validate(item)
-
-
-@router.patch(
-    "/contracts/{contract_id}/items/{item_id}/return",
-    response_model=CylinderContractItemRead,
-)
-def return_contract_item_endpoint(
-    contract_id: str,
-    item_id: str,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CONTRACT_UPDATE,
-) -> CylinderContractItemRead:
-    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
-    if contract is None:
-        raise _not_found("Contract")
-    item = db.scalar(
-        select(LogisticsCylinderContractItem).where(
-            LogisticsCylinderContractItem.id == item_id,
-            LogisticsCylinderContractItem.contract_id == contract_id,
-        )
-    )
-    if item is None:
-        raise _not_found("Contract item")
-    try:
-        item = mark_item_returned(
-            db,
-            item=item,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return CylinderContractItemRead.model_validate(item)
+    return _contract_to_read(contract)

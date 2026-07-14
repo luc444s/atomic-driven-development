@@ -9,8 +9,6 @@ from sqlalchemy.orm import Session
 from apps.api.app.kernel.audit.models import AuditLog
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
-    LogisticsCylinderContract,
-    LogisticsCylinderContractItem,
     LogisticsCylinderLabelHistory,
     LogisticsCylinderOwnership,
     LogisticsCylinderRetimbrado,
@@ -42,7 +40,6 @@ def _as_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-
 def get_cylinder_traceability(
     db: Session,
     *,
@@ -70,7 +67,6 @@ def get_cylinder_traceability(
     _collect_warranties(db, cylinder_id, events)
     _collect_ownerships(db, cylinder_id, events)
     _collect_label_prints(db, cylinder_id, events)
-    _collect_contract_events(db, tenant_id, cylinder_id, events)
     _collect_medical_flag_changes(db, tenant_id, cylinder_id, events)
 
     events.sort(key=lambda e: _as_utc(e.timestamp), reverse=True)
@@ -96,11 +92,13 @@ def get_cylinder_traceability(
     )
 
 
-def _collect_created_event(cylinder: LogisticsCylinder, events: list[TraceabilityEventRead]) -> None:
+def _collect_created_event(
+    cylinder: LogisticsCylinder, events: list[TraceabilityEventRead]
+) -> None:
     events.append(
-            TraceabilityEventRead(
-                timestamp=_as_utc(cylinder.created_at),
-                event_type="created",
+        TraceabilityEventRead(
+            timestamp=_as_utc(cylinder.created_at),
+            event_type="created",
             description="Cilindro creado",
             actor=None,
             metadata={
@@ -170,13 +168,17 @@ def _collect_hydrotests(db: Session, cylinder_id: str, events: list[Traceability
                 actor=_fmt_actor(row.modified_by),
                 metadata={
                     "status": row.status,
-                    "previous_test": row.previous_test_date.isoformat() if row.previous_test_date else None,
+                    "previous_test": row.previous_test_date.isoformat()
+                    if row.previous_test_date
+                    else None,
                 },
             )
         )
 
 
-def _collect_retimbrados(db: Session, cylinder_id: str, events: list[TraceabilityEventRead]) -> None:
+def _collect_retimbrados(
+    db: Session, cylinder_id: str, events: list[TraceabilityEventRead]
+) -> None:
     for row in db.scalars(
         select(LogisticsCylinderRetimbrado)
         .where(LogisticsCylinderRetimbrado.cylinder_id == cylinder_id)
@@ -258,7 +260,9 @@ def _collect_ownerships(db: Session, cylinder_id: str, events: list[Traceability
         )
 
 
-def _collect_label_prints(db: Session, cylinder_id: str, events: list[TraceabilityEventRead]) -> None:
+def _collect_label_prints(
+    db: Session, cylinder_id: str, events: list[TraceabilityEventRead]
+) -> None:
     for row in db.scalars(
         select(LogisticsCylinderLabelHistory)
         .where(LogisticsCylinderLabelHistory.cylinder_id == cylinder_id)
@@ -277,71 +281,6 @@ def _collect_label_prints(db: Session, cylinder_id: str, events: list[Traceabili
                 },
             )
         )
-
-
-def _collect_contract_events(
-    db: Session,
-    tenant_id: str,
-    cylinder_id: str,
-    events: list[TraceabilityEventRead],
-) -> None:
-    contract_items = db.execute(
-        select(
-            LogisticsCylinderContractItem.contract_id,
-            LogisticsCylinderContractItem.delivered_at,
-            LogisticsCylinderContractItem.returned_at,
-            LogisticsCylinderContract.updated_at,
-        )
-        .join(
-            LogisticsCylinderContract,
-            LogisticsCylinderContract.id == LogisticsCylinderContractItem.contract_id,
-        )
-        .where(
-            LogisticsCylinderContractItem.tenant_id == tenant_id,
-            LogisticsCylinderContractItem.cylinder_id == cylinder_id,
-        )
-        .order_by(LogisticsCylinderContractItem.delivered_at, LogisticsCylinderContractItem.returned_at)
-    ).all()
-    for contract_id, delivered_at, returned_at, contract_updated_at in contract_items:
-        if delivered_at is not None:
-            events.append(
-                TraceabilityEventRead(
-                    timestamp=_as_utc(delivered_at),
-                    event_type="contract_assigned",
-                    description="Asignado a contrato",
-                    actor=None,
-                    metadata={
-                        "contract_id": contract_id,
-                        "origin": "CONTRACT_DELIVERY",
-                    },
-                )
-            )
-        if returned_at is not None:
-            events.append(
-                TraceabilityEventRead(
-                    timestamp=_as_utc(returned_at),
-                    event_type="contract_released",
-                    description="Liberado de contrato",
-                    actor=None,
-                    metadata={
-                        "contract_id": contract_id,
-                        "origin": "CONTRACT_RETURN",
-                    },
-                )
-            )
-        elif delivered_at is None and contract_updated_at is not None:
-            events.append(
-                TraceabilityEventRead(
-                    timestamp=_as_utc(contract_updated_at),
-                    event_type="contract_assigned",
-                    description="Cilindro relacionado a contrato",
-                    actor=None,
-                    metadata={
-                        "contract_id": contract_id,
-                        "origin": "CONTRACT_LINK",
-                    },
-                )
-            )
 
 
 def _collect_medical_flag_changes(

@@ -23,11 +23,11 @@ export type LogisticsCylinderContract = {
   signed_flag: boolean;
   signed_at: string | null;
   signed_by: string | null;
+  signature_type: string | null;
   contract_file_path: string | null;
   notes: string | null;
   observations: string | null;
   created_at: string;
-  items: LogisticsCylinderContractItem[];
 };
 
 export type LogisticsContractType = {
@@ -46,15 +46,41 @@ export type LogisticsContractHistory = {
   created_by: string | null;
 };
 
-export type LogisticsCylinderContractItem = {
+export type CoreDocumentVersion = {
   id: string;
-  contract_id: string;
-  cylinder_id: string | null;
-  serial: string | null;
-  quantity: number;
-  unit_price: number;
-  delivered_at: string | null;
-  returned_at: string | null;
+  tenant_id: string;
+  module: string;
+  entity_type: string;
+  entity_id: string;
+  template_code: string;
+  version_number: number;
+  status: string;
+  title: string | null;
+  file_path: string;
+  sha256: string;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type CoreDocumentSignedDownload = {
+  url: string;
+  expires_at: string;
+};
+
+export type CoreSignatureSession = {
+  id: string;
+  tenant_id: string;
+  document_version_id: string;
+  signer_name: string | null;
+  signer_email: string | null;
+  signer_phone: string | null;
+  signer_role: string | null;
+  provider: string;
+  status: string;
+  verification_channel: string;
+  verification_ref: string | null;
+  completed_at: string | null;
+  created_at: string;
 };
 
 export type CreateContractPayload = {
@@ -75,14 +101,6 @@ export type CreateContractPayload = {
 
 export type UpdateContractPayload = Partial<CreateContractPayload>;
 
-export type CreateContractItemPayload = {
-  cylinder_id?: string | null;
-  serial?: string | null;
-  quantity?: number;
-  unit_price: number;
-  delivered_at?: string | null;
-};
-
 export type TerminateContractPayload = {
   reason: string;
 };
@@ -97,6 +115,9 @@ export type RenewContractPayload = {
 export type SignContractPayload = {
   signed_at?: string | null;
   signed_by?: string | null;
+  signer_name?: string | null;
+  signer_email?: string | null;
+  signer_phone?: string | null;
   signature_type?: string | null;
   contract_file_path?: string | null;
 };
@@ -120,12 +141,6 @@ export function listContracts(filters: {
       date_from: filters.date_from,
       date_to: filters.date_to,
     })
-  );
-}
-
-export function listContractsByCylinder(cylinderId: string) {
-  return apiRequest<LogisticsCylinderContract[]>(
-    `${API_PREFIX}/cylinders/contracts/by-cylinder/${cylinderId}`
   );
 }
 
@@ -217,32 +232,32 @@ export function listContractHistory(contractId: string) {
   );
 }
 
-export function listContractItems(contractId: string) {
-  return apiRequest<LogisticsCylinderContractItem[]>(
-    `${API_PREFIX}/cylinders/contracts/${contractId}/items`
+export function getCoreDocumentDownloadUrl(documentVersionId: string) {
+  return `/api/v1/core/documents/${documentVersionId}/download`;
+}
+
+export function getCoreDocumentSignedDownload(documentVersionId: string) {
+  return apiRequest<CoreDocumentSignedDownload>(
+    `/api/v1/core/documents/${documentVersionId}/signed-url`
   );
 }
 
-export function addContractItem(contractId: string, payload: CreateContractItemPayload) {
-  return apiRequest<LogisticsCylinderContractItem>(
-    `${API_PREFIX}/cylinders/contracts/${contractId}/items`,
-    {
-      method: "POST",
-      body: JSON.stringify(payload),
-    }
+export function listCoreDocumentVersionsForContract(contractId: string) {
+  return apiRequest<CoreDocumentVersion[]>(
+    withQuery(`/api/v1/core/documents/by-entity`, {
+      module: "logistics",
+      entity_type: "cylinder_contract",
+      entity_id: contractId,
+    })
   );
 }
 
-export function deliverContractItem(contractId: string, itemId: string) {
-  return apiRequest<LogisticsCylinderContractItem>(
-    `${API_PREFIX}/cylinders/contracts/${contractId}/items/${itemId}/deliver`,
-    { method: "PATCH" }
-  );
-}
-
-export function returnContractItem(contractId: string, itemId: string) {
-  return apiRequest<LogisticsCylinderContractItem>(
-    `${API_PREFIX}/cylinders/contracts/${contractId}/items/${itemId}/return`,
-    { method: "PATCH" }
+export function listCoreSignatureSessionsForContract(contractId: string) {
+  return apiRequest<CoreSignatureSession[]>(
+    withQuery(`/api/v1/core/signatures/sessions/by-entity`, {
+      module: "logistics",
+      entity_type: "cylinder_contract",
+      entity_id: contractId,
+    })
   );
 }

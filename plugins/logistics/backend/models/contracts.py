@@ -78,22 +78,6 @@ class LogisticsCylinderContract(Base):
     termination_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
-class LogisticsCylinderContractItem(Base):
-    __tablename__ = "lg_cylinder_contract_items"
-
-    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
-    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
-    contract_id: Mapped[str] = mapped_column(
-        ForeignKey("lg_cylinder_contracts.id"), nullable=False, index=True
-    )
-    cylinder_id: Mapped[str | None] = mapped_column(ForeignKey("lg_cylinders.id"), nullable=True)
-    serial: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    unit_price: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
-    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-
-
 class LogisticsCylinderContractHistory(Base):
     __tablename__ = "lg_cylinder_contract_history"
 

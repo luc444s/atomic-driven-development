@@ -23,3 +23,4 @@ export * from "./equipment";
 export * from "./adr";
 export * from "./keys";
 export * from "./contracts";
+export * from "./customer-cylinder-summary";

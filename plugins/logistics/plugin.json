@@ -69,8 +69,6 @@
     "logistics.cylinder_contract.cancelled",
     "logistics.cylinder_contract.terminated",
     "logistics.cylinder_contract.updated",
-    "logistics.cylinder_contract_item.delivered",
-    "logistics.cylinder_contract_item.returned",
     "logistics.dispatch.completed",
     "logistics.dispatch.returned",
     "logistics.load.assigned",

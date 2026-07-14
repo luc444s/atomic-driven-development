@@ -5,13 +5,12 @@ import { FileUpload } from "../../../../../apps/web/src/shared/ui/file-upload";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
 import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { SearchDialog } from "../../../../../apps/web/src/shared/ui/search-dialog";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
-import { listCylinders } from "../../api/cylinders";
+import { ProductSearchDialog } from "../../../../productos/frontend/components/ProductSearchDialog";
+import { listConditions } from "../../api/cylinders";
 import { listContractTypes } from "../../api/contracts";
 import { listWarehouses } from "../../api/warehouses";
-import type { LogisticsCylinder } from "../../api/cylinders";
 import type { ContractFormState } from "../forms/contract-form-state";
 
 type ContractFormDialogProps = {
@@ -23,11 +22,8 @@ type ContractFormDialogProps = {
   error: string | null;
   title: string;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
-  onCylinderSelect: (cylinderId: string, serial: string) => void;
   onFileSelect: (file: File | null) => void;
   showNotes?: boolean;
-  initialCylinderSerial?: string;
-  lockCylinder?: boolean;
 };
 
 export function ContractFormDialog({
@@ -39,30 +35,24 @@ export function ContractFormDialog({
   error,
   title,
   onSubmit,
-  onCylinderSelect,
   onFileSelect,
   showNotes = true,
-  initialCylinderSerial = "",
-  lockCylinder = false,
 }: ContractFormDialogProps) {
   const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
-  const [isCylinderSearchOpen, setIsCylinderSearchOpen] = useState(false);
-  const [cylinderSerial, setCylinderSerial] = useState("");
+  const [isProductSearchOpen, setIsProductSearchOpen] = useState(false);
+  const [productLabel, setProductLabel] = useState("");
   const contractTypesQuery = useQuery({ queryKey: ["logistics", "contract-types"], queryFn: listContractTypes });
+  const conditionsQuery = useQuery({ queryKey: ["logistics", "conditions"], queryFn: listConditions });
   const warehousesQuery = useQuery({ queryKey: ["logistics", "warehouses"], queryFn: listWarehouses });
 
   const field = (key: keyof ContractFormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     onFormChange({ ...form, [key]: e.target.value });
 
   useEffect(() => {
-    if (!open) setCylinderSerial("");
-  }, [open]);
-
-  useEffect(() => {
-    if (open) {
-      setCylinderSerial(initialCylinderSerial);
+    if (!open) {
+      setProductLabel("");
     }
-  }, [initialCylinderSerial, open]);
+  }, [open]);
 
   return (
     <Dialog
@@ -103,37 +93,12 @@ export function ContractFormDialog({
               </div>
             </Labeled>
 
-            <Labeled label="Envase">
-              <div className="flex items-center gap-2">
-                <Input
-                  value={cylinderSerial}
-                  readOnly
-                  placeholder="Seleccione envase..."
-                  className="flex-1 cursor-pointer"
-                  onClick={() => {
-                    if (!lockCylinder) {
-                      setIsCylinderSearchOpen(true);
-                    }
-                  }}
-                />
-                {!lockCylinder ? (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCylinderSearchOpen(true)}
-                  >
-                    Buscar
-                  </Button>
-                ) : null}
-              </div>
-            </Labeled>
-
-            <Labeled label="Almacen">
+            <Labeled label="Almacen responsable">
               <Select
                 value={form.warehouse_id}
                 onChange={(v) => onFormChange({ ...form, warehouse_id: v })}
                 options={[
-                  { value: "", label: "Seleccione almacen" },
+                  { value: "", label: "Seleccione almacen responsable" },
                   ...(warehousesQuery.data ?? []).map((warehouse) => ({
                     value: warehouse.id,
                     label: `${warehouse.code} - ${warehouse.name}`,
@@ -155,24 +120,51 @@ export function ContractFormDialog({
             }
           />
 
-          <SearchDialog<LogisticsCylinder>
-            open={isCylinderSearchOpen && !lockCylinder}
-            onOpenChange={setIsCylinderSearchOpen}
-            title="Buscar envase"
-            placeholder="Número de serie..."
-            columns={[
-              { key: "serial", header: "Serie", render: (c: LogisticsCylinder) => c.serial },
-              { key: "gas", header: "Gas", render: (c: LogisticsCylinder) => c.gas_group_id ?? "-" },
-              { key: "state", header: "Estado", render: (c: LogisticsCylinder) => c.current_state },
-            ]}
-            fetchFn={(q) => listCylinders({ search: q || undefined, active: undefined })}
-            onSelect={(cyl) => {
-              onFormChange({ ...form, cylinder_type_id: cyl.gas_group_id ?? "" });
-              onCylinderSelect(cyl.id, cyl.serial);
-              setCylinderSerial(cyl.serial);
+          <ProductSearchDialog
+            open={isProductSearchOpen}
+            onOpenChange={setIsProductSearchOpen}
+            title="Seleccionar tipo de envase"
+            onSelect={(product) => {
+              setProductLabel(product.name);
+              onFormChange({
+                ...form,
+                cylinder_type_id: product.id,
+                cylinder_condition: product.condition_code,
+              });
+              setIsProductSearchOpen(false);
             }}
-            getRowId={(c) => c.id}
           />
+
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Tipo de envase">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={productLabel || form.cylinder_type_id}
+                  readOnly
+                  placeholder="Seleccione tipo de envase..."
+                  className="flex-1 cursor-pointer"
+                  onClick={() => setIsProductSearchOpen(true)}
+                />
+                <Button type="button" variant="outline" onClick={() => setIsProductSearchOpen(true)}>
+                  Buscar
+                </Button>
+              </div>
+            </Labeled>
+
+            <Labeled label="Condición">
+              <Select
+                value={form.cylinder_condition}
+                onChange={(v) => onFormChange({ ...form, cylinder_condition: v })}
+                options={[
+                  { value: "", label: "Sin condición" },
+                  ...(conditionsQuery.data ?? []).map((item) => ({
+                    value: item.code,
+                    label: item.name,
+                  })),
+                ]}
+              />
+            </Labeled>
+          </div>
 
           <div className="grid grid-cols-2 gap-3">
             <Labeled label="Fecha inicio">

@@ -8,6 +8,10 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from apps.api.app.core.config import PROJECT_ROOT
+from apps.api.app.kernel.signatures.service import (
+    complete_signature_session,
+    create_signature_session,
+)
 from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
@@ -18,15 +22,17 @@ from plugins.logistics.backend.models.contracts import (
     LogisticsContractType,
     LogisticsCylinderContract,
     LogisticsCylinderContractHistory,
-    LogisticsCylinderContractItem,
 )
 from plugins.logistics.backend.models.resources import LogisticsWarehouse
 from plugins.logistics.backend.schemas import (
     CylinderContractCreate,
-    CylinderContractItemCreate,
     CylinderContractRenew,
     CylinderContractSign,
     CylinderContractUpdate,
+)
+from plugins.logistics.backend.services.contract_documents import (
+    contract_customer_name,
+    render_contract_document,
 )
 
 CONTRACT_DOCUMENT_TYPE_CODE = 4
@@ -220,35 +226,6 @@ def get_contract(
     )
 
 
-def list_contracts_by_cylinder(
-    db: Session, *, tenant_id: str, cylinder_id: str
-) -> list[LogisticsCylinderContract]:
-    return list(
-        db.scalars(
-            select(LogisticsCylinderContract)
-            .join(
-                LogisticsCylinderContractItem,
-                LogisticsCylinderContractItem.contract_id == LogisticsCylinderContract.id,
-            )
-            .where(
-                LogisticsCylinderContract.tenant_id == tenant_id,
-                LogisticsCylinderContractItem.cylinder_id == cylinder_id,
-            )
-            .order_by(LogisticsCylinderContract.created_at.desc())
-        ).all()
-    )
-
-
-def list_contract_items(db: Session, *, contract_id: str) -> list[LogisticsCylinderContractItem]:
-    return list(
-        db.scalars(
-            select(LogisticsCylinderContractItem)
-            .where(LogisticsCylinderContractItem.contract_id == contract_id)
-            .order_by(LogisticsCylinderContractItem.serial.asc().nulls_last())
-        ).all()
-    )
-
-
 def list_contract_history(
     db: Session, *, contract_id: str
 ) -> list[LogisticsCylinderContractHistory]:
@@ -427,6 +404,12 @@ def activate_contract(
     contract.number = next_number
     contract.contract_number = format_contract_number(series, next_number)
     contract.status = "PENDING_SIGNATURE" if not contract.signed_flag else "ACTIVE"
+    contract.contract_file_path = render_contract_document(
+        db,
+        contract=contract,
+        created_by=action_context.actor_user_id,
+        status="PENDING_SIGNATURE" if contract.status == "PENDING_SIGNATURE" else "SIGNED",
+    )
 
     db.add(contract)
     db.flush()
@@ -476,13 +459,45 @@ def sign_contract(
     if not contract.contract_number:
         raise ValueError("El contrato debe emitirse antes de firmarse")
 
+    signer_name = payload.signer_name or payload.signed_by or contract_customer_name(contract)
     contract.signed_flag = True
     contract.signed_at = payload.signed_at or datetime.now(UTC)
-    contract.signed_by = payload.signed_by or action_context.actor_user_id
-    contract.signature_type = payload.signature_type or "PHYSICAL"
+    contract.signed_by = signer_name
+    contract.signature_type = payload.signature_type or "DIGITAL"
     if payload.contract_file_path is not None:
         contract.contract_file_path = payload.contract_file_path
+    else:
+        contract.contract_file_path = render_contract_document(
+            db,
+            contract=contract,
+            created_by=action_context.actor_user_id,
+            status="SIGNED",
+            signer_name=signer_name,
+        )
     contract.status = "ACTIVE"
+
+    contract_file_path = contract.contract_file_path
+    if not contract_file_path:
+        raise ValueError("El contrato firmado debe tener un documento asociado")
+    document_version_id = contract_file_path.rstrip("/").split("/")[-2]
+    session = create_signature_session(
+        db,
+        tenant_id=contract.tenant_id,
+        document_version_id=document_version_id,
+        signer_name=signer_name,
+        signer_email=payload.signer_email,
+        signer_phone=payload.signer_phone,
+        signer_role="CUSTOMER",
+    )
+    complete_signature_session(
+        db,
+        session=session,
+        signer_name=signer_name,
+        signer_email=payload.signer_email,
+        signer_phone=payload.signer_phone,
+        evidence_type="CONTRACT_SIGN",
+        evidence_payload={"contract_id": contract.id, "contract_number": contract.contract_number},
+    )
 
     db.add(contract)
     db.flush()
@@ -527,6 +542,13 @@ def renew_contract(
         contract.renewal_type = payload.renewal_type
     if contract.status == "EXPIRED" and payload.end_date >= date.today():
         contract.status = "ACTIVE" if contract.signed_flag else "PENDING_SIGNATURE"
+    contract.contract_file_path = render_contract_document(
+        db,
+        contract=contract,
+        created_by=action_context.actor_user_id,
+        status="RENEWED",
+        signer_name=contract.signed_by,
+    )
 
     db.add(contract)
     db.flush()
@@ -648,99 +670,3 @@ def cancel_contract(
         payload={"status": "CANCELLED"},
     )
     return contract
-
-
-def add_contract_item(
-    db: Session,
-    *,
-    tenant_id: str,
-    contract: LogisticsCylinderContract,
-    payload: CylinderContractItemCreate,
-    action_context: LogisticsActionContext,
-) -> LogisticsCylinderContractItem:
-    if contract.status in {"CANCELLED", "EXPIRED"}:
-        raise ValueError("No se pueden agregar items a un contrato cerrado")
-
-    item = LogisticsCylinderContractItem(
-        tenant_id=tenant_id,
-        contract_id=contract.id,
-        cylinder_id=payload.cylinder_id,
-        serial=payload.serial,
-        quantity=payload.quantity,
-        unit_price=payload.unit_price,
-        delivered_at=payload.delivered_at,
-    )
-    db.add(item)
-    db.flush()
-    _append_history(
-        db,
-        contract=contract,
-        event_type="CYLINDER_LINKED",
-        description=f"Cilindro relacionado: {payload.serial or payload.cylinder_id or '-'}",
-        created_by=action_context.actor_user_id,
-    )
-    audit_logistics_action(
-        db,
-        context=action_context,
-        action="cylinder_contract_item.created",
-        entity_type="cylinder_contract_item",
-        entity_id=item.id,
-        details={"contract_id": contract.id, "cylinder_id": payload.cylinder_id},
-    )
-    return item
-
-
-def mark_item_delivered(
-    db: Session,
-    *,
-    item: LogisticsCylinderContractItem,
-    action_context: LogisticsActionContext,
-) -> LogisticsCylinderContractItem:
-    item.delivered_at = datetime.now(UTC)
-    db.add(item)
-    db.flush()
-    audit_logistics_action(
-        db,
-        context=action_context,
-        action="cylinder_contract_item.delivered",
-        entity_type="cylinder_contract_item",
-        entity_id=item.id,
-        details={"contract_id": item.contract_id, "cylinder_id": item.cylinder_id},
-    )
-    emit_logistics_event(
-        db,
-        context=action_context,
-        event_name="logistics.cylinder_contract_item.delivered",
-        entity_type="cylinder_contract_item",
-        entity_id=item.id,
-        payload={"contract_id": item.contract_id, "cylinder_id": item.cylinder_id},
-    )
-    return item
-
-
-def mark_item_returned(
-    db: Session,
-    *,
-    item: LogisticsCylinderContractItem,
-    action_context: LogisticsActionContext,
-) -> LogisticsCylinderContractItem:
-    item.returned_at = datetime.now(UTC)
-    db.add(item)
-    db.flush()
-    audit_logistics_action(
-        db,
-        context=action_context,
-        action="cylinder_contract_item.returned",
-        entity_type="cylinder_contract_item",
-        entity_id=item.id,
-        details={"contract_id": item.contract_id, "cylinder_id": item.cylinder_id},
-    )
-    emit_logistics_event(
-        db,
-        context=action_context,
-        event_name="logistics.cylinder_contract_item.returned",
-        entity_type="cylinder_contract_item",
-        entity_id=item.id,
-        payload={"contract_id": item.contract_id, "cylinder_id": item.cylinder_id},
-    )
-    return item

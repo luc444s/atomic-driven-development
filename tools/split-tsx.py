@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
@@ -275,77 +276,44 @@ def analyze_file(filepath: str) -> list[dict]:
 # ── section extraction ──────────────────────────────────────────────
 
 
-def _resolve_path(from_dir: Path, target_file: Path) -> str:
-    """Resuelve ruta relativa para import."""
-    rel = target_file.parent.relative_to(from_dir.parent)  # len
-    parts = []
-    # count how many levels up
-    up = len(from_dir.relative_to(from_dir.anchor).parts) - 1
-    for _ in range(up):
-        # Actually, compute proper relative path
-        pass
-
-    # Simple: compute relative path from output file to source
-    try:
-        rel = target_file.resolve().parent.relative_to(from_dir.resolve())
-        parts = ['..'] * len(rel.parts)
-        prefix = '/'.join(parts) if parts else '.'
-        return prefix
-    except ValueError:
-        # files on different drives / paths
-        return '..'
-
-
-def _compute_import_path(output_file: Path, source_file: Path) -> str:
+def _compute_import_path(from_file: Path, to_file: Path) -> str:
     """
-    Compute the relative path from output_file to source_file, for the
-    import statement in the NEW component file.
-    Eg: output = .../cylinders/dialogs/HydrotestDialog.tsx
-        source = .../LogisticsPage.tsx
-    Returns: ../../LogisticsPage  (no extension)
+    Computes a relative import path from from_file to to_file.
+    Both should be absolute or relative to CWD. Result has no extension.
     """
-    out_dir = output_file.resolve().parent
-    src = source_file.resolve().with_suffix('')
+    f = from_file.resolve().parent
+    t = to_file.resolve().with_suffix('')
     try:
-        rel = src.relative_to(out_dir)
-        parts = ['..'] * (len(out_dir.relative_to(out_dir.anchor).parts) - len(rel.parent.relative_to(out_dir.anchor).parts))
-        # simpler calculation
-        rel_str = str(src.relative_to(out_dir))
-        if not rel_str.startswith('.'):
-            rel_str = './' + rel_str
-        return rel_str.replace('\\', '/')
+        r = os.path.relpath(t, f)
     except ValueError:
-        # try reverse
-        try:
-            # compute relative properly
-            out_parts = list(out_dir.parts)
-            src_parts = list(src.parts)
-            common = 0
-            for a, b in zip(out_parts, src_parts):
-                if a == b:
-                    common += 1
-                else:
-                    break
-            up = ['..'] * (len(out_parts) - common)
-            down = list(src_parts[common:])
-            rel = '/'.join(up + down)
-            if not rel.startswith('.'):
-                rel = './' + rel
-            return rel
-        except Exception:
-            return f'./{src.name}'
+        return f'./{t.name}'
+    r = r.replace('\\', '/')
+    if not r.startswith('.'):
+        r = './' + r
+    return r
 
 
 COMPONENT_TMPL = """\
 // Auto-generado por split-tsx.py
-import {{ Fragment }} from "react";
 {extra_imports}
-import {{ Dialog }} from "../../../apps/web/src/shared/ui/dialog";
-import {{ Button }} from "../../../apps/web/src/shared/ui/button";
-import {{ Input, Textarea }} from "../../../apps/web/src/shared/ui/input";
-import {{ Select }} from "../../../apps/web/src/shared/ui/select";
-import {{ Field }} from "{utils_path}";
 import type {{ {prop_types} }} from "{source_rel}";
+
+interface {name}Props {{
+{props_interface}
+}}
+
+export function {name}({{
+{props_destructure}
+}}: {name}Props) {{
+  return (
+{jsx_content}
+  );
+}}
+"""
+
+COMPONENT_TMPL_NO_TYPES = """\
+// Auto-generado por split-tsx.py
+{extra_imports}
 
 interface {name}Props {{
 {props_interface}
@@ -440,12 +408,6 @@ def extract_section(
     # Extra imports string
     extra_imports_str = '\n'.join(extra_imports)
 
-    # Compute relative import path for utils
-    utils_rel = _compute_import_path(
-        Path(output_dir) / f'{name}.tsx',
-        Path(source_file).parent / 'cylinders' / 'utils' / 'formatters',
-    )
-
     # Relative path to source file (for types)
     source_rel = _compute_import_path(
         Path(output_dir) / f'{name}.tsx',
@@ -454,18 +416,26 @@ def extract_section(
 
     # Prop types string for import
     prop_types_names = [p for p in all_props if p[0].isupper() or p.endswith('FormState') or p.endswith('Props')]
-    prop_types_str = ', '.join(prop_types_names) if prop_types_names else 'unknown'
+    prop_types_str = ', '.join(prop_types_names)
 
-    content = COMPONENT_TMPL.format(
-        name=name,
-        extra_imports=extra_imports_str,
-        props_interface=props_iface,
-        props_destructure=props_dest,
-        jsx_content=jsx_content,
-        utils_path=utils_rel,
-        source_rel=source_rel,
-        prop_types=prop_types_str,
-    )
+    if prop_types_str:
+        content = COMPONENT_TMPL.format(
+            name=name,
+            extra_imports=extra_imports_str,
+            props_interface=props_iface,
+            props_destructure=props_dest,
+            jsx_content=jsx_content,
+            source_rel=source_rel,
+            prop_types=prop_types_str,
+        )
+    else:
+        content = COMPONENT_TMPL_NO_TYPES.format(
+            name=name,
+            extra_imports=extra_imports_str,
+            props_interface=props_iface,
+            props_destructure=props_dest,
+            jsx_content=jsx_content,
+        )
 
     if not dry_run:
         output_path = Path(output_dir) / f'{name}.tsx'

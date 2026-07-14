@@ -10,6 +10,7 @@ import {
   logisticsKeys,
 } from "../../../logistics/frontend/api";
 import type { Customer } from "../types";
+import { CustomerCylinderAlertsDialog } from "./CustomerCylinderAlertsDialog";
 import { CustomerCylinderSummaryDialog } from "./CustomerCylinderSummaryDialog";
 
 type CustomerOverviewCardProps = {
@@ -36,6 +37,7 @@ function MetricBox({
 export function CustomerOverviewCard({ customer }: CustomerOverviewCardProps) {
   const permissions = useAuthStore((state) => state.permissions);
   const [open, setOpen] = useState(false);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const canReadCylinder = permissions.includes("logistics.cylinder.read");
 
   const summaryQuery = useQuery({
@@ -117,10 +119,19 @@ export function CustomerOverviewCard({ customer }: CustomerOverviewCardProps) {
                   <strong className="text-foreground">{summaryQuery.data.contract.active_contract_count}</strong>
                 </span>
               </div>
-              <div className="mt-3">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 <Button variant="secondary" onClick={() => setOpen(true)}>
                   Ver detalle de envases
                 </Button>
+                {summaryQuery.data.alerts.length > 0 ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => setAlertsOpen(true)}
+                    className="border-amber-400 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-600 dark:bg-amber-500/10 dark:text-amber-200 dark:hover:bg-amber-500/20"
+                  >
+                    ⚠ {summaryQuery.data.alerts.length} advertencia{summaryQuery.data.alerts.length > 1 ? "s" : ""}
+                  </Button>
+                ) : null}
               </div>
             </div>
           ) : null}
@@ -152,11 +163,18 @@ export function CustomerOverviewCard({ customer }: CustomerOverviewCardProps) {
         </details>
 
         {summaryQuery.data ? (
-          <CustomerCylinderSummaryDialog
-            open={open}
-            onClose={() => setOpen(false)}
-            summary={summaryQuery.data}
-          />
+          <>
+            <CustomerCylinderSummaryDialog
+              open={open}
+              onClose={() => setOpen(false)}
+              summary={summaryQuery.data}
+            />
+            <CustomerCylinderAlertsDialog
+              open={alertsOpen}
+              onClose={() => setAlertsOpen(false)}
+              alerts={summaryQuery.data.alerts}
+            />
+          </>
         ) : null}
       </CardContent>
     </Card>

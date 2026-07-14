@@ -1,12 +1,10 @@
 import { toNullable, toNumberOrNull } from "../../cylinders/utils/formatters";
 import type {
   ContractFormState,
-  ContractItemFormState,
   TerminateFormState,
 } from "./contract-form-state";
 import type {
   CreateContractPayload,
-  CreateContractItemPayload,
   TerminateContractPayload,
   UpdateContractPayload,
 } from "../../api/contracts";
@@ -31,15 +29,6 @@ export function buildCreatePayload(form: ContractFormState): CreateContractPaylo
 
 export function buildUpdatePayload(form: ContractFormState): UpdateContractPayload {
   return buildCreatePayload(form);
-}
-
-export function buildItemPayload(form: ContractItemFormState): CreateContractItemPayload {
-  return {
-    cylinder_id: toNullable(form.cylinder_id),
-    serial: toNullable(form.serial),
-    quantity: Number(form.quantity || "1"),
-    unit_price: Number(form.unit_price || "0"),
-  };
 }
 
 export function buildTerminatePayload(form: TerminateFormState): TerminateContractPayload {

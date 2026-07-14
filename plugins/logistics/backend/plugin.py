@@ -3,6 +3,9 @@ from __future__ import annotations
 from packages.sdk import PluginContext
 from plugins.logistics.backend.router import router
 from plugins.logistics.backend.routers.contracts import router as contracts_router
+from plugins.logistics.backend.routers.customer_cylinder_summary import (
+    router as customer_summary_router,
+)
 from plugins.logistics.backend.routers.traceability import router as traceability_router
 
 LOGISTICS_PERMISSIONS = [
@@ -83,8 +86,6 @@ LOGISTICS_EVENTS = [
     "logistics.cylinder_contract.terminated",
     "logistics.cylinder_contract.cancelled",
     "logistics.cylinder_contract.renewed",
-    "logistics.cylinder_contract_item.delivered",
-    "logistics.cylinder_contract_item.returned",
     "logistics.cylinder.traceability_viewed",
 ]
 
@@ -92,6 +93,7 @@ LOGISTICS_EVENTS = [
 def register(context: PluginContext) -> None:
     context.register_router(traceability_router)
     context.register_router(contracts_router)
+    context.register_router(customer_summary_router)
     context.register_router(router)
     context.register_permissions(LOGISTICS_PERMISSIONS)
     context.register_events(LOGISTICS_EVENTS)

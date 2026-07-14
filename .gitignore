@@ -56,3 +56,9 @@ grabaciones/
 legacy_report/
 migration_errors*.xlsx
 migration_summary*.xlsx
+
+# Generated artifacts / local backups
+*.bak
+*.save
+*.egg-info/
+data/media/

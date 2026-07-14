@@ -15,13 +15,6 @@ export type ContractFormState = {
   observations: string;
 };
 
-export type ContractItemFormState = {
-  cylinder_id: string;
-  serial: string;
-  quantity: string;
-  unit_price: string;
-};
-
 export type TerminateFormState = {
   reason: string;
 };
@@ -41,13 +34,6 @@ export const EMPTY_CONTRACT_FORM: ContractFormState = {
   contract_file_path: "",
   notes: "",
   observations: "",
-};
-
-export const EMPTY_CONTRACT_ITEM_FORM: ContractItemFormState = {
-  cylinder_id: "",
-  serial: "",
-  quantity: "1",
-  unit_price: "",
 };
 
 export const EMPTY_TERMINATE_FORM: TerminateFormState = {

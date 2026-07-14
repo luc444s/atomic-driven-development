@@ -14,8 +14,8 @@ from .contracts import (
     LogisticsContractType,
     LogisticsCylinderContract,
     LogisticsCylinderContractHistory,
-    LogisticsCylinderContractItem,
 )
+from .customer_possession import LogisticsCustomerCylinderLedger
 from .cylinder import (
     LogisticsCylinder,
     LogisticsCylinderLabelHistory,

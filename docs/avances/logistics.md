@@ -16,6 +16,7 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 - Para el estado funcional más reciente, tomar como referencia inmediata `plugins/logistics/README.md`, `docs/specs/core/0014-1-logistics-gap-closure.md` y `docs/specs/core/0023-logistics-operacion-real/index.md`.
 - `docs/specs/core/0014-logistics-complete/index.md` queda como inventario historico de origen, no como roadmap vigente.
 - Los cinco parciales operativos de planificacion quedan desglosados en `docs/specs/core/0020-logistics-planificacion-parciales.md`.
+- `almacen movil` / `flota` quedaron retirados del runtime por inconsistencia operativa y tecnica; `SPEC 0023E` se conserva solo como baseline historica/deprecada para una reconstruccion futura.
 
 ## Matriz 0014
 

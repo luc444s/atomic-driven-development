@@ -64,6 +64,28 @@ export const logisticsKeys = {
     list: () => [...logisticsKeys.scans.all(), "list"] as const,
     byMovement: (movementId: string) => [...logisticsKeys.scans.all(), movementId] as const,
   },
+  vehicleSessions: {
+    all: () => [...logisticsKeys.all, "vehicle-sessions"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.vehicleSessions.all(), "list", filters] as const,
+    active: () => [...logisticsKeys.vehicleSessions.all(), "active"] as const,
+    detail: (id: string) => [...logisticsKeys.vehicleSessions.all(), id] as const,
+    history: (id: string) => [...logisticsKeys.vehicleSessions.detail(id), "history"] as const,
+    drivers: () => [...logisticsKeys.vehicleSessions.all(), "drivers"] as const,
+    waybill: (id: string) => [...logisticsKeys.vehicleSessions.detail(id), "carta-porte"] as const,
+    waybillHistory: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "carta-porte", "history"] as const,
+    routeOperations: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "route-operations"] as const,
+    composition: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "composition", "current"] as const,
+  },
+  loadPlans: {
+    detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "load-plan"] as const,
+  },
+  reconciliation: {
+    detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "reconciliation"] as const,
+  },
 };
 
 export function getCylinderQueryKeys(cylinderId?: string) {

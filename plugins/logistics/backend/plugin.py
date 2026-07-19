@@ -6,6 +6,12 @@ from plugins.logistics.backend.routers.contracts import router as contracts_rout
 from plugins.logistics.backend.routers.customer_cylinder_summary import (
     router as customer_summary_router,
 )
+from plugins.logistics.backend.routers.load_plans import router as load_plans_router
+from plugins.logistics.backend.routers.operations import router as session_operations_router
+from plugins.logistics.backend.routers.reconciliation import router as reconciliation_router
+from plugins.logistics.backend.routers.route_operations import router as route_operations_router
+from plugins.logistics.backend.routers.session_waybills import router as session_waybills_router
+from plugins.logistics.backend.routers.sessions import router as sessions_router
 from plugins.logistics.backend.routers.traceability import router as traceability_router
 
 LOGISTICS_PERMISSIONS = [
@@ -48,6 +54,8 @@ LOGISTICS_PERMISSIONS = [
     "logistics.contract.activate",
     "logistics.contract.terminate",
     "logistics.contract.renew",
+    "logistics.session.read",
+    "logistics.session.manage",
 ]
 
 LOGISTICS_EVENTS = [
@@ -87,6 +95,12 @@ LOGISTICS_EVENTS = [
     "logistics.cylinder_contract.cancelled",
     "logistics.cylinder_contract.renewed",
     "logistics.cylinder.traceability_viewed",
+    "logistics.vehicle_session.created",
+    "logistics.vehicle_session.loading_started",
+    "logistics.vehicle_session.ready",
+    "logistics.vehicle_session.outbound",
+    "logistics.vehicle_session.returning",
+    "logistics.vehicle_session.cancelled",
 ]
 
 
@@ -94,6 +108,12 @@ def register(context: PluginContext) -> None:
     context.register_router(traceability_router)
     context.register_router(contracts_router)
     context.register_router(customer_summary_router)
+    context.register_router(sessions_router)
+    context.register_router(route_operations_router)
+    context.register_router(session_waybills_router)
+    context.register_router(load_plans_router)
+    context.register_router(session_operations_router)
+    context.register_router(reconciliation_router)
     context.register_router(router)
     context.register_permissions(LOGISTICS_PERMISSIONS)
     context.register_events(LOGISTICS_EVENTS)

@@ -15,6 +15,7 @@ from plugins.logistics.backend.dto.sessions import (
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
     LogisticsOperation,
+    LogisticsRouteOperation,
     LogisticsSessionReconciliation,
     LogisticsVehicle,
     LogisticsVehicleSession,
@@ -126,6 +127,28 @@ def build_session_history(
                 occurred_at=operation.performed_at or operation.created_at,
                 category="operation",
                 label=f"Operacion {operation.movement_type} confirmada",
+            )
+        )
+
+    route_operations = list(
+        db.scalars(
+            select(LogisticsRouteOperation)
+            .where(
+                LogisticsRouteOperation.session_id == session.id,
+                LogisticsRouteOperation.status == "CONFIRMED",
+            )
+            .order_by(
+                LogisticsRouteOperation.performed_at.asc().nulls_last(),
+                LogisticsRouteOperation.created_at.asc(),
+            )
+        ).all()
+    )
+    for route_operation in route_operations:
+        history.append(
+            SessionHistoryEntryRead(
+                occurred_at=route_operation.performed_at or route_operation.created_at,
+                category="route_operation",
+                label=f"Operacion de ruta {route_operation.operation_type} confirmada",
             )
         )
 

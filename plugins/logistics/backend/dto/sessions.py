@@ -67,3 +67,72 @@ class VehicleSessionRead(BaseModel):
 
 class VehicleSessionDetailRead(VehicleSessionRead):
     history: list[SessionHistoryEntryRead] = Field(default_factory=list)
+
+
+class SessionWaybillVehicleRead(BaseModel):
+    id: str
+    plate: str
+    kind: str | None = None
+
+
+class SessionWaybillDriverRead(BaseModel):
+    id: str
+    name: str
+    license: str | None = None
+
+
+class SessionWaybillDestinationRead(BaseModel):
+    id: str | None = None
+    name: str | None = None
+    address: str | None = None
+
+
+class SessionWaybillItemRead(BaseModel):
+    product_id: str
+    product_name: str
+    quantity: float
+    unit: str | None = None
+    weight_kg: float | None = None
+    adr_points: float | None = None
+
+
+class SessionWaybillTotalsRead(BaseModel):
+    total_packages: float | None = None
+    total_weight_kg: float | None = None
+    total_adr_points: float | None = None
+
+
+class SessionWaybillSnapshotRead(BaseModel):
+    vehicle: SessionWaybillVehicleRead
+    driver: SessionWaybillDriverRead
+    destination: SessionWaybillDestinationRead
+    transported_items: list[SessionWaybillItemRead] = Field(default_factory=list)
+    totals: SessionWaybillTotalsRead
+
+
+class SessionWaybillVersionRead(BaseModel):
+    id: str
+    vehicle_session_id: str
+    movement_ids: list[str] = Field(default_factory=list)
+    version: int
+    previous_version_id: str | None = None
+    status: str
+    regulatory_context: str
+    generated_at: datetime
+    generated_by: str | None = None
+    snapshot_schema_version: int
+    change_event: str
+    change_reason: str
+    snapshot: SessionWaybillSnapshotRead
+
+
+class SessionWaybillStateRead(BaseModel):
+    active: SessionWaybillVersionRead | None = None
+    sync_status: str | None = None
+    can_regenerate: bool = False
+
+
+class SessionWaybillRegenerateRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
+    event: str = Field(min_length=1, max_length=40)
+    idempotency_key: str | None = Field(default=None, max_length=120)

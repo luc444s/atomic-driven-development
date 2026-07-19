@@ -4,34 +4,32 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { ApiError } from "../../../../apps/web/src/shared/api/client";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Tabs } from "../../../../apps/web/src/shared/ui/tabs";
 import { listBalances, stockKeys } from "../../../stock/frontend/api";
 import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
 import {
-  closeVehicleSession,
-  confirmLoad,
+  confirmAndReady,
   countSessionReconciliation,
   departSession,
   getLoadPlan,
   getSessionReconciliation,
   getVehicleSession,
   logisticsKeys,
-  markSessionReady,
   markSessionReturning,
   returnRemaining,
   startLoadingSession,
   upsertLoadPlan,
 } from "../api";
-import { SessionHistoryTab } from "../components/vehicle-sessions/SessionHistoryTab";
 import {
   type EditableLoadPlanItem,
-  SessionLoadTab,
 } from "../components/vehicle-sessions/SessionLoadTab";
-import { SessionReconciliationTab } from "../components/vehicle-sessions/SessionReconciliationTab";
-import { SessionRouteTab } from "../components/vehicle-sessions/SessionRouteTab";
-import { SessionStepper } from "../components/vehicle-sessions/SessionStepper";
-import { SessionSummaryTab } from "../components/vehicle-sessions/SessionSummaryTab";
-import { SessionWorkspaceHeader } from "../components/vehicle-sessions/SessionWorkspaceHeader";
+import { VehicleSessionConsole } from "../components/vehicle-sessions/VehicleSessionConsole";
+import { LoadModal } from "../components/vehicle-sessions/modals/LoadModal";
+import { ReconciliationModal } from "../components/vehicle-sessions/modals/ReconciliationModal";
+import { RouteModal } from "../components/vehicle-sessions/modals/RouteModal";
+import {
+  type SessionContextKey,
+  STEPPER_ACTIONABLE_STATUSES,
+} from "../components/vehicle-sessions/session-ui-map";
 import { LogisticsSection } from "../components/LogisticsSection";
 
 type VehicleSessionDetailPageProps = {
@@ -40,9 +38,10 @@ type VehicleSessionDetailPageProps = {
   onClose?: () => void;
 };
 
-type StepperError = {
+type SessionActionError = {
   type: "technical" | "business";
   message: string;
+  scope: "stepper" | SessionContextKey;
 };
 
 export function VehicleSessionDetailPage({
@@ -54,8 +53,8 @@ export function VehicleSessionDetailPage({
   const sessionId = sessionIdOverride ?? routeSessionId;
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [tab, setTab] = useState("summary");
-  const [error, setError] = useState<StepperError | null>(null);
+  const [activeModal, setActiveModal] = useState<SessionContextKey | null>(null);
+  const [error, setError] = useState<SessionActionError | null>(null);
   const [loadPlanItems, setLoadPlanItems] = useState<EditableLoadPlanItem[]>([]);
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -140,10 +139,6 @@ export function VehicleSessionDetailPage({
     mutationFn: () => startLoadingSession(sessionId),
     onSuccess: invalidateAll,
   });
-  const readyMutation = useMutation({
-    mutationFn: () => markSessionReady(sessionId),
-    onSuccess: invalidateAll,
-  });
   const departMutation = useMutation({
     mutationFn: () => departSession(sessionId),
     onSuccess: invalidateAll,
@@ -164,7 +159,7 @@ export function VehicleSessionDetailPage({
     onSuccess: invalidateAll,
   });
   const confirmLoadMutation = useMutation({
-    mutationFn: () => confirmLoad(sessionId),
+    mutationFn: () => confirmAndReady(sessionId),
     onSuccess: invalidateAll,
   });
   const returnMutation = useMutation({
@@ -179,42 +174,45 @@ export function VehicleSessionDetailPage({
           counted_quantity: Number(counted_quantity || "0"),
         })),
       }),
-    onSuccess: invalidateAll,
-  });
-  const closeMutation = useMutation({
-    mutationFn: () => closeVehicleSession(sessionId),
-    onSuccess: async () => {
+    onSuccess: async (result) => {
       await invalidateAll();
+      if (result.status !== "CLOSED") {
+        return;
+      }
+      setActiveModal(null);
       if (embedded) {
         onClose?.();
         return;
       }
-      navigate("/app/logistics/vehicle-sessions");
     },
   });
 
   const mobileRows = mobileBalancesQuery.data?.items ?? [];
   const isPending =
     startLoadingMutation.isPending ||
-    readyMutation.isPending ||
     departMutation.isPending ||
     returningMutation.isPending ||
     savePlanMutation.isPending ||
     confirmLoadMutation.isPending ||
     returnMutation.isPending ||
-    countMutation.isPending ||
-    closeMutation.isPending;
+    countMutation.isPending;
 
   const TRANSITION_ACTIONS: Partial<Record<string, () => Promise<unknown>>> = {
     DRAFT: startLoadingMutation.mutateAsync,
-    LOADING: readyMutation.mutateAsync,
+    // TODO: reemplazar por evento GPS.
     READY_TO_DEPART: departMutation.mutateAsync,
+    // TODO: reemplazar por evento GPS.
     OUTBOUND: returningMutation.mutateAsync,
     RETURNING: returnMutation.mutateAsync,
-    AWAITING_RECONCILIATION: closeMutation.mutateAsync,
   };
 
-  async function runAction(action?: () => Promise<unknown>) {
+  const isStepperActionStatus = session ? STEPPER_ACTIONABLE_STATUSES.has(session.status) : false;
+  const stepperError = error?.scope === "stepper" ? error : null;
+  const loadPanelError = error?.scope === "load" ? error.message : null;
+  const reconciliationPanelError =
+    error?.scope === "reconciliation" ? error.message : null;
+
+  async function runAction(action?: () => Promise<unknown>, scope: SessionActionError["scope"] = "stepper") {
     if (!action) {
       return;
     }
@@ -222,20 +220,35 @@ export function VehicleSessionDetailPage({
     try {
       await action();
     } catch (cause) {
-      if (cause instanceof ApiError) {
-        setError({
-          type: cause.status >= 500 ? "technical" : "business",
-          message:
-            cause.status >= 500 ? "Error del servidor. Intente nuevamente." : cause.message,
-        });
-        return;
-      }
-      setError({ type: "technical", message: "Error del servidor. Intente nuevamente." });
+        if (cause instanceof ApiError) {
+          setError({
+            type: cause.status >= 500 ? "technical" : "business",
+            message:
+              cause.status >= 500 ? "Error del servidor. Intente nuevamente." : cause.message,
+            scope,
+          });
+          return;
+        }
+      setError({
+        type: "technical",
+        message: "Error del servidor. Intente nuevamente.",
+        scope,
+      });
     }
   }
 
-  function handleStepperTabNavigation(targetTab: string) {
-    setTab(targetTab);
+  function handleOpenContext(context: SessionContextKey) {
+    setError(null);
+    setActiveModal(context);
+  }
+
+  function handleCloseModal() {
+    setActiveModal(null);
+  }
+
+  function handleCloseLoadModal() {
+    setShowProductSearch(false);
+    handleCloseModal();
   }
 
   if (!session) {
@@ -252,69 +265,59 @@ export function VehicleSessionDetailPage({
 
   const content = (
     <>
-      <div className="grid gap-4 xl:grid-cols-2 xl:items-start">
-        <SessionWorkspaceHeader session={session} />
+      <VehicleSessionConsole
+        session={session}
+        mobileRows={mobileRows}
+        stepper={{
+          nextTransitionAllowed: session.next_transition_allowed,
+          nextTransitionBlocker: session.next_transition_blocker,
+          closedAt: session.closed_at,
+          isPending,
+          error: isStepperActionStatus ? stepperError : null,
+          onNext: () => runAction(TRANSITION_ACTIONS[session.status], "stepper"),
+          onOpenContext: handleOpenContext,
+        }}
+      />
 
-        <SessionStepper
-          status={session.status}
-          nextTransitionAllowed={session.next_transition_allowed}
-          nextTransitionBlocker={session.next_transition_blocker}
-          closedAt={session.closed_at}
-          isPending={isPending}
-          error={error}
-          onNext={() => runAction(TRANSITION_ACTIONS[session.status])}
-          onNavigateTab={handleStepperTabNavigation}
-        />
-      </div>
+      <LoadModal
+        open={activeModal === "load"}
+        onClose={handleCloseLoadModal}
+        session={session}
+        loadPlanItems={loadPlanItems}
+        setLoadPlanItems={setLoadPlanItems}
+        originRows={originBalancesQuery.data?.items ?? []}
+        onOpenProductSearch={() => setShowProductSearch(true)}
+        onSavePlan={() =>
+          runAction(async () => {
+            await savePlanMutation.mutateAsync();
+            if (session.status !== "LOADING") {
+              return;
+            }
+            await confirmLoadMutation.mutateAsync();
+            handleCloseLoadModal();
+          }, "load")
+        }
+        isPending={isPending}
+        error={loadPanelError}
+      />
 
-      <Tabs
-        value={tab}
-        onChange={setTab}
-        tabs={[
-          {
-            value: "summary",
-            label: "Resumen",
-            content: <SessionSummaryTab session={session} mobileRows={mobileRows} />,
-          },
-          {
-            value: "load",
-            label: "Carga",
-            content: (
-              <SessionLoadTab
-                session={session}
-                loadPlanItems={loadPlanItems}
-                setLoadPlanItems={setLoadPlanItems}
-                originRows={originBalancesQuery.data?.items ?? []}
-                onOpenProductSearch={() => setShowProductSearch(true)}
-                onSavePlan={() => runAction(() => savePlanMutation.mutateAsync())}
-                onConfirmLoad={() => runAction(() => confirmLoadMutation.mutateAsync())}
-              />
-            ),
-          },
-          {
-            value: "route",
-            label: "Ruta",
-            content: <SessionRouteTab routeId={session.route_id} />,
-          },
-          {
-            value: "reconciliation",
-            label: "Conciliación",
-            content: (
-              <SessionReconciliationTab
-                reconciliation={reconciliationQuery.data}
-                counts={counts}
-                setCounts={setCounts}
-                onSaveCount={() => runAction(() => countMutation.mutateAsync())}
-                onCloseSession={() => runAction(() => closeMutation.mutateAsync())}
-              />
-            ),
-          },
-          {
-            value: "history",
-            label: "Historial",
-            content: <SessionHistoryTab history={session.history} />,
-          },
-        ]}
+      <RouteModal
+        open={activeModal === "route"}
+        onClose={handleCloseModal}
+        sessionId={session.id}
+        sessionStatus={session.status}
+        routeId={session.route_id}
+      />
+
+      <ReconciliationModal
+        open={activeModal === "reconciliation"}
+        onClose={handleCloseModal}
+        reconciliation={reconciliationQuery.data}
+        counts={counts}
+        setCounts={setCounts}
+        onSaveCount={() => runAction(() => countMutation.mutateAsync(), "reconciliation")}
+        isPending={isPending}
+        error={reconciliationPanelError}
       />
 
       <ProductSearchDialog

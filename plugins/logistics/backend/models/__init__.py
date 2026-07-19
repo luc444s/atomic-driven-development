@@ -35,6 +35,7 @@ from .equipment import (
     LogisticsMovementEquipment,
     LogisticsVehicleRouteRestriction,
 )
+from .load_plans import LogisticsLoadPlan, LogisticsLoadPlanItem
 from .movements import LogisticsMovement, LogisticsMovementItem, LogisticsMovementStatusHistory
 from .operations import (
     LogisticsLoad,
@@ -44,6 +45,7 @@ from .operations import (
     LogisticsRouteStop,
 )
 from .planning import LogisticsPlanPreload, LogisticsPlanPreloadItem, LogisticsReceptionIncident
+from .reconciliation import LogisticsInventoryDiscrepancy, LogisticsSessionReconciliation
 from .resources import (
     LogisticsDeliveryPoint,
     LogisticsVehicle,
@@ -51,3 +53,7 @@ from .resources import (
     LogisticsWarehouse,
     LogisticsZone,
 )
+from .route_operations import LogisticsRouteOperation, LogisticsRouteOperationItem
+from .session_operations import LogisticsOperation, LogisticsOperationItem
+from .session_waybills import LogisticsSessionWaybillVersion
+from .sessions import LogisticsVehicleSession

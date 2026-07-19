@@ -1,9 +1,12 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 from fastapi.testclient import TestClient
 
 from apps.api.tests.test_logistics_plugin import (
     auth_headers,
+    create_customer,
     create_product,
     enable_crm_plugin,
     enable_logistics_plugin,
@@ -172,16 +175,10 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
     assert upsert_plan_response.status_code == 200, upsert_plan_response.text
     assert len(upsert_plan_response.json()["items"]) == 1
 
-    confirm_load_response = client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-load",
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
         headers=headers,
         json={},
-    )
-    assert confirm_load_response.status_code == 200, confirm_load_response.text
-
-    ready_response = client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/ready",
-        headers=headers,
     )
     assert ready_response.status_code == 200, ready_response.text
     ready_session = ready_response.json()
@@ -190,3 +187,533 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
     assert ready_session["current_stock"]["total_units"] == 5
     assert ready_session["next_transition_allowed"] is True
     assert ready_session["next_transition_blocker"] is None
+
+
+def test_vehicle_session_reconciliation_auto_closes(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Recon Auto", "code": "ALM-RA", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-RA",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "RA",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="RA-GLP10", name="Bombona 10kg RA")
+
+    adjust_response = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial jornada auto close",
+            "idempotency_key": "test-auto-close-stock-seed",
+        },
+    )
+    assert adjust_response.status_code == 201, adjust_response.text
+
+    drivers_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    driver_id = drivers_response.json()[0]["id"]
+
+    create_session_response = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    )
+    assert create_session_response.status_code == 201, create_session_response.text
+    session = create_session_response.json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+
+    upsert_plan_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert upsert_plan_response.status_code == 200, upsert_plan_response.text
+
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert ready_response.status_code == 200, ready_response.text
+    assert ready_response.json()["status"] == "READY_TO_DEPART"
+
+    depart_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    )
+    assert depart_response.status_code == 200, depart_response.text
+
+    returning_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/mark-returning",
+        headers=headers,
+    )
+    assert returning_response.status_code == 200, returning_response.text
+
+    return_remaining_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/return-remaining",
+        headers=headers,
+        json={},
+    )
+    assert return_remaining_response.status_code == 200, return_remaining_response.text
+    assert return_remaining_response.json()["status"] == "AWAITING_RECONCILIATION"
+
+    reconciliation_view_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/reconciliation",
+        headers=headers,
+    )
+    assert reconciliation_view_response.status_code == 200, reconciliation_view_response.text
+    reconciliation_view = reconciliation_view_response.json()
+    assert len(reconciliation_view["lines"]) == 1
+    assert reconciliation_view["lines"][0]["expected_quantity"] == 5.0
+
+    count_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/reconciliation/count",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "counted_quantity": 5,
+                }
+            ]
+        },
+    )
+    assert count_response.status_code == 200, count_response.text
+    reconciliation = count_response.json()
+    assert reconciliation["status"] == "CLOSED"
+
+    detail_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}",
+        headers=headers,
+    )
+    assert detail_response.status_code == 200, detail_response.text
+    closed_session = detail_response.json()
+    assert closed_session["status"] == "CLOSED"
+    assert closed_session["closed_at"] is not None
+
+
+def test_vehicle_session_waybill_is_available_inside_jornada(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Carta Porte", "code": "ALM-CP", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-CP",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "CP",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="CP-GLP10", name="Bombona 10kg CP")
+
+    adjust_response = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial carta porte",
+            "idempotency_key": "test-waybill-stock-seed",
+        },
+    )
+    assert adjust_response.status_code == 201, adjust_response.text
+
+    drivers_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    driver_id = drivers_response.json()[0]["id"]
+
+    create_session_response = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    )
+    assert create_session_response.status_code == 201, create_session_response.text
+    session = create_session_response.json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+
+    upsert_plan_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert upsert_plan_response.status_code == 200, upsert_plan_response.text
+
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert ready_response.status_code == 200, ready_response.text
+
+    depart_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    )
+    assert depart_response.status_code == 200, depart_response.text
+
+    state_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte",
+        headers=headers,
+    )
+    assert state_response.status_code == 200, state_response.text
+    initial_state = state_response.json()
+    assert initial_state["active"] is None
+    assert initial_state["can_regenerate"] is True
+
+    regenerate_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
+        headers=headers,
+        json={
+            "reason": "Generación inicial en ruta",
+            "event": "INITIAL_GENERATION",
+            "idempotency_key": "test-session-waybill-v1",
+        },
+    )
+    assert regenerate_response.status_code == 200, regenerate_response.text
+    regenerated_state = regenerate_response.json()
+    assert regenerated_state["sync_status"] == "SYNCED"
+    assert regenerated_state["active"] is not None
+    assert regenerated_state["active"]["version"] == 1
+    assert regenerated_state["active"]["snapshot"]["vehicle"]["plate"] == "TRK-CP"
+    assert regenerated_state["active"]["snapshot"]["transported_items"][0]["quantity"] == 5.0
+
+    retry_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
+        headers=headers,
+        json={
+            "reason": "Generación inicial en ruta",
+            "event": "INITIAL_GENERATION",
+            "idempotency_key": "test-session-waybill-v1",
+        },
+    )
+    assert retry_response.status_code == 200, retry_response.text
+    retried_state = retry_response.json()
+    assert retried_state["active"]["version"] == 1
+
+    history_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/history",
+        headers=headers,
+    )
+    assert history_response.status_code == 200, history_response.text
+    history = history_response.json()
+    assert len(history) == 1
+    assert history[0]["version"] == 1
+
+
+def test_route_operation_changes_composition_and_outdates_waybill(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    customer = create_customer(
+        client,
+        headers,
+        name="Cliente Ruta Carta Porte",
+        document_number="20100070970",
+    )
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Ruta", "code": "ALM-RO", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    zone_response = client.post(
+        "/api/v1/plugins/logistics/zones",
+        headers=headers,
+        json={"name": "Zona Ruta", "code": "ZN-RO"},
+    )
+    assert zone_response.status_code == 201, zone_response.text
+    zone = zone_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-RO",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "RO",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    delivery_point_response = client.post(
+        "/api/v1/plugins/logistics/delivery-points",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "contact_name": "Operador Ruta",
+            "address": "Calle Ruta 123",
+            "zone_id": zone["id"],
+            "warehouse_id": warehouse["id"],
+            "is_primary": True,
+        },
+    )
+    assert delivery_point_response.status_code == 201, delivery_point_response.text
+    delivery_point = delivery_point_response.json()
+
+    route_response = client.post(
+        "/api/v1/plugins/logistics/routes",
+        headers=headers,
+        json={
+            "route_date": datetime.now(UTC).date().isoformat(),
+            "vehicle_id": vehicle["id"],
+        },
+    )
+    assert route_response.status_code == 201, route_response.text
+    route = route_response.json()
+
+    stop_response = client.post(
+        f"/api/v1/plugins/logistics/routes/{route['id']}/stops",
+        headers=headers,
+        json={"delivery_point_id": delivery_point["id"], "stop_order": 1},
+    )
+    assert stop_response.status_code == 201, stop_response.text
+    stop = stop_response.json()
+
+    product = create_product(client, headers, sku="RO-GLP10", name="Bombona 10kg RO")
+
+    adjust_response = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial ruta operation",
+            "idempotency_key": "test-route-operation-stock-seed",
+        },
+    )
+    assert adjust_response.status_code == 201, adjust_response.text
+
+    drivers_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    driver_id = drivers_response.json()[0]["id"]
+
+    create_session_response = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+            "route_id": route["id"],
+        },
+    )
+    assert create_session_response.status_code == 201, create_session_response.text
+    session = create_session_response.json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+
+    upsert_plan_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert upsert_plan_response.status_code == 200, upsert_plan_response.text
+
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert ready_response.status_code == 200, ready_response.text
+
+    depart_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    )
+    assert depart_response.status_code == 200, depart_response.text
+
+    generate_waybill_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
+        headers=headers,
+        json={
+            "reason": "Generación inicial en ruta",
+            "event": "INITIAL_GENERATION",
+            "idempotency_key": "test-route-op-waybill-v1",
+        },
+    )
+    assert generate_waybill_response.status_code == 200, generate_waybill_response.text
+    assert generate_waybill_response.json()["active"]["version"] == 1
+
+    route_operation_create_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "operation_type": "DELIVERY",
+            "notes": "Entrega parcial al cliente",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                    "direction": "OUT",
+                }
+            ],
+        },
+    )
+    assert route_operation_create_response.status_code == 200, route_operation_create_response.text
+    route_operation = route_operation_create_response.json()
+    assert route_operation["status"] == "DRAFT"
+
+    route_operation_confirm_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations/{route_operation['id']}/confirm",
+        headers=headers,
+    )
+    assert (
+        route_operation_confirm_response.status_code == 200
+    ), route_operation_confirm_response.text
+    confirmed_operation = route_operation_confirm_response.json()
+    assert confirmed_operation["status"] == "CONFIRMED"
+    assert len(confirmed_operation["movement_ids"]) == 1
+
+    operations_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations",
+        headers=headers,
+    )
+    assert operations_response.status_code == 200, operations_response.text
+    assert operations_response.json()[0]["status"] == "CONFIRMED"
+
+    composition_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/composition/current",
+        headers=headers,
+    )
+    assert composition_response.status_code == 200, composition_response.text
+    composition = composition_response.json()
+    assert composition["product_lines"][0]["quantity"] == 3.0
+
+    waybill_state_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte",
+        headers=headers,
+    )
+    assert waybill_state_response.status_code == 200, waybill_state_response.text
+    assert waybill_state_response.json()["sync_status"] == "OUTDATED"
+
+    regenerate_waybill_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
+        headers=headers,
+        json={
+            "reason": "Entrega parcial en ruta",
+            "event": "MOVEMENT_CHANGED",
+            "idempotency_key": "test-route-op-waybill-v2",
+        },
+    )
+    assert regenerate_waybill_response.status_code == 200, regenerate_waybill_response.text
+    regenerated_state = regenerate_waybill_response.json()
+    assert regenerated_state["sync_status"] == "SYNCED"
+    assert regenerated_state["active"]["version"] == 2
+    assert regenerated_state["active"]["snapshot"]["transported_items"][0]["quantity"] == 3.0

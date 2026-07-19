@@ -54,6 +54,75 @@ export type VehicleSessionDetail = VehicleSession & {
   history: SessionHistoryEntry[];
 };
 
+export type SessionWaybillVehicle = {
+  id: string;
+  plate: string;
+  kind: string | null;
+};
+
+export type SessionWaybillDriver = {
+  id: string;
+  name: string;
+  license: string | null;
+};
+
+export type SessionWaybillDestination = {
+  id: string | null;
+  name: string | null;
+  address: string | null;
+};
+
+export type SessionWaybillItem = {
+  product_id: string;
+  product_name: string;
+  quantity: number;
+  unit: string | null;
+  weight_kg: number | null;
+  adr_points: number | null;
+};
+
+export type SessionWaybillTotals = {
+  total_packages: number | null;
+  total_weight_kg: number | null;
+  total_adr_points: number | null;
+};
+
+export type SessionWaybillSnapshot = {
+  vehicle: SessionWaybillVehicle;
+  driver: SessionWaybillDriver;
+  destination: SessionWaybillDestination;
+  transported_items: SessionWaybillItem[];
+  totals: SessionWaybillTotals;
+};
+
+export type SessionWaybillVersion = {
+  id: string;
+  vehicle_session_id: string;
+  movement_ids: string[];
+  version: number;
+  previous_version_id: string | null;
+  status: string;
+  regulatory_context: string;
+  generated_at: string;
+  generated_by: string | null;
+  snapshot_schema_version: number;
+  change_event: string;
+  change_reason: string;
+  snapshot: SessionWaybillSnapshot;
+};
+
+export type SessionWaybillState = {
+  active: SessionWaybillVersion | null;
+  sync_status: string | null;
+  can_regenerate: boolean;
+};
+
+export type SessionWaybillRegeneratePayload = {
+  reason: string;
+  event: string;
+  idempotency_key?: string | null;
+};
+
 export type CreateVehicleSessionPayload = {
   vehicle_id: string;
   driver_id: string;
@@ -129,6 +198,21 @@ export function markSessionReturning(sessionId: string) {
 
 export function cancelSession(sessionId: string, payload: SessionActionPayload = {}) {
   return apiRequest<VehicleSessionDetail>(`${API_PREFIX}/vehicle-sessions/${sessionId}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function getSessionWaybill(sessionId: string) {
+  return apiRequest<SessionWaybillState>(`${API_PREFIX}/vehicle-sessions/${sessionId}/carta-porte`);
+}
+
+export function listSessionWaybillHistory(sessionId: string) {
+  return apiRequest<SessionWaybillVersion[]>(`${API_PREFIX}/vehicle-sessions/${sessionId}/carta-porte/history`);
+}
+
+export function regenerateSessionWaybill(sessionId: string, payload: SessionWaybillRegeneratePayload) {
+  return apiRequest<SessionWaybillState>(`${API_PREFIX}/vehicle-sessions/${sessionId}/carta-porte/regenerate`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

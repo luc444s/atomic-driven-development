@@ -55,7 +55,7 @@ class StockLedger(Base):
     quantity: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
     balance_after: Mapped[float] = mapped_column(Numeric(12, 3), nullable=False)
     reference_type: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
-    reference_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
+    reference_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(

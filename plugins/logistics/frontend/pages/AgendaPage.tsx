@@ -77,8 +77,8 @@ export function AgendaPage() {
 
   return (
     <LogisticsSection
-      title="Agenda"
-      description="Lleva control del día con tareas simples y cierres rápidos."
+      title="Agenda (transicion)"
+      description="Superficie auxiliar mientras Jornadas absorbe el contexto operativo diario del repartidor."
       actions={<Button onClick={() => setIsOpen(true)}>Nueva tarea</Button>}
     >
       {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}

@@ -16,6 +16,8 @@ import { RoutesPage } from "./pages/RoutesPage";
 import { VehiclesPage } from "./pages/VehiclesPage";
 import { WarehousesPage } from "./pages/WarehousesPage";
 import { ContractsPage } from "./pages/ContractsPage";
+import { VehicleSessionDetailPage } from "./pages/VehicleSessionDetailPage";
+import { VehicleSessionsPage } from "./pages/VehicleSessionsPage";
 import { LogisticsSummaryWidget } from "./LogisticsSummaryWidget";
 
 export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegistration {
@@ -100,21 +102,32 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         component: ContractsPage,
         requiredPermissions: ["logistics.contract.view"],
       },
+      {
+        path: "logistics/vehicle-sessions",
+        title: "Jornadas",
+        component: VehicleSessionsPage,
+        requiredPermissions: ["logistics.session.read"],
+      },
+      {
+        path: "logistics/vehicle-sessions/:sessionId",
+        title: "Detalle de jornada",
+        component: VehicleSessionDetailPage,
+        requiredPermissions: ["logistics.session.read"],
+      },
     ],
     navigation: [
-      { to: `${ctx.appBasePath}/logistics/cylinders`, label: "Envases", requiredPermissions: ["logistics.cylinder.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/planning`, label: "Planificacion", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/vehicle-sessions`, label: "Jornadas", requiredPermissions: ["logistics.session.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/orders`, label: "Pedidos", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/routes`, label: "Rutas", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/loads`, label: "Carga", requiredPermissions: ["logistics.load.manage"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/movements`, label: "Movimientos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/reception`, label: "Recepcion", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/agenda`, label: "Agenda", requiredPermissions: ["logistics.agenda.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/cylinders`, label: "Envases", requiredPermissions: ["logistics.cylinder.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/equipment`, label: "Equipos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/warehouses`, label: "Almacenes", requiredPermissions: ["logistics.warehouse.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/vehicles`, label: "Vehiculos", requiredPermissions: ["logistics.vehicle.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/delivery-points`, label: "Entregas", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/contracts`, label: "Contratos", requiredPermissions: ["logistics.contract.view"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/planning`, label: "Planificacion (transicion)", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/agenda`, label: "Agenda (transicion)", requiredPermissions: ["logistics.agenda.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/loads`, label: "Carga (transicion)", requiredPermissions: ["logistics.load.manage"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/reception`, label: "Recepcion (transicion)", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
+      { to: `${ctx.appBasePath}/logistics/delivery-points`, label: "Entregas (soporte)", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
     ],
     widgets: [
       {

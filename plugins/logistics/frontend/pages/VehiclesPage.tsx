@@ -74,8 +74,8 @@ export function VehiclesPage() {
 
   return (
     <LogisticsSection
-      title="Vehículos"
-      description="Registra las unidades que usarás para reparto o traslado."
+      title="Vehículos (secundario)"
+      description="Superficie reusable de soporte. En v1.1 la selección y creación principal de vehículos ocurre desde Jornadas."
       actions={<Button onClick={() => setIsOpen(true)}>Nuevo vehículo</Button>}
     >
       {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}

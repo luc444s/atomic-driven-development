@@ -34,7 +34,7 @@ class AuditLog(Base):
     module: Mapped[str] = mapped_column(String(100), nullable=False)
     action: Mapped[str] = mapped_column(String(150), nullable=False)
     entity_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    entity_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    entity_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     result: Mapped[str] = mapped_column(String(30), nullable=False, default="success")
     correlation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     request_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)

@@ -14,6 +14,8 @@ from plugins.logistics.backend.dto.reconciliation import (
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
     LogisticsInventoryDiscrepancy,
+    LogisticsOperation,
+    LogisticsOperationItem,
     LogisticsSessionReconciliation,
     LogisticsVehicleSession,
 )
@@ -43,14 +45,62 @@ def _list_discrepancies(
     )
 
 
+def _get_latest_transfer_in_operation(
+    db: Session, *, session_id: str
+) -> LogisticsOperation | None:
+    return db.scalar(
+        select(LogisticsOperation)
+        .where(
+            LogisticsOperation.session_id == session_id,
+            LogisticsOperation.movement_type == "TRANSFER_IN",
+            LogisticsOperation.status == "CONFIRMED",
+        )
+        .order_by(
+            LogisticsOperation.performed_at.desc().nulls_last(),
+            LogisticsOperation.created_at.desc(),
+        )
+    )
+
+
+def _list_transfer_in_items(
+    db: Session, *, operation_id: str
+) -> list[LogisticsOperationItem]:
+    return list(
+        db.scalars(
+            select(LogisticsOperationItem)
+            .where(LogisticsOperationItem.operation_id == operation_id)
+            .order_by(LogisticsOperationItem.created_at.asc())
+        ).all()
+    )
+
+
 def get_reconciliation_view(
     db: Session, *, session: LogisticsVehicleSession
 ) -> SessionReconciliationRead:
-    balances = get_warehouse_balances(
-        db,
-        tenant_id=session.tenant_id,
-        warehouse_id=session.mobile_warehouse_id,
-    ).items
+    latest_transfer_in = _get_latest_transfer_in_operation(db, session_id=session.id)
+    if latest_transfer_in is not None:
+        expected_lines = [
+            ReconciliationLineRead(
+                product_id=item.product_id,
+                product_name=item.product_name,
+                expected_quantity=float(item.quantity),
+            )
+            for item in _list_transfer_in_items(db, operation_id=latest_transfer_in.id)
+        ]
+    else:
+        balances = get_warehouse_balances(
+            db,
+            tenant_id=session.tenant_id,
+            warehouse_id=session.mobile_warehouse_id,
+        ).items
+        expected_lines = [
+            ReconciliationLineRead(
+                product_id=balance.product_id,
+                product_name=balance.product_name,
+                expected_quantity=float(balance.quantity),
+            )
+            for balance in balances
+        ]
     reconciliation = _get_reconciliation(db, session_id=session.id)
     discrepancy_map: dict[str, LogisticsInventoryDiscrepancy] = {}
     discrepancies: list[InventoryDiscrepancyRead] = []
@@ -71,13 +121,13 @@ def get_reconciliation_view(
             for item in stored
         ]
     lines = []
-    for balance in balances:
-        discrepancy = discrepancy_map.get(balance.product_id)
+    for expected_line in expected_lines:
+        discrepancy = discrepancy_map.get(expected_line.product_id)
         lines.append(
             ReconciliationLineRead(
-                product_id=balance.product_id,
-                product_name=balance.product_name,
-                expected_quantity=float(balance.quantity),
+                product_id=expected_line.product_id,
+                product_name=expected_line.product_name,
+                expected_quantity=expected_line.expected_quantity,
                 counted_quantity=float(discrepancy.counted_quantity)
                 if discrepancy is not None
                 else None,
@@ -110,11 +160,7 @@ def record_reconciliation_count(
 ) -> SessionReconciliationRead:
     if session.status != "AWAITING_RECONCILIATION":
         raise ValueError("La jornada debe estar en AWAITING_RECONCILIATION para contar")
-    balances = get_warehouse_balances(
-        db,
-        tenant_id=session.tenant_id,
-        warehouse_id=session.mobile_warehouse_id,
-    ).items
+    expected_lines = get_reconciliation_view(db, session=session).lines
     counted_by_product = {item.product_id: float(item.counted_quantity) for item in payload.items}
     reconciliation = _get_reconciliation(db, session_id=session.id)
     if reconciliation is None:
@@ -135,16 +181,16 @@ def record_reconciliation_count(
     reconciliation.notes = payload.notes
     reconciliation.status = "MATCHED"
     db.add(reconciliation)
-    for balance in balances:
-        expected = float(balance.quantity)
-        counted = counted_by_product.get(balance.product_id, 0.0)
+    for line in expected_lines:
+        expected = float(line.expected_quantity)
+        counted = counted_by_product.get(line.product_id, 0.0)
         diff = counted - expected
         if abs(diff) > 0.0001:
             reconciliation.status = "HAS_DIFF"
             discrepancy = LogisticsInventoryDiscrepancy(
                 reconciliation_id=reconciliation.id,
-                product_id=balance.product_id,
-                product_name=balance.product_name,
+                product_id=line.product_id,
+                product_name=line.product_name,
                 expected_quantity=expected,
                 counted_quantity=counted,
                 difference_quantity=diff,
@@ -159,6 +205,13 @@ def record_reconciliation_count(
         entity_id=session.id,
         details={"items": len(payload.items), "status": reconciliation.status},
     )
+    if reconciliation.status == "MATCHED":
+        close_vehicle_session(
+            db,
+            session=session,
+            notes=payload.notes,
+            action_context=action_context,
+        )
     return get_reconciliation_view(db, session=session)
 
 

@@ -34,7 +34,7 @@ class CoreDocumentVersion(Base):
     tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
     module: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     entity_type: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
-    entity_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    entity_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     template_code: Mapped[str] = mapped_column(String(100), nullable=False)
     version_number: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="DRAFT", index=True)

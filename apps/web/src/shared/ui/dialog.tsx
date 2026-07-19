@@ -9,6 +9,7 @@ type DialogProps = {
   actions?: ReactNode;
   onClose: () => void;
   maxWidthClassName?: string;
+  zIndexClassName?: string;
 };
 
 export function Dialog({
@@ -19,13 +20,20 @@ export function Dialog({
   actions,
   onClose,
   maxWidthClassName = "max-w-2xl",
+  zIndexClassName = "z-50",
 }: DialogProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4" onClick={onClose}>
+    <div
+      className={cn("fixed inset-0 flex items-center justify-center bg-background/80 p-4", zIndexClassName)}
+      onClick={onClose}
+    >
       <div
-        className={cn("w-full rounded-xl border border-border bg-card shadow-xl", maxWidthClassName)}
+        className={cn(
+          "flex max-h-[85vh] w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl",
+          maxWidthClassName
+        )}
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 border-b border-border p-5">
@@ -44,7 +52,7 @@ export function Dialog({
             Cerrar
           </button>
         </div>
-        <div className="p-5">{children}</div>
+        <div className="overflow-y-auto p-5">{children}</div>
         {actions ? <div className="border-t border-border p-5">{actions}</div> : null}
       </div>
     </div>

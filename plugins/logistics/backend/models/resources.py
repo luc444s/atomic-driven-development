@@ -26,8 +26,8 @@ def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-
 # ── LogisticsWarehouse ────────────────────────────────────────
+
 
 class LogisticsWarehouse(Base):
     __tablename__ = "lg_warehouses"
@@ -42,6 +42,7 @@ class LogisticsWarehouse(Base):
     code: Mapped[str] = mapped_column(String(20), nullable=False)
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    warehouse_type: Mapped[str] = mapped_column(String(20), nullable=False, default="FIXED")
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -49,8 +50,8 @@ class LogisticsWarehouse(Base):
     )
 
 
-
 # ── LogisticsZone ────────────────────────────────────────
+
 
 class LogisticsZone(Base):
     __tablename__ = "lg_zones"
@@ -64,8 +65,8 @@ class LogisticsZone(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
 
 
-
 # ── LogisticsVehicle ────────────────────────────────────────
+
 
 class LogisticsVehicle(Base):
     __tablename__ = "lg_vehicles"
@@ -85,6 +86,9 @@ class LogisticsVehicle(Base):
     warehouse_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_warehouses.id"), nullable=True, index=True
     )
+    mobile_warehouse_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_warehouses.id"), nullable=True, index=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
@@ -92,8 +96,8 @@ class LogisticsVehicle(Base):
     )
 
 
-
 # ── LogisticsDeliveryPoint ────────────────────────────────────────
+
 
 class LogisticsDeliveryPoint(Base):
     __tablename__ = "lg_delivery_points"
@@ -136,8 +140,8 @@ class LogisticsDeliveryPoint(Base):
     )
 
 
-
 # ── LogisticsVehicleDeliveryPoint ────────────────────────────────────────
+
 
 class LogisticsVehicleDeliveryPoint(Base):
     __tablename__ = "lg_vehicle_delivery_points"
@@ -159,5 +163,3 @@ class LogisticsVehicleDeliveryPoint(Base):
         ForeignKey("lg_delivery_points.id"), nullable=False, index=True
     )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-
-

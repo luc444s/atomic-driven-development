@@ -246,8 +246,8 @@ export function PlanningPage() {
 
   return (
     <LogisticsSection
-      title="Planificacion"
-      description="Stock disponible, pedidos pendientes, planificacion y precargas."
+      title="Planificacion (transicion)"
+      description="Superficie auxiliar mientras el borrador de jornada absorbe la planificación operativa diaria."
       actions={
         <Button onClick={() => { setIsPreloadOpen(true); setPreloadDate(new Date().toISOString().split("T")[0]); }}>
           Generar precarga

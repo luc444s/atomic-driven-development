@@ -35,7 +35,7 @@ class EventLog(Base):
     )
     actor_type: Mapped[str] = mapped_column(String(50), nullable=False, default="user")
     entity_type: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    entity_id: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    entity_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
     correlation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     causation_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
     payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

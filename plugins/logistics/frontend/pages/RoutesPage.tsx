@@ -140,8 +140,8 @@ export function RoutesPage() {
 
   return (
     <LogisticsSection
-      title="Rutas"
-      description="Planifica salidas simples, asigna paradas y dispara la agenda del día."
+      title="Rutas (secundario)"
+      description="Superficie reusable de soporte. En v1.1 la creación y selección principal de rutas ocurre desde Jornadas."
       actions={<Button onClick={() => setIsRouteOpen(true)}>Nueva ruta</Button>}
     >
       {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}

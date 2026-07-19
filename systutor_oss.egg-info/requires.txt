@@ -1,5 +1,6 @@
 fastapi<1.0,>=0.111
 uvicorn[standard]<1.0,>=0.30
+python-multipart<1.0,>=0.0.20
 sqlalchemy<2.1,>=2.0
 alembic<2.0,>=1.13
 psycopg<4.0,>=3.1
@@ -11,9 +12,15 @@ pydantic<3.0,>=2.7
 pytest<9.0,>=8.0
 httpx<1.0,>=0.27
 pyright>=1.1.0
+ruff>=0.5.0
 
 [dev-full]
 pytest<9.0,>=8.0
 httpx<1.0,>=0.27
 pyright>=1.1.0
 ruff>=0.5.0
+
+[termux-dev]
+pytest<9.0,>=8.0
+httpx<1.0,>=0.27
+pyright>=1.1.0

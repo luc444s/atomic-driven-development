@@ -53,6 +53,7 @@ from .resources import (
     LogisticsWarehouse,
     LogisticsZone,
 )
+from .route_incidents import LogisticsRouteIncident
 from .route_operations import LogisticsRouteOperation, LogisticsRouteOperationItem
 from .session_operations import LogisticsOperation, LogisticsOperationItem
 from .session_waybills import LogisticsSessionWaybillVersion

@@ -12,13 +12,16 @@ from plugins.logistics.backend.dto.route_operations import (
     CompositionLineRead,
     CompositionTotalsRead,
     CurrentCompositionRead,
+    RouteIncidentRead,
     RouteOperationItemRead,
     RouteOperationRead,
+    RouteStopProgressRead,
 )
 from plugins.logistics.backend.models import (
     LogisticsAdrProductConfig,
     LogisticsDeliveryPoint,
     LogisticsMovement,
+    LogisticsRouteIncident,
     LogisticsRouteOperation,
     LogisticsRouteOperationItem,
     LogisticsRouteStop,
@@ -43,6 +46,22 @@ from plugins.productos.backend.models import Product, ProductAdr
 VALID_OPERATION_TYPES = {"DELIVERY", "PICKUP", "EXCHANGE"}
 VALID_DIRECTIONS = {"OUT", "IN"}
 ROUTE_MUTABLE_STATUSES = {"OUTBOUND", "RETURNING"}
+VALID_INCIDENT_TYPES = {
+    "QUANTITY_MISMATCH",
+    "WRONG_PRODUCT",
+    "EXCESS_DELIVERY",
+    "MISSING_PICKUP",
+    "CUSTOMER_ABSENT",
+    "FAILED_DELIVERY",
+    "UNPLANNED_RETURN",
+}
+RECONCILABLE_INCIDENT_TYPES = {
+    "QUANTITY_MISMATCH",
+    "WRONG_PRODUCT",
+    "EXCESS_DELIVERY",
+    "MISSING_PICKUP",
+}
+FAILED_INCIDENT_TYPES = {"CUSTOMER_ABSENT", "FAILED_DELIVERY"}
 
 
 def _get_route_stop(db: Session, *, route_stop_id: str | None) -> LogisticsRouteStop | None:
@@ -149,6 +168,24 @@ def _build_operation_read(
     )
 
 
+def _build_incident_read(incident: LogisticsRouteIncident) -> RouteIncidentRead:
+    return RouteIncidentRead(
+        id=incident.id,
+        session_id=incident.session_id,
+        route_stop_id=incident.route_stop_id,
+        related_operation_id=incident.related_operation_id,
+        type=incident.incident_type,
+        status=incident.status,
+        corrective_operation_id=incident.corrective_operation_id,
+        notes=incident.notes,
+        created_by=incident.created_by,
+        closed_by=incident.closed_by,
+        created_at=incident.created_at,
+        closed_at=incident.closed_at,
+        updated_at=incident.updated_at,
+    )
+
+
 def list_route_operations(
     db: Session, *, session_id: str
 ) -> list[RouteOperationRead]:
@@ -176,6 +213,28 @@ def _validate_operation_payload(payload) -> None:
         raise ValueError("PICKUP solo admite items IN")
     if payload.operation_type == "EXCHANGE" and not ({"IN", "OUT"} <= directions):
         raise ValueError("EXCHANGE necesita al menos una línea IN y una OUT")
+
+
+def _require_related_operation(
+    db: Session, *, session_id: str, operation_id: str | None
+) -> LogisticsRouteOperation | None:
+    if operation_id is None:
+        return None
+    operation = db.scalar(
+        select(LogisticsRouteOperation).where(
+            LogisticsRouteOperation.id == operation_id,
+            LogisticsRouteOperation.session_id == session_id,
+        )
+    )
+    if operation is None:
+        raise LookupError("Operación relacionada no encontrada en la jornada")
+    return operation
+
+
+def _validate_incident_payload(db: Session, *, session_id: str, payload) -> None:
+    if payload.type not in VALID_INCIDENT_TYPES:
+        raise ValueError("Tipo de incidencia de ruta no soportado")
+    _require_related_operation(db, session_id=session_id, operation_id=payload.related_operation_id)
 
 
 def create_route_operation(
@@ -221,6 +280,61 @@ def create_route_operation(
         details={"operation_id": operation.id, "operation_type": operation.operation_type},
     )
     return _build_operation_read(db, operation=operation)
+
+
+def create_exchange_route_operation(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    payload,
+    action_context: LogisticsActionContext,
+) -> RouteOperationRead:
+    if not payload.delivered_lines or not payload.picked_up_lines:
+        raise ValueError("EXCHANGE necesita líneas entregadas y recogidas")
+    synthetic_payload = type(
+        "SyntheticExchangePayload",
+        (),
+        {
+            "route_stop_id": payload.route_stop_id,
+            "operation_type": "EXCHANGE",
+            "notes": payload.notes,
+            "idempotency_key": payload.idempotency_key,
+            "items": [
+                *[
+                    type(
+                        "Line",
+                        (),
+                        {
+                            "product_id": line.product_id,
+                            "product_name": line.product_name,
+                            "quantity": line.quantity,
+                            "direction": "OUT",
+                        },
+                    )
+                    for line in payload.delivered_lines
+                ],
+                *[
+                    type(
+                        "Line",
+                        (),
+                        {
+                            "product_id": line.product_id,
+                            "product_name": line.product_name,
+                            "quantity": line.quantity,
+                            "direction": "IN",
+                        },
+                    )
+                    for line in payload.picked_up_lines
+                ],
+            ],
+        },
+    )()
+    return create_route_operation(
+        db,
+        session=session,
+        payload=synthetic_payload,
+        action_context=action_context,
+    )
 
 
 def _build_movement_payload(
@@ -526,3 +640,236 @@ def build_current_composition(
             total_adr_points=total_adr_points,
         ),
     )
+
+
+def list_route_incidents(db: Session, *, session_id: str) -> list[RouteIncidentRead]:
+    incidents = list(
+        db.scalars(
+            select(LogisticsRouteIncident)
+            .where(LogisticsRouteIncident.session_id == session_id)
+            .order_by(LogisticsRouteIncident.created_at.desc())
+        ).all()
+    )
+    return [_build_incident_read(incident) for incident in incidents]
+
+
+def create_route_incident(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    payload,
+    action_context: LogisticsActionContext,
+) -> RouteIncidentRead:
+    if session.status not in ROUTE_MUTABLE_STATUSES:
+        raise ValueError("La jornada no permite registrar incidencias de ruta en este estado")
+    _validate_incident_payload(db, session_id=session.id, payload=payload)
+    incident = LogisticsRouteIncident(
+        tenant_id=session.tenant_id,
+        session_id=session.id,
+        route_stop_id=payload.route_stop_id,
+        related_operation_id=payload.related_operation_id,
+        incident_type=payload.type,
+        status="OPEN",
+        notes=payload.notes,
+        created_by=action_context.actor_user_id,
+    )
+    db.add(incident)
+    db.flush()
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="vehicle_session.route_incident.create",
+        entity_type="vehicle_session",
+        entity_id=session.id,
+        details={"incident_id": incident.id, "incident_type": incident.incident_type},
+    )
+    return _build_incident_read(incident)
+
+
+def resolve_route_incident(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    incident_id: str,
+    notes: str | None,
+    action_context: LogisticsActionContext,
+) -> RouteIncidentRead:
+    incident = db.scalar(
+        select(LogisticsRouteIncident).where(
+            LogisticsRouteIncident.id == incident_id,
+            LogisticsRouteIncident.session_id == session.id,
+        )
+    )
+    if incident is None:
+        raise LookupError("Incidencia de ruta no encontrada")
+    if incident.status == "RESOLVED":
+        return _build_incident_read(incident)
+    if incident.status == "CORRECTED":
+        raise ValueError("La incidencia ya fue corregida con una operación posterior")
+    incident.status = "RESOLVED"
+    incident.closed_by = action_context.actor_user_id
+    incident.closed_at = datetime.now(UTC)
+    if notes:
+        incident.notes = f"{incident.notes or ''}\nResolución: {notes}".strip()
+    db.add(incident)
+    db.flush()
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="vehicle_session.route_incident.resolve",
+        entity_type="vehicle_session",
+        entity_id=session.id,
+        details={"incident_id": incident.id, "incident_type": incident.incident_type},
+    )
+    return _build_incident_read(incident)
+
+
+def correct_route_incident(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    incident_id: str,
+    payload,
+    action_context: LogisticsActionContext,
+) -> RouteIncidentRead:
+    incident = db.scalar(
+        select(LogisticsRouteIncident).where(
+            LogisticsRouteIncident.id == incident_id,
+            LogisticsRouteIncident.session_id == session.id,
+        )
+    )
+    if incident is None:
+        raise LookupError("Incidencia de ruta no encontrada")
+    if incident.status == "CORRECTED":
+        return _build_incident_read(incident)
+    if incident.status == "RESOLVED":
+        raise ValueError("La incidencia ya fue cerrada sin corrección operativa")
+    if incident.incident_type not in RECONCILABLE_INCIDENT_TYPES:
+        raise ValueError("Esta incidencia no admite corrección operativa en este slice")
+
+    related_operation = _require_related_operation(
+        db,
+        session_id=session.id,
+        operation_id=incident.related_operation_id,
+    )
+    synthetic_payload = type(
+        "SyntheticIncidentCorrectionPayload",
+        (),
+        {
+            "route_stop_id": payload.route_stop_id or incident.route_stop_id,
+            "operation_type": payload.operation_type,
+            "notes": payload.notes
+            or f"Reconciliación de incidencia {incident.id}"
+            + (
+                f" sobre operación {related_operation.id}"
+                if related_operation is not None
+                else ""
+            ),
+            "idempotency_key": payload.idempotency_key,
+            "items": payload.items,
+        },
+    )()
+    created_operation = create_route_operation(
+        db,
+        session=session,
+        payload=synthetic_payload,
+        action_context=action_context,
+    )
+    confirmed_operation = confirm_route_operation(
+        db,
+        session=session,
+        operation_id=created_operation.id,
+        action_context=action_context,
+    )
+
+    incident.status = "CORRECTED"
+    incident.corrective_operation_id = confirmed_operation.id
+    incident.closed_by = action_context.actor_user_id
+    incident.closed_at = datetime.now(UTC)
+    if payload.notes:
+        incident.notes = f"{incident.notes or ''}\nCorrección: {payload.notes}".strip()
+    db.add(incident)
+    db.flush()
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="vehicle_session.route_incident.correct",
+        entity_type="vehicle_session",
+        entity_id=session.id,
+        details={
+            "incident_id": incident.id,
+            "incident_type": incident.incident_type,
+            "corrective_operation_id": confirmed_operation.id,
+        },
+    )
+    return _build_incident_read(incident)
+
+
+def build_route_stop_progress(
+    db: Session, *, session: LogisticsVehicleSession
+) -> list[RouteStopProgressRead]:
+    if session.route_id is None:
+        return []
+    stops = list(
+        db.scalars(
+            select(LogisticsRouteStop)
+            .where(LogisticsRouteStop.route_id == session.route_id)
+            .order_by(LogisticsRouteStop.stop_order.asc())
+        ).all()
+    )
+    progress_items: list[RouteStopProgressRead] = []
+    for stop in stops:
+        confirmed_count = db.scalar(
+            select(func.count(LogisticsRouteOperation.id)).where(
+                LogisticsRouteOperation.session_id == session.id,
+                LogisticsRouteOperation.route_stop_id == stop.id,
+                LogisticsRouteOperation.status == "CONFIRMED",
+            )
+        )
+        draft_count = db.scalar(
+            select(func.count(LogisticsRouteOperation.id)).where(
+                LogisticsRouteOperation.session_id == session.id,
+                LogisticsRouteOperation.route_stop_id == stop.id,
+                LogisticsRouteOperation.status == "DRAFT",
+            )
+        )
+        incidents = list(
+            db.scalars(
+                select(LogisticsRouteIncident).where(
+                    LogisticsRouteIncident.session_id == session.id,
+                    LogisticsRouteIncident.route_stop_id == stop.id,
+                    LogisticsRouteIncident.status == "OPEN",
+                )
+            ).all()
+        )
+        last_operation_at = db.scalar(
+            select(func.max(LogisticsRouteOperation.performed_at)).where(
+                LogisticsRouteOperation.session_id == session.id,
+                LogisticsRouteOperation.route_stop_id == stop.id,
+                LogisticsRouteOperation.status == "CONFIRMED",
+            )
+        )
+        has_failed_incident = any(
+            incident.incident_type in FAILED_INCIDENT_TYPES for incident in incidents
+        )
+        if has_failed_incident and not int(confirmed_count or 0):
+            progress_status = "FAILED"
+        elif incidents and int(confirmed_count or 0):
+            progress_status = "PARTIAL"
+        elif incidents:
+            progress_status = "PARTIAL"
+        elif int(confirmed_count or 0):
+            progress_status = "COMPLETED"
+        elif int(draft_count or 0):
+            progress_status = "IN_PROGRESS"
+        else:
+            progress_status = "PENDING"
+        progress_items.append(
+            RouteStopProgressRead(
+                route_stop_id=stop.id,
+                progress_status=progress_status,
+                last_operation_at=last_operation_at,
+                open_incidents=len(incidents),
+            )
+        )
+    return progress_items

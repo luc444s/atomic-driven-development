@@ -39,6 +39,22 @@ export type RouteOperationCreatePayload = {
   }>;
 };
 
+export type ExchangeRouteOperationCreatePayload = {
+  route_stop_id?: string | null;
+  notes?: string | null;
+  idempotency_key?: string | null;
+  delivered_lines: Array<{
+    product_id: string;
+    product_name?: string | null;
+    quantity: number;
+  }>;
+  picked_up_lines: Array<{
+    product_id: string;
+    product_name?: string | null;
+    quantity: number;
+  }>;
+};
+
 export type CurrentComposition = {
   session_id: string;
   composition_version: number | null;
@@ -56,12 +72,65 @@ export type CurrentComposition = {
   };
 };
 
+export type RouteIncident = {
+  id: string;
+  session_id: string;
+  route_stop_id: string | null;
+  related_operation_id: string | null;
+  type: string;
+  status: string;
+  corrective_operation_id: string | null;
+  notes: string | null;
+  created_by: string;
+  closed_by: string | null;
+  created_at: string;
+  closed_at: string | null;
+  updated_at: string;
+};
+
+export type RouteStopProgress = {
+  route_stop_id: string;
+  progress_status: string;
+  last_operation_at: string | null;
+  open_incidents: number;
+};
+
+export type RouteIncidentCreatePayload = {
+  route_stop_id?: string | null;
+  related_operation_id?: string | null;
+  type: string;
+  notes?: string | null;
+};
+
+export type RouteIncidentCorrectPayload = {
+  route_stop_id?: string | null;
+  operation_type: string;
+  notes?: string | null;
+  idempotency_key?: string | null;
+  items: Array<{
+    product_id: string;
+    product_name?: string | null;
+    quantity: number;
+    direction: string;
+  }>;
+};
+
 export function listRouteOperations(sessionId: string) {
   return apiRequest<RouteOperation[]>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-operations`);
 }
 
 export function createRouteOperation(sessionId: string, payload: RouteOperationCreatePayload) {
   return apiRequest<RouteOperation>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-operations`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createExchangeRouteOperation(
+  sessionId: string,
+  payload: ExchangeRouteOperationCreatePayload
+) {
+  return apiRequest<RouteOperation>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-operations/exchange`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -76,4 +145,39 @@ export function confirmRouteOperation(sessionId: string, operationId: string) {
 
 export function getCurrentComposition(sessionId: string) {
   return apiRequest<CurrentComposition>(`${API_PREFIX}/vehicle-sessions/${sessionId}/composition/current`);
+}
+
+export function listRouteIncidents(sessionId: string) {
+  return apiRequest<RouteIncident[]>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-incidents`);
+}
+
+export function createRouteIncident(sessionId: string, payload: RouteIncidentCreatePayload) {
+  return apiRequest<RouteIncident>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-incidents`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resolveRouteIncident(sessionId: string, incidentId: string, payload: { notes?: string | null } = {}) {
+  return apiRequest<RouteIncident>(
+    `${API_PREFIX}/vehicle-sessions/${sessionId}/route-incidents/${incidentId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function correctRouteIncident(sessionId: string, incidentId: string, payload: RouteIncidentCorrectPayload) {
+  return apiRequest<RouteIncident>(
+    `${API_PREFIX}/vehicle-sessions/${sessionId}/route-incidents/${incidentId}/correct`,
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function getRouteStopProgress(sessionId: string) {
+  return apiRequest<RouteStopProgress[]>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-stop-progress`);
 }

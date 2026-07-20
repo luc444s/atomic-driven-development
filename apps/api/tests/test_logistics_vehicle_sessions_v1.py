@@ -717,3 +717,316 @@ def test_route_operation_changes_composition_and_outdates_waybill(
     assert regenerated_state["sync_status"] == "SYNCED"
     assert regenerated_state["active"]["version"] == 2
     assert regenerated_state["active"]["snapshot"]["transported_items"][0]["quantity"] == 3.0
+
+
+def test_exchange_incident_and_route_stop_progress(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    customer = create_customer(
+        client,
+        headers,
+        name="Cliente Exchange Ruta",
+        document_number="20100070970",
+    )
+
+    warehouse = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Exchange", "code": "ALM-EX", "address": None, "phone": None},
+    ).json()
+    zone = client.post(
+        "/api/v1/plugins/logistics/zones",
+        headers=headers,
+        json={"name": "Zona Exchange", "code": "ZN-EX"},
+    ).json()
+    vehicle = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-EX",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "EX",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+    delivery_point = client.post(
+        "/api/v1/plugins/logistics/delivery-points",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "contact_name": "Operador Exchange",
+            "address": "Calle Exchange 123",
+            "zone_id": zone["id"],
+            "warehouse_id": warehouse["id"],
+            "is_primary": True,
+        },
+    ).json()
+    route = client.post(
+        "/api/v1/plugins/logistics/routes",
+        headers=headers,
+        json={
+            "route_date": datetime.now(UTC).date().isoformat(),
+            "vehicle_id": vehicle["id"],
+        },
+    ).json()
+    stop = client.post(
+        f"/api/v1/plugins/logistics/routes/{route['id']}/stops",
+        headers=headers,
+        json={"delivery_point_id": delivery_point["id"], "stop_order": 1},
+    ).json()
+
+    product = create_product(client, headers, sku="EX-GLP10", name="Bombona 10kg EX")
+
+    stock_seed = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial exchange",
+            "idempotency_key": "test-exchange-stock-seed",
+        },
+    )
+    assert stock_seed.status_code == 201, stock_seed.text
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+            "route_id": route["id"],
+        },
+    ).json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+
+    load_plan = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert load_plan.status_code == 200, load_plan.text
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    ).status_code == 200
+
+    exchange_create = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations/exchange",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "notes": "Intercambio guiado",
+            "delivered_lines": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 2,
+                }
+            ],
+            "picked_up_lines": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                }
+            ],
+        },
+    )
+    assert exchange_create.status_code == 200, exchange_create.text
+    exchange_operation = exchange_create.json()
+    assert exchange_operation["operation_type"] == "EXCHANGE"
+    assert exchange_operation["status"] == "DRAFT"
+    assert len(exchange_operation["items"]) == 2
+
+    stop_progress_before_confirm = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_before_confirm.status_code == 200, stop_progress_before_confirm.text
+    assert stop_progress_before_confirm.json()[0]["progress_status"] == "IN_PROGRESS"
+
+    exchange_confirm = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations/{exchange_operation['id']}/confirm",
+        headers=headers,
+    )
+    assert exchange_confirm.status_code == 200, exchange_confirm.text
+    confirmed_exchange = exchange_confirm.json()
+    assert confirmed_exchange["status"] == "CONFIRMED"
+    assert len(confirmed_exchange["movement_ids"]) == 2
+
+    composition = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/composition/current",
+        headers=headers,
+    )
+    assert composition.status_code == 200, composition.text
+    assert composition.json()["product_lines"][0]["quantity"] == 4.0
+
+    stop_progress_after_confirm = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_after_confirm.status_code == 200, stop_progress_after_confirm.text
+    assert stop_progress_after_confirm.json()[0]["progress_status"] == "COMPLETED"
+
+    incident_create = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "related_operation_id": exchange_operation["id"],
+            "type": "QUANTITY_MISMATCH",
+            "notes": "Faltó una unidad por confirmar",
+        },
+    )
+    assert incident_create.status_code == 200, incident_create.text
+    incident = incident_create.json()
+    assert incident["status"] == "OPEN"
+
+    incidents = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents",
+        headers=headers,
+    )
+    assert incidents.status_code == 200, incidents.text
+    assert len(incidents.json()) == 1
+
+    stop_progress_partial = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_partial.status_code == 200, stop_progress_partial.text
+    assert stop_progress_partial.json()[0]["progress_status"] == "PARTIAL"
+    assert stop_progress_partial.json()[0]["open_incidents"] == 1
+
+    incident_resolve = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents/{incident['id']}/resolve",
+        headers=headers,
+        json={"notes": "Validado en calle"},
+    )
+    assert incident_resolve.status_code == 200, incident_resolve.text
+    assert incident_resolve.json()["status"] == "RESOLVED"
+
+    composition_after_resolve = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/composition/current",
+        headers=headers,
+    )
+    assert composition_after_resolve.status_code == 200, composition_after_resolve.text
+    assert composition_after_resolve.json()["product_lines"][0]["quantity"] == 4.0
+
+    stop_progress_resolved = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_resolved.status_code == 200, stop_progress_resolved.text
+    assert stop_progress_resolved.json()[0]["progress_status"] == "COMPLETED"
+
+    corrective_incident_create = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "related_operation_id": exchange_operation["id"],
+            "type": "EXCESS_DELIVERY",
+            "notes": "Se entregó una unidad de más",
+        },
+    )
+    assert corrective_incident_create.status_code == 200, corrective_incident_create.text
+    corrective_incident = corrective_incident_create.json()
+    assert corrective_incident["status"] == "OPEN"
+
+    stop_progress_open_correction = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_open_correction.status_code == 200, stop_progress_open_correction.text
+    assert stop_progress_open_correction.json()[0]["progress_status"] == "PARTIAL"
+
+    corrective_resolution = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents/{corrective_incident['id']}/correct",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "operation_type": "DELIVERY",
+            "notes": "Salida correctiva de una unidad",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                    "direction": "OUT",
+                }
+            ],
+        },
+    )
+    assert corrective_resolution.status_code == 200, corrective_resolution.text
+    corrected_incident = corrective_resolution.json()
+    assert corrected_incident["status"] == "CORRECTED"
+    assert corrected_incident["corrective_operation_id"]
+
+    incidents_after_correction = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-incidents",
+        headers=headers,
+    )
+    assert incidents_after_correction.status_code == 200, incidents_after_correction.text
+    incident_statuses = {item["id"]: item["status"] for item in incidents_after_correction.json()}
+    assert incident_statuses[incident["id"]] == "RESOLVED"
+    assert incident_statuses[corrective_incident["id"]] == "CORRECTED"
+
+    route_operations = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations",
+        headers=headers,
+    )
+    assert route_operations.status_code == 200, route_operations.text
+    corrected_operation = next(
+        operation
+        for operation in route_operations.json()
+        if operation["id"] == corrected_incident["corrective_operation_id"]
+    )
+    assert corrected_operation["status"] == "CONFIRMED"
+    assert corrected_operation["operation_type"] == "DELIVERY"
+
+    composition_after_correction = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/composition/current",
+        headers=headers,
+    )
+    assert composition_after_correction.status_code == 200, composition_after_correction.text
+    assert composition_after_correction.json()["product_lines"][0]["quantity"] == 3.0
+
+    stop_progress_corrected = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress_corrected.status_code == 200, stop_progress_corrected.text
+    assert stop_progress_corrected.json()[0]["progress_status"] == "COMPLETED"
+    assert stop_progress_corrected.json()[0]["open_incidents"] == 0

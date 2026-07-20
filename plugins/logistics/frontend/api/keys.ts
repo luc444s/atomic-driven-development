@@ -79,6 +79,10 @@ export const logisticsKeys = {
       [...logisticsKeys.vehicleSessions.detail(id), "route-operations"] as const,
     composition: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "composition", "current"] as const,
+    routeIncidents: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "route-incidents"] as const,
+    routeStopProgress: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "route-stop-progress"] as const,
   },
   loadPlans: {
     detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "load-plan"] as const,

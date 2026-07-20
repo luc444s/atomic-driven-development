@@ -10,22 +10,33 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
 import { ProductSearchDialog } from "../../../../productos/frontend/components/ProductSearchDialog";
 import {
+  correctRouteIncident,
   confirmRouteOperation,
+  createExchangeRouteOperation,
+  createRouteIncident,
   createRouteOperation,
   getCurrentComposition,
+  getRouteStopProgress,
   getSessionWaybill,
+  listRouteIncidents,
   listRouteOperations,
   listRouteStops,
   listSessionWaybillHistory,
   logisticsKeys,
   regenerateSessionWaybill,
   type LogisticsRouteStop,
+  type RouteIncident,
   type RouteOperation,
+  resolveRouteIncident,
 } from "../../api";
+import { RouteIncidentsPanel } from "./RouteIncidentsPanel";
+import {
+  RouteOperationForm,
+  type RouteCorrectionContext,
+  type RouteDraftItem,
+} from "./RouteOperationForm";
 
 type Props = {
   open: boolean;
@@ -42,7 +53,14 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
   const [operationNotes, setOperationNotes] = useState("");
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [nextDirection, setNextDirection] = useState<"OUT" | "IN">("OUT");
-  const [draftItems, setDraftItems] = useState<Array<{ product_id: string; product_name: string; quantity: string; direction: "OUT" | "IN" }>>([]);
+  const [draftItems, setDraftItems] = useState<RouteDraftItem[]>([]);
+  const [incidentStopId, setIncidentStopId] = useState("");
+  const [incidentRelatedOperationId, setIncidentRelatedOperationId] = useState("");
+  const [incidentType, setIncidentType] = useState("QUANTITY_MISMATCH");
+  const [incidentNotes, setIncidentNotes] = useState("");
+  const [resolveIncidentId, setResolveIncidentId] = useState<string | null>(null);
+  const [resolveNotes, setResolveNotes] = useState("");
+  const [correctionIncidentId, setCorrectionIncidentId] = useState<string | null>(null);
 
   const stopsQuery = useQuery({
     queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
@@ -69,6 +87,16 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
     queryFn: () => listSessionWaybillHistory(sessionId),
     enabled: open,
   });
+  const routeIncidentsQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId),
+    queryFn: () => listRouteIncidents(sessionId),
+    enabled: open,
+  });
+  const routeStopProgressQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId),
+    queryFn: () => getRouteStopProgress(sessionId),
+    enabled: open,
+  });
   const regenerateMutation = useMutation({
     mutationFn: () =>
       regenerateSessionWaybill(sessionId, {
@@ -91,40 +119,129 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
   });
   const createAndConfirmMutation = useMutation({
     mutationFn: async () => {
-      const created = await createRouteOperation(sessionId, {
-        route_stop_id: routeStopId || null,
-        operation_type: operationType,
-        notes: operationNotes || null,
-        idempotency_key: `route-op:${sessionId}:${Date.now()}`,
-        items: draftItems.map((item) => ({
-          product_id: item.product_id,
-          product_name: item.product_name,
-          quantity: Number(item.quantity || "0"),
-          direction: operationType === "DELIVERY" ? "OUT" : operationType === "PICKUP" ? "IN" : item.direction,
-        })),
-      });
+      const operationItems = draftItems.map((item) => ({
+        product_id: item.product_id,
+        product_name: item.product_name,
+        quantity: Number(item.quantity || "0"),
+        direction:
+          operationType === "DELIVERY"
+            ? "OUT"
+            : operationType === "PICKUP"
+              ? "IN"
+              : item.direction,
+      }));
+      const correctionIncident = (routeIncidentsQuery.data ?? []).find((incident) => incident.id === correctionIncidentId);
+      if (correctionIncidentId && !correctionIncident) {
+        throw new Error("La incidencia a corregir ya no está disponible");
+      }
+      if (correctionIncidentId && correctionIncident) {
+        return correctRouteIncident(sessionId, correctionIncidentId, {
+          route_stop_id: routeStopId || correctionIncident.route_stop_id || null,
+          operation_type: operationType,
+          notes: operationNotes || null,
+          idempotency_key: `route-op-correction:${sessionId}:${correctionIncidentId}:${Date.now()}`,
+          items: operationItems,
+        });
+      }
+      const created =
+        operationType === "EXCHANGE"
+          ? await createExchangeRouteOperation(sessionId, {
+              route_stop_id: routeStopId || null,
+              notes: operationNotes || null,
+              idempotency_key: `route-op:${sessionId}:${Date.now()}`,
+              delivered_lines: draftItems
+                .filter((item) => item.direction === "OUT")
+                .map((item) => ({
+                  product_id: item.product_id,
+                  product_name: item.product_name,
+                  quantity: Number(item.quantity || "0"),
+                })),
+              picked_up_lines: draftItems
+                .filter((item) => item.direction === "IN")
+                .map((item) => ({
+                  product_id: item.product_id,
+                  product_name: item.product_name,
+                  quantity: Number(item.quantity || "0"),
+                })),
+            })
+          : await createRouteOperation(sessionId, {
+              route_stop_id: routeStopId || null,
+              operation_type: operationType,
+              notes: operationNotes || null,
+              idempotency_key: `route-op:${sessionId}:${Date.now()}`,
+              items: operationItems,
+            });
       return confirmRouteOperation(sessionId, created.id);
     },
     onSuccess: async () => {
       setError(null);
       setOperationNotes("");
       setDraftItems([]);
+      setCorrectionIncidentId(null);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeOperations(sessionId) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.composition(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybill(sessionId) }),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId) }),
       ]);
     },
     onError: (cause) => {
-      setError(cause instanceof Error ? cause.message : "No se pudo confirmar la operación de ruta");
+      setError(
+        cause instanceof Error
+          ? cause.message
+          : correctionIncidentId
+            ? "No se pudo confirmar la corrección operativa"
+            : "No se pudo confirmar la operación de ruta"
+      );
+    },
+  });
+  const createIncidentMutation = useMutation({
+    mutationFn: () =>
+      createRouteIncident(sessionId, {
+        route_stop_id: incidentStopId || null,
+        related_operation_id: incidentRelatedOperationId || null,
+        type: incidentType,
+        notes: incidentNotes || null,
+      }),
+    onSuccess: async () => {
+      setError(null);
+      setIncidentNotes("");
+      setIncidentRelatedOperationId("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo registrar la incidencia");
+    },
+  });
+  const resolveIncidentMutation = useMutation({
+    mutationFn: ({ incidentId, notes }: { incidentId: string; notes: string }) =>
+      resolveRouteIncident(sessionId, incidentId, { notes: notes || null }),
+    onSuccess: async () => {
+      setError(null);
+      setResolveIncidentId(null);
+      setResolveNotes("");
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo resolver la incidencia");
     },
   });
   const waybillState = waybillQuery.data;
   const active = waybillState?.active;
   const canRegenerate = waybillState?.can_regenerate && ["OUTBOUND", "RETURNING"].includes(sessionStatus);
   const canRegisterOperation = ["OUTBOUND", "RETURNING"].includes(sessionStatus);
+
+  const routeOperations = routeOperationsQuery.data ?? [];
+  const routeIncidents = routeIncidentsQuery.data ?? [];
 
   function addDraftProduct(product: { id: string; sku: string; name: string }) {
     setDraftItems((current) => [
@@ -146,9 +263,62 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
     setDraftItems((current) => current.filter((_, itemIndex) => itemIndex !== index));
   }
 
+  function handleOpenProductSearch(direction?: "OUT" | "IN") {
+    if (direction) {
+      setNextDirection(direction);
+    }
+    setShowProductSearch(true);
+  }
+
+  function startResolveIncident(incidentId: string) {
+    setCorrectionIncidentId(null);
+    setResolveIncidentId(incidentId);
+    setResolveNotes("");
+  }
+
+  function cancelResolveIncident() {
+    setResolveIncidentId(null);
+    setResolveNotes("");
+  }
+
+  function suggestCorrectionOperationType(incident: RouteIncident): string {
+    switch (incident.type) {
+      case "WRONG_PRODUCT":
+        return "EXCHANGE";
+      case "EXCESS_DELIVERY":
+        return "DELIVERY";
+      case "MISSING_PICKUP":
+      case "QUANTITY_MISMATCH":
+      default:
+        return "PICKUP";
+    }
+  }
+
+  function startCorrection(incident: RouteIncident) {
+    setResolveIncidentId(null);
+    setResolveNotes("");
+    setCorrectionIncidentId(incident.id);
+    setOperationType(suggestCorrectionOperationType(incident));
+    setRouteStopId(incident.route_stop_id ?? "");
+    setOperationNotes(`Reconciliación de incidencia ${incident.id}`);
+    setDraftItems([]);
+  }
+
+  function cancelCorrection() {
+    setCorrectionIncidentId(null);
+    setDraftItems([]);
+    setOperationNotes("");
+  }
+
   const stopOptions = (stopsQuery.data ?? []).map((stop: LogisticsRouteStop) => ({
     value: stop.id,
     label: `Parada ${stop.stop_order} · ${stop.status}`,
+  }));
+  const routeOperationOptions = routeOperations.map((operation: RouteOperation) => ({
+    value: operation.id,
+    label: `${operation.operation_type} · ${operation.status} · ${operation.items
+      .map((item) => `${item.direction} ${item.product_name} ${item.quantity}`)
+      .join(" · ")}`,
   }));
 
   const operationOptions = [
@@ -157,19 +327,44 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
     { value: "EXCHANGE", label: "Intercambio" },
   ];
 
+  const incidentOptions = [
+    { value: "QUANTITY_MISMATCH", label: "Descuadre de cantidad" },
+    { value: "WRONG_PRODUCT", label: "Producto incorrecto" },
+    { value: "EXCESS_DELIVERY", label: "Exceso de entrega" },
+    { value: "MISSING_PICKUP", label: "Recojo faltante" },
+    { value: "CUSTOMER_ABSENT", label: "Cliente ausente" },
+    { value: "FAILED_DELIVERY", label: "Entrega fallida" },
+    { value: "UNPLANNED_RETURN", label: "Retorno no planificado" },
+  ];
+
   const directionOptions = [
     { value: "OUT", label: "Sale del camión" },
     { value: "IN", label: "Entra al camión" },
   ];
+  const correctionIncident = routeIncidents.find((incident) => incident.id === correctionIncidentId) ?? null;
+  const correctionContext: RouteCorrectionContext | null = correctionIncident
+    ? {
+        incidentId: correctionIncident.id,
+        incidentType: correctionIncident.type,
+        stopLabel:
+          correctionIncident.route_stop_id
+            ? stopOptions.find((option) => option.value === correctionIncident.route_stop_id)?.label ?? correctionIncident.route_stop_id
+            : "Sin parada",
+        relatedOperationLabel:
+          correctionIncident.related_operation_id
+            ? routeOperationOptions.find((option) => option.value === correctionIncident.related_operation_id)?.label ?? correctionIncident.related_operation_id
+            : null,
+      }
+    : null;
 
   return (
     <div className="space-y-4">
-      {error ? <Alert title="No se pudo actualizar carta porte">{error}</Alert> : null}
+      {error ? <Alert title="No se pudo actualizar la jornada en ruta">{error}</Alert> : null}
       <Card>
         <CardHeader>
           <CardTitle>Ruta</CardTitle>
           <CardDescription>
-            Esta superficie se ampliará luego con Deliver, Pickup y Exchange.
+            Workspace operativo real de la jornada en calle.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
@@ -177,87 +372,26 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Operación de ruta</CardTitle>
-          <CardDescription>
-            La calle se registra aquí. La composición vigente y la carta porte salen de estas operaciones confirmadas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {!canRegisterOperation ? (
-            <p className="text-sm text-muted-foreground">
-              Las operaciones de ruta solo pueden registrarse cuando la jornada está en ruta o retorno.
-            </p>
-          ) : (
-            <>
-              <div className="grid gap-4 md:grid-cols-2">
-                <label className="space-y-2 text-sm text-foreground">
-                  <span>Tipo</span>
-                  <Select value={operationType} onChange={setOperationType} options={operationOptions} />
-                </label>
-                <label className="space-y-2 text-sm text-foreground">
-                  <span>Parada</span>
-                  <Select value={routeStopId} onChange={setRouteStopId} options={stopOptions} placeholder="Sin parada" />
-                </label>
-              </div>
-
-              <label className="space-y-2 text-sm text-foreground">
-                <span>Notas</span>
-                <Input value={operationNotes} onChange={(event) => setOperationNotes(event.target.value)} placeholder="Entrega parcial, recojo de vacíos..." />
-              </label>
-
-              <div className="space-y-2 rounded-xl border border-border p-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {operationType === "EXCHANGE" ? (
-                    <div className="w-56">
-                      <Select value={nextDirection} onChange={(value) => setNextDirection(value as "OUT" | "IN")} options={directionOptions} />
-                    </div>
-                  ) : null}
-                  <Button type="button" variant="secondary" onClick={() => setShowProductSearch(true)}>
-                    Agregar producto
-                  </Button>
-                </div>
-                {draftItems.length ? (
-                  <div className="space-y-2">
-                    {draftItems.map((item, index) => (
-                      <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.4fr_0.8fr_0.8fr_auto]">
-                        <div className="text-sm text-foreground">{item.product_name}</div>
-                        <Select
-                          value={operationType === "DELIVERY" ? "OUT" : operationType === "PICKUP" ? "IN" : item.direction}
-                          onChange={(value) => updateDraftItem(index, { direction: value as "OUT" | "IN" })}
-                          options={directionOptions}
-                        />
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.001"
-                          value={item.quantity}
-                          onChange={(event) => updateDraftItem(index, { quantity: event.target.value })}
-                        />
-                        <Button type="button" variant="secondary" onClick={() => removeDraftItem(index)}>
-                          Quitar
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Sin líneas todavía.</p>
-                )}
-              </div>
-
-              <div className="flex justify-end">
-                <Button
-                  disabled={createAndConfirmMutation.isPending || draftItems.length === 0}
-                  onClick={() => createAndConfirmMutation.mutate()}
-                >
-                  {createAndConfirmMutation.isPending ? "Confirmando..." : "Confirmar operación"}
-                </Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+      <RouteOperationForm
+        canRegisterOperation={canRegisterOperation}
+        operationType={operationType}
+        routeStopId={routeStopId}
+        operationNotes={operationNotes}
+        draftItems={draftItems}
+        stopOptions={stopOptions}
+        operationOptions={operationOptions}
+        directionOptions={directionOptions}
+        correctionContext={correctionContext}
+        isPending={createAndConfirmMutation.isPending}
+        onOperationTypeChange={setOperationType}
+        onRouteStopChange={setRouteStopId}
+        onOperationNotesChange={setOperationNotes}
+        onOpenProductSearch={handleOpenProductSearch}
+        onUpdateDraftItem={updateDraftItem}
+        onRemoveDraftItem={removeDraftItem}
+        onCancelCorrection={cancelCorrection}
+        onSubmit={() => createAndConfirmMutation.mutate()}
+      />
 
       <Card>
         <CardHeader>
@@ -293,6 +427,60 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
 
       <Card>
         <CardHeader>
+          <CardTitle>Progreso real de paradas</CardTitle>
+          <CardDescription>
+            Estado derivado desde operaciones confirmadas e incidencias abiertas.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {routeStopProgressQuery.data?.length ? (
+            routeStopProgressQuery.data.map((progress) => {
+              const stopLabel = stopOptions.find((option) => option.value === progress.route_stop_id)?.label ?? progress.route_stop_id;
+              return (
+                <div key={progress.route_stop_id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
+                  <div className="font-medium">{stopLabel}</div>
+                  <div className="text-muted-foreground">
+                    {progress.progress_status} · Incidencias abiertas: {progress.open_incidents}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted-foreground">Sin paradas progresadas todavía.</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <RouteIncidentsPanel
+        incidentStopId={incidentStopId}
+        incidentRelatedOperationId={incidentRelatedOperationId}
+        incidentType={incidentType}
+        incidentNotes={incidentNotes}
+        stopOptions={stopOptions}
+        incidentOptions={incidentOptions}
+        relatedOperationOptions={routeOperationOptions}
+        incidents={routeIncidents}
+        resolveIncidentId={resolveIncidentId}
+        resolveNotes={resolveNotes}
+        isCreatePending={createIncidentMutation.isPending}
+        isResolvePending={resolveIncidentMutation.isPending}
+        correctionIncidentId={correctionIncidentId}
+        onIncidentStopChange={setIncidentStopId}
+        onIncidentRelatedOperationChange={setIncidentRelatedOperationId}
+        onIncidentTypeChange={setIncidentType}
+        onIncidentNotesChange={setIncidentNotes}
+        onCreateIncident={() => createIncidentMutation.mutate()}
+        onStartResolve={startResolveIncident}
+        onResolveNotesChange={setResolveNotes}
+        onCancelResolve={cancelResolveIncident}
+        onConfirmResolve={(incidentId) =>
+          resolveIncidentMutation.mutate({ incidentId, notes: resolveNotes })
+        }
+        onStartCorrection={startCorrection}
+      />
+
+      <Card>
+        <CardHeader>
           <CardTitle>Operaciones confirmadas</CardTitle>
           <CardDescription>
             Registro inmutable de lo que ya ocurrió en la calle.
@@ -300,7 +488,7 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
         </CardHeader>
         <CardContent className="space-y-2">
           {routeOperationsQuery.data?.length ? (
-            routeOperationsQuery.data.map((operation: RouteOperation) => (
+            routeOperations.map((operation: RouteOperation) => (
               <div key={operation.id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
                 <div className="font-medium">
                   {operation.operation_type} · {operation.status}

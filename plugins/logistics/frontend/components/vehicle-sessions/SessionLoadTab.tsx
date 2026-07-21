@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import {
@@ -12,11 +14,17 @@ import { Input } from "../../../../../apps/web/src/shared/ui/input";
 
 import type { StockBalanceItem } from "../../../../stock/frontend/types";
 import type { VehicleSessionDetail } from "../../api";
+import { LoadSerialsDialog } from "./LoadSerialsDialog";
 
 export type EditableLoadPlanItem = {
+  id?: string;
   product_id: string;
   product_name: string;
   planned_quantity: string;
+  source_warehouse_id: string;
+  requires_serials: boolean;
+  selected_serials_count: number;
+  serials_complete: boolean;
 };
 
 type Props = {
@@ -41,6 +49,15 @@ export function SessionLoadTab({
   error,
 }: Props) {
   const isLoadingStep = session.status === "LOADING";
+  const [serialItemProductId, setSerialItemProductId] = useState<string | null>(null);
+  const serialItem = loadPlanItems.find((item) => item.product_id === serialItemProductId) ?? null;
+  const hasIncompleteSerials = loadPlanItems.some((item) => {
+    if (!item.requires_serials) {
+      return false;
+    }
+    const target = Number(item.planned_quantity || "0");
+    return !Number.isInteger(target) || item.selected_serials_count !== target;
+  });
 
   return (
     <div className="space-y-4">
@@ -48,7 +65,7 @@ export function SessionLoadTab({
         <CardHeader>
           <CardTitle>Carga planificada</CardTitle>
           <CardDescription>
-            Edita el plan. En `LOADING`, guardar también confirma la carga y avanza la jornada.
+            Edita el plan. En estado Cargando, guardar tambien confirma la carga y avanza la jornada.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -58,7 +75,10 @@ export function SessionLoadTab({
             </Button>
             <Button
               disabled={
-                isPending || !session || !["DRAFT", "LOADING", "READY_TO_DEPART"].includes(session.status)
+                isPending ||
+                !session ||
+                !["DRAFT", "LOADING", "READY_TO_DEPART"].includes(session.status) ||
+                (isLoadingStep && hasIncompleteSerials)
               }
               onClick={onSavePlan}
             >
@@ -66,6 +86,11 @@ export function SessionLoadTab({
             </Button>
           </div>
           {error ? <Alert title="Estado no actualizado">{error}</Alert> : null}
+          {isLoadingStep && hasIncompleteSerials ? (
+            <Alert title="Carga incompleta">
+              Hay productos serializados con seriales faltantes. Completa la captura antes de confirmar la carga.
+            </Alert>
+          ) : null}
           <DataTable
             columns={[
               {
@@ -89,6 +114,22 @@ export function SessionLoadTab({
                       )
                     }
                   />
+                ),
+              },
+              {
+                key: "serials",
+                header: "Seriales",
+                render: (row: EditableLoadPlanItem) => (
+                  <div className="flex items-center gap-2">
+                    <Button variant="secondary" onClick={() => setSerialItemProductId(row.product_id)}>
+                      Seriales
+                    </Button>
+                    {row.requires_serials ? (
+                      <span className="text-xs text-muted-foreground">
+                        {row.selected_serials_count}/{Number(row.planned_quantity || "0")}
+                      </span>
+                    ) : null}
+                  </div>
                 ),
               },
               {
@@ -138,6 +179,27 @@ export function SessionLoadTab({
           />
         </CardContent>
       </Card>
+
+      <LoadSerialsDialog
+        open={Boolean(serialItem)}
+        sessionId={session.id}
+        item={serialItem}
+        onClose={() => setSerialItemProductId(null)}
+        onSelectionCountChange={(productId, selectedCount) =>
+          setLoadPlanItems((current) =>
+            current.map((item) =>
+              item.product_id === productId
+                ? {
+                    ...item,
+                    requires_serials: item.requires_serials || selectedCount > 0,
+                    selected_serials_count: selectedCount,
+                    serials_complete: selectedCount === Number(item.planned_quantity || "0"),
+                  }
+                : item
+            )
+          )
+        }
+      />
     </div>
   );
 }

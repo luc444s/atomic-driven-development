@@ -8,7 +8,13 @@ from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
     LogisticsLoadPlan,
     LogisticsLoadPlanItem,
+    LogisticsOperation,
     LogisticsVehicleSession,
+)
+from plugins.logistics.backend.services.load_serials import (
+    confirm_selected_serials_for_operation,
+    ensure_required_serials_for_load_plan,
+    release_active_serial_assignments,
 )
 from plugins.logistics.backend.services.operations import confirm_transfer_in, confirm_transfer_out
 from plugins.logistics.backend.services.rules import (
@@ -66,6 +72,21 @@ def upsert_load_plan(
         db.add(load_plan)
         db.flush()
     else:
+        existing_items = list_load_plan_items(db, load_plan_id=load_plan.id)
+        incoming_product_ids = {item.product_id for item in payload.items}
+        removed_product_ids = {
+            item.product_id
+            for item in existing_items
+            if item.product_id not in incoming_product_ids
+        }
+        if removed_product_ids:
+            for product_id in removed_product_ids:
+                release_active_serial_assignments(
+                    db,
+                    session_id=session.id,
+                    product_id=product_id,
+                    release_reason="MANUAL",
+                )
         load_plan.notes = payload.notes
         db.add(load_plan)
         db.flush()
@@ -116,6 +137,7 @@ def confirm_load_plan(
     items = list_load_plan_items(db, load_plan_id=load_plan.id)
     if not items:
         raise ValueError("El plan de carga no tiene items")
+    ensure_required_serials_for_load_plan(db, session=session, load_plan_items=items)
     total_weight = sum(float(item.planned_weight_kg or 0) for item in items)
     from plugins.logistics.backend.models import LogisticsVehicle  # local import to avoid cycle
 
@@ -130,6 +152,25 @@ def confirm_load_plan(
         session=session,
         load_plan_items=items,
         notes=notes,
+        action_context=action_context,
+    )
+    operation = db.scalar(
+        select(LogisticsOperation)
+        .where(
+            LogisticsOperation.session_id == session.id,
+            LogisticsOperation.movement_type == "TRANSFER_OUT",
+            LogisticsOperation.status == "CONFIRMED",
+        )
+        .order_by(LogisticsOperation.created_at.desc())
+    )
+    if operation is None:
+        raise LookupError("No se pudo reconstruir la operación confirmada de carga")
+    confirm_selected_serials_for_operation(
+        db,
+        tenant_id=session.tenant_id,
+        session_id=session.id,
+        product_ids={item.product_id for item in items},
+        operation=operation,
         action_context=action_context,
     )
     session.loaded_weight_kg = confirmed_weight

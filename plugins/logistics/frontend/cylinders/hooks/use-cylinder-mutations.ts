@@ -55,6 +55,7 @@ export interface CylinderMutationActions {
   setCreateMeta: (v: CylinderCreateMetaState | ((prev: CylinderCreateMetaState) => CylinderCreateMetaState)) => void;
   gasGroupIdRef: React.MutableRefObject<string>;
   resetCreateDialog: () => void;
+  onCreateSuccess?: (cylinder: any) => void;
 }
 
 export function useCylinderMutations(actions: CylinderMutationActions) {
@@ -77,6 +78,7 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
     setPrintLabelForm,
     setScanForm,
     resetCreateDialog,
+    onCreateSuccess,
   } = actions;
 
   const createMutation = useCoreMutation(
@@ -87,6 +89,7 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
         setSelectedCylinder(cylinder);
         setIsCreateOpen(false);
         resetCreateDialog();
+        onCreateSuccess?.(cylinder);
       },
       invalidate: (cylinder: any) => getCylinderQueryKeys(cylinder.id),
     },

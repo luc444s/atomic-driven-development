@@ -22,6 +22,7 @@ import {
   getSessionWaybill,
   listRouteIncidents,
   listRouteOperations,
+  listRouteStopResults,
   listRouteStops,
   listSessionWaybillHistory,
   logisticsKeys,
@@ -30,13 +31,25 @@ import {
   type RouteIncident,
   type RouteOperation,
   resolveRouteIncident,
+  upsertRouteStopResult,
 } from "../../api";
 import { RouteIncidentsPanel } from "./RouteIncidentsPanel";
+import { RouteCompositionCard } from "./RouteCompositionCard";
+import { RouteOperationsCard } from "./RouteOperationsCard";
 import {
   RouteOperationForm,
   type RouteCorrectionContext,
   type RouteDraftItem,
 } from "./RouteOperationForm";
+import { RouteStopProgressCard } from "./RouteStopProgressCard";
+import { RouteStopResultsPanel } from "./RouteStopResultsPanel";
+import { SessionWaybillCard } from "./SessionWaybillCard";
+import {
+  formatMovementDirection,
+  formatRouteOperationStatus,
+  formatRouteOperationType,
+  formatStopStatus,
+} from "./jornada-labels";
 
 type Props = {
   open: boolean;
@@ -95,6 +108,11 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
   const routeStopProgressQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId),
     queryFn: () => getRouteStopProgress(sessionId),
+    enabled: open,
+  });
+  const routeStopResultsQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeStopResults(sessionId),
+    queryFn: () => listRouteStopResults(sessionId),
     enabled: open,
   });
   const regenerateMutation = useMutation({
@@ -235,8 +253,32 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
       setError(cause instanceof Error ? cause.message : "No se pudo resolver la incidencia");
     },
   });
+  const upsertStopResultMutation = useMutation({
+    mutationFn: ({
+      routeStopId,
+      payload,
+    }: {
+      routeStopId: string;
+      payload: {
+        status: string;
+        completion_percent: number;
+        outcome_type: string;
+        driver_note?: string | null;
+      };
+    }) => upsertRouteStopResult(sessionId, routeStopId, payload),
+    onSuccess: async () => {
+      setError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopResults(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo guardar el resultado de parada");
+    },
+  });
   const waybillState = waybillQuery.data;
-  const active = waybillState?.active;
   const canRegenerate = waybillState?.can_regenerate && ["OUTBOUND", "RETURNING"].includes(sessionStatus);
   const canRegisterOperation = ["OUTBOUND", "RETURNING"].includes(sessionStatus);
 
@@ -312,12 +354,12 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
 
   const stopOptions = (stopsQuery.data ?? []).map((stop: LogisticsRouteStop) => ({
     value: stop.id,
-    label: `Parada ${stop.stop_order} · ${stop.status}`,
+    label: `Parada ${stop.stop_order} · ${formatStopStatus(stop.status)}`,
   }));
   const routeOperationOptions = routeOperations.map((operation: RouteOperation) => ({
     value: operation.id,
-    label: `${operation.operation_type} · ${operation.status} · ${operation.items
-      .map((item) => `${item.direction} ${item.product_name} ${item.quantity}`)
+    label: `${formatRouteOperationType(operation.operation_type)} · ${formatRouteOperationStatus(operation.status)} · ${operation.items
+      .map((item) => `${formatMovementDirection(item.direction)} ${item.product_name} ${item.quantity}`)
       .join(" · ")}`,
   }));
 
@@ -364,7 +406,7 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
         <CardHeader>
           <CardTitle>Ruta</CardTitle>
           <CardDescription>
-            Workspace operativo real de la jornada en calle.
+            Espacio operativo real de la jornada en calle.
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
@@ -393,63 +435,17 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
         onSubmit={() => createAndConfirmMutation.mutate()}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Composición vigente</CardTitle>
-          <CardDescription>
-            Proyección derivada de lo que el vehículo transporta ahora mismo.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {compositionQuery.data?.product_lines.length ? (
-            <>
-              <div className="space-y-2">
-                {compositionQuery.data.product_lines.map((line) => (
-                  <div key={line.product_id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
-                    <div className="font-medium">{line.product_name}</div>
-                    <div className="text-muted-foreground">
-                      Cantidad: {line.quantity} · Peso: {line.weight_kg ?? "-"} kg · ADR: {line.adr_points ?? "-"}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="grid gap-3 border-t border-border pt-3 text-sm text-muted-foreground md:grid-cols-3">
-                <div>Total bultos: {compositionQuery.data.totals.total_packages}</div>
-                <div>Peso total: {compositionQuery.data.totals.total_weight_kg} kg</div>
-                <div>ADR total: {compositionQuery.data.totals.total_adr_points}</div>
-              </div>
-            </>
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin composición transportada vigente.</p>
-          )}
-        </CardContent>
-      </Card>
+      <RouteCompositionCard composition={compositionQuery.data} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Progreso real de paradas</CardTitle>
-          <CardDescription>
-            Estado derivado desde operaciones confirmadas e incidencias abiertas.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {routeStopProgressQuery.data?.length ? (
-            routeStopProgressQuery.data.map((progress) => {
-              const stopLabel = stopOptions.find((option) => option.value === progress.route_stop_id)?.label ?? progress.route_stop_id;
-              return (
-                <div key={progress.route_stop_id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
-                  <div className="font-medium">{stopLabel}</div>
-                  <div className="text-muted-foreground">
-                    {progress.progress_status} · Incidencias abiertas: {progress.open_incidents}
-                  </div>
-                </div>
-              );
-            })
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin paradas progresadas todavía.</p>
-          )}
-        </CardContent>
-      </Card>
+      <RouteStopProgressCard stopOptions={stopOptions} progress={routeStopProgressQuery.data ?? []} />
+
+      <RouteStopResultsPanel
+        canManage={["OUTBOUND", "RETURNING"].includes(sessionStatus)}
+        stopOptions={stopOptions}
+        results={routeStopResultsQuery.data ?? []}
+        isPending={upsertStopResultMutation.isPending}
+        onSave={(routeStopId, payload) => upsertStopResultMutation.mutate({ routeStopId, payload })}
+      />
 
       <RouteIncidentsPanel
         incidentStopId={incidentStopId}
@@ -479,117 +475,16 @@ export function SessionRouteTab({ open, routeId, sessionId, sessionStatus }: Pro
         onStartCorrection={startCorrection}
       />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Operaciones confirmadas</CardTitle>
-          <CardDescription>
-            Registro inmutable de lo que ya ocurrió en la calle.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          {routeOperationsQuery.data?.length ? (
-            routeOperations.map((operation: RouteOperation) => (
-              <div key={operation.id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
-                <div className="font-medium">
-                  {operation.operation_type} · {operation.status}
-                </div>
-                <div className="text-muted-foreground">
-                  {operation.items.map((item) => `${item.direction} ${item.product_name} ${item.quantity}`).join(" · ")}
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-muted-foreground">Sin operaciones registradas todavía.</p>
-          )}
-        </CardContent>
-      </Card>
+      <RouteOperationsCard operations={routeOperations} />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <CardTitle>Carta Porte</CardTitle>
-              <CardDescription>
-                Contexto documental vivo de la jornada mientras el vehículo está en ruta.
-              </CardDescription>
-            </div>
-            <Button
-              variant={waybillState?.sync_status === "OUTDATED" ? "default" : "secondary"}
-              disabled={!canRegenerate || regenerateMutation.isPending}
-              onClick={() => regenerateMutation.mutate()}
-            >
-              {regenerateMutation.isPending ? "Regenerando..." : active ? "Regenerar" : "Generar"}
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {waybillQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Cargando carta porte...</p>
-          ) : null}
-
-          {!waybillQuery.isLoading && !active ? (
-            <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
-              Todavía no existe una carta porte activa para esta jornada.
-            </div>
-          ) : null}
-
-          {active ? (
-            <>
-              {waybillState?.sync_status === "OUTDATED" ? (
-                <Alert title="Carta porte desactualizada">
-                  La composición documental vigente ya no coincide con el estado operativo actual.
-                </Alert>
-              ) : null}
-              <div className="grid gap-3 md:grid-cols-2 text-sm text-foreground">
-                <div><span className="text-muted-foreground">Versión:</span> v{active.version}</div>
-                <div><span className="text-muted-foreground">Generada:</span> {new Date(active.generated_at).toLocaleString()}</div>
-                <div><span className="text-muted-foreground">Vehículo:</span> {active.snapshot.vehicle.plate}</div>
-                <div><span className="text-muted-foreground">Conductor:</span> {active.snapshot.driver.name}</div>
-                <div><span className="text-muted-foreground">Destino:</span> {active.snapshot.destination.name ?? "Sin destino"}</div>
-                <div><span className="text-muted-foreground">Dirección:</span> {active.snapshot.destination.address ?? "Sin dirección"}</div>
-              </div>
-
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-foreground">Items transportados</p>
-                <div className="space-y-2">
-                  {active.snapshot.transported_items.map((item) => (
-                    <div key={`${item.product_id}-${item.product_name}`} className="rounded-lg border border-border px-3 py-2 text-sm">
-                      <div className="font-medium text-foreground">{item.product_name}</div>
-                      <div className="text-muted-foreground">
-                        Cantidad: {item.quantity} · Peso: {item.weight_kg ?? "-"} kg · ADR: {item.adr_points ?? "-"}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid gap-3 border-t border-border pt-3 text-sm text-muted-foreground md:grid-cols-3">
-                <div>Total bultos: {active.snapshot.totals.total_packages ?? "-"}</div>
-                <div>Peso total: {active.snapshot.totals.total_weight_kg ?? "-"} kg</div>
-                <div>ADR total: {active.snapshot.totals.total_adr_points ?? "-"}</div>
-              </div>
-            </>
-          ) : null}
-
-          <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-sm font-medium text-foreground">Historial</p>
-            {historyQuery.data?.length ? (
-              <div className="space-y-2">
-                {historyQuery.data.map((version) => (
-                  <div key={version.id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
-                    <div className="font-medium">v{version.version} · {version.status}</div>
-                    <div className="text-muted-foreground">
-                      {version.change_event} · {version.change_reason}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Sin versiones registradas.</p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <SessionWaybillCard
+        waybillState={waybillState}
+        history={historyQuery.data ?? []}
+        isLoading={waybillQuery.isLoading}
+        canRegenerate={Boolean(canRegenerate)}
+        isRegenerating={regenerateMutation.isPending}
+        onRegenerate={() => regenerateMutation.mutate()}
+      />
 
       <ProductSearchDialog
         open={showProductSearch}

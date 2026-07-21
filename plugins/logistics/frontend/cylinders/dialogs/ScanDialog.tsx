@@ -13,6 +13,8 @@ interface ScanDialogProps {
   setScanForm: (form: any) => void;
   handleScan: (event: any) => void;
   scanMutation: { isPending: boolean };
+  fallbackMessage?: string | null;
+  onOpenRegisterFallback?: () => void;
 }
 
 export function ScanDialog({
@@ -22,6 +24,8 @@ export function ScanDialog({
     setScanForm,
     handleScan,
     scanMutation,
+    fallbackMessage,
+    onOpenRegisterFallback,
 }: ScanDialogProps) {
   return (
 <Dialog open={isScanOpen} title="Escaneo en campo" description="Procesa un escaneo con validación ADR/PH y GPS." maxWidthClassName="max-w-[1200px]" onClose={() => setIsScanOpen(false)}>
@@ -48,6 +52,11 @@ export function ScanDialog({
       height={500}
     />
     <div className="flex justify-end gap-2">
+      {fallbackMessage && onOpenRegisterFallback ? (
+        <Button type="button" variant="secondary" onClick={onOpenRegisterFallback}>
+          Registrar envase
+        </Button>
+      ) : null}
       <Button type="button" variant="secondary" onClick={() => setIsScanOpen(false)}>Cancelar</Button>
       <Button type="submit" disabled={scanMutation.isPending}>Procesar escaneo</Button>
     </div>

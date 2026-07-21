@@ -17,6 +17,7 @@ import {
   PlanningStockSummaryItem,
   postPlanOrder,
 } from "../api";
+import { getRealWarehouses } from "../api/warehouses";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Badge } from "../../../../apps/web/src/shared/ui/badge";
@@ -144,6 +145,7 @@ export function PlanningPage() {
   const [error, setError] = useState<string | null>(null);
 
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
   const stockBalancesQuery = useQuery({
     queryKey: planningKeys.stock(warehouseFilter),
     queryFn: () => listPlanningStockBalances(warehouseFilter),
@@ -259,7 +261,7 @@ export function PlanningPage() {
       <div className="flex flex-wrap gap-3">
         <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)}
           placeholder="Todos los almacenes"
-          options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
+          options={realWarehouses.map((wh) => ({ value: wh.id, label: wh.name }))} />
       </div>
 
       <Card>
@@ -430,7 +432,7 @@ export function PlanningPage() {
             <span>Almacen</span>
             <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)} required
               placeholder="Selecciona almacen"
-              options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
+              options={realWarehouses.map((wh) => ({ value: wh.id, label: wh.name }))} />
           </label>
           <label className="block space-y-2 text-sm text-foreground">
             <span>Fecha</span>

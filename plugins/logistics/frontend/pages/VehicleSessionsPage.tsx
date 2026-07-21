@@ -34,7 +34,6 @@ import {
 import { LogisticsSection } from "../components/LogisticsSection";
 import { RoutesPage } from "./RoutesPage";
 import { VehicleSessionDetailPage } from "./VehicleSessionDetailPage";
-import { VehiclesPage } from "./VehiclesPage";
 
 const EMPTY_FORM: JornadaCreateForm = {
   vehicle_id: "",
@@ -63,7 +62,6 @@ export function VehicleSessionsPage() {
   const [isOpen, setIsOpen] = useState(false);
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
-  const [isVehiclesLibraryOpen, setIsVehiclesLibraryOpen] = useState(false);
   const [isRoutesLibraryOpen, setIsRoutesLibraryOpen] = useState(false);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [openVehicleId, setOpenVehicleId] = useState<string | null>(null);
@@ -243,11 +241,9 @@ export function VehicleSessionsPage() {
       actions={
         <div className="flex flex-wrap justify-end gap-2">
           <Button
-            variant="secondary"
-            className="border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-accent/40 hover:text-foreground"
-            onClick={() => setIsVehiclesLibraryOpen(true)}
+            onClick={() => setIsVehicleOpen(true)}
           >
-            Vehículos
+            Nuevo vehículo
           </Button>
           <Button
             variant="secondary"
@@ -256,7 +252,6 @@ export function VehicleSessionsPage() {
           >
             Rutas
           </Button>
-          <Button onClick={() => openCreateJornada()}>Nueva jornada</Button>
         </div>
       }
     >
@@ -355,18 +350,6 @@ export function VehicleSessionsPage() {
         onOpenSession={openSession}
         onCreateJornada={openCreateJornadaFromVehicle}
       />
-
-      <Dialog
-        open={isVehiclesLibraryOpen}
-        title="Vehículos"
-        description="Superficie secundaria de soporte accesible desde Jornadas."
-        onClose={() => setIsVehiclesLibraryOpen(false)}
-        maxWidthClassName="max-w-[1400px]"
-      >
-        <div className="h-[70vh] overflow-y-auto">
-          <VehiclesPage />
-        </div>
-      </Dialog>
 
       <Dialog
         open={isRoutesLibraryOpen}

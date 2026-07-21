@@ -10,7 +10,7 @@ import { CustomerSearchDialog } from "../../../../crm/frontend/components/Custom
 import { ProductSearchDialog } from "../../../../productos/frontend/components/ProductSearchDialog";
 import { listConditions } from "../../api/cylinders";
 import { listContractTypes } from "../../api/contracts";
-import { listWarehouses } from "../../api/warehouses";
+import { getRealWarehouses, listWarehouses } from "../../api/warehouses";
 import type { ContractFormState } from "../forms/contract-form-state";
 
 type ContractFormDialogProps = {
@@ -44,6 +44,7 @@ export function ContractFormDialog({
   const contractTypesQuery = useQuery({ queryKey: ["logistics", "contract-types"], queryFn: listContractTypes });
   const conditionsQuery = useQuery({ queryKey: ["logistics", "conditions"], queryFn: listConditions });
   const warehousesQuery = useQuery({ queryKey: ["logistics", "warehouses"], queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
 
   const field = (key: keyof ContractFormState) => (e: React.ChangeEvent<HTMLInputElement>) =>
     onFormChange({ ...form, [key]: e.target.value });
@@ -99,7 +100,7 @@ export function ContractFormDialog({
                 onChange={(v) => onFormChange({ ...form, warehouse_id: v })}
                 options={[
                   { value: "", label: "Seleccione almacen responsable" },
-                  ...(warehousesQuery.data ?? []).map((warehouse) => ({
+                  ...realWarehouses.map((warehouse) => ({
                     value: warehouse.id,
                     label: `${warehouse.code} - ${warehouse.name}`,
                   })),

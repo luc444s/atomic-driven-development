@@ -14,6 +14,7 @@ import {
   receiveMovement,
   receptionKeys,
 } from "../api";
+import { getRealWarehouses } from "../api/warehouses";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -41,6 +42,7 @@ export function ReceptionPage() {
   const [error, setError] = useState<string | null>(null);
 
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
   const pendingQuery = useQuery({
     queryKey: receptionKeys.pending(),
     queryFn: () => listPendingReceptions(warehouseFilter || undefined),
@@ -142,7 +144,7 @@ export function ReceptionPage() {
       <div className="flex flex-wrap gap-3">
         <Select value={warehouseFilter} onChange={(value) => setWarehouseFilter(value)}
           placeholder="Todos los almacenes"
-          options={(warehousesQuery.data ?? []).map((wh) => ({ value: wh.id, label: wh.name }))} />
+          options={realWarehouses.map((wh) => ({ value: wh.id, label: wh.name }))} />
       </div>
 
       <Card>

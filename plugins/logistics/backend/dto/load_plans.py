@@ -34,6 +34,9 @@ class LoadPlanItemRead(BaseModel):
     planned_weight_kg: float | None = None
     source_warehouse_id: str
     notes: str | None = None
+    requires_serials: bool = False
+    selected_serials_count: int = 0
+    serials_complete: bool = True
     created_at: datetime
 
 

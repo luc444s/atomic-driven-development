@@ -4,12 +4,15 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { ApiError } from "../../../../apps/web/src/shared/api/client";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
+import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { listBalances, stockKeys } from "../../../stock/frontend/api";
 import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
 import {
   confirmAndReady,
+  cancelSession,
   countSessionReconciliation,
   departSession,
+  getSessionOperationalSummary,
   getLoadPlan,
   getSessionReconciliation,
   getVehicleSession,
@@ -41,7 +44,7 @@ type VehicleSessionDetailPageProps = {
 type SessionActionError = {
   type: "technical" | "business";
   message: string;
-  scope: "stepper" | SessionContextKey;
+  scope: "stepper" | "cancel" | SessionContextKey;
 };
 
 export function VehicleSessionDetailPage({
@@ -55,6 +58,7 @@ export function VehicleSessionDetailPage({
   const queryClient = useQueryClient();
   const [activeModal, setActiveModal] = useState<SessionContextKey | null>(null);
   const [error, setError] = useState<SessionActionError | null>(null);
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [loadPlanItems, setLoadPlanItems] = useState<EditableLoadPlanItem[]>([]);
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
@@ -72,6 +76,11 @@ export function VehicleSessionDetailPage({
   const reconciliationQuery = useQuery({
     queryKey: logisticsKeys.reconciliation.detail(sessionId),
     queryFn: () => getSessionReconciliation(sessionId),
+    enabled: Boolean(sessionId),
+  });
+  const operationalSummaryQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId),
+    queryFn: () => getSessionOperationalSummary(sessionId),
     enabled: Boolean(sessionId),
   });
 
@@ -101,9 +110,14 @@ export function VehicleSessionDetailPage({
     }
     setLoadPlanItems(
       loadPlanQuery.data.items.map((item) => ({
+        id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
         planned_quantity: String(item.planned_quantity),
+        source_warehouse_id: item.source_warehouse_id,
+        requires_serials: item.requires_serials,
+        selected_serials_count: item.selected_serials_count,
+        serials_complete: item.serials_complete,
       }))
     );
   }, [loadPlanQuery.data]);
@@ -127,6 +141,7 @@ export function VehicleSessionDetailPage({
   async function invalidateAll() {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId) }),
       queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.all() }),
       queryClient.invalidateQueries({ queryKey: logisticsKeys.loadPlans.detail(sessionId) }),
       queryClient.invalidateQueries({ queryKey: logisticsKeys.reconciliation.detail(sessionId) }),
@@ -153,7 +168,7 @@ export function VehicleSessionDetailPage({
         items: loadPlanItems.map((item) => ({
           product_id: item.product_id,
           planned_quantity: Number(item.planned_quantity || "0"),
-          source_warehouse_id: session?.origin_warehouse_id,
+          source_warehouse_id: item.source_warehouse_id || session?.origin_warehouse_id,
         })),
       }),
     onSuccess: invalidateAll,
@@ -186,6 +201,14 @@ export function VehicleSessionDetailPage({
       }
     },
   });
+  const cancelMutation = useMutation({
+    mutationFn: () => cancelSession(sessionId),
+    onSuccess: async () => {
+      setCancelConfirmOpen(false);
+      setActiveModal(null);
+      await invalidateAll();
+    },
+  });
 
   const mobileRows = mobileBalancesQuery.data?.items ?? [];
   const isPending =
@@ -195,7 +218,8 @@ export function VehicleSessionDetailPage({
     savePlanMutation.isPending ||
     confirmLoadMutation.isPending ||
     returnMutation.isPending ||
-    countMutation.isPending;
+    countMutation.isPending ||
+    cancelMutation.isPending;
 
   const TRANSITION_ACTIONS: Partial<Record<string, () => Promise<unknown>>> = {
     DRAFT: startLoadingMutation.mutateAsync,
@@ -208,6 +232,7 @@ export function VehicleSessionDetailPage({
 
   const isStepperActionStatus = session ? STEPPER_ACTIONABLE_STATUSES.has(session.status) : false;
   const stepperError = error?.scope === "stepper" ? error : null;
+  const cancelError = error?.scope === "cancel" ? error.message : null;
   const loadPanelError = error?.scope === "load" ? error.message : null;
   const reconciliationPanelError =
     error?.scope === "reconciliation" ? error.message : null;
@@ -246,6 +271,19 @@ export function VehicleSessionDetailPage({
     setActiveModal(null);
   }
 
+  function handleOpenCancelConfirm() {
+    setError(null);
+    setCancelConfirmOpen(true);
+  }
+
+  function handleCloseCancelConfirm() {
+    if (cancelMutation.isPending) {
+      return;
+    }
+    setError(null);
+    setCancelConfirmOpen(false);
+  }
+
   function handleCloseLoadModal() {
     setShowProductSearch(false);
     handleCloseModal();
@@ -268,6 +306,13 @@ export function VehicleSessionDetailPage({
       <VehicleSessionConsole
         session={session}
         mobileRows={mobileRows}
+        operationalSummary={operationalSummaryQuery.data ?? null}
+        operationalSummaryLoading={operationalSummaryQuery.isLoading}
+        cancellation={{
+          canCancel: ["DRAFT", "LOADING", "READY_TO_DEPART"].includes(session.status),
+          isPending: cancelMutation.isPending,
+          onOpenConfirm: handleOpenCancelConfirm,
+        }}
         stepper={{
           nextTransitionAllowed: session.next_transition_allowed,
           nextTransitionBlocker: session.next_transition_blocker,
@@ -334,11 +379,30 @@ export function VehicleSessionDetailPage({
                 product_id: product.id,
                 product_name: `${product.sku} · ${product.name}`,
                 planned_quantity: "1",
+                source_warehouse_id: session.origin_warehouse_id,
+                requires_serials: false,
+                selected_serials_count: 0,
+                serials_complete: true,
               },
             ];
           });
           setShowProductSearch(false);
         }}
+      />
+
+      <ConfirmDialog
+        open={cancelConfirmOpen}
+        onClose={handleCloseCancelConfirm}
+        onConfirm={() => runAction(() => cancelMutation.mutateAsync(), "cancel")}
+        title="Cancelar jornada"
+        description={
+          cancelError ??
+          "La jornada quedará anulada y ya no podrá continuar su ciclo operativo. Esta acción solo aplica antes de salir a ruta."
+        }
+        confirmLabel="Sí, cancelar jornada"
+        cancelLabel="Volver"
+        destructive
+        loading={cancelMutation.isPending}
       />
     </>
   );

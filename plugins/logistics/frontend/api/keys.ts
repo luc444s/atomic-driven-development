@@ -71,6 +71,8 @@ export const logisticsKeys = {
     active: () => [...logisticsKeys.vehicleSessions.all(), "active"] as const,
     detail: (id: string) => [...logisticsKeys.vehicleSessions.all(), id] as const,
     history: (id: string) => [...logisticsKeys.vehicleSessions.detail(id), "history"] as const,
+    operationalSummary: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "operational-summary"] as const,
     drivers: () => [...logisticsKeys.vehicleSessions.all(), "drivers"] as const,
     waybill: (id: string) => [...logisticsKeys.vehicleSessions.detail(id), "carta-porte"] as const,
     waybillHistory: (id: string) =>
@@ -81,11 +83,19 @@ export const logisticsKeys = {
       [...logisticsKeys.vehicleSessions.detail(id), "composition", "current"] as const,
     routeIncidents: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "route-incidents"] as const,
+    routeStopResults: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "route-stop-results"] as const,
     routeStopProgress: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "route-stop-progress"] as const,
   },
   loadPlans: {
     detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "load-plan"] as const,
+  },
+  loadSerials: {
+    selected: (sessionId: string, productId: string) =>
+      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", productId, "selected"] as const,
+    search: (sessionId: string, productId: string, query: string) =>
+      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", productId, "search", query] as const,
   },
   reconciliation: {
     detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "reconciliation"] as const,

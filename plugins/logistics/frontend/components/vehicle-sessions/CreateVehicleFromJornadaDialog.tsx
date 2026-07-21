@@ -3,6 +3,7 @@ import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { getRealWarehouses } from "../../api/warehouses";
 import type { LogisticsWarehouse } from "../../api";
 
 export type JornadaVehicleForm = {
@@ -35,6 +36,8 @@ export function CreateVehicleFromJornadaDialog({
   isPending,
   onSubmit,
 }: Props) {
+  const realWarehouses = getRealWarehouses(warehouses);
+
   return (
     <Dialog
       open={open}
@@ -74,7 +77,7 @@ export function CreateVehicleFromJornadaDialog({
             value={form.warehouse_id}
             onChange={(value) => setForm((current) => ({ ...current, warehouse_id: value }))}
             placeholder="Sin asignar"
-            options={warehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }))}
+            options={realWarehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }))}
           />
         </label>
         <div className="flex justify-end gap-3">

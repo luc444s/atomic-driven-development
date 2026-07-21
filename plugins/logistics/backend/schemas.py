@@ -250,6 +250,7 @@ class WarehouseRead(BaseModel):
     branch_id: str | None
     name: str
     code: str
+    warehouse_type: str
     address: str | None
     phone: str | None
     is_active: bool

@@ -4,6 +4,7 @@ import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { CorePdfViewer } from "../../../../../apps/web/src/shared/ui/core-pdf-viewer";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { Tabs, type Tab } from "../../../../../apps/web/src/shared/ui/tabs";
+import { getApiBaseUrl } from "../../../../../apps/web/src/shared/api/client";
 import { useAuthStore } from "../../../../../apps/web/src/features/auth/store";
 import { ContractStatusBadge } from "./contract-status-badge";
 import { formatDate, formatDateTime } from "../../cylinders/utils/formatters";
@@ -17,12 +18,6 @@ import {
   getCoreDocumentDownloadUrl,
   type LogisticsCylinderContract,
 } from "../../api/contracts";
-
-const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
-
-function getApiBaseUrl() {
-  return (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
-}
 
 function normalizeApiUrl(path: string): string {
   if (path.startsWith("http://") || path.startsWith("https://")) {

@@ -27,6 +27,8 @@ type CreateCylinderDialogProps = {
   error: string | null;
   onSubmit: (e: FormEvent<HTMLFormElement>) => void;
   onCustomerSearchClick: () => void;
+  compactMode?: boolean;
+  compactHint?: string | null;
 };
 
 export function CreateCylinderDialog({
@@ -45,7 +47,11 @@ export function CreateCylinderDialog({
   error,
   onSubmit,
   onCustomerSearchClick,
+  compactMode = false,
+  compactHint = null,
 }: CreateCylinderDialogProps) {
+  const selectedGasLabel = gasOptions.find((item) => item.id === cylinderForm.gas_group_id)?.name ?? "Sin producto inferido";
+
   return (
     <Dialog
       open={open}
@@ -54,63 +60,89 @@ export function CreateCylinderDialog({
       onClose={() => onOpenChange(false)}
     >
       <form className="space-y-4" onSubmit={onSubmit}>
-        <Card>
-          <CardHeader>
-            <CardTitle>Origen operativo</CardTitle>
-            <CardDescription>Define como entra el envase al almacen y desde que origen operativo.</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Rama de alta">
-              <Select
-                value={createMeta.entry_mode}
-                onChange={(value) =>
-                  onCreateMetaChange({
-                    ...createMeta,
-                    entry_mode: (value as CylinderEntryMode) || "EMPTY_FROM_CUSTOMER",
-                    customer_id: value === "FULL_FROM_SUPPLIER" ? "" : createMeta.customer_id,
-                    customer_name: value === "FULL_FROM_SUPPLIER" ? "" : createMeta.customer_name,
-                  })
-                }
-                options={[
-                  { value: "EMPTY_FROM_CUSTOMER", label: "Vacio desde cliente" },
-                  { value: "FULL_FROM_SUPPLIER", label: "Lleno desde proveedor" },
-                ]}
-              />
-            </Field>
-            <Field label="Almacen de alta">
-              <Combobox
-                value={createMeta.warehouse_id}
-                onChange={(value) =>
-                  onCreateMetaChange({
-                    ...createMeta,
-                    warehouse_id: value,
-                  })
-                }
-                options={warehouseOptions}
-                placeholder="Seleccionar almacen"
-                searchPlaceholder="Buscar almacen..."
-                emptyMessage="Sin almacenes disponibles."
-              />
-            </Field>
-            {createMeta.entry_mode === "EMPTY_FROM_CUSTOMER" ? (
-              <Field label="Cliente origen">
-                <Button type="button" variant="secondary" onClick={onCustomerSearchClick}>
-                  {createMeta.customer_name
-                    ? `${createMeta.customer_name} (${createMeta.customer_id})`
-                    : "Seleccionar cliente"}
-                </Button>
+        {compactMode ? (
+          <Card>
+            <CardHeader>
+              <CardTitle>Alta mínima en ruta</CardTitle>
+              <CardDescription>
+                {compactHint ?? "Registra el envase con serial y barcode. El producto se infiere desde la operación actual."}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-2">
+              <Field label="Serial">
+                <Input value={cylinderForm.serial} onChange={(event) => onCylinderFormChange({ ...cylinderForm, serial: event.target.value })} />
               </Field>
-            ) : null}
-          </CardContent>
-        </Card>
-        <CylinderFormFields
-          form={cylinderForm}
-          gasProducts={gasOptions}
-          brands={brandOptions}
-          conditions={conditions}
-          onChange={onCylinderFormChange}
-          includeActivation={false}
-        />
+              <Field label="Barcode / etiqueta">
+                <Input value={cylinderForm.barcode2} onChange={(event) => onCylinderFormChange({ ...cylinderForm, barcode2: event.target.value })} />
+              </Field>
+              <Field className="md:col-span-2" label="Producto inferido">
+                <div className="rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground">
+                  {selectedGasLabel}
+                </div>
+              </Field>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle>Origen operativo</CardTitle>
+                <CardDescription>Define como entra el envase al almacen y desde que origen operativo.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <Field label="Rama de alta">
+                  <Select
+                    value={createMeta.entry_mode}
+                    onChange={(value) =>
+                      onCreateMetaChange({
+                        ...createMeta,
+                        entry_mode: (value as CylinderEntryMode) || "EMPTY_FROM_CUSTOMER",
+                        customer_id: value === "FULL_FROM_SUPPLIER" ? "" : createMeta.customer_id,
+                        customer_name: value === "FULL_FROM_SUPPLIER" ? "" : createMeta.customer_name,
+                      })
+                    }
+                    options={[
+                      { value: "EMPTY_FROM_CUSTOMER", label: "Vacio desde cliente" },
+                      { value: "FULL_FROM_SUPPLIER", label: "Lleno desde proveedor" },
+                    ]}
+                  />
+                </Field>
+                <Field label="Almacen de alta">
+                  <Combobox
+                    value={createMeta.warehouse_id}
+                    onChange={(value) =>
+                      onCreateMetaChange({
+                        ...createMeta,
+                        warehouse_id: value,
+                      })
+                    }
+                    options={warehouseOptions}
+                    placeholder="Seleccionar almacen"
+                    searchPlaceholder="Buscar almacen..."
+                    emptyMessage="Sin almacenes disponibles."
+                  />
+                </Field>
+                {createMeta.entry_mode === "EMPTY_FROM_CUSTOMER" ? (
+                  <Field label="Cliente origen">
+                    <Button type="button" variant="secondary" onClick={onCustomerSearchClick}>
+                      {createMeta.customer_name
+                        ? `${createMeta.customer_name} (${createMeta.customer_id})`
+                        : "Seleccionar cliente"}
+                    </Button>
+                  </Field>
+                ) : null}
+              </CardContent>
+            </Card>
+            <CylinderFormFields
+              form={cylinderForm}
+              gasProducts={gasOptions}
+              brands={brandOptions}
+              conditions={conditions}
+              onChange={onCylinderFormChange}
+              includeActivation={false}
+            />
+          </>
+        )}
         {error ? <Alert title="No se pudo guardar">{error}</Alert> : null}
         <div className="flex justify-end gap-2">
           <Button

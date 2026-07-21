@@ -36,6 +36,7 @@ from .equipment import (
     LogisticsVehicleRouteRestriction,
 )
 from .load_plans import LogisticsLoadPlan, LogisticsLoadPlanItem
+from .load_serial_assignments import LogisticsLoadSerialAssignment
 from .movements import LogisticsMovement, LogisticsMovementItem, LogisticsMovementStatusHistory
 from .operations import (
     LogisticsLoad,
@@ -55,6 +56,7 @@ from .resources import (
 )
 from .route_incidents import LogisticsRouteIncident
 from .route_operations import LogisticsRouteOperation, LogisticsRouteOperationItem
+from .route_stop_results import LogisticsRouteStopResult
 from .session_operations import LogisticsOperation, LogisticsOperationItem
 from .session_waybills import LogisticsSessionWaybillVersion
 from .sessions import LogisticsVehicleSession

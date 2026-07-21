@@ -1,6 +1,7 @@
 import { FormEvent, useRef, useState } from "react";
 import { useMutation } from "../../../apps/web/src/lib/react-query";
 import type { CustomerBrief } from "../../crm/frontend/types";
+import { getMovement, listMovementItems } from "./api/movements";
 
 import { Alert } from "../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../apps/web/src/shared/ui/button";
@@ -9,10 +10,11 @@ import { ConfirmDialog } from "../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { getProduct } from "../../productos/frontend/api";
+import { getRealWarehouses } from "./api/warehouses";
 import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
 import { CylinderFiltersCard } from "./cylinders/components/CylinderFiltersCard";
-import type { LogisticsCylinder } from "./api";
+import type { CylinderEntryMode, LogisticsCylinder } from "./api";
 import {
   type CylinderFormState,
   type CylinderCreateMetaState,
@@ -90,6 +92,8 @@ export function LogisticsPage() {
   const [panelError, setPanelError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
+  const [scanFallbackHint, setScanFallbackHint] = useState<string | null>(null);
+  const [scanFallbackAvailable, setScanFallbackAvailable] = useState(false);
 
   const selectedCylinderId = selectedCylinder?.id ?? "";
 
@@ -102,7 +106,7 @@ export function LogisticsPage() {
     permissions,
   });
 
-  const warehouseOptions = (data.warehousesQuery.data ?? []).map((warehouse) => ({
+  const warehouseOptions = getRealWarehouses(data.warehousesQuery.data ?? []).map((warehouse) => ({
     value: warehouse.id,
     label: `${warehouse.code} · ${warehouse.name}`,
     keywords: [warehouse.code, warehouse.name, warehouse.address ?? ""],
@@ -135,6 +139,8 @@ export function LogisticsPage() {
     gasGroupIdRef.current = "";
     setCreateMeta(EMPTY_CYLINDER_CREATE_META);
     setPanelError(null);
+    setScanFallbackHint(null);
+    setScanFallbackAvailable(false);
     setIsCreateCustomerSearchOpen(false);
   }
 
@@ -160,6 +166,13 @@ export function LogisticsPage() {
     setCreateMeta,
     gasGroupIdRef,
     resetCreateDialog,
+    onCreateSuccess: () => {
+      if (scanFallbackHint) {
+        setScanFallbackHint(null);
+        setScanFallbackAvailable(false);
+        setIsScanOpen(true);
+      }
+    },
   });
 
   async function handleCreateCylinder(event: FormEvent<HTMLFormElement>) {
@@ -257,8 +270,68 @@ export function LogisticsPage() {
     try {
       await mutations.scanMutation.mutateAsync(scanForm);
     } catch (error) {
-      setDetailError(error instanceof Error ? error.message : "No se pudo procesar el escaneo.");
+      const message = error instanceof Error ? error.message : "No se pudo procesar el escaneo.";
+      setDetailError(message);
+      const isUnknownCylinder =
+        message.toLowerCase().includes("envase no encontrado") ||
+        message.toLowerCase().includes("cylinder not found");
+      setScanFallbackAvailable(isUnknownCylinder);
+      if (!isUnknownCylinder) {
+        return;
+      }
+
+      const normalizedSerial = scanForm.barcode_serial.trim().toUpperCase();
+      let inferredProductId = "";
+      let inferredCustomerId = "";
+      let inferredCustomerName = "";
+      let inferredWarehouseId = "";
+      let inferredEntryMode: CylinderEntryMode = "FULL_FROM_SUPPLIER";
+
+      if (scanForm.movement_id) {
+        try {
+          const [movement, items] = await Promise.all([
+            getMovement(scanForm.movement_id),
+            listMovementItems(scanForm.movement_id),
+          ]);
+          inferredWarehouseId = movement.warehouse_id ?? "";
+          inferredCustomerId = movement.customer_id ?? "";
+          inferredCustomerName = movement.customer_name ?? "";
+          inferredEntryMode = movement.movement_type === "IC" ? "EMPTY_FROM_CUSTOMER" : "FULL_FROM_SUPPLIER";
+          const movementProductIds = Array.from(new Set(items.map((item) => item.product_id).filter(Boolean)));
+          inferredProductId = movementProductIds.length === 1 ? movementProductIds[0] ?? "" : "";
+        } catch {
+          // Keep the minimal fallback even if contextual inference fails.
+        }
+      }
+
+      gasGroupIdRef.current = inferredProductId;
+      setCylinderForm((current) => ({
+        ...current,
+        serial: normalizedSerial,
+        barcode2: normalizedSerial,
+        gas_group_id: inferredProductId,
+      }));
+      setCreateMeta((current) => ({
+        ...current,
+        entry_mode: inferredEntryMode,
+        warehouse_id: inferredWarehouseId,
+        customer_id: inferredCustomerId,
+        customer_name: inferredCustomerName,
+      }));
+      setScanFallbackHint(
+        inferredProductId
+          ? "Envase no registrado. Completa el alta mínima y luego vuelve a procesar el escaneo."
+          : "Envase no registrado. Completa serial y barcode; si el producto no pudo inferirse, termínalo luego desde Envases."
+      );
     }
+  }
+
+  function openScanFallbackCreate() {
+    if (!scanFallbackAvailable) {
+      return;
+    }
+    setIsScanOpen(false);
+    setIsCreateOpen(true);
   }
 
   function openDetail(cylinder: LogisticsCylinder) {
@@ -528,6 +601,8 @@ export function LogisticsPage() {
         error={panelError}
         onSubmit={handleCreateCylinder}
         onCustomerSearchClick={() => setIsCreateCustomerSearchOpen(true)}
+        compactMode={scanFallbackHint !== null}
+        compactHint={scanFallbackHint}
       />
 
       <CustomerSearchDialog
@@ -659,6 +734,8 @@ export function LogisticsPage() {
         setScanForm={setScanForm}
         handleScan={handleScan}
         scanMutation={mutations.scanMutation}
+        fallbackMessage={scanFallbackAvailable ? scanFallbackHint : null}
+        onOpenRegisterFallback={scanFallbackAvailable ? openScanFallbackCreate : undefined}
       />
 
       <ConfirmDialog

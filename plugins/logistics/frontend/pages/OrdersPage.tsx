@@ -11,6 +11,7 @@ import {
   listWarehouses,
   logisticsKeys,
 } from "../api";
+import { getRealWarehouses } from "../api/warehouses";
 import { listCustomers } from "../../../crm/frontend/api";
 import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
@@ -64,6 +65,7 @@ export function OrdersPage() {
     queryFn: () => listOrders({}),
   });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
   const customersQuery = useQuery({
     queryKey: ["crm", "customers", "logistics-lookup"],
     queryFn: () => listCustomers({ limit: 200, offset: 0 }),
@@ -258,7 +260,7 @@ export function OrdersPage() {
                 value={orderForm.warehouse_id}
                 onChange={(value) => setOrderForm((current) => ({ ...current, warehouse_id: value }))}
                 placeholder="Sin definir"
-                options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
+                options={realWarehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
             </label>
           </div>
           <label className="block space-y-2 text-sm text-foreground">

@@ -9,6 +9,7 @@ import {
 } from "../../../../../apps/web/src/shared/ui/card";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { formatRouteIncidentType } from "./jornada-labels";
 
 export type RouteSelectOption = {
   value: string;
@@ -90,7 +91,7 @@ export function RouteOperationForm({
             {correctionContext ? (
               <Alert title={`Reconciliando incidencia ${correctionContext.incidentId}`}>
                 <div className="space-y-2 text-sm">
-                  <div>Tipo: {correctionContext.incidentType}</div>
+                  <div>Tipo: {formatRouteIncidentType(correctionContext.incidentType)}</div>
                   <div>Parada: {correctionContext.stopLabel}</div>
                   {correctionContext.relatedOperationLabel ? (
                     <div>Operación original: {correctionContext.relatedOperationLabel}</div>

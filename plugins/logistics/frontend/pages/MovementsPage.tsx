@@ -23,6 +23,7 @@ import {
   vehicleReturn,
   Waybill,
 } from "../api";
+import { getRealWarehouses } from "../api/warehouses";
 import { listCustomers } from "../../../crm/frontend/api";
 import { CustomerSearchDialog } from "../../../crm/frontend/components/CustomerSearchDialog";
 import { LogisticsSection } from "../components/LogisticsSection";
@@ -75,6 +76,7 @@ export function MovementsPage() {
   const movementsQuery = useQuery({ queryKey: logisticsKeys.movements.list({}), queryFn: () => listMovements({}) });
   const movementTypesQuery = useQuery({ queryKey: logisticsKeys.movementTypes(), queryFn: listMovementTypes });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
   const customersQuery = useQuery({
     queryKey: ["crm", "customers", "logistics-lookup"],
     queryFn: () => listCustomers({ limit: 200, offset: 0 }),
@@ -320,7 +322,7 @@ export function MovementsPage() {
               <span>Almacen</span>
               <Select value={formState.warehouse_id} onChange={(value) => setFormState((current) => ({ ...current, warehouse_id: value }))}
                 placeholder="Sin definir"
-                options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
+                options={realWarehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
             </label>
           </div>
           <div className="space-y-2 text-sm text-foreground">

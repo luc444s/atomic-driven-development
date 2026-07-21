@@ -120,3 +120,6 @@ class RouteStopProgressRead(BaseModel):
     progress_status: str
     last_operation_at: datetime | None = None
     open_incidents: int = 0
+    completion_percent: float | None = None
+    outcome_type: str | None = None
+    driver_note: str | None = None

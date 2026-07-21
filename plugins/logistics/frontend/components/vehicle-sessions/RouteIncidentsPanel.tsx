@@ -9,6 +9,7 @@ import {
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
 import type { RouteIncident } from "../../api";
+import { formatRouteIncidentStatus, formatRouteIncidentType } from "./jornada-labels";
 import type { RouteSelectOption } from "./RouteOperationForm";
 
 const RECONCILABLE_INCIDENT_TYPES = new Set([
@@ -126,7 +127,9 @@ export function RouteIncidentsPanel({
                 <div key={incident.id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <div className="font-medium">{incident.type} · {incident.status}</div>
+                      <div className="font-medium">
+                        {formatRouteIncidentType(incident.type)} · {formatRouteIncidentStatus(incident.status)}
+                      </div>
                       <div className="text-muted-foreground">{stopLabel}</div>
                       {relatedOperationLabel ? (
                         <div className="text-muted-foreground">Operación original: {relatedOperationLabel}</div>

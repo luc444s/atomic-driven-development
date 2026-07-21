@@ -254,11 +254,21 @@ def depart_session(
     session: LogisticsVehicleSession,
     action_context: LogisticsActionContext,
 ) -> LogisticsVehicleSession:
+    from plugins.logistics.backend.services.load_serials import (
+        mark_confirmed_serials_on_outbound,
+    )
+
     ensure_session_can_depart(session)
     session.status = "OUTBOUND"
     session.departed_at = datetime.now(UTC)
     session.updated_by = action_context.actor_user_id
     db.add(session)
+    mark_confirmed_serials_on_outbound(
+        db,
+        tenant_id=session.tenant_id,
+        session_id=session.id,
+        action_context=action_context,
+    )
     audit_logistics_action(
         db,
         context=action_context,
@@ -315,9 +325,18 @@ def cancel_session(
     notes: str | None,
     action_context: LogisticsActionContext,
 ) -> LogisticsVehicleSession:
+    from plugins.logistics.backend.services.load_serials import (
+        release_active_serial_assignments,
+    )
+
     ensure_session_can_start_loading(session) if session.status == "DRAFT" else None
     if session.status not in {"DRAFT", "LOADING", "READY_TO_DEPART"}:
         raise ValueError("Solo una jornada temprana puede cancelarse")
+    release_active_serial_assignments(
+        db,
+        session_id=session.id,
+        release_reason="OPERATION_CANCELLED",
+    )
     session.status = "CANCELLED"
     session.closing_notes = notes or session.closing_notes
     session.updated_by = action_context.actor_user_id

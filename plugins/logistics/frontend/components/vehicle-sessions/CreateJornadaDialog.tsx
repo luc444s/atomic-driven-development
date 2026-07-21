@@ -1,7 +1,9 @@
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { getRealWarehouses } from "../../api/warehouses";
 import type { DriverOption, LogisticsRoute, LogisticsVehicle, LogisticsWarehouse } from "../../api";
+import { formatRouteStatus } from "./jornada-labels";
 
 export type JornadaCreateForm = {
   vehicle_id: string;
@@ -41,6 +43,8 @@ export function CreateJornadaDialog({
   onOpenCreateRoute,
   setRouteVehicle,
 }: Props) {
+  const originWarehouses = getRealWarehouses(warehouses);
+
   return (
     <Dialog
       open={open}
@@ -78,7 +82,7 @@ export function CreateJornadaDialog({
           <Select
             value={form.origin_warehouse_id}
             onChange={(value) => setForm((current) => ({ ...current, origin_warehouse_id: value }))}
-            options={warehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }))}
+            options={originWarehouses.map((warehouse) => ({ value: warehouse.id, label: `${warehouse.code} · ${warehouse.name}` }))}
           />
         </label>
         <label className="block space-y-2 text-sm text-foreground">
@@ -88,7 +92,7 @@ export function CreateJornadaDialog({
               value={form.route_id}
               onChange={(value) => setForm((current) => ({ ...current, route_id: value }))}
               placeholder="Sin ruta"
-              options={routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${route.status}` }))}
+              options={routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${formatRouteStatus(route.status)}` }))}
             />
             <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
               Crear ruta

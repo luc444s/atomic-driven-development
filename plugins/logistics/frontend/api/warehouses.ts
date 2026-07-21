@@ -7,12 +7,21 @@ export type LogisticsWarehouse = {
   tenant_id: string;
   name: string;
   code: string;
+  warehouse_type: string;
   address: string | null;
   phone: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 };
+
+export function isRealWarehouse(warehouse: LogisticsWarehouse) {
+  return warehouse.warehouse_type !== "MOBILE";
+}
+
+export function getRealWarehouses(warehouses: LogisticsWarehouse[]) {
+  return warehouses.filter(isRealWarehouse);
+}
 
 export function listWarehouses() {
   return apiRequest<LogisticsWarehouse[]>(`${API_PREFIX}/warehouses`);
@@ -31,4 +40,3 @@ export function updateWarehouse(warehouseId: string, payload: Record<string, unk
     body: JSON.stringify(payload),
   });
 }
-

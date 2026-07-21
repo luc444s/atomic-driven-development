@@ -25,6 +25,10 @@ from plugins.logistics.backend.services.load_plans import (
     return_remaining_stock,
     upsert_load_plan,
 )
+from plugins.logistics.backend.services.load_serials import (
+    count_active_assignments,
+    product_requires_serial_capture,
+)
 from plugins.logistics.backend.services.sessions import get_vehicle_session, mark_session_ready
 from plugins.logistics.backend.services.snapshots import build_session_snapshot
 
@@ -61,11 +65,47 @@ def _to_read(load_plan, items) -> LoadPlanRead:
                 ),
                 source_warehouse_id=item.source_warehouse_id,
                 notes=item.notes,
+                requires_serials=False,
+                selected_serials_count=0,
+                serials_complete=True,
                 created_at=item.created_at,
             )
             for item in items
         ],
     )
+
+
+def _to_read_with_serial_status(db: Session, *, session, load_plan, items) -> LoadPlanRead:
+    read = _to_read(load_plan, items)
+    enriched_items: list[LoadPlanItemRead] = []
+    for item in read.items:
+        requires_serials = product_requires_serial_capture(
+            db,
+            tenant_id=session.tenant_id,
+            session_id=session.id,
+            product_id=item.product_id,
+            source_warehouse_id=item.source_warehouse_id,
+        )
+        selected_count = (
+            count_active_assignments(db, session_id=session.id, product_id=item.product_id)
+            if requires_serials
+            else 0
+        )
+        required_count = (
+            int(item.planned_quantity)
+            if float(item.planned_quantity).is_integer()
+            else -1
+        )
+        enriched_items.append(
+            item.model_copy(
+                update={
+                    "requires_serials": requires_serials,
+                    "selected_serials_count": selected_count,
+                    "serials_complete": (not requires_serials) or selected_count == required_count,
+                }
+            )
+        )
+    return read.model_copy(update={"items": enriched_items})
 
 
 def _raise_service_error(exc: Exception) -> NoReturn:
@@ -83,12 +123,16 @@ def get_session_load_plan(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
 ) -> LoadPlanRead:
-    _get_session_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
+    session = _get_session_or_404(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        session_id=session_id,
+    )
     load_plan = get_load_plan(db, session_id=session_id)
     if load_plan is None:
         return LoadPlanRead(session_id=session_id, status="DRAFT")
     items = list_load_plan_items(db, load_plan_id=load_plan.id)
-    return _to_read(load_plan, items)
+    return _to_read_with_serial_status(db, session=session, load_plan=load_plan, items=items)
 
 
 @router.put("/{session_id}/load-plan", response_model=LoadPlanRead)
@@ -112,7 +156,7 @@ def put_session_load_plan(
         )
         db.commit()
         items = list_load_plan_items(db, load_plan_id=load_plan.id)
-        return _to_read(load_plan, items)
+        return _to_read_with_serial_status(db, session=session, load_plan=load_plan, items=items)
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)

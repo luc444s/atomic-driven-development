@@ -43,6 +43,8 @@ Vigente para implementacion actual, incluida la ampliacion de envase completo + 
 - `logistics.service.manage`
 - `logistics.gas.read`
 - `logistics.brand.read`
+- `logistics.session.read`
+- `logistics.session.manage`
 
 ## Eventos emitidos hoy
 
@@ -70,6 +72,26 @@ Vigente para implementacion actual, incluida la ampliacion de envase completo + 
 - `logistics.warranty.created`
 
 ## Endpoints implementados
+
+### Vehicle Sessions
+
+- `GET /vehicle-sessions`
+- `GET /vehicle-sessions/active`
+- `GET /vehicle-sessions/{session_id}`
+- `GET /vehicle-sessions/{session_id}/history`
+- `GET /vehicle-sessions/{session_id}/operational-summary`
+- `POST /vehicle-sessions/{session_id}/cancel`
+- `GET /vehicle-sessions/{session_id}/load-serials/selected?product_id=...`
+- `PUT /vehicle-sessions/{session_id}/load-serials/select`
+- `PUT /vehicle-sessions/{session_id}/load-serials/{assignment_id}/release`
+- `GET /vehicle-sessions/{session_id}/carta-porte`
+- `GET /vehicle-sessions/{session_id}/carta-porte/history`
+- `GET /vehicle-sessions/{session_id}/route-operations`
+- `GET /vehicle-sessions/{session_id}/route-incidents`
+- `GET /vehicle-sessions/{session_id}/route-stop-results`
+- `PUT /vehicle-sessions/{session_id}/route-stop-results/{route_stop_id}`
+- `GET /vehicle-sessions/{session_id}/route-stop-progress`
+- `GET /vehicle-sessions/{session_id}/composition/current`
 
 ### GET `/catalog/cylinder-states`
 

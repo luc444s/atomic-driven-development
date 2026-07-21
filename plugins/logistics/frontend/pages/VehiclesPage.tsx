@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { FormEvent, useState } from "react";
 
 import { createVehicle, listVehicles, listWarehouses, logisticsKeys, updateVehicle } from "../api";
+import { getRealWarehouses } from "../api/warehouses";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
@@ -38,6 +39,7 @@ export function VehiclesPage() {
 
   const vehiclesQuery = useQuery({ queryKey: logisticsKeys.vehicles(), queryFn: listVehicles });
   const warehousesQuery = useQuery({ queryKey: logisticsKeys.warehouses(), queryFn: listWarehouses });
+  const realWarehouses = getRealWarehouses(warehousesQuery.data ?? []);
 
   const saveMutation = useMutation({
     mutationFn: async (payload: VehicleFormState) => {
@@ -163,11 +165,11 @@ export function VehiclesPage() {
           </div>
           <label className="block space-y-2 text-sm text-foreground">
             <span>Almacén base</span>
-            <Select
-              value={formState.warehouse_id}
-              onChange={(value) => setFormState((current) => ({ ...current, warehouse_id: value }))}
-              placeholder="Sin asignar"
-              options={(warehousesQuery.data ?? []).map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
+              <Select
+                value={formState.warehouse_id}
+                onChange={(value) => setFormState((current) => ({ ...current, warehouse_id: value }))}
+                placeholder="Sin asignar"
+                options={realWarehouses.map((warehouse) => ({ value: warehouse.id, label: warehouse.name }))} />
           </label>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={() => setIsOpen(false)}>

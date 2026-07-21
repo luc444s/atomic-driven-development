@@ -21,7 +21,6 @@ from plugins.logistics.backend.dto.route_operations import (
 )
 from plugins.logistics.backend.services.route_operations import (
     build_current_composition,
-    build_route_stop_progress,
     confirm_route_operation,
     correct_route_incident,
     create_exchange_route_operation,
@@ -31,6 +30,7 @@ from plugins.logistics.backend.services.route_operations import (
     list_route_operations,
     resolve_route_incident,
 )
+from plugins.logistics.backend.services.route_stop_results import build_route_stop_progress
 from plugins.logistics.backend.services.sessions import get_vehicle_session
 
 router = APIRouter(prefix="/vehicle-sessions", tags=["logistics-route-operations"])

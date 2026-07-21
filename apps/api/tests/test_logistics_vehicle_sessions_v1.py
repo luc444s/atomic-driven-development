@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from fastapi.testclient import TestClient
+from sqlalchemy import select
 
 from apps.api.tests.test_logistics_plugin import (
     auth_headers,
@@ -13,7 +14,11 @@ from apps.api.tests.test_logistics_plugin import (
     enable_productos_plugin,
     enable_stock_plugin,
 )
-from plugins.logistics.backend.models import LogisticsVehicleSession
+from plugins.logistics.backend.models import (
+    LogisticsCylinder,
+    LogisticsLoadSerialAssignment,
+    LogisticsVehicleSession,
+)
 from plugins.logistics.backend.services.rules import get_next_transition_blocker
 
 
@@ -187,6 +192,502 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
     assert ready_session["current_stock"]["total_units"] == 5
     assert ready_session["next_transition_allowed"] is True
     assert ready_session["next_transition_blocker"] is None
+
+
+def test_operational_summary_marks_route_gap_when_departed_without_route(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Summary", "code": "ALM-SUM", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-SUM",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "SUM",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="SUM-GLP10", name="Bombona 10kg SUM")
+
+    adjust_response = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial summary",
+            "idempotency_key": "test-summary-stock-seed",
+        },
+    )
+    assert adjust_response.status_code == 201, adjust_response.text
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    ).status_code == 200
+
+    summary_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/operational-summary",
+        headers=headers,
+    )
+    assert summary_response.status_code == 200, summary_response.text
+    summary = summary_response.json()
+    assert summary["health_status"] == "ATTENTION"
+    assert summary["data_completeness"] == "PARTIAL"
+    assert summary["blocking_reasons"] == ["NO_ROUTE_ASSIGNED"]
+    assert summary["stop_counters"]["total"] == 0
+    assert summary["waybill"]["sync_status"] == "MISSING"
+
+
+def test_load_serials_are_required_and_block_duplicate_selection(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Seriales", "code": "ALM-LS", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-LS",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "LS",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+    vehicle_two = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-LS2",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "LS2",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+
+    product = create_product(client, headers, sku="LS-GLP10", name="Bombona 10kg LS")
+
+    adjust_response = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial seriales",
+            "idempotency_key": "test-load-serial-stock-seed",
+        },
+    )
+    assert adjust_response.status_code == 201, adjust_response.text
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="LS-000001",
+            current_state="LLENADO_OK",
+            product_id=product["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.commit()
+        cylinder_id = cylinder.id
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+
+    session_one = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_one['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    load_plan = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_one['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 1,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert load_plan.status_code == 200, load_plan.text
+    assert load_plan.json()["items"][0]["requires_serials"] is True
+    assert load_plan.json()["items"][0]["serials_complete"] is False
+
+    confirm_missing_serial = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_one['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert confirm_missing_serial.status_code == 400, confirm_missing_serial.text
+
+    select_serial = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_one['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "LS-000001",
+        },
+    )
+    assert select_serial.status_code == 200, select_serial.text
+    assignment = select_serial.json()
+    assert assignment["assignment_status"] == "SELECTED"
+    assert assignment["cylinder_id"] == cylinder_id
+
+    idempotent_select = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_one['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "LS-000001",
+        },
+    )
+    assert idempotent_select.status_code == 200, idempotent_select.text
+    assert idempotent_select.json()["id"] == assignment["id"]
+
+    session_two = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle_two["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_two['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_two['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 1,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+
+    duplicate_select = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_two['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "LS-000001",
+        },
+    )
+    assert duplicate_select.status_code == 400, duplicate_select.text
+
+
+def test_load_serials_confirm_and_release_on_cancel(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Seriales 2", "code": "ALM-L2", "address": None, "phone": None},
+    ).json()
+    vehicle = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-L2",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "L2",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+    vehicle_cancel = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-L3",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "L3",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+    product = create_product(client, headers, sku="L2-GLP10", name="Bombona 10kg L2")
+    assert client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial seriales 2",
+            "idempotency_key": "test-load-serial-stock-seed-2",
+        },
+    ).status_code == 201
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="L2-000001",
+            current_state="LLENADO_OK",
+            product_id=product["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.commit()
+        cylinder_id = cylinder.id
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 1,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "L2-000001",
+        },
+    ).status_code == 200
+
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert ready_response.status_code == 200, ready_response.text
+    assert ready_response.json()["status"] == "READY_TO_DEPART"
+
+    cylinder_after_confirm = client.get(
+        f"/api/v1/plugins/logistics/cylinders/{cylinder_id}",
+        headers=headers,
+    )
+    assert cylinder_after_confirm.status_code == 200, cylinder_after_confirm.text
+    assert cylinder_after_confirm.json()["current_state"] == "CARGA_EN_VEHICULO"
+
+    selected_after_confirm = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/selected?product_id={product['id']}",
+        headers=headers,
+    )
+    assert selected_after_confirm.status_code == 200, selected_after_confirm.text
+    assert selected_after_confirm.json()[0]["assignment_status"] == "CONFIRMED"
+    assert selected_after_confirm.json()[0]["confirmed_by_operation_id"]
+
+    depart_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    )
+    assert depart_response.status_code == 200, depart_response.text
+
+    cylinder_on_route = client.get(
+        f"/api/v1/plugins/logistics/cylinders/{cylinder_id}",
+        headers=headers,
+    )
+    assert cylinder_on_route.status_code == 200, cylinder_on_route.text
+    assert cylinder_on_route.json()["current_state"] == "EN_RUTA"
+
+    session_cancel = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle_cancel["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_cancel['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_cancel['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 1,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+
+    with app.state.session_factory() as db:
+        cylinder_cancel = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="L2-000002",
+            current_state="LLENADO_OK",
+            product_id=product["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder_cancel)
+        db.commit()
+
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_cancel['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "L2-000002",
+        },
+    ).status_code == 200
+
+    cancel_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session_cancel['id']}/cancel",
+        headers=headers,
+        json={"notes": "Anulada antes de salir"},
+    )
+    assert cancel_response.status_code == 200, cancel_response.text
+    assert cancel_response.json()["status"] == "CANCELLED"
+
+    with app.state.session_factory() as db:
+        assignment = db.execute(
+            select(LogisticsLoadSerialAssignment).where(
+                LogisticsLoadSerialAssignment.session_id == session_cancel["id"]
+            )
+        ).scalar_one()
+        assert assignment.assignment_status == "RELEASED"
+        assert assignment.release_reason == "OPERATION_CANCELLED"
 
 
 def test_vehicle_session_reconciliation_auto_closes(
@@ -638,6 +1139,16 @@ def test_route_operation_changes_composition_and_outdates_waybill(
     )
     assert depart_response.status_code == 200, depart_response.text
 
+    summary_before_waybill = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/operational-summary",
+        headers=headers,
+    )
+    assert summary_before_waybill.status_code == 200, summary_before_waybill.text
+    assert summary_before_waybill.json()["health_status"] == "BLOCKED"
+    assert summary_before_waybill.json()["data_completeness"] == "PARTIAL"
+    assert summary_before_waybill.json()["blocking_reasons"] == ["WAYBILL_MISSING"]
+    assert summary_before_waybill.json()["waybill"]["sync_status"] == "MISSING"
+
     generate_waybill_response = client.post(
         f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
         headers=headers,
@@ -702,6 +1213,19 @@ def test_route_operation_changes_composition_and_outdates_waybill(
     )
     assert waybill_state_response.status_code == 200, waybill_state_response.text
     assert waybill_state_response.json()["sync_status"] == "OUTDATED"
+
+    summary_outdated_waybill = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/operational-summary",
+        headers=headers,
+    )
+    assert summary_outdated_waybill.status_code == 200, summary_outdated_waybill.text
+    outdated_summary = summary_outdated_waybill.json()
+    assert outdated_summary["health_status"] == "ATTENTION"
+    assert outdated_summary["data_completeness"] == "FULL"
+    assert outdated_summary["attention_reasons"] == ["WAYBILL_OUTDATED"]
+    assert outdated_summary["waybill"]["sync_status"] == "OUTDATED"
+    assert outdated_summary["stop_counters"]["completed"] == 1
+    assert outdated_summary["incidents"]["open_total"] == 0
 
     regenerate_waybill_response = client.post(
         f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
@@ -1030,3 +1554,191 @@ def test_exchange_incident_and_route_stop_progress(
     assert stop_progress_corrected.status_code == 200, stop_progress_corrected.text
     assert stop_progress_corrected.json()[0]["progress_status"] == "COMPLETED"
     assert stop_progress_corrected.json()[0]["open_incidents"] == 0
+
+
+def test_route_stop_result_minimal_updates_progress_and_summary(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    customer = create_customer(
+        client,
+        headers,
+        name="Cliente Stop Result",
+        document_number="20100070970",
+    )
+
+    warehouse = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen StopResult", "code": "ALM-SR", "address": None, "phone": None},
+    ).json()
+    zone = client.post(
+        "/api/v1/plugins/logistics/zones",
+        headers=headers,
+        json={"name": "Zona StopResult", "code": "ZN-SR"},
+    ).json()
+    vehicle = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-SR",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "SR",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+    delivery_point = client.post(
+        "/api/v1/plugins/logistics/delivery-points",
+        headers=headers,
+        json={
+            "customer_id": customer["id"],
+            "contact_name": "Operador StopResult",
+            "address": "Calle StopResult 123",
+            "zone_id": zone["id"],
+            "warehouse_id": warehouse["id"],
+            "is_primary": True,
+        },
+    ).json()
+    route = client.post(
+        "/api/v1/plugins/logistics/routes",
+        headers=headers,
+        json={
+            "route_date": datetime.now(UTC).date().isoformat(),
+            "vehicle_id": vehicle["id"],
+        },
+    ).json()
+    stop = client.post(
+        f"/api/v1/plugins/logistics/routes/{route['id']}/stops",
+        headers=headers,
+        json={"delivery_point_id": delivery_point["id"], "stop_order": 1},
+    ).json()
+
+    product = create_product(client, headers, sku="SR-GLP10", name="Bombona 10kg SR")
+    stock_seed = client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "reason": "Stock inicial stop result",
+            "idempotency_key": "test-stop-result-stock-seed",
+        },
+    )
+    assert stock_seed.status_code == 201, stock_seed.text
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+            "route_id": route["id"],
+        },
+    ).json()
+
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 5,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+        headers=headers,
+    ).status_code == 200
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/carta-porte/regenerate",
+        headers=headers,
+        json={
+            "reason": "Generación inicial stop result",
+            "event": "INITIAL_GENERATION",
+            "idempotency_key": "test-stop-result-waybill-v1",
+        },
+    ).status_code == 200
+
+    invalid_result = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-results/{stop['id']}",
+        headers=headers,
+        json={
+            "status": "PARTIAL",
+            "completion_percent": 100,
+            "outcome_type": "PARTIAL_ATTENDED",
+            "driver_note": "Dato inválido para parcial",
+        },
+    )
+    assert invalid_result.status_code == 400, invalid_result.text
+
+    upsert_result = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-results/{stop['id']}",
+        headers=headers,
+        json={
+            "status": "PARTIAL",
+            "completion_percent": 60,
+            "outcome_type": "PARTIAL_ATTENDED",
+            "driver_note": "Llegaron muchos clientes y solo se pudo cubrir parte del stop.",
+        },
+    )
+    assert upsert_result.status_code == 200, upsert_result.text
+    result_payload = upsert_result.json()
+    assert result_payload["status"] == "PARTIAL"
+    assert result_payload["completion_percent"] == 60.0
+
+    stop_results = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-results",
+        headers=headers,
+    )
+    assert stop_results.status_code == 200, stop_results.text
+    assert stop_results.json()[0]["outcome_type"] == "PARTIAL_ATTENDED"
+
+    stop_progress = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-stop-progress",
+        headers=headers,
+    )
+    assert stop_progress.status_code == 200, stop_progress.text
+    progress_payload = stop_progress.json()[0]
+    assert progress_payload["progress_status"] == "PARTIAL"
+    assert progress_payload["completion_percent"] == 60.0
+    assert progress_payload["outcome_type"] == "PARTIAL_ATTENDED"
+    assert "solo se pudo cubrir parte" in progress_payload["driver_note"]
+
+    summary_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/operational-summary",
+        headers=headers,
+    )
+    assert summary_response.status_code == 200, summary_response.text
+    summary = summary_response.json()
+    assert summary["health_status"] == "ATTENTION"
+    assert summary["data_completeness"] == "FULL"
+    assert summary["attention_reasons"] == ["PARTIAL_STOP"]
+    assert summary["problematic_stops"][0]["completion_percent"] == 60.0
+    assert summary["problematic_stops"][0]["outcome_type"] == "PARTIAL_ATTENDED"

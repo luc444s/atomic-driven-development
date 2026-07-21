@@ -93,6 +93,9 @@ export type RouteStopProgress = {
   progress_status: string;
   last_operation_at: string | null;
   open_incidents: number;
+  completion_percent: number | null;
+  outcome_type: string | null;
+  driver_note: string | null;
 };
 
 export type RouteIncidentCreatePayload = {

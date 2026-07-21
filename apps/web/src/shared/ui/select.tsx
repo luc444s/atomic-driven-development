@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { cn } from "./cn";
 
 type SelectOption = { value: string; label: string };
@@ -15,18 +16,85 @@ type SelectProps = {
 export function Select({ value, onChange, options, placeholder, className, required }: SelectProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [menuStyle, setMenuStyle] = useState<{ top: number; left: number; width: number } | null>(null);
 
   const selected = options.find((o) => o.value === value);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (ref.current && !ref.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        ref.current &&
+        !ref.current.contains(target) &&
+        menuRef.current &&
+        !menuRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  useLayoutEffect(() => {
+    if (!open || !ref.current) {
+      return;
+    }
+
+    function updatePosition() {
+      if (!ref.current) {
+        return;
+      }
+      const rect = ref.current.getBoundingClientRect();
+      setMenuStyle({
+        top: rect.bottom + 4,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open]);
+
+  const menu = open && menuStyle
+    ? createPortal(
+        <div
+          ref={menuRef}
+          className="fixed z-[90] max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-lg"
+          style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
+        >
+          {options.map((opt) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => {
+                onChange(opt.value);
+                setOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center px-3 py-2 text-left text-sm transition hover:bg-accent hover:text-accent-foreground",
+                opt.value === value
+                  ? "bg-accent font-medium text-accent-foreground"
+                  : "text-popover-foreground"
+              )}
+            >
+              {opt.label}
+            </button>
+          ))}
+          {options.length === 0 && (
+            <p className="px-3 py-2 text-sm text-muted-foreground">Sin opciones</p>
+          )}
+        </div>,
+        document.body
+      )
+    : null;
 
   return (
     <div ref={ref} className="relative">
@@ -51,31 +119,7 @@ export function Select({ value, onChange, options, placeholder, className, requi
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-lg">
-          {options.map((opt) => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => {
-                onChange(opt.value);
-                setOpen(false);
-              }}
-              className={cn(
-                "flex w-full items-center px-3 py-2 text-left text-sm transition hover:bg-accent hover:text-accent-foreground",
-                opt.value === value
-                  ? "bg-accent text-accent-foreground font-medium"
-                  : "text-popover-foreground"
-              )}
-            >
-              {opt.label}
-            </button>
-          ))}
-          {options.length === 0 && (
-            <p className="px-3 py-2 text-sm text-muted-foreground">Sin opciones</p>
-          )}
-        </div>
-      )}
+      {menu}
     </div>
   );
 }

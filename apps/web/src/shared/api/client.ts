@@ -1,6 +1,7 @@
 import { useAuthStore } from "../../features/auth/store";
 
 const DEFAULT_API_BASE_URL = "http://127.0.0.1:8000";
+const LOOPBACK_HOSTS = new Set(["127.0.0.1", "localhost", "::1"]);
 
 export type PluginManifest = {
   id: string;
@@ -48,8 +49,27 @@ export class ApiError extends Error {
   }
 }
 
-function getApiBaseUrl() {
-  return (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
+function isLoopbackHost(hostname: string) {
+  return LOOPBACK_HOSTS.has(hostname);
+}
+
+export function getApiBaseUrl() {
+  const configuredBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? DEFAULT_API_BASE_URL).replace(/\/$/, "");
+
+  if (typeof window === "undefined") {
+    return configuredBaseUrl;
+  }
+
+  try {
+    const configuredUrl = new URL(configuredBaseUrl);
+    if (isLoopbackHost(configuredUrl.hostname) && !isLoopbackHost(window.location.hostname)) {
+      return window.location.origin;
+    }
+  } catch {
+    // Keep the configured base when it is already relative or otherwise non-URL.
+  }
+
+  return configuredBaseUrl;
 }
 
 function buildUrl(path: string) {

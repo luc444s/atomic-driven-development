@@ -9,6 +9,9 @@ export type LoadPlanItem = {
   planned_weight_kg: number | null;
   source_warehouse_id: string;
   notes: string | null;
+  requires_serials: boolean;
+  selected_serials_count: number;
+  serials_complete: boolean;
   created_at: string;
 };
 
@@ -23,11 +26,11 @@ export type LoadPlan = {
 
 export type LoadPlanUpsertPayload = {
   notes?: string | null;
-  items: Array<{
-    product_id: string;
-    planned_quantity: number;
-    source_warehouse_id?: string | null;
-    notes?: string | null;
+    items: Array<{
+      product_id: string;
+      planned_quantity: number;
+      source_warehouse_id?: string | null;
+      notes?: string | null;
   }>;
 };
 

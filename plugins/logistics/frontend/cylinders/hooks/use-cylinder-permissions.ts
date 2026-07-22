@@ -14,8 +14,6 @@ export interface CylinderPermissions {
   canScanRead: boolean;
   canOwnershipRead: boolean;
   canWarehouseRead: boolean;
-  canContractView: boolean;
-  canContractCreate: boolean;
 }
 
 export function useCylinderPermissions(): CylinderPermissions {
@@ -35,7 +33,5 @@ export function useCylinderPermissions(): CylinderPermissions {
     canScanRead: permissions.includes("logistics.scan.read"),
     canOwnershipRead: permissions.includes("logistics.cylinder.ownership.read"),
     canWarehouseRead: permissions.includes("logistics.warehouse.read"),
-    canContractView: permissions.includes("logistics.contract.view"),
-    canContractCreate: permissions.includes("logistics.contract.create"),
   };
 }

@@ -1,5 +1,9 @@
 # SPEC 0023AD — Contratos de envases
 
+> Estado de vigencia: histórica / superada parcialmente.
+> No usar este documento como roadmap activo del modelo contractual actual sin revisar primero `0023AD.2` y `0023AD.3`.
+> El criterio vigente hoy es contrato por derecho/cupo y no contrato visible desde cada bombona.
+
 ## Estado
 
 Primera versión funcional — 2026-07-07

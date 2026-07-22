@@ -25,12 +25,15 @@ export function TransitionDialog({
     getCylinderStateLabel,
 }: TransitionDialogProps) {
   return (
-<Dialog open={isTransitionOpen} title="Transición operativa" description="Aplica la siguiente transición válida del state machine." onClose={() => setIsTransitionOpen(false)}>
+<Dialog open={isTransitionOpen} title="Corrección de estado" description="Usa esta acción solo para regularización o corrección excepcional. La operación normal debe venir de los flujos operativos reales." onClose={() => setIsTransitionOpen(false)}>
   <div className="space-y-4">
+    <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-sm text-foreground">
+      No usar para operación normal. Solo soporte o corrección de datos.
+    </div>
     <Select
       value={nextState}
       onChange={(value) => setNextState(value)}
-      placeholder="Selecciona estado destino"
+      placeholder="Selecciona estado corregido"
       options={(transitionsQuery.data ?? []).map((item) => ({
         value: item.to_state,
         label: getCylinderStateLabel(item.to_state),
@@ -47,7 +50,7 @@ export function TransitionDialog({
         }}
         disabled={!nextState || transitionMutation.isPending}
       >
-        Aplicar transición
+        Aplicar corrección
       </Button>
     </div>
   </div>

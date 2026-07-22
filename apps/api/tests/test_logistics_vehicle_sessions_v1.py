@@ -690,6 +690,175 @@ def test_load_serials_confirm_and_release_on_cancel(
         assert assignment.release_reason == "OPERATION_CANCELLED"
 
 
+def test_load_serial_search_shows_other_product_as_unavailable(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Search UX", "code": "ALM-SX", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-SX",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "SX",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product_a = create_product(client, headers, sku="SX-A", name="Bombona Search A")
+    product_b = create_product(client, headers, sku="SX-B", name="Bombona Search B")
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="SX-000001",
+            current_state="LLENADO_OK",
+            product_id=product_a["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.commit()
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+
+    search_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/search",
+        headers=headers,
+        params={
+            "product_id": product_b["id"],
+            "source_warehouse_id": warehouse["id"],
+            "query": "SX-000001",
+        },
+    )
+    assert search_response.status_code == 200, search_response.text
+    payload = search_response.json()
+    assert len(payload) == 1
+    assert payload[0]["serial"] == "SX-000001"
+    assert payload[0]["availability_status"] == "UNAVAILABLE"
+    assert payload[0]["context_label"] == "Corresponde a otro producto"
+
+
+def test_load_serial_search_supports_numeric_lookup_inside_prefixed_serial(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Numeric Search", "code": "ALM-NS", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-NS",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "NS",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="NS-GLP10", name="Bombona Numeric Search")
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="BOMBONA1-LUCAS-000200",
+            current_state="LLENADO_OK",
+            product_id=product["id"],
+            gas_group_id=product["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.commit()
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+
+    search_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/search",
+        headers=headers,
+        params={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "query": "0200",
+        },
+    )
+    assert search_response.status_code == 200, search_response.text
+    payload = search_response.json()
+    assert len(payload) == 1
+    assert payload[0]["serial"] == "BOMBONA1-LUCAS-000200"
+    assert payload[0]["availability_status"] == "AVAILABLE"
+
+    select_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "0200",
+        },
+    )
+    assert select_response.status_code == 200, select_response.text
+    assert select_response.json()["cylinder_serial"] == "BOMBONA1-LUCAS-000200"
+
+
 def test_confirm_and_ready_blocks_origin_line_without_positive_quantity(
     client: TestClient, app, seeded_demo: dict[str, str]
 ) -> None:

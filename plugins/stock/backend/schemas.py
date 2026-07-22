@@ -4,6 +4,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from apps.api.app.core.pagination import OffsetPageRead
+
 
 class StockBalanceRead(BaseModel):
     id: str | None = None
@@ -35,11 +37,8 @@ class StockWarehouseRead(BaseModel):
     updated_at: datetime
 
 
-class StockBalancePageRead(BaseModel):
-    items: list[StockBalanceRead]
-    total: int
-    limit: int
-    offset: int
+class StockBalancePageRead(OffsetPageRead[StockBalanceRead]):
+    pass
 
 
 class StockLedgerRead(BaseModel):

@@ -1,5 +1,8 @@
 # SPEC 0023AO — Envases en posesión del cliente (Customer cylinder summary)
 
+> Nota de vigencia: revisar junto con `0023AD.2` y `0023AD.3`.
+> La parte contractual de este documento debe interpretarse bajo el criterio actual de contrato por derecho/cupo, no como vínculo fijo por bombona.
+
 ## Estado
 
 Propuesta — 2026-07-10

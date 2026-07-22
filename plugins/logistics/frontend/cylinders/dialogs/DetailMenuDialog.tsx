@@ -12,15 +12,12 @@ interface DetailMenuDialogProps {
   productById: Map<string, string>;
   gasById: Map<string, string>;
   brandById: Map<string, string>;
-  canContractView: boolean;
-  canContractCreate: boolean;
   canUpdate: boolean;
   canMaintenance: boolean;
   canTransition: boolean;
   canRetimbrado: boolean;
   canServiceManage: boolean;
   canLabelPrint: boolean;
-  canScan: boolean;
   openEditDialog: () => void;
   setIsHydrotestOpen: (open: boolean) => void;
   setIsWarrantyOpen: (open: boolean) => void;
@@ -30,7 +27,6 @@ interface DetailMenuDialogProps {
   setIsPrintLabelOpen: (open: boolean) => void;
   setIsScanOpen: (open: boolean) => void;
   openViewSection: (section: string) => void;
-  openCreateContractDialog: () => void;
   closeDetailContext: () => void;
   formatDate: (date: string | null | undefined) => string;
 }
@@ -42,15 +38,12 @@ export function DetailMenuDialog({
   productById,
   gasById,
   brandById,
-  canContractView,
-  canContractCreate,
   canUpdate,
   canMaintenance,
   canTransition,
   canRetimbrado,
   canServiceManage,
   canLabelPrint,
-  canScan,
   openEditDialog,
   setIsHydrotestOpen,
   setIsWarrantyOpen,
@@ -60,7 +53,6 @@ export function DetailMenuDialog({
   setIsPrintLabelOpen,
   setIsScanOpen,
   openViewSection,
-  openCreateContractDialog,
   closeDetailContext,
   formatDate,
 }: DetailMenuDialogProps) {
@@ -110,32 +102,6 @@ export function DetailMenuDialog({
             <Alert title="Uso medicinal">Este envase está marcado para uso medicinal. La trazabilidad debe ser completa y auditable.</Alert>
           ) : null}
 
-          {canContractView || canContractCreate ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>Contrato de envases</CardTitle>
-                <CardDescription>Los contratos definen cantidades por producto; la asignacion real se deriva de movimientos SC/IC.</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="rounded-lg border border-dashed border-border bg-surface p-4 text-sm text-muted-foreground">
-                  Este envase no se vincula manualmente a un contrato. Usa movimientos confirmados para reflejar la posesion operativa del cliente.
-                </div>
-
-                {canContractCreate ? (
-                  <div className="flex justify-end">
-                    <button
-                      type="button"
-                      onClick={openCreateContractDialog}
-                      className="rounded-lg border border-border bg-surface px-4 py-2 text-sm text-foreground transition hover:border-ring hover:bg-surface-alt"
-                    >
-                      Crear contrato con este tipo de envase
-                    </button>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-          ) : null}
-
           <Card>
             <CardHeader>
               <CardTitle>Operativa</CardTitle>
@@ -146,11 +112,10 @@ export function DetailMenuDialog({
                 {canUpdate ? <button type="button" onClick={openEditDialog} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Editar ficha</p><p className="mt-1 text-xs text-muted-foreground">Actualiza los datos principales.</p></button> : null}
                 {canMaintenance ? <button type="button" onClick={() => setIsHydrotestOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar PH</p><p className="mt-1 text-xs text-muted-foreground">Nueva prueba hidrostática.</p></button> : null}
                 {canMaintenance ? <button type="button" onClick={() => setIsWarrantyOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar garantía</p><p className="mt-1 text-xs text-muted-foreground">Asocia una garantía comercial.</p></button> : null}
-                {canTransition ? <button type="button" onClick={() => setIsTransitionOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Transición operativa</p><p className="mt-1 text-xs text-muted-foreground">Cambia el estado del envase.</p></button> : null}
+                {canTransition ? <button type="button" onClick={() => setIsTransitionOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Corrección de estado</p><p className="mt-1 text-xs text-muted-foreground">Solo para regularización o corrección excepcional.</p></button> : null}
                 {canRetimbrado ? <button type="button" onClick={() => setIsRetimbradoOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar retimbrado</p><p className="mt-1 text-xs text-muted-foreground">Carga la ficha técnica del reestampado.</p></button> : null}
                 {canServiceManage ? <button type="button" onClick={() => setIsServiceOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Agregar servicio</p><p className="mt-1 text-xs text-muted-foreground">Registra un servicio operativo.</p></button> : null}
                 {canLabelPrint ? <button type="button" onClick={() => setIsPrintLabelOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Imprimir etiqueta</p><p className="mt-1 text-xs text-muted-foreground">Genera el registro de impresión.</p></button> : null}
-                {canScan ? <button type="button" onClick={() => setIsScanOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Escanear</p><p className="mt-1 text-xs text-muted-foreground">Procesa validación con GPS.</p></button> : null}
               </div>
             </CardContent>
           </Card>

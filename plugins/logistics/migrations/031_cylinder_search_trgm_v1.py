@@ -26,12 +26,16 @@ STATEMENTS = [
 
 def upgrade(db) -> None:
     bind = db.connection()
+    if bind.dialect.name != "postgresql":
+        return
     for statement in STATEMENTS:
         bind.execute(text(statement))
 
 
 def downgrade(db) -> None:
     bind = db.connection()
+    if bind.dialect.name != "postgresql":
+        return
     bind.execute(text("DROP INDEX IF EXISTS ix_lg_cyl_location_trgm"))
     bind.execute(text("DROP INDEX IF EXISTS ix_lg_cyl_barcode2_trgm"))
     bind.execute(text("DROP INDEX IF EXISTS ix_lg_cyl_barcode1_trgm"))

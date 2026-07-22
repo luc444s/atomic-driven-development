@@ -5,6 +5,8 @@ from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from apps.api.app.core.pagination import OffsetPageRead
+
 
 class DocumentTypeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -518,11 +520,8 @@ class CustomerToggleActiveRequest(BaseModel):
     reason: str | None = None
 
 
-class CustomerPageRead(BaseModel):
-    items: list[CustomerListItemRead]
-    total: int
-    limit: int
-    offset: int
+class CustomerPageRead(OffsetPageRead[CustomerListItemRead]):
+    pass
 
 
 class FiscalAddressSetResponse(BaseModel):

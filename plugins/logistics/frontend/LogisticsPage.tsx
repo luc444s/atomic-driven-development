@@ -54,10 +54,6 @@ import { ScanDialog } from "./cylinders/dialogs/ScanDialog";
 import { useCylinderPermissions } from "./cylinders/hooks/use-cylinder-permissions";
 import { useCylinderData } from "./cylinders/hooks/use-cylinder-data";
 import { useCylinderMutations } from "./cylinders/hooks/use-cylinder-mutations";
-import { ContractFormDialog } from "./contracts/dialogs/contract-form-dialog";
-import { EMPTY_CONTRACT_FORM, type ContractFormState } from "./contracts/forms/contract-form-state";
-import { buildCreatePayload } from "./contracts/forms/contract-payload";
-import { createContract, uploadContractFile } from "./api/contracts";
 
 export function LogisticsPage() {
   const permissions = useCylinderPermissions();
@@ -67,7 +63,6 @@ export function LogisticsPage() {
   const [page, setPage] = useState(1);
   const [selectedCylinder, setSelectedCylinder] = useState<LogisticsCylinder | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
-  const [isCreateContractOpen, setIsCreateContractOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHydrotestOpen, setIsHydrotestOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
@@ -89,8 +84,6 @@ export function LogisticsPage() {
   const [serviceForm, setServiceForm] = useState<ServiceFormState>(EMPTY_SERVICE_FORM);
   const [printLabelForm, setPrintLabelForm] = useState<PrintLabelFormState>(EMPTY_PRINT_LABEL_FORM);
   const [scanForm, setScanForm] = useState<ScanFormState>(EMPTY_SCAN_FORM);
-  const [contractForm, setContractForm] = useState<ContractFormState>(EMPTY_CONTRACT_FORM);
-  const [selectedContractFile, setSelectedContractFile] = useState<File | null>(null);
   const [panelError, setPanelError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
@@ -119,26 +112,6 @@ export function LogisticsPage() {
     label: `${warehouse.code} · ${warehouse.name}`,
     keywords: [warehouse.code, warehouse.name, warehouse.address ?? ""],
   }));
-
-  const createContractMutation = useMutation({
-    mutationFn: async () => {
-      const created = await createContract(buildCreatePayload(contractForm));
-      if (selectedContractFile) {
-        await uploadContractFile(created.id, selectedContractFile);
-      }
-      return created;
-    },
-    onSuccess: async () => {
-      setIsCreateContractOpen(false);
-      if (selectedCylinder) {
-        setIsDetailMenuOpen(true);
-      }
-      setSelectedContractFile(null);
-    },
-    onError: (error: Error) => {
-      setDetailError(error.message);
-    },
-  });
 
   const gasGroupIdRef = useRef(cylinderForm.gas_group_id);
 
@@ -377,37 +350,7 @@ export function LogisticsPage() {
     setDetailError(null);
     setIsEditOpen(false);
     setIsDetailMenuOpen(false);
-    setIsCreateContractOpen(false);
     setSelectedViewSection(null);
-  }
-
-  function openCreateContractDialog() {
-    if (!selectedCylinder) {
-      return;
-    }
-    const today = new Date().toISOString().slice(0, 10);
-    setContractForm({
-      ...EMPTY_CONTRACT_FORM,
-      warehouse_id: "",
-      start_date: today,
-      cylinder_type_id: selectedCylinder.product_id ?? selectedCylinder.gas_group_id ?? "",
-      cylinder_condition: selectedCylinder.condition ?? "",
-      quantity: "1",
-    });
-    setSelectedContractFile(null);
-    setDetailError(null);
-    setIsDetailMenuOpen(false);
-    setIsCreateContractOpen(true);
-  }
-
-  function closeCreateContractDialog(open: boolean) {
-    setIsCreateContractOpen(open);
-    if (!open) {
-      setSelectedContractFile(null);
-      if (selectedCylinder) {
-        setIsDetailMenuOpen(true);
-      }
-    }
   }
 
   function openViewSection(section: NonNullable<typeof selectedViewSection>) {
@@ -458,22 +401,6 @@ export function LogisticsPage() {
         scanData={data.filteredScans}
         labelData={data.labelDataQuery.data ?? null}
         serviceTypeById={data.serviceTypeById}
-      />
-      <ContractFormDialog
-        open={isCreateContractOpen}
-        onOpenChange={closeCreateContractDialog}
-        title={selectedCylinder ? `Nuevo contrato para ${selectedCylinder.serial}` : "Nuevo contrato"}
-        form={contractForm}
-        onFormChange={setContractForm}
-        isPending={createContractMutation.isPending}
-        error={detailError}
-        onSubmit={(event) => {
-          event.preventDefault();
-          setDetailError(null);
-          createContractMutation.mutate();
-        }}
-        onFileSelect={setSelectedContractFile}
-        showNotes={false}
       />
       <LogisticsSection
       title="Control de envases"
@@ -644,15 +571,12 @@ export function LogisticsPage() {
         productById={data.productById}
         gasById={data.gasById}
         brandById={data.brandById}
-        canContractView={permissions.canContractView}
-        canContractCreate={permissions.canContractCreate}
         canUpdate={permissions.canUpdate}
         canMaintenance={permissions.canMaintenance}
         canTransition={permissions.canTransition}
         canRetimbrado={permissions.canRetimbrado}
         canServiceManage={permissions.canServiceManage}
         canLabelPrint={permissions.canLabelPrint}
-        canScan={permissions.canScan}
         openEditDialog={openEditDialog}
         setIsHydrotestOpen={setIsHydrotestOpen}
         setIsWarrantyOpen={setIsWarrantyOpen}
@@ -662,7 +586,6 @@ export function LogisticsPage() {
         setIsPrintLabelOpen={setIsPrintLabelOpen}
         setIsScanOpen={setIsScanOpen}
         openViewSection={openViewSection}
-        openCreateContractDialog={openCreateContractDialog}
         closeDetailContext={closeDetailContext}
         formatDate={formatDate}
       />

@@ -80,6 +80,53 @@ def _active_assignment_for_cylinder(
     )
 
 
+def _resolve_cylinder_for_selection(
+    db: Session, *, tenant_id: str, raw_serial: str
+) -> LogisticsCylinder | None:
+    normalized_serial = raw_serial.strip().upper()
+    cylinder = db.scalar(
+        select(LogisticsCylinder)
+        .where(
+            LogisticsCylinder.tenant_id == tenant_id,
+            or_(
+                LogisticsCylinder.serial == normalized_serial,
+                LogisticsCylinder.barcode1 == normalized_serial,
+                LogisticsCylinder.barcode2 == normalized_serial,
+            ),
+        )
+        .with_for_update()
+    )
+    if cylinder is not None:
+        return cylinder
+
+    if not normalized_serial.isdigit() or len(normalized_serial) < 4:
+        return None
+
+    matches = list(
+        db.scalars(
+            select(LogisticsCylinder)
+            .where(
+                LogisticsCylinder.tenant_id == tenant_id,
+                or_(
+                    LogisticsCylinder.serial.ilike(f"%{normalized_serial}"),
+                    LogisticsCylinder.barcode1.ilike(f"%{normalized_serial}"),
+                    LogisticsCylinder.barcode2.ilike(f"%{normalized_serial}"),
+                ),
+            )
+            .order_by(LogisticsCylinder.serial.asc())
+            .limit(2)
+            .with_for_update()
+        ).all()
+    )
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            "El código numérico coincide con más de un serial. Selecciona manualmente."
+        )
+    return None
+
+
 def list_selected_load_serial_assignments(
     db: Session, *, session_id: str, product_id: str | None = None
 ) -> list[LoadSerialAssignmentRead]:
@@ -106,6 +153,10 @@ def search_load_serial_candidates(
     normalized_query = query.strip().upper()
     if len(normalized_query) < 2:
         return []
+    numeric_only_query = normalized_query.isdigit()
+    search_pattern = (
+        f"%{normalized_query}%" if numeric_only_query else f"{normalized_query}%"
+    )
 
     cylinders = list(
         db.scalars(
@@ -113,9 +164,9 @@ def search_load_serial_candidates(
             .where(
                 LogisticsCylinder.tenant_id == session.tenant_id,
                 or_(
-                    LogisticsCylinder.serial.ilike(f"{normalized_query}%"),
-                    LogisticsCylinder.barcode1.ilike(f"{normalized_query}%"),
-                    LogisticsCylinder.barcode2.ilike(f"{normalized_query}%"),
+                    LogisticsCylinder.serial.ilike(search_pattern),
+                    LogisticsCylinder.barcode1.ilike(search_pattern),
+                    LogisticsCylinder.barcode2.ilike(search_pattern),
                 ),
             )
             .order_by(LogisticsCylinder.serial.asc())
@@ -125,8 +176,6 @@ def search_load_serial_candidates(
 
     results: list[LoadSerialSearchResultRead] = []
     for cylinder in cylinders:
-        if not _product_matches_cylinder(cylinder, product_id=product_id):
-            continue
         active_assignment = db.scalar(
             select(LogisticsLoadSerialAssignment)
             .where(
@@ -134,7 +183,10 @@ def search_load_serial_candidates(
                 LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
             )
         )
-        if active_assignment is not None:
+        if not _product_matches_cylinder(cylinder, product_id=product_id):
+            availability_status = "UNAVAILABLE"
+            context_label = "Corresponde a otro producto"
+        elif active_assignment is not None:
             availability_status = "OCCUPIED"
             context_label = (
                 "Seleccionado en esta jornada"
@@ -233,18 +285,10 @@ def select_load_serial(
     serial: str,
     action_context: LogisticsActionContext,
 ) -> LoadSerialAssignmentRead:
-    normalized_serial = serial.strip().upper()
-    cylinder = db.scalar(
-        select(LogisticsCylinder)
-        .where(
-            LogisticsCylinder.tenant_id == session.tenant_id,
-            or_(
-                LogisticsCylinder.serial == normalized_serial,
-                LogisticsCylinder.barcode1 == normalized_serial,
-                LogisticsCylinder.barcode2 == normalized_serial,
-            ),
-        )
-        .with_for_update()
+    cylinder = _resolve_cylinder_for_selection(
+        db,
+        tenant_id=session.tenant_id,
+        raw_serial=serial,
     )
     if cylinder is None:
         raise LookupError("Serial no encontrado")

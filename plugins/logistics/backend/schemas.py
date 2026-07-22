@@ -4,6 +4,8 @@ from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
+from apps.api.app.core.pagination import NumberedPageRead, NumberedPaginationRead
+
 CYLINDER_ENTRY_MODES = ("EMPTY_FROM_CUSTOMER", "FULL_FROM_SUPPLIER")
 
 
@@ -187,16 +189,12 @@ class TraceabilityEventRead(BaseModel):
     metadata: dict[str, object] = Field(default_factory=dict)
 
 
-class TraceabilityPagination(BaseModel):
-    page: int
-    per_page: int
-    total: int
-    total_pages: int
+class TraceabilityPagination(NumberedPaginationRead):
+    pass
 
 
-class CylinderPageRead(BaseModel):
-    items: list[CylinderRead]
-    pagination: TraceabilityPagination
+class CylinderPageRead(NumberedPageRead[CylinderRead]):
+    pass
 
 
 class TraceabilitySummary(BaseModel):

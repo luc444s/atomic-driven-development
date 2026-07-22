@@ -75,11 +75,21 @@ VehicleSession
 
 ## Invariante crítica
 
-Un vehículo solo puede tener **1 jornada no cerrada**.
+Un vehículo solo puede tener **1 jornada usando el vehículo de forma viva al mismo tiempo**.
 
-Esto no se redefine en frontend.
+Eso no impide que existan:
 
-La UI solo lo proyecta.
+- `N` jornadas pendientes en cola;
+- materializadas para ese vehículo;
+- todavía no disparadas como uso vivo real.
+
+La UI no redefine esta regla.
+
+La UI solo la proyecta con separación clara entre:
+
+- jornada activa;
+- jornadas pendientes;
+- jornadas históricas.
 
 ## Responsabilidades
 
@@ -266,7 +276,8 @@ activa = status IN (
   AWAITING_RECONCILIATION
 )
 
-pendientes = sesiones no cerradas EXCLUYENDO la activa
+pendientes = sesiones no cerradas EXCLUYENDO la activa,
+tratadas como cola futura de ese vehículo y ordenadas por proximidad/recencia
 
 históricas = status == CLOSED
 ```
@@ -282,6 +293,18 @@ La proyección por vehículo debe ordenar sus jornadas así:
 3. jornadas históricas, más recientes primero.
 
 Esto evita ambigüedad en la apertura y mantiene consistencia visual.
+
+## Regla operativa de cola
+
+La existencia de `jornadas pendientes` es válida y debe preservarse.
+
+Interpretación correcta:
+
+1. la jornada activa es la que está consumiendo el vehículo en runtime;
+2. las jornadas pendientes no compiten como runtime simultáneo, sino como cola futura;
+3. cuando termina la jornada activa/no cerrada en uso, la siguiente jornada pendiente más próxima debe quedar como siguiente candidata a dispararse.
+
+La activación exacta puede ser automática o asistida por backend/UI según la spec que la profundice, pero la prioridad de la más próxima debe quedar explícita.
 
 ## Fallback cuando no hay jornada activa
 

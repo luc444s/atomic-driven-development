@@ -4,6 +4,8 @@ from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from apps.api.app.core.pagination import OffsetPageRead
+
 
 class NamedCatalogRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -435,11 +437,8 @@ class ProductSearchItemRead(BaseModel):
     is_active: bool
 
 
-class ProductPageRead(BaseModel):
-    items: list[ProductListItemRead]
-    total: int
-    limit: int
-    offset: int
+class ProductPageRead(OffsetPageRead[ProductListItemRead]):
+    pass
 
 
 class ProductCreateRequest(BaseModel):

@@ -31,6 +31,7 @@ from plugins.logistics.backend.schemas import (
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
     CylinderOwnershipRead,
+    TraceabilityPagination,
     CylinderPageRead,
     CylinderRead,
     CylinderRetimbradoCreateRequest,
@@ -541,12 +542,12 @@ def get_cylinders_page(
     total_pages = max(1, (total + per_page - 1) // per_page)
     return CylinderPageRead(
         items=[cylinder_to_read(db, cylinder) for cylinder in items],
-        pagination={
-            "page": page,
-            "per_page": per_page,
-            "total": total,
-            "total_pages": total_pages,
-        },
+        pagination=TraceabilityPagination(
+            page=page,
+            per_page=per_page,
+            total=total,
+            total_pages=total_pages,
+        ),
     )
 
 

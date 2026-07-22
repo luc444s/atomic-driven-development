@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
@@ -37,6 +37,7 @@ type Props = {
 
 export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionCountChange }: Props) {
   const queryClient = useQueryClient();
+  const autoSubmittedQueryRef = useRef("");
   const [manualSearchValue, setManualSearchValue] = useState("");
   const [manualSearchSelected, setManualSearchSelected] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -145,6 +146,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
 
   useEffect(() => {
     if (!open) {
+      autoSubmittedQueryRef.current = "";
       setManualSearchValue("");
       setManualSearchSelected("");
       setError(null);
@@ -153,6 +155,36 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
       return;
     }
   }, [open]);
+
+  useEffect(() => {
+    const normalizedQuery = manualSearchValue.trim().toUpperCase();
+    if (!normalizedQuery) {
+      autoSubmittedQueryRef.current = "";
+      return;
+    }
+    if (!/^\d+$/.test(normalizedQuery) || normalizedQuery.length < 4) {
+      return;
+    }
+    if (selectMutation.isPending || manualSearchQuery.isFetching) {
+      return;
+    }
+    if (autoSubmittedQueryRef.current === normalizedQuery) {
+      return;
+    }
+
+    const matches = (manualSearchQuery.data ?? []).filter(
+      (result) =>
+        result.availability_status === "AVAILABLE" &&
+        result.serial.toUpperCase().endsWith(normalizedQuery)
+    );
+    if (matches.length !== 1) {
+      return;
+    }
+
+    autoSubmittedQueryRef.current = normalizedQuery;
+    setManualSearchSelected(matches[0].serial);
+    void selectMutation.mutateAsync(normalizedQuery);
+  }, [manualSearchQuery.data, manualSearchQuery.isFetching, manualSearchValue, selectMutation]);
 
   function openRegisterFallback() {
     if (!item || !manualSearchValue.trim()) {

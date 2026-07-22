@@ -91,6 +91,7 @@ class CylinderCreateRequest(BaseModel):
     branch_id: str | None = None
     warehouse_id: str | None = None
     entry_mode: str | None = Field(default=None, max_length=50)
+    minimal_route_create: bool = False
     document_type: str | None = Field(default=None, max_length=20)
     document_number: str | None = Field(default=None, max_length=50)
     customer_id: str | None = None
@@ -191,6 +192,11 @@ class TraceabilityPagination(BaseModel):
     per_page: int
     total: int
     total_pages: int
+
+
+class CylinderPageRead(BaseModel):
+    items: list[CylinderRead]
+    pagination: TraceabilityPagination
 
 
 class TraceabilitySummary(BaseModel):

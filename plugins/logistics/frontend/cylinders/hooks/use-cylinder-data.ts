@@ -40,23 +40,34 @@ export interface UseCylinderDataInput {
   search: string;
   stateFilter: string;
   medicalOnly: boolean;
+  page: number;
+  perPage: number;
   selectedCylinderId: string;
   selectedCylinder: { id: string } | null;
   permissions: CylinderDataPermissions;
 }
 
 export function useCylinderData(input: UseCylinderDataInput) {
-  const { search, stateFilter, medicalOnly, selectedCylinderId, selectedCylinder, permissions } = input;
+  const { search, stateFilter, medicalOnly, page, perPage, selectedCylinderId, selectedCylinder, permissions } = input;
   const selNotNull = selectedCylinder !== null;
 
   const cylindersQuery = useQuery({
-    queryKey: logisticsKeys.cylinders.list({ search, state: stateFilter, active: true, is_medical: medicalOnly || undefined }),
+    queryKey: logisticsKeys.cylinders.list({
+      search,
+      state: stateFilter,
+      active: true,
+      is_medical: medicalOnly || undefined,
+      page,
+      per_page: perPage,
+    }),
     queryFn: () =>
       listCylindersWithFilters({
         search,
         state: stateFilter,
         active: true,
         is_medical: medicalOnly ? true : undefined,
+        page,
+        per_page: perPage,
       }),
   });
   const statesQuery = useQuery({ queryKey: logisticsKeys.states(), queryFn: listCylinderStates });

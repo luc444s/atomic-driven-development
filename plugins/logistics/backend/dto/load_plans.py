@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 class LoadPlanItemUpsert(BaseModel):
     product_id: str
-    planned_quantity: float = Field(gt=0)
+    planned_quantity: float
     source_warehouse_id: str | None = None
     notes: str | None = Field(default=None, max_length=500)
 

@@ -58,6 +58,13 @@ export function SessionLoadTab({
     const target = Number(item.planned_quantity || "0");
     return !Number.isInteger(target) || item.selected_serials_count !== target;
   });
+  const hasInvalidOriginQuantities = loadPlanItems.some((item) => {
+    if (!item.source_warehouse_id) {
+      return false;
+    }
+    const quantity = Number(item.planned_quantity || "0");
+    return !Number.isFinite(quantity) || quantity <= 0;
+  });
 
   return (
     <div className="space-y-4">
@@ -78,6 +85,7 @@ export function SessionLoadTab({
                 isPending ||
                 !session ||
                 !["DRAFT", "LOADING", "READY_TO_DEPART"].includes(session.status) ||
+                hasInvalidOriginQuantities ||
                 (isLoadingStep && hasIncompleteSerials)
               }
               onClick={onSavePlan}
@@ -86,6 +94,11 @@ export function SessionLoadTab({
             </Button>
           </div>
           {error ? <Alert title="Estado no actualizado">{error}</Alert> : null}
+          {hasInvalidOriginQuantities ? (
+            <Alert title="Cantidad obligatoria">
+              Hay líneas que salen desde almacén con cantidad faltante o inválida. Completa una cantidad mayor que cero antes de guardar la carga.
+            </Alert>
+          ) : null}
           {isLoadingStep && hasIncompleteSerials ? (
             <Alert title="Carga incompleta">
               Hay productos serializados con seriales faltantes. Completa la captura antes de confirmar la carga.

@@ -39,6 +39,26 @@ def get_load_plan(db: Session, *, session_id: str) -> LogisticsLoadPlan | None:
     )
 
 
+def _ensure_positive_quantity_for_origin_line(
+    *,
+    product_name: str | None,
+    planned_quantity: float,
+    source_warehouse_id: str | None,
+) -> None:
+    if source_warehouse_id is None:
+        return
+    if planned_quantity > 0:
+        return
+    if product_name:
+        raise ValueError(
+            "La cantidad debe ser mayor que cero para la línea "
+            f"'{product_name}' que sale desde almacén"
+        )
+    raise ValueError(
+        "La cantidad debe ser mayor que cero para una línea que sale desde almacén"
+    )
+
+
 def list_load_plan_items(db: Session, *, load_plan_id: str) -> list[LogisticsLoadPlanItem]:
     return list(
         db.scalars(
@@ -96,6 +116,12 @@ def upsert_load_plan(
 
     total_weight = 0.0
     for item in payload.items:
+        resolved_source_warehouse_id = item.source_warehouse_id or session.origin_warehouse_id
+        _ensure_positive_quantity_for_origin_line(
+            product_name=None,
+            planned_quantity=float(item.planned_quantity),
+            source_warehouse_id=resolved_source_warehouse_id,
+        )
         product = _require_product(db, product_id=item.product_id)
         planned_weight = float(product.weight_kg or 0) * float(item.planned_quantity)
         plan_item = LogisticsLoadPlanItem(
@@ -104,7 +130,7 @@ def upsert_load_plan(
             product_name=product.name,
             planned_quantity=float(item.planned_quantity),
             planned_weight_kg=planned_weight,
-            source_warehouse_id=item.source_warehouse_id or session.origin_warehouse_id,
+            source_warehouse_id=resolved_source_warehouse_id,
             notes=item.notes,
         )
         db.add(plan_item)
@@ -137,6 +163,12 @@ def confirm_load_plan(
     items = list_load_plan_items(db, load_plan_id=load_plan.id)
     if not items:
         raise ValueError("El plan de carga no tiene items")
+    for item in items:
+        _ensure_positive_quantity_for_origin_line(
+            product_name=item.product_name,
+            planned_quantity=float(item.planned_quantity or 0),
+            source_warehouse_id=item.source_warehouse_id,
+        )
     ensure_required_serials_for_load_plan(db, session=session, load_plan_items=items)
     total_weight = sum(float(item.planned_weight_kg or 0) for item in items)
     from plugins.logistics.backend.models import LogisticsVehicle  # local import to avoid cycle

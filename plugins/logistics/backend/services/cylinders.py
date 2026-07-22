@@ -77,6 +77,48 @@ def list_cylinders(
     return list(db.scalars(stmt).all())
 
 
+def list_cylinders_page(
+    db: Session,
+    *,
+    tenant_id: str,
+    page: int,
+    per_page: int,
+    search: str | None = None,
+    state: str | None = None,
+    active: bool | None = None,
+    is_medical: bool | None = None,
+) -> tuple[list[LogisticsCylinder], int]:
+    stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
+    if search:
+        normalized_search = f"%{search.strip()}%"
+        stmt = stmt.where(
+            or_(
+                LogisticsCylinder.serial.ilike(normalized_search),
+                LogisticsCylinder.description.ilike(normalized_search),
+                LogisticsCylinder.barcode1.ilike(normalized_search),
+                LogisticsCylinder.barcode2.ilike(normalized_search),
+                LogisticsCylinder.location.ilike(normalized_search),
+            )
+        )
+    if state:
+        stmt = stmt.where(LogisticsCylinder.current_state == state)
+    if active is not None:
+        stmt = stmt.where(LogisticsCylinder.is_active == active)
+    if is_medical is not None:
+        stmt = stmt.where(LogisticsCylinder.is_medical == is_medical)
+
+    total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
+    offset = (page - 1) * per_page
+    items = list(
+        db.scalars(
+            stmt.order_by(LogisticsCylinder.created_at.desc(), LogisticsCylinder.serial.asc())
+            .offset(offset)
+            .limit(per_page)
+        ).all()
+    )
+    return items, total
+
+
 def get_cylinder(db: Session, *, tenant_id: str, cylinder_id: str) -> LogisticsCylinder | None:
     return db.scalar(
         select(LogisticsCylinder).where(
@@ -425,7 +467,7 @@ def _validate_initial_entry_payload(
     if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER:
         if payload.product_id is None and payload.gas_group_id is None:
             raise ValueError("product_id es obligatorio cuando el envase entra lleno desde proveedor")
-        if payload.content_kg is None or payload.content_kg <= 0:
+        if not payload.minimal_route_create and (payload.content_kg is None or payload.content_kg <= 0):
             raise ValueError("content_kg debe ser mayor que cero cuando el envase entra lleno desde proveedor")
 
 

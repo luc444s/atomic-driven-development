@@ -284,6 +284,7 @@ export type CylinderEntryMode = "EMPTY_FROM_CUSTOMER" | "FULL_FROM_SUPPLIER";
 
 export type CreateCylinderPayload = BaseCylinderPayload & {
   entry_mode?: CylinderEntryMode | null;
+  minimal_route_create?: boolean;
   document_type?: string | null;
   document_number?: string | null;
   customer_id?: string | null;
@@ -556,4 +557,3 @@ export function listScanLogs() {
 export function listScanLogsByMovement(movementId: string) {
   return apiRequest<LogisticsScanLog[]>(`${API_PREFIX}/scan/log/${movementId}`);
 }
-

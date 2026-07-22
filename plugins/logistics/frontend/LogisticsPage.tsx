@@ -1,4 +1,4 @@
-import { FormEvent, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation } from "../../../apps/web/src/lib/react-query";
 import type { CustomerBrief } from "../../crm/frontend/types";
 import { getMovement, listMovementItems } from "./api/movements";
@@ -8,6 +8,7 @@ import { Button } from "../../../apps/web/src/shared/ui/button";
 import { Card, CardContent } from "../../../apps/web/src/shared/ui/card";
 import { ConfirmDialog } from "../../../apps/web/src/shared/ui/confirm-dialog";
 import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
+import { Pagination } from "../../../apps/web/src/shared/ui/pagination";
 import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { getProduct } from "../../productos/frontend/api";
 import { getRealWarehouses } from "./api/warehouses";
@@ -63,6 +64,7 @@ export function LogisticsPage() {
   const [search, setSearch] = useState("");
   const [stateFilter, setStateFilter] = useState("");
   const [medicalOnly, setMedicalOnly] = useState(false);
+  const [page, setPage] = useState(1);
   const [selectedCylinder, setSelectedCylinder] = useState<LogisticsCylinder | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isCreateContractOpen, setIsCreateContractOpen] = useState(false);
@@ -97,10 +99,16 @@ export function LogisticsPage() {
 
   const selectedCylinderId = selectedCylinder?.id ?? "";
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, stateFilter, medicalOnly]);
+
   const data = useCylinderData({
     search,
     stateFilter,
     medicalOnly,
+    page,
+    perPage: 10,
     selectedCylinderId,
     selectedCylinder,
     permissions,
@@ -575,10 +583,22 @@ export function LogisticsPage() {
             ),
           },
         ]}
-        rows={data.cylindersQuery.data ?? []}
+        rows={data.cylindersQuery.data?.items ?? []}
         rowKey={(row) => row.id}
         emptyMessage="Aún no hay envases registrados."
       />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-muted-foreground">
+          {data.cylindersQuery.data
+            ? `${data.cylindersQuery.data.pagination.total} envases`
+            : "Cargando envases..."}
+        </p>
+        <Pagination
+          page={data.cylindersQuery.data?.pagination.page ?? page}
+          totalPages={data.cylindersQuery.data?.pagination.total_pages ?? 1}
+          onChange={setPage}
+        />
+      </div>
 
       <CreateCylinderDialog
         open={isCreateOpen}

@@ -690,6 +690,75 @@ def test_load_serials_confirm_and_release_on_cancel(
         assert assignment.release_reason == "OPERATION_CANCELLED"
 
 
+def test_confirm_and_ready_blocks_origin_line_without_positive_quantity(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Cantidad", "code": "ALM-CQ", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-CQ",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "CQ",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="CQ-GLP10", name="Bombona 10kg CQ")
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+
+    load_plan_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 0,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    )
+    assert load_plan_response.status_code == 400, load_plan_response.text
+    assert "cantidad debe ser mayor que cero" in load_plan_response.json()["detail"]
+
+
 def test_vehicle_session_reconciliation_auto_closes(
     client: TestClient, app, seeded_demo: dict[str, str]
 ) -> None:

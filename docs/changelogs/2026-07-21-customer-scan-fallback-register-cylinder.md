@@ -21,6 +21,11 @@ Se agregó un fallback operativo al flujo de escaneo en `Envases`:
    - `entry_mode`, `warehouse_id` y `customer_id/customer_name` cuando el movimiento permite inferirlos
 6. tras guardar el envase, el sistema vuelve al flujo de escaneo para continuar la operación.
 
+### Ajuste posterior de alta minima en ruta
+
+- el alta minima desde `Seriales` ya no exige `content_kg` aunque use la rama `FULL_FROM_SUPPLIER`;
+- en ese flujo se mantiene el alta operativa del envase y su estado inicial, pero se omite la validacion de kilos de contenido que corresponde al alta completa.
+
 ## Alcance actual
 
 - reutiliza el endpoint existente de creación de envases;

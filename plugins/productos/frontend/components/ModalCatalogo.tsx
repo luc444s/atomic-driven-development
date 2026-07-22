@@ -4,9 +4,9 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { PaginatedDataTable } from "../../../../apps/web/src/shared/ui/paginated-data-table";
 import {
   createBrand,
   createCategory,
@@ -149,7 +149,7 @@ function SimpleSubCatalogForm({
         <Button onClick={() => mutation.mutate()}>Crear</Button>
       </div>
       {query.error ? <Alert title={`No se pudo cargar ${title.toLowerCase()}`}>{query.error.message}</Alert> : null}
-      <DataTable
+      <PaginatedDataTable
         columns={[
           { key: "code", header: "Código", render: (row) => row.code },
           { key: "name", header: "Nombre", render: (row) => row.name },
@@ -252,7 +252,7 @@ function ModalSubCatalogo({ catalogType, onBack, onClose }: ModalSubCatalogoProp
               <Input value={lineForm.description} onChange={(event) => setLineForm((current) => ({ ...current, description: event.target.value }))} placeholder="Descripción" />
               <Button onClick={() => createLineMutation.mutate()}>Crear</Button>
             </div>
-            <DataTable
+            <PaginatedDataTable
               columns={[
                 { key: "code", header: "Código", render: (row) => row.code },
                 { key: "name", header: "Nombre", render: (row) => row.name },
@@ -278,7 +278,7 @@ function ModalSubCatalogo({ catalogType, onBack, onClose }: ModalSubCatalogoProp
               </select>
               <Button onClick={() => createSublineMutation.mutate()}>Crear</Button>
             </div>
-            <DataTable
+            <PaginatedDataTable
               columns={[
                 { key: "code", header: "Código", render: (row) => row.code },
                 { key: "name", header: "Nombre", render: (row) => row.name },
@@ -320,7 +320,7 @@ function ModalSubCatalogo({ catalogType, onBack, onClose }: ModalSubCatalogoProp
               <Input value={unitForm.kg_factor} onChange={(event) => setUnitForm((current) => ({ ...current, kg_factor: event.target.value }))} placeholder="Factor kg" />
             </div>
             <Button onClick={() => createUnitMutation.mutate()}>Crear unidad</Button>
-            <DataTable
+            <PaginatedDataTable
               columns={[
                 { key: "code", header: "Código", render: (row) => row.code },
                 { key: "name", header: "Nombre", render: (row) => row.name },
@@ -368,7 +368,7 @@ function ModalSubCatalogo({ catalogType, onBack, onClose }: ModalSubCatalogoProp
               <Input value={groupForm.gas_product_id} onChange={(event) => setGroupForm((current) => ({ ...current, gas_product_id: event.target.value }))} placeholder="Gas product id opcional" />
             </div>
             <Button onClick={() => createGroupMutation.mutate()}>Crear grupo</Button>
-            <DataTable
+            <PaginatedDataTable
               columns={[
                 { key: "code", header: "Código", render: (row) => row.code },
                 { key: "name", header: "Nombre", render: (row) => row.name },

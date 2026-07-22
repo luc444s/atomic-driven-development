@@ -96,6 +96,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
         product_id: cylinderForm.gas_group_id || null,
         warehouse_id: createMeta.warehouse_id || null,
         entry_mode: createMeta.entry_mode,
+        minimal_route_create: true,
         customer_id: createMeta.customer_id || null,
       }),
     onSuccess: async (cylinder) => {

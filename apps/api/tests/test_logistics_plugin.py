@@ -603,6 +603,44 @@ def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
         assert create_response.json()["current_state"] == "EN_ALMACEN_VACIO"
 
 
+def test_logistics_list_cylinders_page_returns_paginated_result(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+
+        for index in range(1, 4):
+            response = client.post(
+                "/api/v1/plugins/logistics/cylinders",
+                headers=headers,
+                json={
+                    "serial": f"PAGE-CYL-{index:03d}",
+                    "location": "Almacen paginado",
+                },
+            )
+            assert response.status_code == 201, response.text
+
+        page_response = client.get(
+            "/api/v1/plugins/logistics/cylinders/page?search=PAGE-CYL-&page=2&per_page=2",
+            headers=headers,
+        )
+        assert page_response.status_code == 200, page_response.text
+        payload = page_response.json()
+        assert payload["pagination"] == {
+            "page": 2,
+            "per_page": 2,
+            "total": 3,
+            "total_pages": 2,
+        }
+        assert len(payload["items"]) == 1
+        assert payload["items"][0]["serial"].startswith("PAGE-CYL-")
+
+
 def test_logistics_create_cylinder_full_from_supplier_adjusts_stock(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -662,6 +700,67 @@ def test_logistics_create_cylinder_full_from_supplier_adjusts_stock(app) -> None
         )
         assert balance_response.status_code == 200, balance_response.text
         assert balance_response.json()["quantity"] == 10
+
+
+def test_logistics_create_cylinder_full_from_supplier_allows_minimal_route_create_without_content(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse_response = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Ruta Alta Minima", "code": "RAM", "address": "Av. Ruta 300"},
+        )
+        assert warehouse_response.status_code == 201, warehouse_response.text
+        warehouse = warehouse_response.json()
+
+        product = create_product(client, headers, sku="GLP-MIN-10", name="GLP Minimo 10kg")
+
+        create_scoped_logistics_user(
+            client,
+            headers,
+            role_name="logistics-cylinder-create-minimal-route",
+            email="cylinder-minimal-route@example.com",
+            password="CylinderMinimal123!",
+            branch_id=seeded_demo["branch_id"],
+            warehouse_id=warehouse["id"],
+            permission_names=["logistics.cylinder.create"],
+        )
+        limited_headers = auth_headers(
+            client,
+            email="cylinder-minimal-route@example.com",
+            password="CylinderMinimal123!",
+        )
+
+        create_response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
+            headers=limited_headers,
+            json={
+                "serial": "GL-ENTRY-MIN-01",
+                "warehouse_id": warehouse["id"],
+                "condition": "CILPRO",
+                "product_id": product["id"],
+                "entry_mode": "FULL_FROM_SUPPLIER",
+                "minimal_route_create": True,
+            },
+        )
+        assert create_response.status_code == 201, create_response.text
+        assert create_response.json()["current_state"] == "LLENADO_OK"
+
+        balance_response = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{warehouse['id']}",
+            headers=headers,
+        )
+        assert balance_response.status_code == 200, balance_response.text
+        assert balance_response.json()["quantity"] == 0
 
 
 def test_logistics_create_cylinder_entry_requires_resolved_active_warehouse(app) -> None:

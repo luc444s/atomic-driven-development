@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
@@ -6,6 +6,7 @@ import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Pagination } from "../../../../apps/web/src/shared/ui/pagination";
 import { listProducts, productosKeys } from "../api";
 import { ModalCatalogo } from "../components/ModalCatalogo";
 import { ModalDetalleProducto } from "../components/ModalDetalleProducto";
@@ -13,22 +14,31 @@ import { ModalNuevoProducto } from "../components/ModalNuevoProducto";
 import { ProductosSection } from "../components/ProductosSection";
 
 export function ProductListPage() {
+  const pageSize = 20;
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [showCatalogo, setShowCatalogo] = useState(false);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
   const productsQuery = useQuery({
-    queryKey: productosKeys.products.list({ search }),
+    queryKey: productosKeys.products.list({ search, page, limit: pageSize }),
     queryFn: () =>
       listProducts({
-        limit: 50,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
         sku: search,
         name: search,
       }),
   });
+  const totalPages = productsQuery.data
+    ? Math.max(1, Math.ceil(productsQuery.data.total / productsQuery.data.limit))
+    : 1;
 
   return (
     <ProductosSection
@@ -83,6 +93,14 @@ export function ProductListPage() {
             rowKey={(row) => row.id}
             emptyMessage="Aún no hay productos registrados."
           />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {productsQuery.data
+                ? `${productsQuery.data.total} productos`
+                : "Cargando productos..."}
+            </p>
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          </div>
         </CardContent>
       </Card>
 

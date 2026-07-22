@@ -31,6 +31,7 @@ from plugins.logistics.backend.schemas import (
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
     CylinderOwnershipRead,
+    CylinderPageRead,
     CylinderRead,
     CylinderRetimbradoCreateRequest,
     CylinderRetimbradoRead,
@@ -151,6 +152,7 @@ from plugins.logistics.backend.services.cylinders import (
     get_cylinder_by_serial,
     list_cylinder_trace,
     list_cylinders,
+    list_cylinders_page,
     summarize_cylinders,
     transition_cylinder,
     update_cylinder,
@@ -512,6 +514,40 @@ def get_cylinders(
             is_medical=is_medical,
         )
     ]
+
+
+@router.get("/cylinders/page", response_model=CylinderPageRead)
+def get_cylinders_page(
+    search: str | None = Query(default=None),
+    state: str | None = Query(default=None),
+    active: bool | None = Query(default=True),
+    is_medical: bool | None = Query(default=None),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=10, ge=1, le=200),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_READ,
+) -> CylinderPageRead:
+    items, total = list_cylinders_page(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        page=page,
+        per_page=per_page,
+        search=search,
+        state=state,
+        active=active,
+        is_medical=is_medical,
+    )
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    return CylinderPageRead(
+        items=[cylinder_to_read(db, cylinder) for cylinder in items],
+        pagination={
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": total_pages,
+        },
+    )
 
 
 @router.get("/cylinders/summary", response_model=list[CylinderSummaryItem])

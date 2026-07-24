@@ -241,6 +241,11 @@ def close_vehicle_session(
     session.closing_notes = notes or session.closing_notes
     session.updated_by = action_context.actor_user_id
     db.add(session)
+    from plugins.logistics.backend.services.planning_reservations import (
+        sync_reservation_from_session,
+    )
+
+    sync_reservation_from_session(db, session=session)
     audit_logistics_action(
         db,
         context=action_context,

@@ -9,8 +9,11 @@ from plugins.logistics.backend.models import (
     LogisticsVehicleSession,
 )
 
-ACTIVE_SESSION_STATUSES = {
+PENDING_SESSION_STATUSES = {
     "DRAFT",
+}
+
+LIVE_SESSION_STATUSES = {
     "LOADING",
     "READY_TO_DEPART",
     "OUTBOUND",
@@ -18,17 +21,32 @@ ACTIVE_SESSION_STATUSES = {
     "AWAITING_RECONCILIATION",
 }
 
+ACTIVE_SESSION_STATUSES = PENDING_SESSION_STATUSES | LIVE_SESSION_STATUSES
 
-def ensure_single_active_session(db: Session, *, tenant_id: str, vehicle_id: str) -> None:
+
+def ensure_single_live_session(
+    db: Session,
+    *,
+    tenant_id: str,
+    vehicle_id: str,
+    exclude_session_id: str | None = None,
+) -> None:
+    conditions = [
+        LogisticsVehicleSession.tenant_id == tenant_id,
+        LogisticsVehicleSession.vehicle_id == vehicle_id,
+        LogisticsVehicleSession.status.in_(LIVE_SESSION_STATUSES),
+    ]
+    if exclude_session_id is not None:
+        conditions.append(LogisticsVehicleSession.id != exclude_session_id)
     existing = db.scalar(
-        select(LogisticsVehicleSession.id).where(
-            LogisticsVehicleSession.tenant_id == tenant_id,
-            LogisticsVehicleSession.vehicle_id == vehicle_id,
-            LogisticsVehicleSession.status.in_(ACTIVE_SESSION_STATUSES),
-        )
+        select(LogisticsVehicleSession.id).where(*conditions)
     )
     if existing is not None:
         raise ValueError("El vehiculo ya tiene una jornada activa")
+
+
+def ensure_single_active_session(db: Session, *, tenant_id: str, vehicle_id: str) -> None:
+    ensure_single_live_session(db, tenant_id=tenant_id, vehicle_id=vehicle_id)
 
 
 def ensure_session_editable(session: LogisticsVehicleSession) -> None:
@@ -40,6 +58,40 @@ def ensure_session_can_start_loading(session: LogisticsVehicleSession) -> None:
     ensure_session_editable(session)
     if session.status != "DRAFT":
         raise ValueError("Solo una jornada en DRAFT puede iniciar carga")
+
+
+def get_session_start_queue_blocker(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+) -> str | None:
+    if session.status != "DRAFT":
+        return None
+
+    live_existing = db.scalar(
+        select(LogisticsVehicleSession.id).where(
+            LogisticsVehicleSession.tenant_id == session.tenant_id,
+            LogisticsVehicleSession.vehicle_id == session.vehicle_id,
+            LogisticsVehicleSession.id != session.id,
+            LogisticsVehicleSession.status.in_(LIVE_SESSION_STATUSES),
+        )
+    )
+    if live_existing is not None:
+        return "La jornada está pendiente en cola y no puede iniciar mientras otra jornada usa el vehículo"
+
+    next_draft_id = db.scalar(
+        select(LogisticsVehicleSession.id)
+        .where(
+            LogisticsVehicleSession.tenant_id == session.tenant_id,
+            LogisticsVehicleSession.vehicle_id == session.vehicle_id,
+            LogisticsVehicleSession.status == "DRAFT",
+        )
+        .order_by(LogisticsVehicleSession.opened_at.asc(), LogisticsVehicleSession.id.asc())
+        .limit(1)
+    )
+    if next_draft_id is not None and next_draft_id != session.id:
+        return "La jornada está pendiente en cola y no puede iniciar hasta que le toque su turno"
+    return None
 
 
 def ensure_session_can_be_ready(session: LogisticsVehicleSession) -> None:
@@ -84,9 +136,12 @@ def get_next_transition_blocker(
     *,
     has_open_discrepancies: bool = False,
     reconciliation_status: str | None = None,
+    start_queue_blocker: str | None = None,
 ) -> str | None:
     try:
         if session.status == "DRAFT":
+            if start_queue_blocker is not None:
+                return start_queue_blocker
             ensure_session_can_start_loading(session)
         elif session.status == "LOADING":
             ensure_session_can_be_ready(session)

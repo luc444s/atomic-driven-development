@@ -1,0 +1,21 @@
+{
+  "id": "ventas",
+  "name": "Ventas",
+  "version": "0.1.0",
+  "api_version": "1",
+  "requires": [
+    "crm",
+    "productos"
+  ],
+  "backend_entrypoint": "cotizacion.backend.plugin:register",
+  "frontend_entrypoint": "cotizacion/frontend/register.ts",
+  "permissions": [
+    "ventas.cotizacion.create",
+    "ventas.cotizacion.read",
+    "ventas.cotizacion.read_all"
+  ],
+  "events": [
+    "ventas.cotizacion.created"
+  ],
+  "description": "Plugin de ventas con cotizaciones via consola DSL. Sub-modulos: cotizacion (v0.1), pricing (futuro), pedidos (futuro), condiciones (futuro)."
+}

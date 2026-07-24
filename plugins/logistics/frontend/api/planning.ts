@@ -81,6 +81,69 @@ export type PlanningPreloadActionResult = {
   movement: LogisticsMovement | null;
 };
 
+export type PlanningExpectedLoadSummary = {
+  items: {
+    product_id: string;
+    product_name: string;
+    sku: string | null;
+    quantity: number;
+    adr_required: boolean;
+    unit_weight_kg: number | null;
+    total_weight_kg: number | null;
+  }[];
+  total_products: number;
+  total_units: number;
+  total_weight_kg: number | null;
+};
+
+export type PlanningReservation = {
+  id: string;
+  tenant_id: string;
+  branch_id: string | null;
+  vehicle_id: string;
+  vehicle_plate: string;
+  origin_warehouse_id: string;
+  origin_warehouse_name: string;
+  planned_start_at: string;
+  planned_end_at: string;
+  expected_load_summary: PlanningExpectedLoadSummary;
+  expected_weight_total: number | null;
+  expected_volume_total: number | null;
+  service_type: string | null;
+  route_id: string | null;
+  driver_id: string | null;
+  driver_name: string | null;
+  adr_required: boolean;
+  notes: string | null;
+  status: string;
+  conflict_reason: string | null;
+  permit_override: boolean;
+  override_reason: string | null;
+  linked_session_id: string | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
+  actual_load_summary: PlanningExpectedLoadSummary | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type PlanningReservationPayload = {
+  vehicle_id: string;
+  origin_warehouse_id: string;
+  planned_start_at: string;
+  planned_end_at: string;
+  expected_load_summary: PlanningExpectedLoadSummary;
+  expected_weight_total?: number | null;
+  expected_volume_total?: number | null;
+  service_type?: string | null;
+  route_id?: string | null;
+  driver_id?: string | null;
+  adr_required?: boolean;
+  notes?: string | null;
+  permit_override?: boolean;
+  override_reason?: string | null;
+};
+
 export function getPlanningStock(warehouse_id?: string) {
   return apiRequest<PlanningStockSummaryItem[]>(
     withQuery(`${API_PREFIX}/planning/stock`, { warehouse_id })
@@ -165,3 +228,36 @@ export function cancelPreload(preloadId: string) {
   });
 }
 
+export function listPlanningReservations(filters: {
+  start?: string;
+  end?: string;
+  vehicle_id?: string;
+} = {}) {
+  return apiRequest<PlanningReservation[]>(withQuery(`${API_PREFIX}/planning/reservations`, filters));
+}
+
+export function createPlanningReservation(payload: PlanningReservationPayload) {
+  return apiRequest<PlanningReservation>(`${API_PREFIX}/planning/reservations`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function updatePlanningReservation(reservationId: string, payload: Partial<PlanningReservationPayload>) {
+  return apiRequest<PlanningReservation>(`${API_PREFIX}/planning/reservations/${reservationId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function activatePlanningReservation(reservationId: string) {
+  return apiRequest<PlanningReservation>(`${API_PREFIX}/planning/reservations/${reservationId}/activate`, {
+    method: "POST",
+  });
+}
+
+export function cancelPlanningReservation(reservationId: string) {
+  return apiRequest<PlanningReservation>(`${API_PREFIX}/planning/reservations/${reservationId}/cancel`, {
+    method: "POST",
+  });
+}

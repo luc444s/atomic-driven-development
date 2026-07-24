@@ -9,12 +9,14 @@ import {
   createRoute,
   createVehicle,
   createVehicleSession,
+  listPlanningReservations,
   listDriverOptions,
   listRoutes,
   listVehicleSessions,
   listVehicles,
   listWarehouses,
   logisticsKeys,
+  planningKeys,
 } from "../api";
 import { CreateJornadaDialog, type JornadaCreateForm } from "../components/vehicle-sessions/CreateJornadaDialog";
 import {
@@ -89,6 +91,10 @@ export function VehicleSessionsPage() {
     queryKey: logisticsKeys.routes.list({}),
     queryFn: () => listRoutes({}),
   });
+  const plannedReservationsQuery = useQuery({
+    queryKey: planningKeys.reservations.list({ start: new Date().toISOString() }),
+    queryFn: () => listPlanningReservations({ start: new Date().toISOString() }),
+  });
 
   const createMutation = useMutation({
     mutationFn: () =>
@@ -159,6 +165,12 @@ export function VehicleSessionsPage() {
 
   const selectedVehicleCard: VehicleProjectionCard | null =
     vehicleCards.find((card) => card.vehicle_id === openVehicleId) ?? null;
+  const selectedVehicleReservations = (plannedReservationsQuery.data ?? []).filter(
+    (reservation) =>
+      reservation.vehicle_id === selectedVehicleCard?.vehicle_id &&
+      reservation.linked_session_id == null &&
+      !["COMPLETED", "CANCELLED", "EXPIRED"].includes(reservation.status)
+  );
 
   const cardsLayoutClass = useMemo(() => {
     if (vehicleCards.length <= 1) {
@@ -349,6 +361,7 @@ export function VehicleSessionsPage() {
         onClose={() => setOpenVehicleId(null)}
         onOpenSession={openSession}
         onCreateJornada={openCreateJornadaFromVehicle}
+        plannedReservations={selectedVehicleReservations}
       />
 
       <Dialog

@@ -19,7 +19,7 @@ export function CorePdfViewer({
   if (!fileUrl) {
     return (
       <div className="p-4 text-center text-sm text-muted-foreground">
-        {loadingMessage}
+        {emptyMessage}
       </div>
     );
   }
@@ -31,7 +31,7 @@ export function CorePdfViewer({
           fileUrl={fileUrl}
           renderError={() => (
             <div className="p-4 text-center text-sm text-muted-foreground">
-              {emptyMessage}
+              {loadingMessage}
             </div>
           )}
         />

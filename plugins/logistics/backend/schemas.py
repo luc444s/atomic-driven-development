@@ -1137,6 +1137,95 @@ class PlanningGeneratePreloadRequest(BaseModel):
     notes: str | None = None
 
 
+class PlanningExpectedLoadSummary(BaseModel):
+    class Item(BaseModel):
+        product_id: str
+        product_name: str
+        sku: str | None = None
+        quantity: float = Field(ge=0)
+        adr_required: bool = False
+        unit_weight_kg: float | None = Field(default=None, ge=0)
+        total_weight_kg: float | None = Field(default=None, ge=0)
+
+    total_products: int = Field(ge=0)
+    total_units: float = Field(ge=0)
+    total_weight_kg: float | None = Field(default=None, ge=0)
+    items: list[Item] = Field(default_factory=list)
+
+
+class PlanningReservationCreateRequest(BaseModel):
+    vehicle_id: str
+    origin_warehouse_id: str
+    planned_start_at: datetime
+    planned_end_at: datetime
+    expected_load_summary: PlanningExpectedLoadSummary
+    expected_weight_total: float | None = Field(default=None, ge=0)
+    expected_volume_total: float | None = Field(default=None, ge=0)
+    service_type: str | None = Field(default=None, max_length=50)
+    route_id: str | None = None
+    driver_id: str | None = None
+    adr_required: bool = False
+    notes: str | None = None
+    permit_override: bool = False
+    override_reason: str | None = None
+
+    @field_validator("planned_end_at")
+    @classmethod
+    def validate_window_end(cls, value: datetime, info):
+        start = info.data.get("planned_start_at")
+        if start is not None and value <= start:
+            raise ValueError("La ventana planificada debe terminar después de comenzar")
+        return value
+
+
+class PlanningReservationUpdateRequest(BaseModel):
+    vehicle_id: str | None = None
+    origin_warehouse_id: str | None = None
+    planned_start_at: datetime | None = None
+    planned_end_at: datetime | None = None
+    expected_load_summary: PlanningExpectedLoadSummary | None = None
+    expected_weight_total: float | None = Field(default=None, ge=0)
+    expected_volume_total: float | None = Field(default=None, ge=0)
+    service_type: str | None = Field(default=None, max_length=50)
+    route_id: str | None = None
+    driver_id: str | None = None
+    adr_required: bool | None = None
+    notes: str | None = None
+    permit_override: bool | None = None
+    override_reason: str | None = None
+
+
+class PlanningReservationRead(BaseModel):
+    id: str
+    tenant_id: str
+    branch_id: str | None
+    vehicle_id: str
+    vehicle_plate: str
+    origin_warehouse_id: str
+    origin_warehouse_name: str
+    planned_start_at: datetime
+    planned_end_at: datetime
+    expected_load_summary: PlanningExpectedLoadSummary
+    expected_weight_total: float | None = None
+    expected_volume_total: float | None = None
+    service_type: str | None = None
+    route_id: str | None = None
+    driver_id: str | None = None
+    driver_name: str | None = None
+    adr_required: bool
+    notes: str | None = None
+    status: str
+    conflict_reason: str | None = None
+    permit_override: bool = False
+    override_reason: str | None = None
+    linked_session_id: str | None = None
+    actual_start_at: datetime | None = None
+    actual_end_at: datetime | None = None
+    actual_load_summary: PlanningExpectedLoadSummary | None = None
+    created_at: datetime
+    updated_at: datetime
+
+
 class PlanningPreloadItemRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

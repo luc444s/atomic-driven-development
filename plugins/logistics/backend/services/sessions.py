@@ -24,7 +24,8 @@ from plugins.logistics.backend.services.rules import (
     ensure_session_can_depart,
     ensure_session_can_mark_returning,
     ensure_session_can_start_loading,
-    ensure_single_active_session,
+    get_session_start_queue_blocker,
+    ensure_single_live_session,
 )
 
 
@@ -84,6 +85,7 @@ def create_vehicle_session(
     tenant_id: str,
     payload,
     action_context: LogisticsActionContext,
+    opened_at: datetime | None = None,
 ) -> LogisticsVehicleSession:
     vehicle = get_vehicle(db, tenant_id=tenant_id, vehicle_id=payload.vehicle_id)
     if vehicle is None:
@@ -97,8 +99,6 @@ def create_vehicle_session(
     )
     if driver is None:
         raise LookupError("Conductor no encontrado")
-    ensure_single_active_session(db, tenant_id=tenant_id, vehicle_id=vehicle.id)
-
     origin_warehouse_id = payload.origin_warehouse_id or vehicle.warehouse_id
     if not origin_warehouse_id:
         raise ValueError(
@@ -132,6 +132,7 @@ def create_vehicle_session(
         mobile_warehouse_id=mobile.id,
         route_id=payload.route_id,
         status="DRAFT",
+        opened_at=opened_at or datetime.now(UTC),
         created_by=action_context.actor_user_id,
         updated_by=action_context.actor_user_id,
     )
@@ -196,9 +197,23 @@ def start_loading_session(
     action_context: LogisticsActionContext,
 ) -> LogisticsVehicleSession:
     ensure_session_can_start_loading(session)
+    start_queue_blocker = get_session_start_queue_blocker(db, session=session)
+    if start_queue_blocker is not None:
+        raise ValueError(start_queue_blocker)
+    ensure_single_live_session(
+        db,
+        tenant_id=session.tenant_id,
+        vehicle_id=session.vehicle_id,
+        exclude_session_id=session.id,
+    )
     session.status = "LOADING"
     session.updated_by = action_context.actor_user_id
     db.add(session)
+    from plugins.logistics.backend.services.planning_reservations import (
+        sync_reservation_from_session,
+    )
+
+    sync_reservation_from_session(db, session=session)
     audit_logistics_action(
         db,
         context=action_context,
@@ -341,6 +356,11 @@ def cancel_session(
     session.closing_notes = notes or session.closing_notes
     session.updated_by = action_context.actor_user_id
     db.add(session)
+    from plugins.logistics.backend.services.planning_reservations import (
+        sync_reservation_from_session,
+    )
+
+    sync_reservation_from_session(db, session=session)
     audit_logistics_action(
         db,
         context=action_context,

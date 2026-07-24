@@ -5,6 +5,8 @@ from datetime import UTC, date, datetime
 from uuid import uuid4
 
 from sqlalchemy import (
+    JSON,
+    Boolean,
     Date,
     DateTime,
     ForeignKey,
@@ -23,6 +25,51 @@ def new_uuid() -> str:
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
+
+
+
+# ── LogisticsPlanningReservation ────────────────────────────────────────
+
+class LogisticsPlanningReservation(Base):
+    __tablename__ = "lg_planning_reservations"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    branch_id: Mapped[str | None] = mapped_column(
+        ForeignKey("branches.id"), nullable=True, index=True
+    )
+    vehicle_id: Mapped[str] = mapped_column(ForeignKey("lg_vehicles.id"), nullable=False, index=True)
+    origin_warehouse_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_warehouses.id"), nullable=False, index=True
+    )
+    planned_start_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    planned_end_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    expected_load_summary: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    expected_weight_total: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
+    expected_volume_total: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
+    service_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    route_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_routes.id"), nullable=True, index=True
+    )
+    driver_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
+    adr_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="PLANNED", index=True)
+    conflict_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
+    permit_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    linked_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
+    )
+    actual_start_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_end_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    actual_load_summary: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    updated_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now
+    )
 
 
 
@@ -88,5 +135,4 @@ class LogisticsReceptionIncident(Base):
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
-
 

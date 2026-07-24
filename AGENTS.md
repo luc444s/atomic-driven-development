@@ -27,7 +27,7 @@ No implementar solo a partir de una conversacion aislada.
 
 ## ADRs obligatorios (leer antes de decisiones tecnicas)
 
-`docs/adr/0001-stack-base.md` al `0009-spec-driven-development.md`. Si una tarea contradice un ADR, proponer nuevo ADR o actualizacion explicita.
+`docs/adr/0001-stack-base.md` al `0009-spec-driven-development.md`, mas `0022-adopcion-monaco-editor-consola-operativa.md` y `0023-dsl-comandos-consola-patrones-seguros.md` para toda tarea que toque la consola operativa o un DSL de comandos. Si una tarea contradice un ADR, proponer nuevo ADR o actualizacion explicita.
 
 ## Stack
 

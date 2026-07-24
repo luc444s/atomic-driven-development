@@ -45,7 +45,12 @@ from .operations import (
     LogisticsRoute,
     LogisticsRouteStop,
 )
-from .planning import LogisticsPlanPreload, LogisticsPlanPreloadItem, LogisticsReceptionIncident
+from .planning import (
+    LogisticsPlanningReservation,
+    LogisticsPlanPreload,
+    LogisticsPlanPreloadItem,
+    LogisticsReceptionIncident,
+)
 from .reconciliation import LogisticsInventoryDiscrepancy, LogisticsSessionReconciliation
 from .resources import (
     LogisticsDeliveryPoint,

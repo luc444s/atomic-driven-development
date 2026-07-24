@@ -2,8 +2,10 @@ import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { VEHICLE_SESSION_STATUS_LABELS } from "../../api";
+import type { PlanningReservation } from "../../api";
 import { VehicleSessionStatusBadge } from "./VehicleSessionStatusBadge";
 import type { VehicleProjectionCard } from "./vehicle-jornadas-projection";
+import { VehiclePlannedLoadPanel } from "../../planning/panels/vehicle-planned-load-panel";
 
 type Props = {
   open: boolean;
@@ -11,6 +13,7 @@ type Props = {
   onClose: () => void;
   onOpenSession: (sessionId: string) => void;
   onCreateJornada: (vehicleId: string) => void;
+  plannedReservations: PlanningReservation[];
 };
 
 export function VehicleJornadasDialog({
@@ -19,6 +22,7 @@ export function VehicleJornadasDialog({
   onClose,
   onOpenSession,
   onCreateJornada,
+  plannedReservations,
 }: Props) {
   return (
     <Dialog
@@ -120,6 +124,8 @@ export function VehicleJornadasDialog({
               </CardContent>
             </Card>
           </div>
+
+          <VehiclePlannedLoadPanel reservations={plannedReservations} />
         </div>
       ) : null}
     </Dialog>

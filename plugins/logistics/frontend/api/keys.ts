@@ -131,6 +131,12 @@ export const planningKeys = {
     list: (wh?: string) => [...planningKeys.preloads.all(), "list", wh] as const,
     detail: (id: string) => [...planningKeys.preloads.all(), id] as const,
   },
+  reservations: {
+    all: () => [...logisticsKeys.all, "planning", "reservations"] as const,
+    list: (filters: Record<string, string | undefined>) =>
+      [...planningKeys.reservations.all(), "list", filters] as const,
+    detail: (id: string) => [...planningKeys.reservations.all(), id] as const,
+  },
 };
 
 export const receptionKeys = {

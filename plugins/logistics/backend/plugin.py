@@ -11,6 +11,9 @@ from plugins.logistics.backend.routers.load_serials import router as load_serial
 from plugins.logistics.backend.routers.operational_summary import (
     router as operational_summary_router,
 )
+from plugins.logistics.backend.routers.planning_reservations import (
+    router as planning_reservations_router,
+)
 from plugins.logistics.backend.routers.operations import router as session_operations_router
 from plugins.logistics.backend.routers.reconciliation import router as reconciliation_router
 from plugins.logistics.backend.routers.route_operations import router as route_operations_router
@@ -90,6 +93,11 @@ LOGISTICS_EVENTS = [
     "logistics.dispatch.returned",
     "logistics.planning.preload_generated",
     "logistics.planning.preload_accepted",
+    "logistics.planning.reservation_created",
+    "logistics.planning.reservation_updated",
+    "logistics.planning.reservation_activated",
+    "logistics.planning.reservation_completed",
+    "logistics.planning.reservation_cancelled",
     "logistics.reception.completed",
     "logistics.agenda.task_completed",
     "logistics.warranty.created",
@@ -115,6 +123,7 @@ def register(context: PluginContext) -> None:
     context.register_router(traceability_router)
     context.register_router(contracts_router)
     context.register_router(customer_summary_router)
+    context.register_router(planning_reservations_router)
     context.register_router(sessions_router)
     context.register_router(operational_summary_router)
     context.register_router(route_operations_router)

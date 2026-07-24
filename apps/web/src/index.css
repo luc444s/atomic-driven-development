@@ -3,6 +3,11 @@
 @tailwind components;
 @tailwind utilities;
 
+@font-face {
+  font-family: 'JetBrains Mono', 'Geist Variable', monospace;
+  font-display: optional;
+}
+
 @layer base {
   :root {
     color-scheme: light;

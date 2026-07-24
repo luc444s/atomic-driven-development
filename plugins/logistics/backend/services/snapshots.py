@@ -23,6 +23,7 @@ from plugins.logistics.backend.models import (
 )
 from plugins.logistics.backend.services.rules import (
     get_next_transition_blocker,
+    get_session_start_queue_blocker,
     has_open_discrepancies,
 )
 
@@ -178,6 +179,7 @@ def _build_session_read(
         occupancy_percent = round((float(session.loaded_weight_kg) / max_weight) * 100, 1)
 
     reconciliation = _get_latest_reconciliation(db, session_id=session.id)
+    start_queue_blocker = get_session_start_queue_blocker(db, session=session)
     next_transition_blocker = get_next_transition_blocker(
         session,
         has_open_discrepancies=(
@@ -186,6 +188,7 @@ def _build_session_read(
             else False
         ),
         reconciliation_status=reconciliation.status if reconciliation is not None else None,
+        start_queue_blocker=start_queue_blocker,
     )
 
     history = build_session_history(db, session=session)

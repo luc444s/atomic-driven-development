@@ -194,6 +194,96 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
     assert ready_session["next_transition_blocker"] is None
 
 
+def test_pending_draft_session_cannot_start_before_its_turn(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Cola", "code": "ALM-COLA", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-COLA",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "Queue",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    drivers_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    driver_id = drivers_response.json()[0]["id"]
+
+    first_session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    second_session_response = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    )
+    assert second_session_response.status_code == 201, second_session_response.text
+    second_session = second_session_response.json()
+
+    second_detail = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{second_session['id']}",
+        headers=headers,
+    )
+    assert second_detail.status_code == 200, second_detail.text
+    second_snapshot = second_detail.json()
+    assert second_snapshot["status"] == "DRAFT"
+    assert second_snapshot["next_transition_allowed"] is False
+    assert (
+        second_snapshot["next_transition_blocker"]
+        == "La jornada está pendiente en cola y no puede iniciar hasta que le toque su turno"
+    )
+
+    blocked_start = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{second_session['id']}/start-loading",
+        headers=headers,
+    )
+    assert blocked_start.status_code == 400, blocked_start.text
+    assert blocked_start.json()["detail"] == (
+        "La jornada está pendiente en cola y no puede iniciar hasta que le toque su turno"
+    )
+
+    first_start = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{first_session['id']}/start-loading",
+        headers=headers,
+    )
+    assert first_start.status_code == 200, first_start.text
+
+
 def test_operational_summary_marks_route_gap_when_departed_without_route(
     client: TestClient, app, seeded_demo: dict[str, str]
 ) -> None:

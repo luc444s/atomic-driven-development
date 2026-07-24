@@ -8,6 +8,7 @@ const TOP_LEVEL_COMMANDS: CompletionItem[] = [
   { label: "neofetch", kind: "keyword", detail: "Mostrar información del sistema" },
   { label: "fastfetch", kind: "keyword", detail: "Mostrar información del sistema" },
   { label: "sysinfo", kind: "keyword", detail: "Mostrar información del sistema" },
+  { label: "lista", kind: "keyword", detail: "Listar cotizaciones recientes" },
   { label: "sysinfo", kind: "keyword", detail: "Mostrar información del sistema" },
   { label: "history", kind: "keyword", detail: "Ver historial de comandos" },
   { label: "clear", kind: "keyword", detail: "Limpiar terminal" },

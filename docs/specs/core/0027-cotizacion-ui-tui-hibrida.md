@@ -264,13 +264,16 @@ Consola:                              Formulario:
         ▼
    QuoteDraft (status=DRAFT)       ← se crea acá
         │
-        │  (confirmar desde ventas)
-        │  o (confirmar desde planning)
+        │  (confirmar — siempre en ventas)
         ▼
-   QuoteDraft (status=CONFIRMED)   ← intención firme
+   QuoteDraft (status=CONFIRMED)   ← intención firme, disponible para planificar
+        │
+        │  (usuario crea PlanningEntry explícitamente)
+        ▼
+   QuoteDraft (status=CONVERTED)   ← ya planificado
         │
         ▼
-   PlanningEntry                   ← logística puede actuar
+   PlanningEntry (quote_id único)  ← creado manualmente desde planning
         │
         ▼
    VehicleSession                  ← ejecución real
@@ -278,33 +281,55 @@ Consola:                              Formulario:
 
 ### Principios
 
-1. **Planning no modifica drafts.** Planning solo lee drafts en estado `DRAFT` (demanda estimada) y acepta drafts `CONFIRMED` como entrada para planificar.
-2. **La confirmación no es planificación.** Confirmar un draft cambia su estado en ventas (`DRAFT → CONFIRMED`). Recién ahí logística puede crear un `PlanningEntry`.
-3. **Planning no es dueño del draft.** El draft pertenece a ventas. Planning solo referencia su ID como `source: "quote_confirmed"`.
+1. **Planning no modifica drafts.** Planning solo lee drafts en estado `DRAFT` (demanda estimada) y puede disparar la acción de confirmar, pero el cambio de estado ocurre en ventas.
+2. **La confirmación no es planificación.** Confirmar un draft cambia su estado en ventas (`DRAFT → CONFIRMED`). Recién ahí está disponible para planificar, pero no se crea un `PlanningEntry` automáticamente.
+3. **La creación de PlanningEntry es explícita.** El usuario decide cuándo crear una entrada de planificación. No se genera automáticamente al confirmar.
+4. **Planning no es dueño del draft.** El draft pertenece a ventas. Planning solo referencia su ID como `source: "quote_confirmed"`.
+
+### Autoridad de confirmación
+
+La confirmación (`DRAFT → CONFIRMED`) **siempre ocurre en el dominio de ventas**, aunque el botón esté en la interfaz de planning. planning dispara la acción, ventas cambia el estado. Esto evita que planning tome decisiones que no le corresponden.
 
 ### Estados del QuoteDraft
 
-| Estado | Significado | Visible en planning |
-|---|---|---|
-| `DRAFT` | Intención, tal vez | Sí, como demanda estimada (solo lectura) |
-| `CONFIRMED` | Se va a ejecutar | Sí, entrada accionable para planificar |
-| `CONVERTED` | Ya fue planificado | No (reemplazado por PlanningEntry) |
-| `CANCELLED` | Descartado | No |
+| Estado | Significado | Visible en planning | PlanningEntry |
+|---|---|---|---|
+| `DRAFT` | Intención, tal vez | Sí, como **demanda estimada** (solo lectura) | No |
+| `CONFIRMED` | Se va a ejecutar | Sí, **disponible para planificar** | No (aún no creado) |
+| `CONVERTED` | Ya planificado | No (reemplazado por PlanningEntry) | Sí (único por quote) |
+| `CANCELLED` | Descartado | No | No |
+
+### Reglas de integridad
+
+1. **Un QuoteDraft CONFIRMED no puede generar más de un PlanningEntry.** Al crear un `PlanningEntry`, el draft pasa a `CONVERTED` y se impone `unique(quote_id)` en la tabla de planning.
+2. **CONVERTED no significa ejecutado.** Solo significa que fue planificado. La ejecución real ocurre en `VehicleSession`.
+3. **Si un CONFIRMED se cancela y ya tiene PlanningEntry**, la cancelación debe propagarse a planning (nota: implementación futura, no en este borrador).
+
+### Demanda estimada (DRAFT en planning)
+
+Los drafts en estado `DRAFT` visibles en planning **no afectan**:
+- ❌ Capacidad calculada
+- ❌ Disponibilidad de vehículos
+- ❌ Asignación de recursos
+
+Son solo una referencia visual de intención de compra.
 
 ### Acción: confirmar para planificación
 
-Desde la vista de planning, el usuario ve los drafts `DRAFT` como "Demanda pendiente" y puede ejecutar:
+Desde la vista de planning, el usuario ve los drafts `DRAFT` como "Demanda pendiente" (solo lectura) y puede ejecutar:
 
 ```
-[Confirmar para planificación]
+[Confirmar para planificación]  ← botón en planning
         │
-        ▼
-   QuoteDraft.status = CONFIRMED
+        ▼  (llamada API a ventas: PATCH /cotizaciones/{id}/status)
+   QuoteDraft.status = CONFIRMED   ← el cambio lo hace ventas
         │
-        ▼
+        ▼  (usuario crea PlanningEntry manualmente)
    PlanningEntry.create(source="quote_confirmed", quote_id=...)
+   QuoteDraft.status = CONVERTED   ← ventas actualiza
 ```
 
 Esto no rompe la separación de dominios:
-- **Ventas** decide la intención (`DRAFT → CONFIRMED`)
-- **Logística** decide la ejecución (`PlanningEntry → VehicleSession`)
+- **Ventas** decide la intención y cambia el estado
+- **Logística** decide la ejecución y crea `PlanningEntry`
+- Planning nunca escribe sobre el draft

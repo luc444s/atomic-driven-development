@@ -5,20 +5,18 @@ import re
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from plugins.ventas.cotizacion.backend.models import QuoteDraft, QuoteItem
 from plugins.ventas.cotizacion.backend.schemas import (
     AmbiguityError,
     CustomerSummary,
-    ProductSummary,
     QuoteDraftResponse,
     QuoteItemResponse,
     ValidationError,
     VehicleSummary,
 )
-
 
 WEEKDAYS: dict[str, int] = {
     "lunes": 0, "martes": 1, "miercoles": 2, "miercoles": 2,
@@ -205,12 +203,13 @@ def _search_customer(db: Session, name: str, tenant_id: str) -> tuple[list[dict[
     from sqlalchemy import text
     result = db.execute(
         text(
-            "SELECT id, first_name, last_name, legal_name "
+            "SELECT id, first_name, last_name, legal_name, commercial_name "
             "FROM crm_customers "
             "WHERE tenant_id = :tenant_id "
             "AND (LOWER(first_name) LIKE :pattern "
             "OR LOWER(last_name) LIKE :pattern "
             "OR LOWER(legal_name) LIKE :pattern "
+            "OR LOWER(commercial_name) LIKE :pattern "
             "OR LOWER(first_name || ' ' || last_name) LIKE :pattern) "
             "AND is_active = true "
             "LIMIT 10"
@@ -223,7 +222,7 @@ def _search_customer(db: Session, name: str, tenant_id: str) -> tuple[list[dict[
     matches = [
         {
             "id": row[0],
-            "name": row[3] or f"{row[1] or ''} {row[2] or ''}".strip(),
+            "name": row[4] or row[3] or f"{row[1] or ''} {row[2] or ''}".strip(),
         }
         for row in rows
     ]

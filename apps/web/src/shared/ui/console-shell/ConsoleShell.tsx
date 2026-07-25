@@ -186,7 +186,7 @@ export function ConsoleShell({
     <ConfirmContext.Provider value={{ requestConfirm, clearConfirm }}>
       <div
         className="flex flex-col bg-[#0D1117] font-mono text-sm text-[#C9D1D9]"
-        style={{ height: "calc(100vh - 12rem)", minHeight: "400px" }}
+        style={{ maxHeight: "800px", height: "calc(100vh - 12rem)", minHeight: "300px" }}
       >
         <div ref={outputRef} className="flex-1 overflow-y-auto px-4 py-2">
           {history.map((cmd, i) => (

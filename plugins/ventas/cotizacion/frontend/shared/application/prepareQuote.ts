@@ -1,7 +1,7 @@
 import type { QuoteCommand } from "../types/commands";
 import { executeCotizacion } from "../api";
 import type { QuoteDraftDTO } from "../types";
-import { parseCommand } from "../../console/parser/parser";
+import { parseCommand } from "../../dsl/parser";
 
 export interface PreparedQuote {
   command: QuoteCommand;

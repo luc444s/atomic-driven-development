@@ -7,11 +7,17 @@ export async function handleDraftCommand(args: string[]): Promise<DraftHandlerRe
   const sub = args[0]?.toLowerCase();
 
   if (!sub || sub === "list") {
+    const limitFlag = args.indexOf("-n");
+    const allFlag = args.includes("--all");
+    const limit = allFlag ? Infinity : limitFlag !== -1 ? parseInt(args[limitFlag + 1], 10) || 10 : 10;
     const drafts = await listCotizaciones();
     if (drafts.length === 0) return "Sin cotizaciones aún.";
-    return drafts
+    const items = allFlag ? drafts : drafts.slice(0, limit);
+    const output = items
       .map((d, i) => `${i + 1}. ${d.customer_name ?? "—"} — ${d.delivery_date} [${d.status}]`)
       .join("\n");
+    const remaining = drafts.length - items.length;
+    return remaining > 0 ? `${output}\n\n... y ${remaining} más. Usá draft list --all para ver todas.` : output;
   }
 
   if (sub === "open" || sub === "show") {

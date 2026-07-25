@@ -1,5 +1,5 @@
 import type { QuoteDraftDTO } from "../shared/types";
-import { formatDraftId } from "../console/parser/parser";
+import { formatDraftId } from "../dsl/parser";
 
 interface QuotePreviewProps {
   draft: QuoteDraftDTO;

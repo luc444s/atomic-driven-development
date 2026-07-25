@@ -199,8 +199,30 @@ def stop_backend() -> None:
         print("Backend no estaba corriendo.")
 
 
+def redis_running() -> bool:
+    result = subprocess.run(
+        ["redis-cli", "ping"], capture_output=True, text=True, check=False
+    )
+    return result.stdout.strip() == "PONG"
+
+
+def ensure_redis_started() -> None:
+    if redis_running():
+        return
+    run_command(["redis-server", "--daemonize", "yes"])
+    print("Redis iniciado en 127.0.0.1:6379")
+
+
+def stop_redis() -> None:
+    if not redis_running():
+        return
+    run_command(["redis-cli", "shutdown"])
+    print("Redis detenido.")
+
+
 def stop_services() -> None:
     stop_backend()
+    stop_redis()
     stop_postgres()
 
 
@@ -208,6 +230,7 @@ def print_status(env: dict[str, str]) -> None:
     database_url = normalize_postgres_url(get_database_url(env))
     print(f"postgres_data_dir={DEFAULT_DATA_DIR}")
     print(f"postgres_running={postgres_running()}")
+    print(f"redis_running={redis_running()}")
     print(f"database_url={database_url}")
 
 
@@ -226,6 +249,9 @@ def main() -> None:
     if args.command in {"postgres", "backend", "services", "psql"}:
         ensure_postgres_started()
         ensure_role_and_database(database_url)
+
+    if args.command in {"backend", "services"}:
+        ensure_redis_started()
 
     if args.command == "postgres":
         print("PostgreSQL local listo en 127.0.0.1:5432")

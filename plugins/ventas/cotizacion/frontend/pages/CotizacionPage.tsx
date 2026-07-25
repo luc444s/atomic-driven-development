@@ -15,7 +15,7 @@ import type { QuoteCommand } from "../shared/types/commands";
 const completionProvider = createCotizacionCompletionProvider();
 
 export function CotizacionPage() {
-  const [mode, setMode] = useState<"console" | "form">("console");
+  const [mode, setMode] = useState<"console" | "form">("form");
 
   const handleExecute = useCallback(
     async (command: string): Promise<unknown> => {

@@ -256,11 +256,55 @@ Consola:                              Formulario:
 8. El preview es el mismo componente (`QuotePreview`) en preview, draft, detalle.
 9. La UI nunca llama `apiRequest` directamente — solo via `shared/application/`.
 
-## No objetivos (este borrador)
+## Ciclo de vida del QuoteDraft
 
-- ❌ Editar una draft existente
-- ❌ Eliminar drafts
-- ❌ Convertir draft a pedido
-- ❌ Pricing, PDF, aprobación
-- ❌ Aliases y snippets de consola (futuro)
-- ❌ Polling automático (solo invalidate + refetchOnWindowFocus)
+```
+[Consola / Formulario]
+        │
+        ▼
+   QuoteDraft (status=DRAFT)       ← se crea acá
+        │
+        │  (confirmar desde ventas)
+        │  o (confirmar desde planning)
+        ▼
+   QuoteDraft (status=CONFIRMED)   ← intención firme
+        │
+        ▼
+   PlanningEntry                   ← logística puede actuar
+        │
+        ▼
+   VehicleSession                  ← ejecución real
+```
+
+### Principios
+
+1. **Planning no modifica drafts.** Planning solo lee drafts en estado `DRAFT` (demanda estimada) y acepta drafts `CONFIRMED` como entrada para planificar.
+2. **La confirmación no es planificación.** Confirmar un draft cambia su estado en ventas (`DRAFT → CONFIRMED`). Recién ahí logística puede crear un `PlanningEntry`.
+3. **Planning no es dueño del draft.** El draft pertenece a ventas. Planning solo referencia su ID como `source: "quote_confirmed"`.
+
+### Estados del QuoteDraft
+
+| Estado | Significado | Visible en planning |
+|---|---|---|
+| `DRAFT` | Intención, tal vez | Sí, como demanda estimada (solo lectura) |
+| `CONFIRMED` | Se va a ejecutar | Sí, entrada accionable para planificar |
+| `CONVERTED` | Ya fue planificado | No (reemplazado por PlanningEntry) |
+| `CANCELLED` | Descartado | No |
+
+### Acción: confirmar para planificación
+
+Desde la vista de planning, el usuario ve los drafts `DRAFT` como "Demanda pendiente" y puede ejecutar:
+
+```
+[Confirmar para planificación]
+        │
+        ▼
+   QuoteDraft.status = CONFIRMED
+        │
+        ▼
+   PlanningEntry.create(source="quote_confirmed", quote_id=...)
+```
+
+Esto no rompe la separación de dominios:
+- **Ventas** decide la intención (`DRAFT → CONFIRMED`)
+- **Logística** decide la ejecución (`PlanningEntry → VehicleSession`)

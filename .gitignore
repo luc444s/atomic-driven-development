@@ -62,3 +62,7 @@ migration_summary*.xlsx
 *.save
 *.egg-info/
 data/media/
+*.m4a
+*.wav
+docs/Grab2/hecho/
+grabaciones/

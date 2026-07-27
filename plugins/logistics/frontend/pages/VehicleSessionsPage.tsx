@@ -36,6 +36,7 @@ import {
 import { LogisticsSection } from "../components/LogisticsSection";
 import { RoutesPage } from "./RoutesPage";
 import { VehicleSessionDetailPage } from "./VehicleSessionDetailPage";
+import { WarehousesPage } from "./WarehousesPage";
 
 const EMPTY_FORM: JornadaCreateForm = {
   vehicle_id: "",
@@ -65,6 +66,7 @@ export function VehicleSessionsPage() {
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
   const [isRoutesLibraryOpen, setIsRoutesLibraryOpen] = useState(false);
+  const [isWarehousesOpen, setIsWarehousesOpen] = useState(false);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [openVehicleId, setOpenVehicleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -264,6 +266,13 @@ export function VehicleSessionsPage() {
           >
             Rutas
           </Button>
+          <Button
+            variant="secondary"
+            className="border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-accent/40 hover:text-foreground"
+            onClick={() => setIsWarehousesOpen(true)}
+          >
+            Almacenes
+          </Button>
         </div>
       }
     >
@@ -373,6 +382,18 @@ export function VehicleSessionsPage() {
       >
         <div className="h-[70vh] overflow-y-auto">
           <RoutesPage />
+        </div>
+      </Dialog>
+
+      <Dialog
+        open={isWarehousesOpen}
+        title="Almacenes"
+        description="Superficie secundaria de almacenes y zonas accesible desde Jornadas."
+        onClose={() => setIsWarehousesOpen(false)}
+        maxWidthClassName="max-w-[1500px]"
+      >
+        <div className="h-[70vh] overflow-y-auto">
+          <WarehousesPage />
         </div>
       </Dialog>
     </LogisticsSection>

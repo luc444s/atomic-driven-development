@@ -30,7 +30,20 @@ import { usePlanningFilters } from "./hooks/use-planning-filters";
 import { usePlanningSelection } from "./hooks/use-planning-selection";
 import type { PlanningProductCatalogItem } from "./dialogs/planning-product-lines-editor";
 import { PlanningReservationDetailPanel } from "./panels/planning-reservation-detail-panel";
+import { DraftOverlay } from "./DraftOverlay/DraftOverlay";
+import { DRAFT_OVERLAY_KEY } from "./DraftOverlay/DraftOverlay";
+import { ConfirmDraftDialog } from "./DraftOverlay/ConfirmDraftDialog";
+import { DraftsModal } from "./DraftOverlay/DraftsModal";
+import { confirmCotizacion, convertCotizacion, getCotizacion, type QuoteDraftDTO } from "../../../../plugins/ventas/cotizacion/frontend/api";
 import { buildCalendarResources } from "./utils/planning-calendar-mappers";
+
+type QuotePrefill = {
+  items: Array<{ product_id: string; product_name: string | null; quantity: number; unit_weight_kg: number | null }>;
+  vehicle_id?: string;
+  notes?: string;
+  planned_start_at?: string;
+  planned_end_at?: string;
+};
 
 export function PlanningWorkspace() {
   const navigate = useNavigate();
@@ -39,6 +52,11 @@ export function PlanningWorkspace() {
   const filters = usePlanningFilters();
   const selection = usePlanningSelection();
   const [activateDialogOpen, setActivateDialogOpen] = useState(false);
+  const [confirmDraftId, setConfirmDraftId] = useState<string | null>(null);
+  const [confirmDraftData, setConfirmDraftData] = useState<QuoteDraftDTO | null>(null);
+  const [confirmPending, setConfirmPending] = useState(false);
+  const [quotePrefill, setQuotePrefill] = useState<QuotePrefill | null>(null);
+  const [draftsModalOpen, setDraftsModalOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const vehiclesQuery = useQuery({ queryKey: logisticsKeys.vehicles(), queryFn: listVehicles });
@@ -89,6 +107,13 @@ export function PlanningWorkspace() {
     mutationFn: createPlanningReservation,
     onSuccess: async (reservation) => {
       selection.setCreateDraft(null);
+      setQuotePrefill(null);
+      if (confirmDraftId) {
+        convertCotizacion(confirmDraftId).catch(() => {});
+        setConfirmDraftId(null);
+        setConfirmDraftData(null);
+        queryClient.invalidateQueries({ queryKey: DRAFT_OVERLAY_KEY });
+      }
       selection.setSelectedReservationId(reservation.id);
       setError(null);
       await refreshPlanningData();
@@ -130,6 +155,69 @@ export function PlanningWorkspace() {
     },
     onError: (cause) => setError(cause instanceof Error ? cause.message : "No se pudo cancelar la planificación"),
   });
+
+  const handleConfirmDraft = async (id: string) => {
+    try {
+      const draft = await getCotizacion(id);
+      setConfirmDraftData(draft);
+      setConfirmDraftId(id);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al cargar cotización");
+    }
+  };
+
+  const handleConfirmSubmit = async () => {
+    if (!confirmDraftId) return;
+    setConfirmPending(true);
+    try {
+      await confirmCotizacion(confirmDraftId);
+      setConfirmDraftId(null);
+      setConfirmDraftData(null);
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: DRAFT_OVERLAY_KEY });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al confirmar cotización");
+    } finally {
+      setConfirmPending(false);
+    }
+  };
+
+  const handlePlanificar = async (id: string) => {
+    try {
+      const draft = await getCotizacion(id);
+      setConfirmDraftId(id);
+
+      const time = draft.delivery_time
+        ? draft.delivery_time.length === 5 ? `${draft.delivery_time}:00` : draft.delivery_time
+        : "08:00:00";
+      const startAt = `${draft.delivery_date}T${time}`;
+
+      const hour = parseInt(time.split(":")[0], 10);
+      const endHour = String((hour + 2) % 24).padStart(2, "0");
+      const endAt = `${draft.delivery_date}T${endHour}:${time.split(":")[1]}:00`;
+
+      setQuotePrefill({
+        items: draft.items.map((i) => ({
+          product_id: i.product_id,
+          product_name: i.product_name,
+          quantity: i.quantity,
+          unit_weight_kg: i.unit_weight_kg,
+        })),
+        vehicle_id: draft.vehicle?.id,
+        notes: `Cotización #${draft.id.slice(0, 4).toUpperCase()} — ${draft.customer.name}${draft.conditions ? `. ${draft.conditions}` : ""}`,
+        planned_start_at: startAt,
+        planned_end_at: endAt,
+      });
+
+      selection.setCreateDraft({
+        vehicleId: draft.vehicle?.id ?? filters.vehicleId,
+        plannedStartAt: startAt,
+        plannedEndAt: endAt,
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Error al cargar cotización");
+    }
+  };
 
   return (
     <LogisticsSection
@@ -191,9 +279,17 @@ export function PlanningWorkspace() {
         />
       </div>
 
+      <DraftOverlay
+        dateFrom={range.rangeStart}
+        dateTo={range.rangeEnd}
+        onConfirm={handleConfirmDraft}
+        onPlanificar={handlePlanificar}
+        onViewAll={() => setDraftsModalOpen(true)}
+      />
+
       <CreatePlanningReservationDialog
         open={selection.createDraft != null}
-        onClose={() => selection.setCreateDraft(null)}
+        onClose={() => { selection.setCreateDraft(null); setQuotePrefill(null); }}
         onSubmit={async (payload) => await createMutation.mutateAsync(payload)}
         isPending={createMutation.isPending}
         vehicles={vehiclesQuery.data ?? []}
@@ -203,6 +299,7 @@ export function PlanningWorkspace() {
         products={productCatalog}
         resolveProduct={resolvePlanningProduct}
         initialDraft={selection.createDraft && { vehicleId: selection.createDraft.vehicleId, plannedStartAt: selection.createDraft.plannedStartAt, plannedEndAt: selection.createDraft.plannedEndAt }}
+        quotePrefill={quotePrefill}
       />
 
       <EditPlanningReservationDialog
@@ -235,6 +332,26 @@ export function PlanningWorkspace() {
           await activateMutation.mutateAsync(selectedReservation.id);
         }}
         isPending={activateMutation.isPending}
+      />
+
+      <ConfirmDraftDialog
+        open={confirmDraftId != null}
+        draft={confirmDraftData}
+        onClose={() => { setConfirmDraftId(null); setConfirmDraftData(null); }}
+        onConfirm={handleConfirmSubmit}
+        isPending={confirmPending}
+      />
+
+      <DraftsModal
+        open={draftsModalOpen}
+        dateFrom={range.rangeStart}
+        dateTo={range.rangeEnd}
+        onClose={() => setDraftsModalOpen(false)}
+        onConfirm={handleConfirmDraft}
+        onPlanificar={(id) => {
+          setDraftsModalOpen(false);
+          handlePlanificar(id);
+        }}
       />
     </LogisticsSection>
   );

@@ -15,14 +15,30 @@ from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.stock.backend.common import audit_stock_action, build_action_context
 from plugins.stock.backend.schemas import (
     StockAdjustRequest,
+    StockAllocateRequest,
+    StockAllocationRead,
+    StockAllocationReleaseRequest,
     StockBalancePageRead,
     StockBalanceRead,
     StockConfigRead,
     StockConfigUpsertRequest,
+    StockDamageOutRequest,
     StockLedgerRead,
+    StockMovementResultRead,
+    StockPurchaseInRequest,
+    StockReturnInRequest,
+    StockSaleOutRequest,
     StockTransferRequest,
     StockTransferResultRead,
     StockWarehouseRead,
+)
+from plugins.stock.backend.services.allocation import (
+    allocate_stock,
+    get_allocation,
+    list_allocations,
+    list_allocations_by_group,
+    release_allocation,
+    release_allocation_group,
 )
 from plugins.stock.backend.services.balances import (
     get_balance_detail,
@@ -33,6 +49,12 @@ from plugins.stock.backend.services.balances import (
     list_product_balances,
 )
 from plugins.stock.backend.services.catalog import list_warehouses
+from plugins.stock.backend.services.movements import (
+    damage_out_stock,
+    purchase_in_stock,
+    return_in_stock,
+    sale_out_stock,
+)
 from plugins.stock.backend.services.operations import (
     adjust_stock,
     transfer_stock,
@@ -48,6 +70,13 @@ REQUIRE_BALANCE_ADJUST = Depends(require_permission("stock.balance.adjust"))
 REQUIRE_TRANSFER_CREATE = Depends(require_permission("stock.transfer.create"))
 REQUIRE_CONFIG_READ = Depends(require_permission("stock.config.read"))
 REQUIRE_CONFIG_MANAGE = Depends(require_permission("stock.config.manage"))
+REQUIRE_ALLOCATION_CREATE = Depends(require_permission("stock.allocation.create"))
+REQUIRE_ALLOCATION_RELEASE = Depends(require_permission("stock.allocation.release"))
+REQUIRE_ALLOCATION_READ = Depends(require_permission("stock.allocation.read"))
+REQUIRE_MOVEMENT_SALE_OUT = Depends(require_permission("stock.movement.sale_out"))
+REQUIRE_MOVEMENT_PURCHASE_IN = Depends(require_permission("stock.movement.purchase_in"))
+REQUIRE_MOVEMENT_RETURN_IN = Depends(require_permission("stock.movement.return_in"))
+REQUIRE_MOVEMENT_DAMAGE_OUT = Depends(require_permission("stock.movement.damage_out"))
 REQUIRE_STOCK_CATALOG = Depends(
     require_any_permission(
         "stock.balance.read",
@@ -55,6 +84,13 @@ REQUIRE_STOCK_CATALOG = Depends(
         "stock.transfer.create",
         "stock.config.read",
         "stock.config.manage",
+        "stock.allocation.create",
+        "stock.allocation.release",
+        "stock.allocation.read",
+        "stock.movement.sale_out",
+        "stock.movement.purchase_in",
+        "stock.movement.return_in",
+        "stock.movement.damage_out",
     )
 )
 
@@ -98,6 +134,11 @@ def _ensure_warehouse_access(
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Warehouse access denied")
 
 
+# ---------------------------------------------------------------------------
+# Catalog
+# ---------------------------------------------------------------------------
+
+
 @router.get(
     "/catalog/warehouses",
     response_model=list[StockWarehouseRead],
@@ -129,6 +170,11 @@ def get_stock_warehouses_catalog(
     ]
 
 
+# ---------------------------------------------------------------------------
+# Balances
+# ---------------------------------------------------------------------------
+
+
 @router.get("/balance", response_model=StockBalancePageRead, dependencies=[REQUIRE_BALANCE_READ])
 def get_balances(
     request: Request,
@@ -143,11 +189,8 @@ def get_balances(
 ) -> StockBalancePageRead:
     if warehouse_id is not None:
         _ensure_warehouse_access(
-            db,
-            tenant_context=tenant_context,
-            request=request,
-            warehouse_id=warehouse_id,
-            action="balance.read",
+            db, tenant_context=tenant_context, request=request,
+            warehouse_id=warehouse_id, action="balance.read",
         )
     return list_balances(
         db,
@@ -196,11 +239,8 @@ def get_balance_by_product_warehouse(
     db: Session = DB_SESSION,
 ) -> StockBalanceRead:
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=warehouse_id,
-        action="balance.read",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=warehouse_id, action="balance.read",
     )
     try:
         return get_balance_detail(
@@ -211,6 +251,11 @@ def get_balance_by_product_warehouse(
         )
     except Exception as exc:
         _raise_service_error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Ledger
+# ---------------------------------------------------------------------------
 
 
 @router.get(
@@ -230,11 +275,8 @@ def get_product_ledger(
 ) -> list[StockLedgerRead]:
     if warehouse_id is not None:
         _ensure_warehouse_access(
-            db,
-            tenant_context=tenant_context,
-            request=request,
-            warehouse_id=warehouse_id,
-            action="ledger.read",
+            db, tenant_context=tenant_context, request=request,
+            warehouse_id=warehouse_id, action="ledger.read",
         )
     try:
         return list_ledger_entries(
@@ -267,11 +309,8 @@ def get_product_warehouse_ledger(
     db: Session = DB_SESSION,
 ) -> list[StockLedgerRead]:
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=warehouse_id,
-        action="ledger.read",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=warehouse_id, action="ledger.read",
     )
     try:
         return list_ledger_entries(
@@ -305,11 +344,8 @@ def get_global_ledger(
 ) -> list[StockLedgerRead]:
     if warehouse_id is not None:
         _ensure_warehouse_access(
-            db,
-            tenant_context=tenant_context,
-            request=request,
-            warehouse_id=warehouse_id,
-            action="ledger.read",
+            db, tenant_context=tenant_context, request=request,
+            warehouse_id=warehouse_id, action="ledger.read",
         )
     return list_global_ledger(
         db,
@@ -321,6 +357,11 @@ def get_global_ledger(
         limit=limit,
         offset=offset,
     )
+
+
+# ---------------------------------------------------------------------------
+# Adjust
+# ---------------------------------------------------------------------------
 
 
 @router.post(
@@ -336,11 +377,8 @@ def post_adjust_stock(
     db: Session = DB_SESSION,
 ) -> StockBalanceRead:
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=payload.warehouse_id,
-        action="balance.adjust",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="balance.adjust",
     )
     try:
         result = adjust_stock(
@@ -350,6 +388,7 @@ def post_adjust_stock(
             warehouse_id=payload.warehouse_id,
             quantity=payload.quantity,
             reason=payload.reason,
+            unit_cost=payload.unit_cost,
             idempotency_key=payload.idempotency_key,
             action_context=build_action_context(request, tenant_context),
         )
@@ -358,6 +397,11 @@ def post_adjust_stock(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Transfer
+# ---------------------------------------------------------------------------
 
 
 @router.post(
@@ -373,18 +417,12 @@ def post_transfer_stock(
     db: Session = DB_SESSION,
 ) -> StockTransferResultRead:
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=payload.from_warehouse_id,
-        action="transfer.create",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.from_warehouse_id, action="transfer.create",
     )
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=payload.to_warehouse_id,
-        action="transfer.create",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.to_warehouse_id, action="transfer.create",
     )
     try:
         result = transfer_stock(
@@ -405,6 +443,11 @@ def post_transfer_stock(
         _raise_service_error(exc)
 
 
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+
 @router.get("/config", response_model=list[StockConfigRead], dependencies=[REQUIRE_CONFIG_READ])
 def get_stock_configs(
     request: Request,
@@ -415,11 +458,8 @@ def get_stock_configs(
 ) -> list[StockConfigRead]:
     if warehouse_id is not None:
         _ensure_warehouse_access(
-            db,
-            tenant_context=tenant_context,
-            request=request,
-            warehouse_id=warehouse_id,
-            action="config.read",
+            db, tenant_context=tenant_context, request=request,
+            warehouse_id=warehouse_id, action="config.read",
         )
     return list_configs(
         db,
@@ -438,11 +478,8 @@ def put_stock_config(
     db: Session = DB_SESSION,
 ) -> StockConfigRead:
     _ensure_warehouse_access(
-        db,
-        tenant_context=tenant_context,
-        request=request,
-        warehouse_id=payload.warehouse_id,
-        action="config.manage",
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="config.manage",
     )
     try:
         result = upsert_stock_config(
@@ -452,7 +489,314 @@ def put_stock_config(
             warehouse_id=payload.warehouse_id,
             min_quantity=payload.min_quantity,
             max_quantity=payload.max_quantity,
+            allow_negative_stock=payload.allow_negative_stock,
             is_active=payload.is_active,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+# ---------------------------------------------------------------------------
+# Allocations
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/allocate",
+    response_model=StockAllocationRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[REQUIRE_ALLOCATION_CREATE],
+)
+def post_allocate_stock(
+    payload: StockAllocateRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockAllocationRead:
+    _ensure_warehouse_access(
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="allocation.create",
+    )
+    try:
+        result = allocate_stock(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=payload.product_id,
+            warehouse_id=payload.warehouse_id,
+            quantity=payload.quantity,
+            reference_type=payload.reference_type,
+            reference_id=payload.reference_id,
+            allocation_group_id=payload.allocation_group_id,
+            expires_at=payload.expires_at.isoformat() if payload.expires_at else None,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/allocate/{allocation_id}/release",
+    response_model=StockAllocationRead,
+    dependencies=[REQUIRE_ALLOCATION_RELEASE],
+)
+def post_release_allocation(
+    allocation_id: str,
+    payload: StockAllocationReleaseRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockAllocationRead:
+    try:
+        result = release_allocation(
+            db,
+            allocation_id=allocation_id,
+            reason=payload.reason,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/allocate/group/{group_id}/release",
+    response_model=list[StockAllocationRead],
+    dependencies=[REQUIRE_ALLOCATION_RELEASE],
+)
+def post_release_allocation_group(
+    group_id: str,
+    payload: StockAllocationReleaseRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[StockAllocationRead]:
+    try:
+        result = release_allocation_group(
+            db,
+            group_id=group_id,
+            reason=payload.reason,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.get(
+    "/allocations",
+    response_model=list[StockAllocationRead],
+    dependencies=[REQUIRE_ALLOCATION_READ],
+)
+def get_allocations(
+    status_filter: str | None = Query(None, alias="status"),
+    reference_type: str | None = Query(default=None),
+    allocation_group_id: str | None = Query(default=None),
+    product_id: str | None = Query(default=None),
+    warehouse_id: str | None = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[StockAllocationRead]:
+    return list_allocations(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        status=status_filter,
+        reference_type=reference_type,
+        allocation_group_id=allocation_group_id,
+        product_id=product_id,
+        warehouse_id=warehouse_id,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get(
+    "/allocations/{allocation_id}",
+    response_model=StockAllocationRead,
+    dependencies=[REQUIRE_ALLOCATION_READ],
+)
+def get_allocation_detail(
+    allocation_id: str,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockAllocationRead:
+    try:
+        return get_allocation(
+            db, tenant_id=tenant_context.current_tenant_id,
+            allocation_id=allocation_id,
+        )
+    except Exception as exc:
+        _raise_service_error(exc)
+
+
+@router.get(
+    "/allocations/group/{group_id}",
+    response_model=list[StockAllocationRead],
+    dependencies=[REQUIRE_ALLOCATION_READ],
+)
+def get_allocations_by_group(
+    group_id: str,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[StockAllocationRead]:
+    return list_allocations_by_group(
+        db, tenant_id=tenant_context.current_tenant_id, group_id=group_id,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Movements
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/sale-out",
+    response_model=StockMovementResultRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[REQUIRE_MOVEMENT_SALE_OUT],
+)
+def post_sale_out(
+    payload: StockSaleOutRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockMovementResultRead:
+    _ensure_warehouse_access(
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="movement.sale_out",
+    )
+    try:
+        result = sale_out_stock(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=payload.product_id,
+            warehouse_id=payload.warehouse_id,
+            quantity=payload.quantity,
+            source=payload.source,
+            allocation_id=payload.allocation_id,
+            reference_type=payload.reference_type,
+            reference_id=payload.reference_id,
+            idempotency_key=payload.idempotency_key,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/purchase-in",
+    response_model=StockMovementResultRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[REQUIRE_MOVEMENT_PURCHASE_IN],
+)
+def post_purchase_in(
+    payload: StockPurchaseInRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockMovementResultRead:
+    _ensure_warehouse_access(
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="movement.purchase_in",
+    )
+    try:
+        result = purchase_in_stock(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=payload.product_id,
+            warehouse_id=payload.warehouse_id,
+            quantity=payload.quantity,
+            unit_cost=payload.unit_cost,
+            reference_type=payload.reference_type,
+            reference_id=payload.reference_id,
+            idempotency_key=payload.idempotency_key,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/return-in",
+    response_model=StockMovementResultRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[REQUIRE_MOVEMENT_RETURN_IN],
+)
+def post_return_in(
+    payload: StockReturnInRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockMovementResultRead:
+    _ensure_warehouse_access(
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="movement.return_in",
+    )
+    try:
+        result = return_in_stock(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=payload.product_id,
+            warehouse_id=payload.warehouse_id,
+            quantity=payload.quantity,
+            original_sale_ledger_id=payload.original_sale_ledger_id,
+            reference_type=payload.reference_type,
+            reference_id=payload.reference_id,
+            idempotency_key=payload.idempotency_key,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/damage-out",
+    response_model=StockMovementResultRead,
+    status_code=status.HTTP_201_CREATED,
+    dependencies=[REQUIRE_MOVEMENT_DAMAGE_OUT],
+)
+def post_damage_out(
+    payload: StockDamageOutRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> StockMovementResultRead:
+    _ensure_warehouse_access(
+        db, tenant_context=tenant_context, request=request,
+        warehouse_id=payload.warehouse_id, action="movement.damage_out",
+    )
+    try:
+        result = damage_out_stock(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            product_id=payload.product_id,
+            warehouse_id=payload.warehouse_id,
+            quantity=payload.quantity,
+            reason=payload.reason,
+            reference_type=payload.reference_type,
+            reference_id=payload.reference_id,
+            idempotency_key=payload.idempotency_key,
             action_context=build_action_context(request, tenant_context),
         )
         db.commit()

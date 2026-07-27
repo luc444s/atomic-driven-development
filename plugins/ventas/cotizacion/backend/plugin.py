@@ -5,10 +5,12 @@ VENTAS_COTIZACION_PERMISSIONS = [
     "ventas.cotizacion.create",
     "ventas.cotizacion.read",
     "ventas.cotizacion.read_all",
+    "ventas.cotizacion.confirm",
 ]
 
 VENTAS_COTIZACION_EVENTS = [
     "ventas.cotizacion.created",
+    "ventas.cotizacion.confirmed",
 ]
 
 

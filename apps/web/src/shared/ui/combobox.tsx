@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { Check, ChevronsUpDown } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { Check, ChevronsUpDown, Search } from "lucide-react";
 
 import { cn } from "./cn";
-import { Input } from "./input";
 
 export type ComboboxOption = {
   value: string;
@@ -16,7 +15,7 @@ type ComboboxProps = {
   options: ComboboxOption[];
   placeholder?: string;
   searchPlaceholder?: string;
-  emptyMessage?: string;
+  emptyMessage?: ReactNode;
   className?: string;
   required?: boolean;
   disabled?: boolean;
@@ -25,6 +24,8 @@ type ComboboxProps = {
   onSubmitQuery?: (value: string) => void;
   variant?: "button" | "input";
   minSearchLength?: number;
+  selectedLabel?: string;
+  footer?: ReactNode;
 };
 
 function normalize(value: string) {
@@ -50,6 +51,8 @@ export function Combobox({
   onSubmitQuery,
   variant = "button",
   minSearchLength = 0,
+  selectedLabel,
+  footer,
 }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [internalQuery, setInternalQuery] = useState("");
@@ -62,6 +65,7 @@ export function Combobox({
   const canOpen = normalizedQuery.length >= minSearchLength;
 
   const selected = options.find((option) => option.value === value) ?? null;
+  const displayLabel = selected?.label ?? selectedLabel ?? null;
 
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) {
@@ -182,19 +186,29 @@ export function Combobox({
 
   return (
     <div ref={ref} className="relative" onKeyDown={handleKeyDown}>
-      {variant === "input" ? (
-        <Input
-          ref={inputRef}
-          value={query}
-          disabled={disabled}
-          aria-expanded={open}
-          aria-haspopup="listbox"
-          aria-required={required}
-          onChange={(event) => updateQuery(event.target.value)}
-          placeholder={searchPlaceholder ?? placeholder ?? "Buscar..."}
-          className={className}
-        />
-      ) : (
+      {/* Input variant: always a search input */}
+      {variant === "input" && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={query}
+            disabled={disabled}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-required={required}
+            onChange={(event) => updateQuery(event.target.value)}
+            placeholder={searchPlaceholder ?? placeholder ?? "Buscar..."}
+            className={cn(
+              "w-full rounded-md border border-input bg-surface pl-9 pr-3 py-2 text-sm text-foreground outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-1 focus:ring-ring",
+              className,
+            )}
+          />
+        </div>
+      )}
+
+      {/* Button variant: button when closed, search input when open */}
+      {variant === "button" && !open && (
         <button
           type="button"
           disabled={disabled}
@@ -203,34 +217,42 @@ export function Combobox({
           aria-required={required}
           onClick={() => {
             if (!disabled) {
-              setOpen((current) => !current);
+              setOpen(true);
             }
           }}
           className={cn(
             "flex w-full items-center justify-between gap-2 rounded-md border border-input bg-surface px-3 py-2 text-sm text-foreground transition hover:border-ring disabled:cursor-not-allowed disabled:opacity-60",
-            !selected && placeholder && "text-muted-foreground",
-            open && "border-ring ring-1 ring-ring",
-            className
+            !displayLabel && placeholder && "text-muted-foreground",
+            className,
           )}
         >
-          <span className="truncate text-left">{selected?.label ?? placeholder ?? "Seleccionar"}</span>
+          <span className="truncate text-left">{displayLabel ?? placeholder ?? "Seleccionar"}</span>
           <ChevronsUpDown className="h-4 w-4 shrink-0 text-muted-foreground" />
         </button>
       )}
 
+      {variant === "button" && open && (
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={(event) => updateQuery(event.target.value)}
+            placeholder={searchPlaceholder ?? "Buscar..."}
+            aria-expanded={open}
+            aria-haspopup="listbox"
+            aria-required={required}
+            className={cn(
+              "w-full rounded-md border border-ring bg-surface pl-9 pr-3 py-2 text-sm text-foreground outline-none ring-1 ring-ring",
+              className,
+            )}
+          />
+        </div>
+      )}
+
+      {/* Dropdown list */}
       {open ? (
         <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-border bg-popover shadow-lg">
-          {variant === "button" ? (
-            <div className="border-b border-border p-2">
-              <Input
-                ref={inputRef}
-                value={query}
-                onChange={(event) => updateQuery(event.target.value)}
-                placeholder={searchPlaceholder ?? "Buscar..."}
-              />
-            </div>
-          ) : null}
-
           <div className="max-h-60 overflow-auto py-1" role="listbox">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option, index) => {
@@ -249,7 +271,7 @@ export function Combobox({
                       "flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition",
                       isHighlighted
                         ? "bg-accent text-accent-foreground"
-                        : "text-popover-foreground hover:bg-accent hover:text-accent-foreground"
+                        : "text-popover-foreground hover:bg-accent hover:text-accent-foreground",
                     )}
                   >
                     <Check className={cn("h-4 w-4 shrink-0", isSelected ? "opacity-100" : "opacity-0")} />
@@ -261,6 +283,9 @@ export function Combobox({
               <p className="px-3 py-2 text-sm text-muted-foreground">{emptyMessage}</p>
             )}
           </div>
+          {footer && (
+            <div className="border-t border-border px-1 py-1">{footer}</div>
+          )}
         </div>
       ) : null}
     </div>

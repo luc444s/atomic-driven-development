@@ -71,3 +71,12 @@ class AmbiguityError(BaseModel):
     message: str
     entity: str
     options: list[dict]
+
+
+class PatchQuoteStatusRequest(BaseModel):
+    status: str = Field(
+        ...,
+        min_length=1,
+        max_length=50,
+        description="Nuevo estado (CONFIRMED, CONVERTED, etc.)",
+    )

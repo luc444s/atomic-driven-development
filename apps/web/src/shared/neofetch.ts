@@ -19,7 +19,7 @@ export const SYSTUTOR_NEOFETCH = `
               #*#**####***
   ────────────────────────────────────────────
   Sistema:      SYSTUTOR OSS v0.1
-  Kernel:       Python 3.12 + FastAPI
+  Kernel:       SYSTUTOR Kernel 1.0
   Shell:        Consola Operativa (Monaco)
   Frontend:     React + TypeScript + Tailwind
   DB:           PostgreSQL 16

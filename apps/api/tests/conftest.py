@@ -13,6 +13,7 @@ import plugins.crm.backend.models  # noqa: F401
 import plugins.logistics.backend.models  # noqa: F401
 import plugins.productos.backend.models  # noqa: F401
 import plugins.stock.backend.models  # noqa: F401
+import plugins.ventas.cotizacion.backend.models  # noqa: F401
 from apps.api.app.commands.seed_demo import seed_demo_data
 from apps.api.app.core.config import Settings
 from apps.api.app.core.database import Base, build_engine, build_session_factory

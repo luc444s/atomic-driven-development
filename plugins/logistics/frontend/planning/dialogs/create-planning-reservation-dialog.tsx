@@ -7,6 +7,7 @@ import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../utils/planning-
 import {
   createEmptyPlanningProductLine,
   summarizePlanningProductLines,
+  type PlanningReservationProductLine,
 } from "./planning-load-summary";
 import type { PlanningProductCatalogItem } from "./planning-product-lines-editor";
 
@@ -28,25 +29,52 @@ type Props = {
     adr_required: boolean;
     unit_weight_kg: number | null;
   }>;
+  quotePrefill?: {
+    items: Array<{ product_id: string; product_name: string | null; quantity: number; unit_weight_kg: number | null }>;
+    vehicle_id?: string;
+    notes?: string;
+    planned_start_at?: string;
+    planned_end_at?: string;
+  } | null;
 };
 
-function buildInitialForm(initialDraft: Props["initialDraft"]): PlanningReservationFormValues {
+function buildInitialForm(
+  initialDraft: Props["initialDraft"],
+  quotePrefill?: Props["quotePrefill"],
+): PlanningReservationFormValues {
+  const quoteItems: PlanningReservationProductLine[] =
+    quotePrefill?.items.map((item) => ({
+      product_id: item.product_id,
+      product_name: item.product_name ?? "",
+      sku: "",
+      quantity: String(item.quantity),
+      unit_weight_kg: item.unit_weight_kg,
+    })) ?? [];
+
   return {
-    vehicle_id: initialDraft?.vehicleId ?? "",
+    vehicle_id: quotePrefill?.vehicle_id ?? initialDraft?.vehicleId ?? "",
     origin_warehouse_id: "",
-    planned_start_at: toDateTimeLocalValue(initialDraft?.plannedStartAt),
-    planned_end_at: toDateTimeLocalValue(initialDraft?.plannedEndAt),
+    planned_start_at:
+      quotePrefill?.planned_start_at
+        ? toDateTimeLocalValue(quotePrefill.planned_start_at)
+        : toDateTimeLocalValue(initialDraft?.plannedStartAt),
+    planned_end_at:
+      quotePrefill?.planned_end_at
+        ? toDateTimeLocalValue(quotePrefill.planned_end_at)
+        : toDateTimeLocalValue(initialDraft?.plannedEndAt),
     driver_id: "",
     route_id: "",
-    items: [createEmptyPlanningProductLine()],
-    notes: "",
+    items: quoteItems.length > 0 ? quoteItems : [createEmptyPlanningProductLine()],
+    notes: quotePrefill?.notes ?? "",
     permit_override: false,
     override_reason: "",
   };
 }
 
 export function CreatePlanningReservationDialog(props: Props) {
-  const [form, setForm] = useState<PlanningReservationFormValues>(() => buildInitialForm(props.initialDraft));
+  const [form, setForm] = useState<PlanningReservationFormValues>(() =>
+    buildInitialForm(props.initialDraft, props.quotePrefill),
+  );
 
   useEffect(() => {
     if (props.open) {

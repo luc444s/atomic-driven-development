@@ -1,7 +1,7 @@
 {
   "id": "stock",
   "name": "Stock",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "api_version": "1",
   "requires": ["logistics", "productos"],
   "backend_entrypoint": "backend.plugin:register",
@@ -11,11 +11,26 @@
     "stock.balance.adjust",
     "stock.transfer.create",
     "stock.config.read",
-    "stock.config.manage"
+    "stock.config.manage",
+    "stock.allocation.create",
+    "stock.allocation.release",
+    "stock.allocation.read",
+    "stock.movement.sale_out",
+    "stock.movement.purchase_in",
+    "stock.movement.return_in",
+    "stock.movement.damage_out"
   ],
   "events": [
     "stock.balance.adjusted",
-    "stock.transfer.completed"
+    "stock.balance.negative_warning",
+    "stock.transfer.completed",
+    "stock.allocation.reserved",
+    "stock.allocation.released",
+    "stock.allocation.expired",
+    "stock.movement.sale_out",
+    "stock.movement.purchase_in",
+    "stock.movement.return_in",
+    "stock.movement.damage_out"
   ],
-  "description": "Ledger de inventario por producto y almacen con balances sincronizados, configuracion minima/maxima y transferencias auditables"
+  "description": "Ledger de inventario con reservas, costeo promedio ponderado y operaciones transaccionales (venta, compra, devolucion, bajas)"
 }

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 
@@ -213,6 +214,7 @@ def test_stock_plugin_inventory_flow(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": origin_warehouse["id"],
                 "quantity": 10,
+                "unit_cost": 5.0,
                 "reason": "Carga inicial",
             },
         )
@@ -223,6 +225,7 @@ def test_stock_plugin_inventory_flow(app) -> None:
             "product_id": product["id"],
             "warehouse_id": origin_warehouse["id"],
             "quantity": 5,
+            "unit_cost": 5.0,
             "reason": "Ajuste lote A",
             "idempotency_key": "adj-1",
         }
@@ -247,6 +250,7 @@ def test_stock_plugin_inventory_flow(app) -> None:
             "from_warehouse_id": origin_warehouse["id"],
             "to_warehouse_id": destination_warehouse["id"],
             "quantity": 4,
+            "unit_cost": 5.0,
             "notes": "Traslado de reparto",
             "idempotency_key": "trx-1",
         }
@@ -299,6 +303,7 @@ def test_stock_plugin_inventory_flow(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": "missing-warehouse",
                 "quantity": 1,
+                "unit_cost": 5.0,
                 "reason": "Prueba inválida",
             },
         )
@@ -420,6 +425,7 @@ def test_adjust_insufficient_stock_rejected(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 3,
+                "unit_cost": 5.0,
             },
         )
         response = client.post(
@@ -448,6 +454,7 @@ def test_adjust_nonexistent_product_rejected(app) -> None:
                 "product_id": "nonexistent-product-id",
                 "warehouse_id": warehouse["id"],
                 "quantity": 5,
+                "unit_cost": 5.0,
             },
         )
         assert response.status_code == 404, response.text
@@ -460,15 +467,18 @@ def test_multiple_sequential_adjustments(app) -> None:
         warehouse = create_warehouse(client, headers, code="WH4", name="Almacen 4")
         product = create_product(client, headers)
 
-        for q in (10, 5, -3):
+        for q, uc in ((10, 5.0), (5, 5.0), (-3, None)):
+            payload: dict = {
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": q,
+            }
+            if uc is not None:
+                payload["unit_cost"] = uc
             response = client.post(
                 "/api/v1/plugins/stock/adjust",
                 headers=headers,
-                json={
-                    "product_id": product["id"],
-                    "warehouse_id": warehouse["id"],
-                    "quantity": q,
-                },
+                json=payload,
             )
             assert response.status_code == 201, response.text
 
@@ -495,6 +505,7 @@ def test_adjust_without_idempotency_creates_unique_references(app) -> None:
                     "product_id": product["id"],
                     "warehouse_id": warehouse["id"],
                     "quantity": 1,
+                    "unit_cost": 5.0,
                 },
             )
             assert r.status_code == 201, r.text
@@ -521,6 +532,7 @@ def test_transfer_same_warehouse_rejected(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 10,
+                "unit_cost": 5.0,
             },
         )
         response = client.post(
@@ -531,6 +543,7 @@ def test_transfer_same_warehouse_rejected(app) -> None:
                 "from_warehouse_id": warehouse["id"],
                 "to_warehouse_id": warehouse["id"],
                 "quantity": 2,
+                "unit_cost": 5.0,
             },
         )
         assert response.status_code == 400, response.text
@@ -551,6 +564,7 @@ def test_transfer_insufficient_stock_rejected(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": wh_a["id"],
                 "quantity": 5,
+                "unit_cost": 5.0,
             },
         )
         response = client.post(
@@ -561,6 +575,7 @@ def test_transfer_insufficient_stock_rejected(app) -> None:
                 "from_warehouse_id": wh_a["id"],
                 "to_warehouse_id": wh_b["id"],
                 "quantity": 20,
+                "unit_cost": 5.0,
             },
         )
         assert response.status_code == 400, response.text
@@ -601,6 +616,7 @@ def test_transfer_nonexistent_product_rejected(app) -> None:
                 "from_warehouse_id": wh_a["id"],
                 "to_warehouse_id": wh_b["id"],
                 "quantity": 1,
+                "unit_cost": 5.0,
             },
         )
         assert response.status_code == 404, response.text
@@ -733,6 +749,7 @@ def test_balance_page_search(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 7,
+                "unit_cost": 5.0,
             },
         )
         client.put(
@@ -822,6 +839,7 @@ def test_negative_adjustment_works(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 10,
+                "unit_cost": 5.0,
             },
         )
         response = client.post(
@@ -852,6 +870,7 @@ def test_product_balances_endpoint(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": wh_a["id"],
                 "quantity": 3,
+                "unit_cost": 5.0,
             },
         )
         client.post(
@@ -861,6 +880,7 @@ def test_product_balances_endpoint(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": wh_b["id"],
                 "quantity": 7,
+                "unit_cost": 5.0,
             },
         )
         response = client.get(
@@ -888,6 +908,7 @@ def test_ledger_filtered_by_operation(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 5,
+                "unit_cost": 5.0,
             },
         )
         client.post(
@@ -994,6 +1015,7 @@ def test_global_ledger(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 5,
+                "unit_cost": 5.0,
                 "reason": "inicial",
             },
         )
@@ -1021,23 +1043,512 @@ def test_global_ledger(app) -> None:
         filtered = client.get(
             "/api/v1/plugins/stock/ledger",
             headers=headers,
-            params={"product_id": product["id"]},
+            params={"operation": "adjust"},
         )
         assert filtered.status_code == 200, filtered.text
         assert len(filtered.json()) == 2
 
-        by_op = client.get(
-            "/api/v1/plugins/stock/ledger",
-            headers=headers,
-            params={"operation": "adjust"},
-        )
-        assert by_op.status_code == 200, by_op.text
-        assert all(item["operation"] == "adjust" for item in by_op.json())
 
-        by_wh = client.get(
+# ==============================================================================
+# SPEC 0016.2 — Transactional gaps
+# ==============================================================================
+
+
+def test_allocate_and_consume_via_sale_out(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-ALLOC1", name="Alloc 1")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh["id"],
+                "quantity": 100,
+                "unit_cost": 10.0,
+                "reason": "Stock inicial",
+            },
+        )
+
+        alloc = client.post(
+            "/api/v1/plugins/stock/allocate",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh["id"],
+                "quantity": 30,
+                "reference_type": "quote",
+                "reference_id": "quote-1",
+                "allocation_group_id": "group-a",
+            },
+        )
+        assert alloc.status_code == 201, alloc.text
+        a = alloc.json()
+        assert a["status"] == "active"
+        assert a["quantity"] == 30
+        assert a["remaining_quantity"] == 30
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["reserved_quantity"] == 30
+        assert b["available_quantity"] == 70
+
+        sale = client.post(
+            "/api/v1/plugins/stock/sale-out",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh["id"],
+                "quantity": 20,
+                "source": "allocation",
+                "allocation_id": a["id"],
+                "reference_type": "waybill",
+                "reference_id": "wb-1",
+            },
+        )
+        assert sale.status_code == 201, sale.text
+
+        alloc_detail = client.get(
+            f"/api/v1/plugins/stock/allocations/{a['id']}",
+            headers=headers,
+        )
+        ad = alloc_detail.json()
+        assert ad["status"] == "partially_consumed"
+        assert ad["remaining_quantity"] == 10
+
+        balance2 = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b2 = balance2.json()
+        assert b2["quantity"] == 80
+        assert b2["reserved_quantity"] == 10
+        assert b2["available_quantity"] == 70
+
+        sale2 = client.post(
+            "/api/v1/plugins/stock/sale-out",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": wh["id"],
+                "quantity": 10,
+                "source": "allocation",
+                "allocation_id": a["id"],
+                "reference_type": "waybill",
+                "reference_id": "wb-2",
+            },
+        )
+        assert sale2.status_code == 201, sale2.text
+
+        alloc_detail2 = client.get(
+            f"/api/v1/plugins/stock/allocations/{a['id']}",
+            headers=headers,
+        )
+        assert alloc_detail2.json()["status"] == "consumed"
+        assert alloc_detail2.json()["remaining_quantity"] == 0
+
+
+def test_release_allocation(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-REL", name="Release")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 50, "unit_cost": 5.0, "reason": "init",
+            },
+        )
+
+        alloc = client.post(
+            "/api/v1/plugins/stock/allocate",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 15, "reference_type": "quote",
+                "reference_id": "q-r1",
+            },
+        )
+        a_id = alloc.json()["id"]
+
+        resp = client.post(
+            f"/api/v1/plugins/stock/allocate/{a_id}/release",
+            headers=headers,
+            json={"reason": "cancelado por cliente"},
+        )
+        assert resp.status_code == 200, resp.text
+        assert resp.json()["status"] == "released"
+        assert resp.json()["release_reason"] == "cancelado por cliente"
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["reserved_quantity"] == 0
+        assert b["available_quantity"] == 50
+
+
+def test_group_allocation_release(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-GRP", name="Group")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 30, "unit_cost": 8.0, "reason": "init",
+            },
+        )
+
+        client.post(
+            "/api/v1/plugins/stock/allocate",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 5, "reference_type": "quote",
+                "reference_id": "q-g1", "allocation_group_id": "grp-1",
+            },
+        )
+        client.post(
+            "/api/v1/plugins/stock/allocate",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 7, "reference_type": "quote",
+                "reference_id": "q-g2", "allocation_group_id": "grp-1",
+            },
+        )
+
+        group_alloc = client.get(
+            "/api/v1/plugins/stock/allocations/group/grp-1",
+            headers=headers,
+        )
+        assert group_alloc.status_code == 200, group_alloc.text
+        assert len(group_alloc.json()) == 2
+
+        released = client.post(
+            "/api/v1/plugins/stock/allocate/group/grp-1/release",
+            headers=headers,
+            json={"reason": "cotizacion expirada"},
+        )
+        assert released.status_code == 200, released.text
+        assert len(released.json()) == 2
+        assert all(a["status"] == "released" for a in released.json())
+
+
+def test_sale_out_direct_skip_allocation(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-DIR", name="Direct")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 40, "unit_cost": 6.0, "reason": "init",
+            },
+        )
+
+        sale = client.post(
+            "/api/v1/plugins/stock/sale-out",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 10, "source": "direct",
+                "reference_type": "waybill", "reference_id": "wb-d1",
+            },
+        )
+        assert sale.status_code == 201, sale.text
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["quantity"] == 30
+        assert b["reserved_quantity"] == 0
+        assert b["available_quantity"] == 30
+
+
+def test_purchase_in_with_cost_tracking(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-COST", name="Cost")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/purchase-in",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 10, "unit_cost": 5.0,
+                "reference_type": "purchase_order", "reference_id": "po-1",
+            },
+        )
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["quantity"] == 10
+        assert b["total_cost"] == 50.0
+        assert b["unit_cost"] == 5.0
+
+        client.post(
+            "/api/v1/plugins/stock/purchase-in",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 10, "unit_cost": 7.0,
+                "reference_type": "purchase_order", "reference_id": "po-2",
+            },
+        )
+
+        balance2 = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b2 = balance2.json()
+        assert b2["quantity"] == 20
+        assert b2["total_cost"] == 120.0
+        assert b2["unit_cost"] == 6.0
+
+        ledger = client.get(
             "/api/v1/plugins/stock/ledger",
             headers=headers,
-            params={"warehouse_id": warehouse["id"]},
+            params={"operation": "purchase_in", "limit": 10},
         )
-        assert by_wh.status_code == 200, by_wh.text
-        assert len(by_wh.json()) == 2
+        entries = ledger.json()
+        assert len(entries) == 2
+        assert entries[0]["unit_cost"] is not None
+        assert entries[0]["cost_after"] is not None
+
+
+def test_return_in_uses_historical_cost(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-RET", name="Return")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/purchase-in",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 100, "unit_cost": 10.0,
+                "reference_type": "purchase_order", "reference_id": "po-ret",
+            },
+        )
+
+        sale = client.post(
+            "/api/v1/plugins/stock/sale-out",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 10, "source": "direct",
+                "reference_type": "waybill", "reference_id": "wb-ret",
+            },
+        )
+        assert sale.status_code == 201, sale.text
+        original_sale_ledger_id = sale.json()["ledger_entry_id"]
+
+        resp = client.post(
+            "/api/v1/plugins/stock/return-in",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 5, "original_sale_ledger_id": original_sale_ledger_id,
+                "reference_type": "return_note", "reference_id": "rn-1",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["quantity"] == 95
+        assert b["unit_cost"] == pytest.approx(10.0, abs=0.01)
+
+        r_ledger = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"operation": "return_in", "limit": 1},
+        )
+        re = r_ledger.json()
+        assert len(re) == 1
+        assert re[0]["unit_cost"] == 10.0
+
+
+def test_damage_out_and_negative_stock_warning(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-DMG", name="Damage")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 20, "unit_cost": 5.0, "reason": "init",
+            },
+        )
+
+        resp = client.post(
+            "/api/v1/plugins/stock/damage-out",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 3, "reason": "rotura en traslado",
+                "reference_type": "damage_report", "reference_id": "dr-1",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["quantity"] == 17
+
+        l_resp = client.get(
+            "/api/v1/plugins/stock/ledger",
+            headers=headers,
+            params={"operation": "damage_out", "limit": 1},
+        )
+        assert l_resp.json()[0]["quantity"] == -3
+
+        overkill = client.post(
+            "/api/v1/plugins/stock/damage-out",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 100, "reason": "test",
+                "reference_type": "damage_report", "reference_id": "dr-2",
+            },
+        )
+        assert overkill.status_code == 400
+
+
+def test_adjust_positive_requires_unit_cost(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-REQ", name="Required")
+        product = create_product(client, headers)
+
+        resp = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 5,
+            },
+        )
+        assert resp.status_code == 400, resp.text
+        assert "unit_cost" in resp.text
+
+        ok = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 5, "unit_cost": 10.0,
+            },
+        )
+        assert ok.status_code == 201, ok.text
+
+
+def test_available_quantity_in_balance_read(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-AVAIL", name="Avail")
+        product = create_product(client, headers)
+
+        client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 100, "unit_cost": 5.0, "reason": "init",
+            },
+        )
+
+        client.post(
+            "/api/v1/plugins/stock/allocate",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 25, "reference_type": "quote",
+                "reference_id": "q-av1",
+            },
+        )
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        b = balance.json()
+        assert b["quantity"] == 100
+        assert b["reserved_quantity"] == 25
+        assert b["available_quantity"] == 75
+
+
+def test_config_allow_negative_stock(app) -> None:
+    seeded = _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        wh = create_warehouse(client, headers, code="WH-NEG", name="NegStock")
+        product = create_product(client, headers)
+
+        client.put(
+            "/api/v1/plugins/stock/config",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "min_quantity": 0, "allow_negative_stock": True, "is_active": True,
+            },
+        )
+
+        resp = client.post(
+            "/api/v1/plugins/stock/sale-out",
+            headers=headers,
+            json={
+                "product_id": product["id"], "warehouse_id": wh["id"],
+                "quantity": 5, "source": "direct",
+                "reference_type": "waybill", "reference_id": "wb-neg",
+            },
+        )
+        assert resp.status_code == 201, resp.text
+
+        balance = client.get(
+            f"/api/v1/plugins/stock/balance/{product['id']}/{wh['id']}",
+            headers=headers,
+        )
+        assert balance.json()["quantity"] == -5

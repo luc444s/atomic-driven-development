@@ -117,17 +117,11 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
     ],
     navigation: [
       { to: `${ctx.appBasePath}/logistics/vehicle-sessions`, label: "Jornadas", requiredPermissions: ["logistics.session.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/orders`, label: "Pedidos", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/movements`, label: "Movimientos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/cylinders`, label: "Envases", requiredPermissions: ["logistics.cylinder.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/equipment`, label: "Equipos", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/warehouses`, label: "Almacenes", requiredPermissions: ["logistics.warehouse.read"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/contracts`, label: "Contratos", requiredPermissions: ["logistics.contract.view"], group: "Logistics" },
       { to: `${ctx.appBasePath}/logistics/planning`, label: "Planificacion", requiredPermissions: ["logistics.order.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/agenda`, label: "Agenda (transicion)", requiredPermissions: ["logistics.agenda.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/loads`, label: "Carga (transicion)", requiredPermissions: ["logistics.load.manage"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/reception`, label: "Recepcion (transicion)", requiredPermissions: ["logistics.movement.read"], group: "Logistics" },
-      { to: `${ctx.appBasePath}/logistics/delivery-points`, label: "Entregas (soporte)", requiredPermissions: ["logistics.route.read"], group: "Logistics" },
     ],
     widgets: [
       {

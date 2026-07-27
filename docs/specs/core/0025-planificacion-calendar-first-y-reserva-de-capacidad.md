@@ -16,7 +16,7 @@ extends:
 
 Propuesta
 
-## Ajuste de vigencia
+## Ajuste de vigenciab 
 
 Esta spec reemplaza la interpretacion operativa de `Planificacion` definida en `SPEC 0024.1.1`.
 

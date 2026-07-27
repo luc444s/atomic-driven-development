@@ -19,7 +19,7 @@ from plugins.ventas.cotizacion.backend.schemas import (
 )
 
 WEEKDAYS: dict[str, int] = {
-    "lunes": 0, "martes": 1, "miercoles": 2, "miercoles": 2,
+    "lunes": 0, "martes": 1, "miercoles": 2,
     "jueves": 3, "viernes": 4, "sabado": 5, "domingo": 6,
 }
 
@@ -108,7 +108,6 @@ def _extract_tokens(command: str) -> dict[str, Any]:
     cliente_raw = None
     vehiculo_raw = None
     condiciones = None
-    items_raw = None
     fecha_raw = None
     hora_raw = None
 

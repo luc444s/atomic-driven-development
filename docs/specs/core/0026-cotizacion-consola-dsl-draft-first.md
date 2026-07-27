@@ -68,6 +68,8 @@ Crear el módulo `ventas` con el sub-módulo `cotizacion` que permita:
 8. **Comando mínimo válido**: una cotización válida debe contener cliente resuelto, al menos 1 item válido, y fecha válida. Sin estos 3 elementos, el parser rechaza la ejecución.
 9. **Determinismo**: si una entidad (cliente, producto) resuelve a más de un match, el sistema NO ejecuta — retorna la lista de matches para que el usuario precise. Nunca adivina.
 
+> **Nota de vigencia**: las referencias a futuros sub-módulos `pricing/` y `pedidos/` en esta spec están **superadas**. El flujo real es `QuoteDraft → CONFIRMED → PlanningEntry → VehicleSession`. No existe entidad "pedido" separada. Ver spec 0027, `plugin.json` y `README.md` actuales de `plugins/ventas/`.
+
 ## Reglas de negocio
 
 ### Comando mínimo válido
@@ -240,9 +242,7 @@ plugins/ventas/
 │   └── migrations/
 │       └── 001_initial_cotizacion.py  # Tablas: ventas_quote_drafts, ventas_quote_items
 │
-├── pricing/                           # Sub-módulo ETAPA 2 (futuro, no toca cotizacion/)
-├── pedidos/                           # Sub-módulo ETAPA 3 (futuro)
-└── condiciones/                       # Sub-módulo ETAPA 4 (futuro)
+└── (nota: los sub-módulos pricing/pedidos/condiciones planeados originalmente no existen — superados por el flujo QuoteDraft → CONFIRMED → PlanningEntry → VehicleSession, ver spec 0027)
 ```
 
 ### Flujo de datos

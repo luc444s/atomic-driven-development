@@ -3,7 +3,7 @@ id: "0027"
 title: "Cotización — Consola y Formulario con visor de drafts"
 domain: ventas
 module: cotizacion
-status: borrador
+status: vigente
 requires:
   - docs/adr/0022-adopcion-monaco-editor-consola-operativa.md
   - docs/adr/0023-dsl-comandos-consola-patrones-seguros.md
@@ -15,7 +15,7 @@ requires:
 
 ## Estado
 
-Borrador — primera versión para revisión
+Vigente — implementada en `plugins/ventas/cotizacion/frontend/ui/`
 
 ## Principio arquitectónico
 

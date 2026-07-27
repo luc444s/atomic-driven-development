@@ -15,7 +15,7 @@ export function resolveDate(raw: string, referenceDate?: Date): Date | null {
   }
 
   const weekdays: Record<string, number> = {
-    domingo: 0, lunes: 1, martes: 2, miercoles: 3, miercoles: 3,
+    domingo: 0, lunes: 1, martes: 2, miercoles: 3,
     jueves: 4, viernes: 5, sabado: 6,
   };
   if (weekdays[normalized] !== undefined) {

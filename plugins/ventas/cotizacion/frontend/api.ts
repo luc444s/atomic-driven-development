@@ -33,8 +33,27 @@ export function executeCotizacion(command: string): Promise<QuoteDraftDTO> {
   });
 }
 
-export function listCotizaciones(): Promise<QuoteDraftListItem[]> {
-  return apiRequest<QuoteDraftListItem[]>("/api/v1/plugins/ventas/cotizaciones");
+export function listCotizaciones(filters?: { status?: string; date_from?: string; date_to?: string }): Promise<QuoteDraftListItem[]> {
+  const params = new URLSearchParams();
+  if (filters?.status) params.set("status", filters.status);
+  if (filters?.date_from) params.set("date_from", filters.date_from.slice(0, 10));
+  if (filters?.date_to) params.set("date_to", filters.date_to.slice(0, 10));
+  const qs = params.toString();
+  return apiRequest<QuoteDraftListItem[]>(`/api/v1/plugins/ventas/cotizaciones${qs ? `?${qs}` : ""}`);
+}
+
+export function confirmCotizacion(id: string): Promise<QuoteDraftDTO> {
+  return apiRequest<QuoteDraftDTO>(`/api/v1/plugins/ventas/cotizaciones/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "CONFIRMED" }),
+  });
+}
+
+export function convertCotizacion(id: string): Promise<QuoteDraftDTO> {
+  return apiRequest<QuoteDraftDTO>(`/api/v1/plugins/ventas/cotizaciones/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status: "CONVERTED" }),
+  });
 }
 
 export function getCotizacion(id: string): Promise<QuoteDraftDTO> {

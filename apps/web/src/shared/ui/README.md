@@ -6,6 +6,62 @@ Estilo: utility-first con Tailwind CSS, colores semánticos vía variables CSS, 
 
 ---
 
+## Form patterns (obligatorio — leer antes de crear cualquier formulario)
+
+### Label + input
+
+```tsx
+<label className="block space-y-2 text-sm text-foreground">
+  <span>Nombre del campo</span>
+  <Input value={val} onChange={fn} />
+  {/* o <Combobox />, <Select />, <Textarea /> */}
+</label>
+```
+
+Nunca: `text-xs`, `text-muted-foreground` en labels, asteriscos rojos para required.
+
+### Form layout
+
+```tsx
+<form className="space-y-6" onSubmit={handleSubmit}>
+  {error && <Alert title="Error">{error}</Alert>}
+
+  <div className="grid gap-4 md:grid-cols-2">
+    <label className="block space-y-2 text-sm text-foreground">...</label>
+    <label className="block space-y-2 text-sm text-foreground">...</label>
+  </div>
+
+  <div className="flex justify-end gap-3">
+    <Button type="button" variant="secondary">Cancelar</Button>
+    <Button type="submit">Guardar</Button>
+  </div>
+</form>
+```
+
+### Que componente usar
+
+| Necesidad | Componente | Import |
+|-----------|-----------|--------|
+| Input texto/fecha | `Input` | `shared/ui/input` |
+| Multilinea | `Textarea` | `shared/ui/input` |
+| Select con busqueda | `Combobox` | `shared/ui/combobox` |
+| Select simple | `Select` | `shared/ui/select` |
+| Boton | `Button` | `shared/ui/button` |
+| Error | `Alert` | `shared/ui/alert` |
+| Modal | `Dialog` | `shared/ui/dialog` |
+| Checkbox | `Checkbox` | `shared/ui/input` |
+
+### Prohibido
+
+- `<button>` con estilos inline → usar `<Button>`
+- `<textarea>` nativo → usar `<Textarea>`
+- Divs rojos para errores → usar `<Alert>`
+- Asteriscos rojos `*` en labels
+- `text-xs` o `text-muted-foreground` en labels
+- `style={{}}` o colores hardcodeados
+
+---
+
 ## alert.tsx — `Alert`
 
 ```tsx

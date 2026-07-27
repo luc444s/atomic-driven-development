@@ -12,10 +12,12 @@
   "permissions": [
     "ventas.cotizacion.create",
     "ventas.cotizacion.read",
-    "ventas.cotizacion.read_all"
+    "ventas.cotizacion.read_all",
+    "ventas.cotizacion.confirm"
   ],
   "events": [
-    "ventas.cotizacion.created"
+    "ventas.cotizacion.created",
+    "ventas.cotizacion.confirmed"
   ],
-  "description": "Plugin de ventas con cotizaciones via consola DSL. Sub-modulos: cotizacion (v0.1), pricing (futuro), pedidos (futuro), condiciones (futuro)."
+  "description": "Plugin de ventas con cotizaciones via consola DSL y formulario visual. Flujo: cotizacion → planificacion → jornadas."
 }

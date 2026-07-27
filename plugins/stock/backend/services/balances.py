@@ -27,6 +27,15 @@ def _as_float(value: Decimal | float | int | None) -> float | None:
 
 def _build_balance_read(*, balance, product, warehouse, config) -> StockBalanceRead:
     quantity = _as_float(getattr(balance, "quantity", 0)) or 0.0
+    reserved_quantity = _as_float(getattr(balance, "reserved_quantity", 0)) or 0.0
+    total_cost = _as_float(getattr(balance, "total_cost", 0))
+    allow_negative_stock = bool(getattr(balance, "allow_negative_stock", False))
+
+    available = quantity - reserved_quantity
+    unit_cost = None
+    if quantity > 0 and total_cost is not None:
+        unit_cost = round(total_cost / quantity, 4)
+
     min_quantity = _as_float(getattr(config, "min_quantity", None))
     max_quantity = _as_float(getattr(config, "max_quantity", None))
     return StockBalanceRead(
@@ -39,6 +48,11 @@ def _build_balance_read(*, balance, product, warehouse, config) -> StockBalanceR
         warehouse_code=warehouse.code,
         warehouse_name=warehouse.name,
         quantity=quantity,
+        reserved_quantity=reserved_quantity,
+        available_quantity=available,
+        total_cost=total_cost,
+        unit_cost=unit_cost,
+        allow_negative_stock=allow_negative_stock,
         min_quantity=min_quantity,
         max_quantity=max_quantity,
         is_below_min=min_quantity is not None and quantity < min_quantity,
@@ -231,6 +245,10 @@ def list_ledger_entries(
             operation=ledger.operation,
             quantity=_as_float(ledger.quantity) or 0.0,
             balance_after=_as_float(ledger.balance_after) or 0.0,
+            unit_cost=_as_float(ledger.unit_cost),
+            total_cost=_as_float(ledger.total_cost),
+            cost_after=_as_float(ledger.cost_after),
+            source=ledger.source,
             reference_type=ledger.reference_type,
             reference_id=ledger.reference_id,
             notes=ledger.notes,
@@ -275,6 +293,7 @@ def list_configs(
             warehouse_name=warehouse.name,
             min_quantity=_as_float(config.min_quantity) or 0.0,
             max_quantity=_as_float(config.max_quantity),
+            allow_negative_stock=config.allow_negative_stock,
             is_active=config.is_active,
             updated_at=config.updated_at,
             updated_by=config.updated_by,
@@ -327,6 +346,10 @@ def list_global_ledger(
             operation=ledger.operation,
             quantity=_as_float(ledger.quantity) or 0.0,
             balance_after=_as_float(ledger.balance_after) or 0.0,
+            unit_cost=_as_float(ledger.unit_cost),
+            total_cost=_as_float(ledger.total_cost),
+            cost_after=_as_float(ledger.cost_after),
+            source=ledger.source,
             reference_type=ledger.reference_type,
             reference_id=ledger.reference_id,
             notes=ledger.notes,

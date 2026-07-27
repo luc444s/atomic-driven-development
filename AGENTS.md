@@ -17,13 +17,28 @@ Define reglas operativas para agentes de IA en SYSTUTOR OSS. Reduce ambiguedad, 
 
 1. **Engram** (`mem_context` + `mem_search` con keywords de la tarea) — prioridad sobre cualquier .md
 2. `AGENTS.md`
-3. `docs/avances/<modulo>.md` (si existe)
-4. ADR relacionado
-5. Spec de la feature
-6. Contrato de datos/API
-7. Archivos afectados
+3. **`apps/web/src/shared/ui/README.md`** — patrones de formulario y componentes (obligatorio para toda tarea de frontend)
+4. `docs/avances/<modulo>.md` (si existe)
+5. ADR relacionado
+6. Spec de la feature
+7. Contrato de datos/API
+8. Archivos afectados
 
 No implementar solo a partir de una conversacion aislada.
+
+## Identidad visual frontend (obligatorio)
+
+Antes de escribir una sola linea de UI, cargar la skill `frontend-ui-identity`. Todo formulario, dialogo o pagina debe sentirse nativo al sistema. Reglas minimas:
+
+- **Labels**: `<label className="block space-y-2 text-sm text-foreground">`, nunca `text-xs` ni `text-muted-foreground`
+- **Sin asteriscos rojos**: el sistema no los usa. Validacion en backend.
+- **Botones**: `<Button>` de `shared/ui/button`. Nunca `<button>` con estilos inline.
+- **Errores**: `<Alert>` de `shared/ui/alert`. Nunca divs rojos raw.
+- **Inputs**: `<Input>`, `<Textarea>`, `<Combobox>`, `<Select>` de `shared/ui/`. Nunca elementos HTML nativos sin wrapper.
+- **Espaciado**: `space-y-4` dentro de secciones, `space-y-6` entre secciones, `flex justify-end gap-3` para fila de botones.
+- **Sin estilos inline**: solo Tailwind utility classes via `className`.
+
+Si un componente no existe en `shared/ui/`, se crea alli primero como generico, luego se usa desde el plugin.
 
 ## ADRs obligatorios (leer antes de decisiones tecnicas)
 
@@ -95,6 +110,8 @@ Esto elimina el "schema inferno" de tipos duplicados con nombres ligeramente dis
 
 Estructura minima: `plugin.json`, `backend/`, `frontend/`, `migrations/`, `README.md`. Todo plugin declara: identidad, version, `api_version`, dependencias, entrypoints, permisos.
 
+**Obligatorio**: al agregar un permiso o evento nuevo, actualizar **simultaneamente** `plugin.json` (manifiesto) y `backend/plugin.py` (registro runtime: `register_permissions`, `register_events`). Si solo se actualiza uno, el sistema no reconoce el permiso/evento y falla con 403/Permission denied.
+
 ## Base de datos
 
 PostgreSQL 16. `tenant_id` en tablas donde corresponda. Aislamiento logico por aplicacion. RLS futuro opcional. Migraciones con Alembic. No crear stored procedures ni triggers de negocio.
@@ -150,7 +167,9 @@ Si una tarea exige leer specs antiguas, tratarlas primero como contexto historic
 
 ## Testing y calidad
 
-Herramientas: Ruff (lint+format), Pyright (typing), Pytest (backend). Toda logica nueva requiere pruebas. Al cambiar backend/tests, correr `ruff check` y `pyright` como cierre tecnico.
+Herramientas: Ruff (lint+format), Pyright (typing), Pytest (backend), Vitest (frontend). Toda logica nueva requiere pruebas. Al cambiar backend/tests, correr `ruff check` y `pyright` como cierre tecnico.
+
+**Obligatorio**: toda feature nueva debe incluir tests. Backend: tests de integracion con `TestClient` y SQLite. Frontend: tests de logica pura con Vitest. Si un componente usa dependencias incompatibles con `renderToStaticMarkup` (ej. Tooltip, contextos React), adaptarlo para que sea testeable (ej. atributo `title` nativo en vez de `Tooltip`). No se mergea sin tests.
 
 ## Pull Requests
 

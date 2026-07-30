@@ -1179,8 +1179,8 @@ class PlanningExpectedLoadSummary(BaseModel):
         unit_weight_kg: float | None = Field(default=None, ge=0)
         total_weight_kg: float | None = Field(default=None, ge=0)
 
-    total_products: int = Field(ge=0)
-    total_units: float = Field(ge=0)
+    total_products: int = Field(default=0, ge=0)
+    total_units: float = Field(default=0.0, ge=0)
     total_weight_kg: float | None = Field(default=None, ge=0)
     items: list[Item] = Field(default_factory=list)
 

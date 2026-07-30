@@ -15,6 +15,7 @@ export function VehicleJornadaCard({ card, onOpenVehicle }: Props) {
   const activeLabel = semanticStatus
     ? VEHICLE_SESSION_STATUS_LABELS[semanticStatus] ?? semanticStatus
     : "Sin activa";
+  const totalAdr = card.active_session?.current_stock?.total_adr_points ?? 0;
   const cardToneClass =
     semanticStatus === "LOADING"
       ? "border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
@@ -61,6 +62,13 @@ export function VehicleJornadaCard({ card, onOpenVehicle }: Props) {
           Pend {card.pending_sessions.length} · Hist {card.historical_sessions.length}
         </p>
         <p className="truncate text-[11px] text-muted-foreground">{activeLabel}</p>
+        {totalAdr > 0 ? (
+          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+              ADR {totalAdr} pts
+            </p>
+          </div>
+        ) : null}
       </div>
     </Card>
   );

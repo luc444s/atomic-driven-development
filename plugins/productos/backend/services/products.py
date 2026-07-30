@@ -225,7 +225,7 @@ def list_products(
     brand_id: str | None = None,
     condition_code: str | None = None,
     is_active: bool | None = None,
-    limit: int = 20,
+    limit: int = 10,
     offset: int = 0,
 ) -> tuple[list[ProductListItemRead], int]:
     line_alias = ProductLine
@@ -318,7 +318,7 @@ def list_products(
 
 
 def search_products(
-    db: Session, *, tenant_id: str, query: str, limit: int = 20
+    db: Session, *, tenant_id: str, query: str, limit: int = 10
 ) -> list[ProductSearchItemRead]:
     term = f"%{query.strip()}%"
     stmt = (

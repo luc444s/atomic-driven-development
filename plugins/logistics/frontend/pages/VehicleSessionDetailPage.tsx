@@ -16,6 +16,7 @@ import {
   getLoadPlan,
   getSessionReconciliation,
   getVehicleSession,
+  listSerializedCylinderSummary,
   logisticsKeys,
   markSessionReturning,
   returnRemaining,
@@ -92,6 +93,9 @@ export function VehicleSessionDetailPage({
   const mobileBalancesKey = session?.mobile_warehouse_id
     ? stockKeys.balances.list({ warehouse_id: session.mobile_warehouse_id, limit: "200" })
     : ["stock", "mobile-none"];
+  const originSerializedKey = session?.origin_warehouse_id
+    ? ["logistics", "cylinders", "serialized-summary", session.origin_warehouse_id]
+    : ["logistics", "cylinders", "serialized-summary", "origin-none"];
 
   const originBalancesQuery = useQuery({
     queryKey: originBalancesKey,
@@ -102,6 +106,11 @@ export function VehicleSessionDetailPage({
     queryKey: mobileBalancesKey,
     queryFn: () => listBalances({ warehouse_id: session!.mobile_warehouse_id, limit: "200" }),
     enabled: Boolean(session?.mobile_warehouse_id),
+  });
+  const originSerializedQuery = useQuery({
+    queryKey: originSerializedKey,
+    queryFn: () => listSerializedCylinderSummary(session!.origin_warehouse_id),
+    enabled: Boolean(session?.origin_warehouse_id),
   });
 
   useEffect(() => {
@@ -147,6 +156,7 @@ export function VehicleSessionDetailPage({
       queryClient.invalidateQueries({ queryKey: logisticsKeys.reconciliation.detail(sessionId) }),
       queryClient.invalidateQueries({ queryKey: mobileBalancesKey }),
       queryClient.invalidateQueries({ queryKey: originBalancesKey }),
+      queryClient.invalidateQueries({ queryKey: originSerializedKey }),
     ]);
   }
 
@@ -211,6 +221,8 @@ export function VehicleSessionDetailPage({
   });
 
   const mobileRows = mobileBalancesQuery.data?.items ?? [];
+  const originRows = originBalancesQuery.data?.items ?? [];
+  const originSerializedRows = originSerializedQuery.data ?? [];
   const isPending =
     startLoadingMutation.isPending ||
     departMutation.isPending ||
@@ -330,7 +342,8 @@ export function VehicleSessionDetailPage({
         session={session}
         loadPlanItems={loadPlanItems}
         setLoadPlanItems={setLoadPlanItems}
-        originRows={originBalancesQuery.data?.items ?? []}
+        originRows={originRows}
+        serializedRows={originSerializedRows}
         onOpenProductSearch={() => setShowProductSearch(true)}
         onSavePlan={() =>
           runAction(async () => {

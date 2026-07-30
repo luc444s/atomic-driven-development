@@ -36,6 +36,7 @@ export type SessionOperationalSummary = {
     total_products: number;
     total_units: number;
     total_weight_kg: number | null;
+    total_adr_points: number;
   };
   waybill: {
     has_active_version: boolean;

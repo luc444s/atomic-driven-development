@@ -49,12 +49,18 @@ def _raise_service_error(exc: Exception) -> None:
 def get_selected_load_serials(
     session_id: str,
     product_id: str | None = Query(default=None),
+    selection_context: str | None = Query(default=None),
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
 ) -> list[LoadSerialAssignmentRead]:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
-    return list_selected_load_serial_assignments(db, session_id=session.id, product_id=product_id)
+    return list_selected_load_serial_assignments(
+        db,
+        session_id=session.id,
+        product_id=product_id,
+        selection_context=selection_context,
+    )
 
 
 @router.get("/{session_id}/load-serials/search", response_model=list[LoadSerialSearchResultRead])
@@ -63,6 +69,7 @@ def get_load_serial_search(
     product_id: str = Query(...),
     query: str = Query(...),
     source_warehouse_id: str | None = Query(default=None),
+    selection_context: str | None = Query(default=None),
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
@@ -74,6 +81,7 @@ def get_load_serial_search(
             session=session,
             product_id=product_id,
             source_warehouse_id=source_warehouse_id,
+            selection_context=selection_context,
             query=query,
         )
     except Exception as exc:
@@ -97,6 +105,7 @@ def put_select_load_serial(
             session=session,
             product_id=payload.product_id,
             source_warehouse_id=payload.source_warehouse_id,
+            selection_context=payload.selection_context,
             serial=payload.serial,
             action_context=build_action_context(request, tenant_context),
         )

@@ -183,7 +183,7 @@ export async function listAllProducts(params: Record<string, unknown> = {}): Pro
   return apiRequest(`${PRODUCTOS_BASE}/products/flat${buildQuery(params)}`);
 }
 
-export async function searchProducts(query: string, limit = 20): Promise<ProductSearchItem[]> {
+export async function searchProducts(query: string, limit = 10): Promise<ProductSearchItem[]> {
   if (!query.trim()) return [];
   return apiRequest(`${PRODUCTOS_BASE}/products/search${buildQuery({ q: query, limit })}`);
 }

@@ -31,6 +31,7 @@ type Props = {
   }>;
   quotePrefill?: {
     items: Array<{ product_id: string; product_name: string | null; quantity: number; unit_weight_kg: number | null }>;
+    quote_id?: string;
     vehicle_id?: string;
     notes?: string;
     planned_start_at?: string;
@@ -99,6 +100,7 @@ export function CreatePlanningReservationDialog(props: Props) {
       expected_load_summary,
       expected_weight_total: expected_load_summary.total_weight_kg,
       notes: form.notes || null,
+      quote_id: props.quotePrefill?.quote_id || null,
       adr_required: expected_load_summary.items.some((item) => item.adr_required),
       permit_override: form.permit_override,
       override_reason: form.override_reason || null,

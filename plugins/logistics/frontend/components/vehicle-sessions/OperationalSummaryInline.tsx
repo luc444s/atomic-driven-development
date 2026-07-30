@@ -33,7 +33,15 @@ function SummaryToneBadge({ label, tone }: { label: string; tone: "healthy" | "a
 export function OperationalSummaryInline({ session, summary, isLoading }: Props) {
   const items = [
     { label: "Conductor", value: session.driver_name },
-    { label: "Ruta", value: session.route_id ?? "Sin ruta" },
+    {
+      label: "Almacén origen",
+      value: session.origin_warehouse_name ?? session.origin_warehouse_id ?? "Sin almacén origen",
+    },
+    {
+      label: "Almacén móvil",
+      value: session.mobile_warehouse_name ?? session.mobile_warehouse_code ?? "Sin almacén móvil",
+    },
+    { label: "Ruta", value: session.route_date ?? session.route_id ?? "Sin ruta" },
     { label: "Apertura", value: new Date(session.opened_at).toLocaleString() },
     { label: "Peso planificado", value: `${session.planned_weight_kg ?? 0} kg` },
     { label: "Peso confirmado", value: `${session.loaded_weight_kg ?? 0} kg` },
@@ -52,9 +60,17 @@ export function OperationalSummaryInline({ session, summary, isLoading }: Props)
     summary
       ? {
           label: "Carga actual",
-          value: `${summary.composition.total_products} productos · ${summary.composition.total_units} unidades · ${summary.composition.total_weight_kg ?? 0} kg`,
+          value: `${summary.composition.total_products} productos · ${summary.composition.total_units} unidades · ${summary.composition.total_weight_kg ?? 0} kg${summary.composition.total_adr_points > 0 ? ` · ADR ${summary.composition.total_adr_points} pts` : ""}`,
         }
       : { label: "Carga actual", value: isLoading ? "Cargando..." : "Sin pulso operativo" },
+    ...(summary?.composition?.total_adr_points > 0
+      ? [
+          {
+            label: "ADR",
+            value: `⚠ ${summary.composition.total_adr_points} puntos — Mercancía peligrosa`,
+          },
+        ]
+      : []),
     summary
       ? {
           label: "Carta Porte",

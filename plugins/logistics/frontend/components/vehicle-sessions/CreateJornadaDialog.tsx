@@ -26,6 +26,7 @@ type Props = {
   onOpenCreateVehicle: () => void;
   onOpenCreateRoute: () => void;
   setRouteVehicle: (vehicleId: string) => void;
+  fixedVehicleId?: string | null;
 };
 
 export function CreateJornadaDialog({
@@ -42,8 +43,12 @@ export function CreateJornadaDialog({
   onOpenCreateVehicle,
   onOpenCreateRoute,
   setRouteVehicle,
+  fixedVehicleId,
 }: Props) {
   const originWarehouses = getRealWarehouses(warehouses);
+  const fixedVehicle = fixedVehicleId
+    ? vehicles.find((vehicle) => vehicle.id === fixedVehicleId) ?? null
+    : null;
 
   return (
     <Dialog
@@ -53,22 +58,29 @@ export function CreateJornadaDialog({
       onClose={onClose}
     >
       <form className="space-y-4" onSubmit={onSubmit}>
-        <label className="block space-y-2 text-sm text-foreground">
-          <span>Vehículo</span>
-          <div className="space-y-2">
-            <Select
-              value={form.vehicle_id}
-              onChange={(value) => {
-                setForm((current) => ({ ...current, vehicle_id: value }));
-                setRouteVehicle(value);
-              }}
-              options={vehicles.map((vehicle) => ({ value: vehicle.id, label: vehicle.plate }))}
-            />
-            <Button type="button" variant="secondary" onClick={onOpenCreateVehicle}>
-              Crear vehículo
-            </Button>
+        {fixedVehicle ? (
+          <div className="rounded-md border border-border p-4">
+            <p className="mb-3 text-sm font-medium text-foreground">Vehículo</p>
+            <p className="text-sm text-foreground">{fixedVehicle.plate}</p>
           </div>
-        </label>
+        ) : (
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Vehículo</span>
+            <div className="space-y-2">
+              <Select
+                value={form.vehicle_id}
+                onChange={(value) => {
+                  setForm((current) => ({ ...current, vehicle_id: value }));
+                  setRouteVehicle(value);
+                }}
+                options={vehicles.map((vehicle) => ({ value: vehicle.id, label: vehicle.plate }))}
+              />
+              <Button type="button" variant="secondary" onClick={onOpenCreateVehicle}>
+                Crear vehículo
+              </Button>
+            </div>
+          </label>
+        )}
         <label className="block space-y-2 text-sm text-foreground">
           <span>Conductor</span>
           <Select

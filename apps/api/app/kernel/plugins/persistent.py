@@ -113,6 +113,73 @@ def sync_plugin_registry_state(db: Session, *, registry: PluginManifestRegistry)
 
     db.flush()
 
+    _ensure_logistics_catalogs(db)
+
+
+def _ensure_logistics_catalogs(db: Session) -> None:
+    """Re-populate logistics catalog tables if emptied by any means."""
+    record = get_plugin_registry_record_by_plugin_id(db, plugin_id="logistics")
+    if record is None or record.state not in ("valid", "enabled"):
+        return
+
+    from plugins.logistics.backend.models import (
+        LogisticsCylinderState,
+        LogisticsMovementType,
+        LogisticsStateTransition,
+    )
+    from plugins.logistics.backend.services.catalog import (
+        MOVEMENT_TYPE_DEFINITIONS,
+        STATE_DEFINITIONS,
+        TRANSITION_DEFINITIONS,
+    )
+
+    existing_states = set(db.scalars(select(LogisticsCylinderState.code)).all())
+    for code, is_final, description in STATE_DEFINITIONS:
+        if code not in existing_states:
+            db.add(
+                LogisticsCylinderState(
+                    code=code,
+                    is_final=is_final,
+                    description=description,
+                )
+            )
+
+    existing = set(db.scalars(
+        select(LogisticsMovementType.code)
+    ).all())
+    for (
+        code, name, category, moves_cylinders, origin_state, target_state
+    ) in MOVEMENT_TYPE_DEFINITIONS:
+        if code not in existing:
+            db.add(LogisticsMovementType(
+                code=code, name=name, category=category,
+                moves_cylinders=moves_cylinders,
+                origin_state=origin_state, target_state=target_state,
+            ))
+
+    existing_transitions = {
+        (item.from_state, item.to_state)
+        for item in db.scalars(select(LogisticsStateTransition)).all()
+    }
+    for (
+        from_state,
+        to_state,
+        requires_adr,
+        requires_hydrotest,
+        description,
+    ) in TRANSITION_DEFINITIONS:
+        if (from_state, to_state) not in existing_transitions:
+            db.add(
+                LogisticsStateTransition(
+                    from_state=from_state,
+                    to_state=to_state,
+                    requires_adr=requires_adr,
+                    requires_hydrotest=requires_hydrotest,
+                    description=description,
+                )
+            )
+    db.flush()
+
 
 def install_plugin(
     db: Session,

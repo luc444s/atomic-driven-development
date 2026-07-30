@@ -21,6 +21,36 @@ from plugins.ventas.cotizacion.backend.services.cotizacion import handle_cotizar
 router = APIRouter(tags=["ventas"])
 
 
+def _resolve_warehouse_for_quote(
+    db: Session, draft: QuoteDraft, tenant_context: TenantContext
+) -> str:
+    from plugins.logistics.backend.models import LogisticsVehicle, LogisticsWarehouse
+
+    if draft.vehicle_id:
+        vehicle = db.scalar(
+            select(LogisticsVehicle).where(
+                LogisticsVehicle.id == draft.vehicle_id,
+                LogisticsVehicle.tenant_id == tenant_context.current_tenant_id,
+            )
+        )
+        if vehicle and vehicle.warehouse_id:
+            return vehicle.warehouse_id
+
+    warehouse = db.scalar(
+        select(LogisticsWarehouse.id).where(
+            LogisticsWarehouse.tenant_id == tenant_context.current_tenant_id,
+            LogisticsWarehouse.is_active.is_(True),
+            LogisticsWarehouse.warehouse_type != "MOBILE",
+        ).order_by(LogisticsWarehouse.name).limit(1)
+    )
+    if warehouse is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No hay almacenes disponibles para reservar stock",
+        )
+    return warehouse
+
+
 @router.post(
     "/cotizaciones",
     response_model=QuoteDraftResponse,
@@ -128,12 +158,52 @@ def patch_cotizacion_status(
         )
 
     draft.status = body.status
-    db.commit()
-    db.refresh(draft)
+    db.flush()
+
+    if body.status == "CONFIRMED":
+        from plugins.stock.backend.common import StockActionContext
+        from plugins.stock.backend.services.allocation import allocate_stock
+
+        items = db.execute(
+            select(QuoteItem).where(QuoteItem.quote_draft_id == draft.id)
+        ).scalars().all()
+
+        warehouse_id = _resolve_warehouse_for_quote(db, draft, tenant_context)
+
+        ctx = StockActionContext(
+            tenant_id=tenant_context.current_tenant_id,
+            branch_id=tenant_context.current_branch_id,
+            actor_user_id=tenant_context.current_user_id,
+            correlation_id=None,
+            request_id=None,
+        )
+
+        for item in items:
+            try:
+                allocate_stock(
+                    db,
+                    tenant_id=tenant_context.current_tenant_id,
+                    product_id=item.product_id,
+                    warehouse_id=warehouse_id,
+                    quantity=float(item.quantity),
+                    reference_type="quote",
+                    reference_id=draft.id,
+                    allocation_group_id=draft.id,
+                    expires_at=None,
+                    action_context=ctx,
+                )
+            except ValueError as exc:
+                db.rollback()
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail=f"Stock insuficiente para {item.product_name}: {exc}",
+                ) from exc
 
     items = db.execute(
         select(QuoteItem).where(QuoteItem.quote_draft_id == draft.id)
     ).scalars().all()
+    db.commit()
+    db.refresh(draft)
 
     vehicle = (
         VehicleSummary(id=draft.vehicle_id, plate=draft.vehicle_plate)

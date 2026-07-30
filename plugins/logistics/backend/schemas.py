@@ -235,6 +235,9 @@ class CylinderStateLogRead(BaseModel):
 class CylinderTransitionRequest(BaseModel):
     to_state: str = Field(min_length=1, max_length=50)
     movement_id: str | None = None
+    session_id: str | None = None
+    customer_id: str | None = None
+    customer_name: str | None = Field(default=None, max_length=120)
     origin: str | None = Field(default=None, max_length=100)
     reason_code: str | None = Field(default=None, max_length=30)
     notes: str | None = None
@@ -244,6 +247,13 @@ class CylinderTransitionRequest(BaseModel):
 class CylinderSummaryItem(BaseModel):
     state: str
     count: int
+
+
+class WarehouseSerializedCylinderSummaryItem(BaseModel):
+    product_id: str
+    product_sku: str
+    product_name: str
+    serialized_count: int
 
 
 class WarehouseRead(BaseModel):
@@ -367,6 +377,7 @@ class DeliveryPointRead(BaseModel):
     fiscal_operation_document: str | None
     fiscal_operation_type: str | None
     gps_link: str | None
+    gps_coordinates: dict[str, float] | None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -393,6 +404,7 @@ class DeliveryPointCreateRequest(BaseModel):
     fiscal_operation_document: str | None = Field(default=None, max_length=50)
     fiscal_operation_type: str | None = Field(default=None, max_length=30)
     gps_link: str | None = Field(default=None, max_length=200)
+    gps_coordinates: dict[str, float] | None = None
 
 
 class DeliveryPointUpdateRequest(BaseModel):
@@ -416,6 +428,7 @@ class DeliveryPointUpdateRequest(BaseModel):
     fiscal_operation_document: str | None = Field(default=None, max_length=50)
     fiscal_operation_type: str | None = Field(default=None, max_length=30)
     gps_link: str | None = Field(default=None, max_length=200)
+    gps_coordinates: dict[str, float] | None = None
     is_active: bool | None = None
 
 
@@ -648,6 +661,9 @@ class MovementRead(BaseModel):
     dispatched_at: datetime | None
     notes: str | None
     parent_movement_id: str | None
+    origin_movement_id: str | None
+    last_stock_sync_error: str | None
+    stock_sync_status: str = "PENDING"
     created_by: str
     created_at: datetime
     updated_at: datetime
@@ -685,6 +701,22 @@ class MovementStatusHistoryRead(BaseModel):
     to_value: str
     changed_by: str
     notes: str | None
+    created_at: datetime
+
+
+class StockBridgeLogRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    tenant_id: str
+    movement_id: str
+    operation: str
+    product_id: str | None
+    quantity: float | None
+    unit_cost: float | None
+    status: str
+    error_msg: str | None
+    payload: dict | None
     created_at: datetime
 
 
@@ -1166,6 +1198,7 @@ class PlanningReservationCreateRequest(BaseModel):
     driver_id: str | None = None
     adr_required: bool = False
     notes: str | None = None
+    quote_id: str | None = None
     permit_override: bool = False
     override_reason: str | None = None
 

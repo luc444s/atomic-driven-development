@@ -12,6 +12,8 @@ from plugins.logistics.backend.common import (
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsCylinderStateLog,
+    LogisticsMovement,
+    LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import (
     CylinderCreateRequest,
@@ -19,8 +21,15 @@ from plugins.logistics.backend.schemas import (
     CylinderTransitionRequest,
     CylinderUpdateRequest,
     MovementCreateRequest,
+    WarehouseSerializedCylinderSummaryItem,
+)
+from plugins.logistics.backend.services.envase import (
+    CUSTOMER_POSSESSION_STATES,
+    get_latest_ownership,
+    register_ownership_change,
 )
 from plugins.logistics.backend.services.state_machine import (
+    StateTransitionError,
     ensure_transition_allowed,
     list_allowed_transitions,
 )
@@ -44,6 +53,8 @@ ENTRY_MODE_DOCUMENT_TYPE = {
     ENTRY_MODE_EMPTY_FROM_CUSTOMER: "IC",
     ENTRY_MODE_FULL_FROM_SUPPLIER: "IP",
 }
+
+SERIALIZED_WAREHOUSE_AVAILABILITY_STATES = ("EN_ALMACEN_VACIO", "LLENADO_OK")
 
 
 def list_cylinders(
@@ -175,6 +186,66 @@ def summarize_cylinders(db: Session, *, tenant_id: str) -> list[CylinderSummaryI
         .order_by(LogisticsCylinder.current_state)
     ).all()
     return [CylinderSummaryItem(state=row[0], count=row[1]) for row in rows]
+
+
+def summarize_serialized_cylinders_by_warehouse(
+    db: Session, *, tenant_id: str, warehouse_id: str
+) -> list[WarehouseSerializedCylinderSummaryItem]:
+    warehouse = db.scalar(
+        select(LogisticsWarehouse).where(
+            LogisticsWarehouse.id == warehouse_id,
+            LogisticsWarehouse.tenant_id == tenant_id,
+        )
+    )
+    if warehouse is None:
+        raise LookupError("Warehouse not found")
+
+    cylinders = list(
+        db.scalars(
+            select(LogisticsCylinder)
+            .where(
+                LogisticsCylinder.tenant_id == tenant_id,
+                LogisticsCylinder.is_active.is_(True),
+                LogisticsCylinder.current_state.in_(SERIALIZED_WAREHOUSE_AVAILABILITY_STATES),
+                or_(
+                    LogisticsCylinder.location.ilike(f"%{warehouse.code}%"),
+                    LogisticsCylinder.location.ilike(f"%{warehouse.name}%"),
+                ),
+            )
+            .order_by(LogisticsCylinder.serial.asc())
+        ).all()
+    )
+
+    counts_by_product: dict[str, int] = {}
+    for cylinder in cylinders:
+        product_id = cylinder.product_id or cylinder.gas_group_id
+        if product_id is None:
+            continue
+        counts_by_product[product_id] = counts_by_product.get(product_id, 0) + 1
+
+    if not counts_by_product:
+        return []
+
+    product_rows = db.execute(
+        select(Product.id, Product.sku, Product.name).where(
+            Product.tenant_id == tenant_id,
+            Product.id.in_(counts_by_product.keys()),
+        )
+    ).all()
+    product_map = {row[0]: (row[1], row[2]) for row in product_rows}
+
+    items: list[WarehouseSerializedCylinderSummaryItem] = []
+    for product_id, serialized_count in counts_by_product.items():
+        product_sku, product_name = product_map.get(product_id, (product_id, product_id))
+        items.append(
+            WarehouseSerializedCylinderSummaryItem(
+                product_id=product_id,
+                product_sku=product_sku,
+                product_name=product_name,
+                serialized_count=serialized_count,
+            )
+        )
+    return sorted(items, key=lambda item: (-item.serialized_count, item.product_sku, item.product_name))
 
 
 def create_cylinder(
@@ -343,6 +414,15 @@ def transition_cylinder(
     transition = ensure_transition_allowed(db, cylinder=cylinder, to_state=payload.to_state)
     previous_state = cylinder.current_state
     cylinder.current_state = transition.to_state
+
+    if payload.session_id:
+        cylinder.session_id = payload.session_id
+    elif transition.to_state in ("CARGA_EN_VEHICULO", "EN_RUTA") and cylinder.session_id is None:
+        raise ValueError(
+            f"Transición a '{transition.to_state}' requiere session_id. "
+            "Usa el state machine con contexto de sesión."
+        )
+
     db.add(cylinder)
     db.flush()
 
@@ -387,7 +467,79 @@ def transition_cylinder(
             "reason_code": payload.reason_code,
         },
     )
+    _sync_cylinder_ownership_for_transition(
+        db,
+        cylinder=cylinder,
+        previous_state=previous_state,
+        payload=payload,
+        action_context=action_context,
+    )
     return cylinder
+
+
+def _resolve_transition_customer_context(
+    db: Session, *, payload: CylinderTransitionRequest
+) -> tuple[str | None, str | None]:
+    if payload.customer_id is not None:
+        return payload.customer_id, payload.customer_name
+    if payload.movement_id is None:
+        return None, None
+    movement = db.scalar(
+        select(LogisticsMovement).where(LogisticsMovement.id == payload.movement_id)
+    )
+    if movement is None:
+        return None, None
+    return movement.customer_id, movement.customer_name
+
+
+def _ownership_label_for_non_customer_state(target_state: str) -> str:
+    if target_state in {"EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN", "LLENADO_OK"}:
+        return "ALMACEN"
+    return "JORNADA"
+
+
+def _sync_cylinder_ownership_for_transition(
+    db: Session,
+    *,
+    cylinder: LogisticsCylinder,
+    previous_state: str,
+    payload: CylinderTransitionRequest,
+    action_context: LogisticsActionContext,
+) -> None:
+    target_state = payload.to_state
+    customer_id, customer_name = _resolve_transition_customer_context(db, payload=payload)
+
+    if target_state in CUSTOMER_POSSESSION_STATES:
+        if customer_id is None:
+            raise StateTransitionError(
+                f"Transición a '{target_state}' requiere customer_id o movement_id con cliente trazable"
+            )
+        register_ownership_change(
+            db,
+            cylinder=cylinder,
+            movement_id=payload.movement_id,
+            customer_id=customer_id,
+            customer_name=customer_name,
+            notes=payload.notes,
+            action_context=action_context,
+        )
+        return
+
+    if previous_state not in CUSTOMER_POSSESSION_STATES:
+        return
+
+    latest_ownership = get_latest_ownership(db, cylinder_id=cylinder.id)
+    if latest_ownership is not None and latest_ownership.customer_id is None:
+        return
+    register_ownership_change(
+        db,
+        cylinder=cylinder,
+        movement_id=payload.movement_id,
+        customer_id=None,
+        customer_name=_ownership_label_for_non_customer_state(target_state),
+        notes=payload.notes,
+        action_context=action_context,
+    )
 
 
 def _apply_cylinder_payload(

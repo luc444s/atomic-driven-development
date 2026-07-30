@@ -314,6 +314,7 @@ def build_operational_summary(
             total_products=len(composition.product_lines),
             total_units=composition.totals.total_packages,
             total_weight_kg=composition.totals.total_weight_kg,
+            total_adr_points=composition.totals.total_adr_points,
         ),
         waybill=waybill,
         blocking_reasons=blocking_reasons,

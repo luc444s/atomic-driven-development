@@ -217,3 +217,52 @@ export function regenerateSessionWaybill(sessionId: string, payload: SessionWayb
     body: JSON.stringify(payload),
   });
 }
+
+export type VehicleLocationRecordPayload = {
+  lat: number;
+  lng: number;
+  speed?: number | null;
+  heading?: number | null;
+  accuracy_meters?: number | null;
+  recorded_at: string;
+  source?: string;
+};
+
+export type VehicleLocationEvent = {
+  id: string;
+  session_id: string;
+  route_id: string | null;
+  vehicle_id: string;
+  driver_id: string;
+  lat: number;
+  lng: number;
+  speed: number | null;
+  heading: number | null;
+  accuracy_meters: number | null;
+  source: string;
+  recorded_at: string;
+  received_at: string;
+};
+
+export type RouteControlState = {
+  session_id: string;
+  route_id: string | null;
+  vehicle_id: string;
+  active_stop_id: string | null;
+  active_stop_started_at: string | null;
+  current_stop_id: string | null;
+  current_stop_index: number | null;
+  status: string;
+  last_lat: number | null;
+  last_lng: number | null;
+  last_speed: number | null;
+  last_heading: number | null;
+  last_recorded_at: string | null;
+  completed_stops: number;
+  total_stops: number;
+  progress_percent: number;
+  off_route: boolean;
+  next_stop_eta_minutes: number | null;
+  geofence_state: string | null;
+  updated_at: string;
+};

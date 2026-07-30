@@ -4,7 +4,6 @@ from sqlalchemy import inspect, text
 from sqlalchemy.schema import CreateColumn
 
 from plugins.logistics.backend.models import LogisticsCylinder
-from plugins.productos.backend.models import Product
 
 revision = "0010"
 

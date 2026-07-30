@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC
+from datetime import UTC, date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -14,7 +14,9 @@ from plugins.logistics.backend.dto.sessions import (
 )
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
+    LogisticsAdrProductConfig,
     LogisticsOperation,
+    LogisticsRoute,
     LogisticsRouteOperation,
     LogisticsSessionReconciliation,
     LogisticsVehicle,
@@ -26,6 +28,7 @@ from plugins.logistics.backend.services.rules import (
     get_session_start_queue_blocker,
     has_open_discrepancies,
 )
+from plugins.productos.backend.models import ProductAdr
 
 
 def _get_user(db: Session, user_id: str) -> User | None:
@@ -46,8 +49,14 @@ def _get_warehouse(db: Session, warehouse_id: str) -> LogisticsWarehouse:
     return warehouse
 
 
+def _resolve_route_date(db: Session, route_id: str) -> date | None:
+    route = db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == route_id))
+    return route.route_date if route is not None else None
+
+
 def _build_stock_summary(
-    db: Session, *, tenant_id: str, mobile_warehouse_id: str
+    db: Session, *, tenant_id: str, mobile_warehouse_id: str,
+    reference_date: date | None = None,
 ) -> SessionStockSummaryRead:
     balances = get_warehouse_balances(
         db,
@@ -55,12 +64,42 @@ def _build_stock_summary(
         warehouse_id=mobile_warehouse_id,
     )
     mobile_warehouse = _get_warehouse(db, mobile_warehouse_id)
+
+    today = reference_date or date.today()
+    total_adr = 0.0
+    for item in balances.items:
+        if float(item.quantity) <= 0:
+            continue
+        adr_cfg = db.scalar(
+            select(LogisticsAdrProductConfig).where(
+                LogisticsAdrProductConfig.tenant_id == tenant_id,
+                LogisticsAdrProductConfig.product_id == item.product_id,
+                LogisticsAdrProductConfig.valid_from <= today,
+                (LogisticsAdrProductConfig.valid_to.is_(None))
+                | (LogisticsAdrProductConfig.valid_to >= today),
+            ).order_by(LogisticsAdrProductConfig.valid_from.desc())
+        )
+        if adr_cfg is not None and adr_cfg.adr_points is not None:
+            total_adr += float(adr_cfg.adr_points) * float(item.quantity)
+        else:
+            fallback = db.scalar(
+                select(ProductAdr).where(
+                    ProductAdr.tenant_id == tenant_id,
+                    ProductAdr.product_id == item.product_id,
+                    ProductAdr.valid_from <= today,
+                    (ProductAdr.valid_to.is_(None)) | (ProductAdr.valid_to >= today),
+                ).order_by(ProductAdr.valid_from.desc())
+            )
+            if fallback is not None and fallback.points is not None:
+                total_adr += float(fallback.points) * float(item.quantity)
+
     return SessionStockSummaryRead(
         warehouse_id=mobile_warehouse.id,
         warehouse_code=mobile_warehouse.code,
         warehouse_name=mobile_warehouse.name,
         total_products=len([item for item in balances.items if item.quantity > 0]),
         total_units=sum(float(item.quantity) for item in balances.items),
+        total_adr_points=total_adr,
     )
 
 
@@ -170,6 +209,7 @@ def _build_session_read(
     driver = _get_user(db, session.driver_id)
     origin = _get_warehouse(db, session.origin_warehouse_id)
     mobile = _get_warehouse(db, session.mobile_warehouse_id)
+    route_date = _resolve_route_date(db, session.route_id) if session.route_id else None
     stock_summary = _build_stock_summary(
         db, tenant_id=session.tenant_id, mobile_warehouse_id=session.mobile_warehouse_id
     )
@@ -206,6 +246,7 @@ def _build_session_read(
             mobile_warehouse_code=mobile.code,
             mobile_warehouse_name=mobile.name,
             route_id=session.route_id,
+            route_date=route_date,
             status=session.status,
             opened_at=session.opened_at,
             ready_at=session.ready_at,
@@ -239,6 +280,7 @@ def _build_session_read(
         mobile_warehouse_code=mobile.code,
         mobile_warehouse_name=mobile.name,
         route_id=session.route_id,
+        route_date=route_date,
         status=session.status,
         opened_at=session.opened_at,
         ready_at=session.ready_at,

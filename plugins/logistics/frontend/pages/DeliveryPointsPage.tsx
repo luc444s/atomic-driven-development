@@ -18,6 +18,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { LocationPicker } from "../../../../apps/web/src/shared/ui/location-picker";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 
 type DeliveryPointFormState = {
@@ -34,6 +35,7 @@ type DeliveryPointFormState = {
   visit_day: string;
   time_window: string;
   instructions: string;
+  gps_coordinates: { lat: number; lng: number } | null;
 };
 
 
@@ -50,6 +52,7 @@ const EMPTY_FORM: DeliveryPointFormState = {
   visit_day: "",
   time_window: "",
   instructions: "",
+  gps_coordinates: null,
 };
 
 export function DeliveryPointsPage() {
@@ -83,6 +86,7 @@ export function DeliveryPointsPage() {
         visit_day: payload.visit_day || null,
         time_window: payload.time_window || null,
         instructions: payload.instructions || null,
+        gps_coordinates: payload.gps_coordinates,
       };
       if (payload.id) {
         return updateDeliveryPoint(payload.id, normalized);
@@ -181,6 +185,7 @@ export function DeliveryPointsPage() {
                         visit_day: row.visit_day ?? "",
                         time_window: row.time_window ?? "",
                         instructions: row.instructions ?? "",
+                        gps_coordinates: row.gps_coordinates ?? null,
                       });
                       setIsOpen(true);
                     }}
@@ -246,6 +251,16 @@ export function DeliveryPointsPage() {
             <span>Indicaciones</span>
             <Input value={formState.instructions} onChange={(event) => setFormState((current) => ({ ...current, instructions: event.target.value }))} />
           </label>
+          <div className="rounded-md border border-border p-4 space-y-4">
+            <p className="text-sm font-medium text-foreground">Ubicación en mapa</p>
+            <LocationPicker
+              value={formState.gps_coordinates}
+              onChange={(location) => setFormState((current) => ({ ...current, gps_coordinates: location }))}
+              searchPlaceholder="Buscar dirección del punto"
+              placeholder="Selecciona la ubicación exacta del punto de entrega"
+              height={260}
+            />
+          </div>
           <label className="block space-y-2 text-sm text-foreground">
             <span>Zona</span>
             <Select

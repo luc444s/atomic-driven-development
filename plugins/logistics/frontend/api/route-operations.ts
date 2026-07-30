@@ -14,10 +14,18 @@ export type RouteOperation = {
   id: string;
   session_id: string;
   route_stop_id: string | null;
+  context_type: string | null;
+  customer_id: string | null;
+  customer_name_snapshot: string | null;
+  warehouse_id: string | null;
+  warehouse_name_snapshot: string | null;
   operation_type: string;
   status: string;
   movement_ids: string[];
   idempotency_key: string;
+  location_event_id: string | null;
+  location_lat: number | null;
+  location_lng: number | null;
   notes: string | null;
   performed_by: string | null;
   performed_at: string | null;
@@ -118,6 +126,27 @@ export type RouteIncidentCorrectPayload = {
   }>;
 };
 
+export type RouteEventConfirmPayload = {
+  route_stop_id?: string | null;
+  context_type: string;
+  customer_id?: string | null;
+  warehouse_id?: string | null;
+  operation_type: string;
+  notes?: string | null;
+  idempotency_key: string;
+  items: Array<{
+    product_id: string;
+    product_name?: string | null;
+    quantity: number;
+    direction: string;
+  }>;
+  incident_mode: string;
+  type?: string | null;
+  related_operation_id?: string | null;
+  target_incident_id?: string | null;
+  incident_notes?: string | null;
+};
+
 export function listRouteOperations(sessionId: string) {
   return apiRequest<RouteOperation[]>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-operations`);
 }
@@ -144,6 +173,13 @@ export function confirmRouteOperation(sessionId: string, operationId: string) {
     `${API_PREFIX}/vehicle-sessions/${sessionId}/route-operations/${operationId}/confirm`,
     { method: "POST" }
   );
+}
+
+export function confirmRouteEvent(sessionId: string, payload: RouteEventConfirmPayload) {
+  return apiRequest<RouteOperation>(`${API_PREFIX}/vehicle-sessions/${sessionId}/route-events/confirm`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function getCurrentComposition(sessionId: string) {

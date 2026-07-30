@@ -13,7 +13,7 @@ import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 
 import type { StockBalanceItem } from "../../../../stock/frontend/types";
-import type { VehicleSessionDetail } from "../../api";
+import type { SerializedCylinderSummary, VehicleSessionDetail } from "../../api";
 import { LoadSerialsDialog } from "./LoadSerialsDialog";
 
 export type EditableLoadPlanItem = {
@@ -32,6 +32,7 @@ type Props = {
   loadPlanItems: EditableLoadPlanItem[];
   setLoadPlanItems: React.Dispatch<React.SetStateAction<EditableLoadPlanItem[]>>;
   originRows: StockBalanceItem[];
+  serializedRows: SerializedCylinderSummary[];
   onOpenProductSearch: () => void;
   onSavePlan: () => void;
   isPending: boolean;
@@ -43,6 +44,7 @@ export function SessionLoadTab({
   loadPlanItems,
   setLoadPlanItems,
   originRows,
+  serializedRows,
   onOpenProductSearch,
   onSavePlan,
   isPending,
@@ -50,6 +52,9 @@ export function SessionLoadTab({
 }: Props) {
   const isLoadingStep = session.status === "LOADING";
   const [serialItemProductId, setSerialItemProductId] = useState<string | null>(null);
+  const serializedCounts = new Map(
+    (serializedRows ?? []).map((row) => [row.product_id, row.serialized_count])
+  );
   const serialItem = loadPlanItems.find((item) => item.product_id === serialItemProductId) ?? null;
   const hasIncompleteSerials = loadPlanItems.some((item) => {
     if (!item.requires_serials) {
@@ -184,6 +189,12 @@ export function SessionLoadTab({
                 key: "qty",
                 header: "Disponible",
                 render: (row: StockBalanceItem) => String(row.quantity),
+              },
+              {
+                key: "serialized",
+                header: "Serializados",
+                render: (row: StockBalanceItem) =>
+                  String(serializedCounts.get(row.product_id) ?? 0),
               },
             ]}
             rows={originRows}

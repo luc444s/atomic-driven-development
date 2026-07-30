@@ -29,6 +29,8 @@ from plugins.logistics.backend.services.product_bridge import (
 )
 from plugins.productos.backend.models import Product
 
+CUSTOMER_POSSESSION_STATES = {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}
+
 
 def list_retimbrados(db: Session, *, cylinder_id: str) -> list[LogisticsCylinderRetimbrado]:
     return list(
@@ -114,6 +116,20 @@ def list_ownership_history(db: Session, *, cylinder_id: str) -> list[LogisticsCy
                 LogisticsCylinderOwnership.created_at.desc(),
             )
         ).all()
+    )
+
+
+def get_latest_ownership(
+    db: Session, *, cylinder_id: str
+) -> LogisticsCylinderOwnership | None:
+    return db.scalar(
+        select(LogisticsCylinderOwnership)
+        .where(LogisticsCylinderOwnership.cylinder_id == cylinder_id)
+        .order_by(
+            LogisticsCylinderOwnership.change_date.desc(),
+            LogisticsCylinderOwnership.created_at.desc(),
+        )
+        .limit(1)
     )
 
 

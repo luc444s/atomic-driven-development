@@ -57,7 +57,7 @@ export function SessionWorkspaceHeader({ session }: Props) {
           <span className="font-medium">Apertura:</span> {new Date(session.opened_at).toLocaleString()}
         </div>
         <div>
-          <span className="font-medium">Ruta:</span> {session.route_id ?? "Sin ruta"}
+          <span className="font-medium">Ruta:</span> {session.route_date ?? session.route_id ?? "Sin ruta"}
         </div>
         <div>
           <span className="font-medium">Peso planificado:</span> {session.planned_weight_kg ?? 0} kg

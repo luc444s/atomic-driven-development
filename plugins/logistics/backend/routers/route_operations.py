@@ -11,6 +11,7 @@ from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.dto.route_operations import (
     CurrentCompositionRead,
     ExchangeRouteOperationCreateRequest,
+    RouteEventConfirmRequest,
     RouteIncidentCorrectRequest,
     RouteIncidentCreateRequest,
     RouteIncidentRead,
@@ -21,6 +22,7 @@ from plugins.logistics.backend.dto.route_operations import (
 )
 from plugins.logistics.backend.services.route_operations import (
     build_current_composition,
+    confirm_route_event,
     confirm_route_operation,
     correct_route_incident,
     create_exchange_route_operation,
@@ -79,6 +81,31 @@ def post_route_operation(
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
         result = create_route_operation(
+            db,
+            session=session,
+            payload=payload,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+        raise AssertionError("unreachable") from exc
+
+
+@router.post("/{session_id}/route-events/confirm", response_model=RouteOperationRead)
+def post_confirm_route_event(
+    session_id: str,
+    payload: RouteEventConfirmRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> RouteOperationRead:
+    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
+    try:
+        result = confirm_route_event(
             db,
             session=session,
             payload=payload,

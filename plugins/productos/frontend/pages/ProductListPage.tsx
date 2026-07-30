@@ -14,7 +14,7 @@ import { ModalNuevoProducto } from "../components/ModalNuevoProducto";
 import { ProductosSection } from "../components/ProductosSection";
 
 export function ProductListPage() {
-  const pageSize = 20;
+  const pageSize = 10;
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [showNew, setShowNew] = useState(false);

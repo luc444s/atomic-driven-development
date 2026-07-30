@@ -742,7 +742,7 @@ def get_products(
     brand_id: str | None = Query(default=None),
     condition_code: str | None = Query(default=None),
     is_active: bool | None = Query(default=None),
-    limit: int = Query(default=20, ge=1, le=100),
+    limit: int = Query(default=10, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
     tenant_context: TenantContext = TENANT_CONTEXT,
     db: Session = DB_SESSION,
@@ -769,7 +769,7 @@ def get_products(
 )
 def get_product_search(
     q: str = Query(..., min_length=1),
-    limit: int = Query(default=20, ge=1, le=50),
+    limit: int = Query(default=10, ge=1, le=50),
     tenant_context: TenantContext = TENANT_CONTEXT,
     db: Session = DB_SESSION,
 ) -> list[ProductSearchItemRead]:

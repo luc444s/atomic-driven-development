@@ -15,6 +15,7 @@ from plugins.logistics.backend.models import (
     LogisticsMovementItem,
     LogisticsMovementStatusHistory,
     LogisticsMovementType,
+    LogisticsStockBridgeLog,
     LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import (
@@ -411,3 +412,23 @@ def cancel_movement(
         },
     )
     return movement
+
+
+def compute_stock_sync_status(
+    db: Session,
+    *,
+    movement: LogisticsMovement,
+) -> str:
+    statuses = list(
+        db.scalars(
+            select(LogisticsStockBridgeLog.status).where(
+                LogisticsStockBridgeLog.tenant_id == movement.tenant_id,
+                LogisticsStockBridgeLog.movement_id == movement.id,
+            )
+        ).all()
+    )
+    if not statuses:
+        return "PENDING"
+    if any(s == "error" for s in statuses):
+        return "ERROR"
+    return "SYNCED"

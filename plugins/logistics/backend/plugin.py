@@ -11,11 +11,12 @@ from plugins.logistics.backend.routers.load_serials import router as load_serial
 from plugins.logistics.backend.routers.operational_summary import (
     router as operational_summary_router,
 )
+from plugins.logistics.backend.routers.operations import router as session_operations_router
 from plugins.logistics.backend.routers.planning_reservations import (
     router as planning_reservations_router,
 )
-from plugins.logistics.backend.routers.operations import router as session_operations_router
 from plugins.logistics.backend.routers.reconciliation import router as reconciliation_router
+from plugins.logistics.backend.routers.route_control import router as route_control_router
 from plugins.logistics.backend.routers.route_operations import router as route_operations_router
 from plugins.logistics.backend.routers.route_stop_results import (
     router as route_stop_results_router,
@@ -116,6 +117,10 @@ LOGISTICS_EVENTS = [
     "logistics.vehicle_session.outbound",
     "logistics.vehicle_session.returning",
     "logistics.vehicle_session.cancelled",
+    "logistics.vehicle_location.recorded",
+    "logistics.route_control.status_changed",
+    "logistics.route_control.stop_arrived_manually",
+    "logistics.route_control.stop_departed_manually",
 ]
 
 
@@ -126,6 +131,7 @@ def register(context: PluginContext) -> None:
     context.register_router(planning_reservations_router)
     context.register_router(sessions_router)
     context.register_router(operational_summary_router)
+    context.register_router(route_control_router)
     context.register_router(route_operations_router)
     context.register_router(route_stop_results_router)
     context.register_router(session_waybills_router)

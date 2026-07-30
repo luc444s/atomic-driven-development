@@ -7,6 +7,7 @@ type ProductSearchDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSelect: (product: ProductSearchItem) => void;
   title?: string;
+  fetchFn?: (query: string) => Promise<ProductSearchItem[]>;
 };
 
 export function ProductSearchDialog({
@@ -14,6 +15,7 @@ export function ProductSearchDialog({
   onOpenChange,
   onSelect,
   title = "Seleccionar producto",
+  fetchFn = searchProducts,
 }: ProductSearchDialogProps) {
   return (
     <SearchDialog<ProductSearchItem>
@@ -21,7 +23,7 @@ export function ProductSearchDialog({
       onOpenChange={onOpenChange}
       title={title}
       placeholder="GLP 10kg, SKU-001, 7750..."
-      fetchFn={searchProducts}
+      fetchFn={fetchFn}
       onSelect={onSelect}
       getRowId={(item) => item.id}
       columns={[

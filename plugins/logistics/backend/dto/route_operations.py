@@ -20,6 +20,22 @@ class RouteOperationCreateRequest(BaseModel):
     items: list[RouteOperationItemRequest] = Field(default_factory=list)
 
 
+class RouteEventConfirmRequest(BaseModel):
+    route_stop_id: str | None = None
+    context_type: str = Field(min_length=1, max_length=30)
+    customer_id: str | None = None
+    warehouse_id: str | None = None
+    operation_type: str = Field(min_length=1, max_length=30)
+    notes: str | None = Field(default=None, max_length=500)
+    idempotency_key: str = Field(min_length=1, max_length=120)
+    items: list[RouteOperationItemRequest] = Field(default_factory=list)
+    incident_mode: str = Field(default="NONE", min_length=1, max_length=30)
+    type: str | None = Field(default=None, max_length=40)
+    related_operation_id: str | None = None
+    target_incident_id: str | None = None
+    incident_notes: str | None = Field(default=None, max_length=500)
+
+
 class ExchangeOperationLineRequest(BaseModel):
     product_id: str
     product_name: str | None = Field(default=None, max_length=200)
@@ -47,10 +63,18 @@ class RouteOperationRead(BaseModel):
     id: str
     session_id: str
     route_stop_id: str | None = None
+    context_type: str | None = None
+    customer_id: str | None = None
+    customer_name_snapshot: str | None = None
+    warehouse_id: str | None = None
+    warehouse_name_snapshot: str | None = None
     operation_type: str
     status: str
     movement_ids: list[str] = Field(default_factory=list)
     idempotency_key: str
+    location_event_id: str | None = None
+    location_lat: float | None = None
+    location_lng: float | None = None
     notes: str | None = None
     performed_by: str | None = None
     performed_at: datetime | None = None

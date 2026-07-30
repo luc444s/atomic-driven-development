@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import type { ProductSearchDialogItem } from "../../../../apps/web/src/components/ProductSearchDialog";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
@@ -9,6 +9,7 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { listBalances, listWarehousesCatalog, stockKeys } from "../api";
+import { Pagination } from "../../../../apps/web/src/shared/ui/pagination";
 import { ModalAjusteStock } from "../components/ModalAjusteStock";
 import { ModalConfigStock } from "../components/ModalConfigStock";
 import { ModalDetalleStock } from "../components/ModalDetalleStock";
@@ -34,26 +35,36 @@ function toProductSelection(row: StockBalanceItem): ProductSearchDialogItem {
 }
 
 export function StockBalancePage() {
+  const pageSize = 10;
   const [search, setSearch] = useState("");
   const [warehouseFilter, setWarehouseFilter] = useState("");
+  const [page, setPage] = useState(1);
   const [belowMinOnly, setBelowMinOnly] = useState(false);
   const [adjustSelection, setAdjustSelection] = useState<SelectionState | null>(null);
   const [transferSelection, setTransferSelection] = useState<SelectionState | null>(null);
   const [configSelection, setConfigSelection] = useState<SelectionState | null>(null);
   const [detailSelection, setDetailSelection] = useState<SelectionState | null>(null);
 
+  useEffect(() => {
+    setPage(1);
+  }, [search, warehouseFilter, belowMinOnly]);
+
   const balancesQuery = useQuery({
-    queryKey: stockKeys.balances.list({ search, warehouseFilter, belowMinOnly }),
+    queryKey: stockKeys.balances.list({ search, warehouseFilter, belowMinOnly, page, limit: pageSize }),
     queryFn: () =>
       listBalances({
         q: search,
         warehouse_id: warehouseFilter || undefined,
         below_min_only: belowMinOnly,
-        limit: 100,
-        offset: 0,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
       }),
   });
   const warehousesQuery = useQuery({ queryKey: stockKeys.warehouses, queryFn: listWarehousesCatalog });
+
+  const totalPages = balancesQuery.data
+    ? Math.max(1, Math.ceil(balancesQuery.data.total / balancesQuery.data.limit))
+    : 1;
 
   const totals = useMemo(() => {
     const items = balancesQuery.data?.items ?? [];
@@ -190,6 +201,14 @@ export function StockBalancePage() {
             rowKey={(row) => `${row.product_id}:${row.warehouse_id}`}
             emptyMessage="Aún no hay balances materializados."
           />
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-muted-foreground">
+              {balancesQuery.data
+                ? `${balancesQuery.data.total} balances`
+                : "Cargando balances..."}
+            </p>
+            <Pagination page={page} totalPages={totalPages} onChange={setPage} />
+          </div>
         </CardContent>
       </Card>
 

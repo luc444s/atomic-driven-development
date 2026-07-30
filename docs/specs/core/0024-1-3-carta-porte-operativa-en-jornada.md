@@ -14,6 +14,14 @@ extends:
 
 ## Contexto
 
+## Nota de vigencia
+
+`SPEC 0033 - RouteOperation con Efectos Separados` ajusta esta spec en un punto critico:
+
+`Carta Porte` ya no puede depender solo de `movement_ids` ni de cambios financieros.
+
+Desde `0033`, su estado de sincronizacion y su `operational_hash` tambien deben reaccionar a cambios fisicos de composicion en la sesion.
+
 `SPEC 0024.3` consolidó que la jornada se opera desde el stepper y que los contextos reales deben abrirse desde esa consola.
 
 `SPEC 0023J` ya fijó la intención documental de carta porte viva/versionada, pero todavía no aterriza la integración operativa concreta dentro de `Jornada`.
@@ -45,7 +53,7 @@ Integrar `carta porte` dentro de `Jornada` como contexto operativo/documental ac
 
 `Carta porte` es una fotografía versionada de la operación en movimiento.
 
-Pertenece a la ejecución de la jornada (`vehicle_session`) y se construye desde la composición operativa vigente de `movements` en ruta.
+Pertenece a la ejecución de la jornada (`vehicle_session`) y se construye desde la composición operativa vigente de la jornada en ruta: cambios financieros y cambios fisicos.
 
 ## Principios obligatorios
 
@@ -73,8 +81,16 @@ Responsable de:
 Responsable de:
 
 - aportar la verdad operativa base;
-- reflejar la composición transportada vigente;
+- reflejar la porcion financiera/documental de la composicion transportada vigente;
 - emitir los cambios operativos relevantes que afectan el snapshot.
+
+### `RouteOperation` + composición vigente
+
+Responsable de:
+
+- reflejar la verdad fisica actual de la jornada;
+- incorporar cambios operativos que no generan `Movement`;
+- desactualizar la carta porte cuando la composicion fisica cambie.
 
 ### Capa documental
 
@@ -147,7 +163,7 @@ type CartaPorteVersion = {
       total_adr_points?: number | null
     }
   }
-  change_event: "INITIAL_GENERATION" | "MOVEMENT_CHANGED" | "DRIVER_CHANGED" | "VEHICLE_CHANGED" | "DESTINATION_CHANGED"
+  change_event: "INITIAL_GENERATION" | "MOVEMENT_CHANGED" | "PHYSICAL_COMPOSITION_CHANGED" | "DRIVER_CHANGED" | "VEHICLE_CHANGED" | "DESTINATION_CHANGED"
   change_reason: string
 }
 ```
@@ -157,6 +173,7 @@ Reglas complementarias del modelo:
 1. `movement_ids` debe normalizarse en orden estable antes de calcular el `operational_hash`.
 2. `sync_status` es derivado, no persistido.
 3. `snapshot_schema_version` permite evolucionar el payload histórico sin romper lectura futura.
+4. `movement_ids` por si solo no representa todo el estado operativo; la composicion fisica vigente tambien forma parte del hash.
 
 ## Integridad temporal y consistencia
 
@@ -165,10 +182,11 @@ La carta porte debe generarse sobre una versión consistente del estado operativ
 Reglas:
 
 1. la regeneración debe calcular un `operational_hash` del estado operativo usado para construir el snapshot;
-2. `movement_ids` debe ordenarse de forma determinista antes de entrar al hash;
-3. el snapshot activo se considera desactualizado cuando el hash operativo vigente difiere del hash de la versión activa;
-4. backend debe rechazar o reintentar la regeneración si detecta que el estado operativo cambió durante la operación;
-5. la generación debe ejecutarse dentro de una transacción o estrategia equivalente de snapshot consistente.
+2. `movement_ids` debe ordenarse de forma determinista antes de entrar al hash cuando existan;
+3. el hash tambien debe incorporar la composicion fisica vigente de la sesion;
+4. el snapshot activo se considera desactualizado cuando el hash operativo vigente difiere del hash de la versión activa;
+5. backend debe rechazar o reintentar la regeneración si detecta que el estado operativo cambió durante la operación;
+6. la generación debe ejecutarse dentro de una transacción o estrategia equivalente de snapshot consistente.
 
 ## Idempotencia
 
@@ -203,6 +221,7 @@ Eventos mínimos:
 
 - `INITIAL_GENERATION`
 - `MOVEMENT_CHANGED`
+- `PHYSICAL_COMPOSITION_CHANGED`
 - `DRIVER_CHANGED`
 - `VEHICLE_CHANGED`
 - `DESTINATION_CHANGED`
@@ -224,6 +243,11 @@ Regla:
 ```text
 is_outdated = operational_hash(actual_state) != operational_hash(snapshot_activo)
 ```
+
+Donde `actual_state` incluye:
+
+- cambios financieros/materializados por `Movement`;
+- cambios fisicos de composicion aunque no existan `movement_ids` nuevos.
 
 La UI no infiere esto por su cuenta.
 

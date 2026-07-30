@@ -471,6 +471,11 @@ def deliver_route_stop(
     action_context: LogisticsActionContext,
 ) -> LogisticsRouteStop:
     now = datetime.now(UTC)
+    delivery_point = db.scalar(
+        select(LogisticsDeliveryPoint).where(
+            LogisticsDeliveryPoint.id == stop.delivery_point_id
+        )
+    )
     stop.status = "ENTREGADO"
     stop.arrival_time = stop.arrival_time or now
     stop.departure_time = now
@@ -498,6 +503,12 @@ def deliver_route_stop(
                 cylinder_id=load.cylinder_id,
                 payload=CylinderTransitionRequest(
                     to_state="EN_CLIENTE_LLENO",
+                    customer_id=(
+                        delivery_point.customer_id if delivery_point is not None else None
+                    ),
+                    customer_name=(
+                        delivery_point.customer_name if delivery_point is not None else None
+                    ),
                     origin="STOP_DELIVERED",
                     notes=f"Stop {stop.id}",
                 ),

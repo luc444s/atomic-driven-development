@@ -37,10 +37,11 @@ def ensure_transition_allowed(
 ) -> LogisticsStateTransition:
     if cylinder.current_state in FINAL_STATES:
         raise StateTransitionError(
-            f"Cylinder {cylinder.serial} is in final state {cylinder.current_state}"
+            f"El cilindro {cylinder.serial} está en estado final "
+            f"({cylinder.current_state}) y no admite transiciones"
         )
     if cylinder.current_state == to_state:
-        raise StateTransitionError("Transition to the same state is not allowed")
+        raise StateTransitionError("No se puede transicionar al mismo estado")
 
     transition = db.scalar(
         select(LogisticsStateTransition).where(
@@ -50,15 +51,16 @@ def ensure_transition_allowed(
     )
     if transition is None:
         raise StateTransitionError(
-            f"Transition {cylinder.current_state} -> {to_state} is not allowed"
+            f"Transición no permitida: {cylinder.current_state} → {to_state}. "
+            f"Revise el flujo de estados del cilindro {cylinder.serial}."
         )
 
     if transition.requires_adr and not has_valid_adr(db, cylinder):
         raise StateTransitionError(
-            "Transition requires ADR data from the associated product"
+            "Esta transición requiere datos ADR del producto asociado"
         )
     if transition.requires_hydrotest and not has_valid_hydrotest(cylinder):
-        raise StateTransitionError("Transition requires a valid `next_hydrotest_date`")
+        raise StateTransitionError("Esta transición requiere prueba hidrostática vigente")
 
     return transition
 

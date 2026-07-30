@@ -2,15 +2,16 @@ from __future__ import annotations
 
 import json
 from datetime import UTC, date, datetime
+from types import SimpleNamespace
+from typing import Any, cast
 from uuid import uuid4
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.models import CrmCustomer
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
 from plugins.logistics.backend.dto.route_operations import (
-    CompositionLineRead,
-    CompositionTotalsRead,
     CurrentCompositionRead,
     RouteIncidentRead,
     RouteOperationItemRead,
@@ -19,33 +20,40 @@ from plugins.logistics.backend.dto.route_operations import (
 )
 from plugins.logistics.backend.models import (
     LogisticsAdrProductConfig,
+    LogisticsCylinder,
     LogisticsDeliveryPoint,
+    LogisticsLoadSerialAssignment,
     LogisticsMovement,
     LogisticsRouteIncident,
     LogisticsRouteOperation,
     LogisticsRouteOperationItem,
     LogisticsRouteStop,
     LogisticsVehicleSession,
+    LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import MovementCreateRequest
-from plugins.logistics.backend.services.customer_possession import (
-    EVENT_IN_TO_CUSTOMER,
-    EVENT_OUT_FROM_CUSTOMER,
-    SOURCE_MOBILE_DELIVERY,
-    SOURCE_MOBILE_PICKUP,
-    append_customer_possession_event,
-)
+from plugins.logistics.backend.services.customer_possession import append_customer_possession_event
+from plugins.logistics.backend.services.load_serials import product_requires_serial_capture
 from plugins.logistics.backend.services.movements import (
     confirm_movement,
-    create_movement,
+    get_movement_type,
     list_movement_items,
 )
-from plugins.logistics.backend.services.stock_bridge import adjust_required_product_stock
+from plugins.logistics.backend.services.route_control import get_latest_vehicle_location_event
+from plugins.logistics.backend.services.route_operation_composition import (
+    build_current_composition_v2,
+)
+from plugins.logistics.backend.services.route_operation_confirmation import (
+    confirm_route_operation_effects,
+)
+from plugins.logistics.backend.services.stock_bridge import apply_stock_for_movement
 from plugins.productos.backend.models import Product, ProductAdr
 
 VALID_OPERATION_TYPES = {"DELIVERY", "PICKUP", "EXCHANGE"}
 VALID_DIRECTIONS = {"OUT", "IN"}
 ROUTE_MUTABLE_STATUSES = {"OUTBOUND", "RETURNING"}
+VALID_CONTEXT_TYPES = {"STOP", "CUSTOMER_EMERGENCY", "WAREHOUSE_EMERGENCY"}
+VALID_INCIDENT_MODES = {"NONE", "CREATE", "CORRECT_EXISTING"}
 VALID_INCIDENT_TYPES = {
     "QUANTITY_MISMATCH",
     "WRONG_PRODUCT",
@@ -80,6 +88,138 @@ def _get_delivery_point(
             LogisticsDeliveryPoint.id == route_stop.delivery_point_id
         )
     )
+
+
+def _get_customer(db: Session, *, tenant_id: str, customer_id: str) -> CrmCustomer:
+    customer = db.scalar(
+        select(CrmCustomer).where(
+            CrmCustomer.id == customer_id,
+            CrmCustomer.tenant_id == tenant_id,
+        )
+    )
+    if customer is None:
+        raise LookupError("Cliente no encontrado")
+    return customer
+
+
+def _get_warehouse(db: Session, *, tenant_id: str, warehouse_id: str) -> LogisticsWarehouse:
+    warehouse = db.scalar(
+        select(LogisticsWarehouse).where(
+            LogisticsWarehouse.id == warehouse_id,
+            LogisticsWarehouse.tenant_id == tenant_id,
+        )
+    )
+    if warehouse is None:
+        raise LookupError("Almacén no encontrado")
+    return warehouse
+
+
+def _customer_snapshot_name(customer: CrmCustomer) -> str:
+    return customer.commercial_name or customer.legal_name
+
+
+def _existing_operation_by_idempotency_key(
+    db: Session, *, session_id: str, idempotency_key: str | None
+) -> LogisticsRouteOperation | None:
+    if not idempotency_key:
+        return None
+    return db.scalar(
+        select(LogisticsRouteOperation).where(
+            LogisticsRouteOperation.session_id == session_id,
+            LogisticsRouteOperation.idempotency_key == idempotency_key,
+        )
+    )
+
+
+def _resolve_operation_context(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    route_stop_id: str | None,
+    context_type: str | None,
+    customer_id: str | None,
+    warehouse_id: str | None,
+    require_explicit: bool,
+) -> dict[str, object]:
+    resolved_context_type = context_type
+    if resolved_context_type is None:
+        if require_explicit:
+            raise ValueError("context_type es obligatorio")
+        if route_stop_id is not None:
+            resolved_context_type = "STOP"
+        else:
+            return {
+                "route_stop": None,
+                "delivery_point": None,
+                "context_type": None,
+                "customer_id": None,
+                "customer_name_snapshot": None,
+                "warehouse_id": None,
+                "warehouse_name_snapshot": None,
+            }
+
+    if resolved_context_type not in VALID_CONTEXT_TYPES:
+        raise ValueError("context_type no soportado")
+
+    if resolved_context_type == "STOP":
+        if route_stop_id is None:
+            raise ValueError("context_type STOP requiere route_stop_id")
+        if customer_id is not None:
+            raise ValueError("context_type STOP no permite customer_id explícito")
+        route_stop = _get_route_stop(db, route_stop_id=route_stop_id)
+        if route_stop is None:
+            raise LookupError("Parada no encontrada")
+        delivery_point = _get_delivery_point(db, route_stop=route_stop)
+        if delivery_point is None:
+            raise LookupError("Punto de entrega no encontrado para la parada")
+        warehouse_name_snapshot = None
+        if warehouse_id is not None:
+            warehouse = _get_warehouse(db, tenant_id=session.tenant_id, warehouse_id=warehouse_id)
+            warehouse_name_snapshot = warehouse.name
+        return {
+            "route_stop": route_stop,
+            "delivery_point": delivery_point,
+            "context_type": resolved_context_type,
+            "customer_id": delivery_point.customer_id,
+            "customer_name_snapshot": delivery_point.customer_name,
+            "warehouse_id": warehouse_id,
+            "warehouse_name_snapshot": warehouse_name_snapshot,
+        }
+
+    if route_stop_id is not None:
+        raise ValueError("El contexto manual no permite route_stop_id")
+
+    if resolved_context_type == "CUSTOMER_EMERGENCY":
+        if customer_id is None:
+            raise ValueError("context_type CUSTOMER_EMERGENCY requiere customer_id")
+        customer = _get_customer(db, tenant_id=session.tenant_id, customer_id=customer_id)
+        customer_name_snapshot = _customer_snapshot_name(customer)
+        return {
+            "route_stop": None,
+            "delivery_point": SimpleNamespace(
+                customer_id=customer.id,
+                customer_name=customer_name_snapshot,
+                address=None,
+            ),
+            "context_type": resolved_context_type,
+            "customer_id": customer.id,
+            "customer_name_snapshot": customer_name_snapshot,
+            "warehouse_id": None,
+            "warehouse_name_snapshot": None,
+        }
+
+    if warehouse_id is None:
+        raise ValueError("context_type WAREHOUSE_EMERGENCY requiere warehouse_id")
+    warehouse = _get_warehouse(db, tenant_id=session.tenant_id, warehouse_id=warehouse_id)
+    return {
+        "route_stop": None,
+        "delivery_point": None,
+        "context_type": resolved_context_type,
+        "customer_id": None,
+        "customer_name_snapshot": None,
+        "warehouse_id": warehouse.id,
+        "warehouse_name_snapshot": warehouse.name,
+    }
 
 
 def _require_product(db: Session, *, product_id: str) -> Product:
@@ -145,10 +285,18 @@ def _build_operation_read(
         id=operation.id,
         session_id=operation.session_id,
         route_stop_id=operation.route_stop_id,
+        context_type=operation.context_type,
+        customer_id=operation.customer_id,
+        customer_name_snapshot=operation.customer_name_snapshot,
+        warehouse_id=operation.warehouse_id,
+        warehouse_name_snapshot=operation.warehouse_name_snapshot,
         operation_type=operation.operation_type,
         status=operation.status,
         movement_ids=_movement_ids(operation),
         idempotency_key=operation.idempotency_key,
+        location_event_id=operation.location_event_id,
+        location_lat=float(operation.location_lat) if operation.location_lat is not None else None,
+        location_lng=float(operation.location_lng) if operation.location_lng is not None else None,
         notes=operation.notes,
         performed_by=operation.performed_by,
         performed_at=operation.performed_at,
@@ -237,21 +385,43 @@ def _validate_incident_payload(db: Session, *, session_id: str, payload) -> None
     _require_related_operation(db, session_id=session_id, operation_id=payload.related_operation_id)
 
 
-def create_route_operation(
+def _create_route_operation_record(
     db: Session,
     *,
     session: LogisticsVehicleSession,
     payload,
     action_context: LogisticsActionContext,
-) -> RouteOperationRead:
+    context: dict[str, object] | None = None,
+) -> LogisticsRouteOperation:
     if session.status not in ROUTE_MUTABLE_STATUSES:
         raise ValueError("La jornada no permite registrar operaciones de ruta en este estado")
     _validate_operation_payload(payload)
+
+    existing = _existing_operation_by_idempotency_key(
+        db,
+        session_id=session.id,
+        idempotency_key=payload.idempotency_key,
+    )
+    if existing is not None:
+        return existing
+
+    context = context or {
+        "context_type": None,
+        "customer_id": None,
+        "customer_name_snapshot": None,
+        "warehouse_id": None,
+        "warehouse_name_snapshot": None,
+    }
     operation = LogisticsRouteOperation(
         tenant_id=session.tenant_id,
         session_id=session.id,
         route_stop_id=payload.route_stop_id,
         operation_type=payload.operation_type,
+        context_type=context["context_type"],
+        customer_id=context["customer_id"],
+        customer_name_snapshot=context["customer_name_snapshot"],
+        warehouse_id=context["warehouse_id"],
+        warehouse_name_snapshot=context["warehouse_name_snapshot"],
         status="DRAFT",
         movement_ids_json="[]",
         idempotency_key=payload.idempotency_key or f"{session.id}:{uuid4()}",
@@ -278,6 +448,32 @@ def create_route_operation(
         entity_type="vehicle_session",
         entity_id=session.id,
         details={"operation_id": operation.id, "operation_type": operation.operation_type},
+    )
+    return operation
+
+
+def create_route_operation(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    payload,
+    action_context: LogisticsActionContext,
+) -> RouteOperationRead:
+    context = _resolve_operation_context(
+        db,
+        session=session,
+        route_stop_id=payload.route_stop_id,
+        context_type=getattr(payload, "context_type", None),
+        customer_id=getattr(payload, "customer_id", None),
+        warehouse_id=getattr(payload, "warehouse_id", None),
+        require_explicit=False,
+    )
+    operation = _create_route_operation_record(
+        db,
+        session=session,
+        payload=payload,
+        action_context=action_context,
+        context=context,
     )
     return _build_operation_read(db, operation=operation)
 
@@ -337,14 +533,153 @@ def create_exchange_route_operation(
     )
 
 
+def _delivery_point_for_operation(
+    db: Session, *, operation: LogisticsRouteOperation
+) -> LogisticsDeliveryPoint | SimpleNamespace | None:
+    route_stop = _get_route_stop(db, route_stop_id=operation.route_stop_id)
+    if route_stop is not None:
+        return _get_delivery_point(db, route_stop=route_stop)
+    if operation.customer_id is not None:
+        return SimpleNamespace(
+            customer_id=operation.customer_id,
+            customer_name=operation.customer_name_snapshot,
+            address=None,
+        )
+    return None
+
+
+class SerialResolutionError(ValueError):
+    """Seriales insuficientes o en estado incorrecto para la operación."""
+
+
+_STATE_BY_MOVEMENT_TYPE: dict[str, tuple[str, ...]] = {
+    "SC": ("CARGA_EN_VEHICULO", "EN_RUTA"),
+    "IC": ("EN_CLIENTE_VACIO",),
+    "SP": (
+        "EN_ALMACEN_VACIO", "EN_ALMACEN_LLENO",
+        "OBSERVADO", "PARA_REPARACION",
+    ),
+}
+
+
+def _resolve_serial_ids(
+    db: Session,
+    *,
+    session_id: str,
+    product_id: str,
+    quantity: int,
+    movement_type: str,
+) -> list[str]:
+    """Devuelve cylinder_ids bloqueados, filtrados por estado, orden determinista."""
+    states = _STATE_BY_MOVEMENT_TYPE.get(movement_type)
+    if states is None:
+        return []
+
+    return list(db.scalars(
+        select(LogisticsLoadSerialAssignment.cylinder_id)
+        .join(LogisticsCylinder,
+              LogisticsCylinder.id == LogisticsLoadSerialAssignment.cylinder_id)
+        .where(
+            LogisticsLoadSerialAssignment.session_id == session_id,
+            LogisticsLoadSerialAssignment.product_id == product_id,
+            LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+            LogisticsCylinder.current_state.in_(states),
+        )
+        .order_by(
+            LogisticsLoadSerialAssignment.selected_at.asc(),
+            LogisticsLoadSerialAssignment.cylinder_id.asc(),
+        )
+        .with_for_update(skip_locked=True)
+        .limit(quantity)
+    ).all())
+
+
+def _build_item_dict(
+    item: LogisticsRouteOperationItem,
+    movement_type: str,
+    cylinder_id: str | None = None,
+    quantity: int | None = None,
+) -> dict[str, object]:
+    qty = quantity if quantity is not None else max(1, int(float(item.quantity)))
+    return {
+        "product_id": item.product_id,
+        "product_name": item.product_name,
+        "cylinder_id": cylinder_id,
+        "quantity": qty,
+        "quantity_in": float(item.quantity) if movement_type == "IC" else 0,
+        "quantity_out": float(item.quantity) if movement_type == "SC" else 0,
+    }
+
+
+def _build_items_for_operation(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    items: list[LogisticsRouteOperationItem],
+    movement_type: str,
+) -> list[dict[str, object]]:
+    mt = get_movement_type(db, code=movement_type)
+    serial_cache: dict[tuple[str, str], bool] = {}
+    result: list[dict[str, object]] = []
+
+    for item in items:
+        if mt and mt.moves_cylinders:
+            cache_key = (session.id, item.product_id)
+            if cache_key not in serial_cache:
+                serial_cache[cache_key] = product_requires_serial_capture(
+                    db, tenant_id=session.tenant_id,
+                    session_id=session.id,
+                    product_id=item.product_id,
+                    source_warehouse_id=None,
+                )
+            requires_serials = serial_cache[cache_key]
+
+            if not requires_serials:
+                result.append(_build_item_dict(item, movement_type))
+                continue
+
+            serials = _resolve_serial_ids(
+                db, session_id=session.id,
+                product_id=item.product_id,
+                quantity=int(item.quantity),
+                movement_type=movement_type,
+            )
+
+            if not serials:
+                raise SerialResolutionError(
+                    f"Seriales insuficientes | producto={item.product_name} | "
+                    f"requeridos={int(item.quantity)} | disponibles=0 | "
+                    f"movement_type={movement_type} | session={session.id}"
+                )
+            if len(serials) < int(item.quantity):
+                raise SerialResolutionError(
+                    f"Seriales insuficientes | producto={item.product_name} | "
+                    f"requeridos={int(item.quantity)} | "
+                    f"disponibles={len(serials)} | "
+                    f"movement_type={movement_type} | session={session.id}"
+                )
+
+            for cyl_id in serials:
+                result.append(_build_item_dict(
+                    item, movement_type, cylinder_id=cyl_id, quantity=1,
+                ))
+        else:
+            result.append(_build_item_dict(item, movement_type))
+    return result
+
+
 def _build_movement_payload(
     *,
+    db: Session,
     session: LogisticsVehicleSession,
     delivery_point: LogisticsDeliveryPoint | None,
     route_stop_id: str | None,
     movement_type: str,
     items: list[LogisticsRouteOperationItem],
 ) -> MovementCreateRequest:
+    built_items = _build_items_for_operation(
+        db, session=session, items=items, movement_type=movement_type,
+    )
     return MovementCreateRequest.model_validate({
         "movement_type": movement_type,
         "route_id": session.route_id,
@@ -356,52 +691,8 @@ def _build_movement_payload(
         "destination_place": delivery_point.customer_name if delivery_point is not None else None,
         "destination_address": delivery_point.address if delivery_point is not None else None,
         "notes": f"RouteOperation {route_stop_id or session.id}",
-        "items": [
-            {
-                "product_id": item.product_id,
-                "product_name": item.product_name,
-                "quantity": max(1, int(float(item.quantity))),
-                "quantity_in": float(item.quantity) if movement_type == "IC" else 0,
-                "quantity_out": float(item.quantity) if movement_type == "SC" else 0,
-            }
-            for item in items
-        ],
+        "items": built_items,
     })
-
-
-def _apply_stock_for_movement(
-    db: Session,
-    *,
-    movement: LogisticsMovement,
-    action_context: LogisticsActionContext,
-) -> None:
-    if movement.warehouse_id is None:
-        return
-    items = list_movement_items(db, movement_id=movement.id)
-    deltas: dict[tuple[str | None, str | None], float] = {}
-    for item in items:
-        key = (item.product_id, item.product_name)
-        delta = 0.0
-        if movement.movement_type == "SC":
-            delta = -float(item.quantity_out or 0)
-        elif movement.movement_type == "IC":
-            delta = float(item.quantity_in or 0)
-        if delta == 0:
-            continue
-        deltas[key] = deltas.get(key, 0) + delta
-    for index, ((product_id, product_name), quantity) in enumerate(deltas.items(), start=1):
-        if product_id is None or quantity == 0:
-            continue
-        adjust_required_product_stock(
-            db,
-            tenant_id=movement.tenant_id,
-            warehouse_id=movement.warehouse_id,
-            product_id=product_id,
-            quantity=quantity,
-            reason=f"Movement {movement.id} confirmed: {product_name or product_id}",
-            idempotency_key=f"{movement.id}:route-op:{index}:{product_id}",
-            action_context=action_context,
-        )
 
 
 def _append_customer_possession(
@@ -441,13 +732,30 @@ def _confirm_and_apply_movement(
     movement: LogisticsMovement,
     action_context: LogisticsActionContext,
 ) -> LogisticsMovement:
+    try:
+        if movement.warehouse_id is not None:
+            items = list_movement_items(db, movement_id=movement.id)
+            apply_stock_for_movement(
+                db,
+                movement=movement,
+                items=items,
+                action_context=action_context,
+            )
+    except Exception:
+        movement.last_stock_sync_error = (
+            f"Stock bridge error during confirm. Check stock_bridge_log "
+            f"for movement {movement.id}"
+        )
+        db.add(movement)
+        db.flush()
+        raise
+
     movement = confirm_movement(
         db,
         tenant_id=tenant_id,
         movement=movement,
         action_context=action_context,
     )
-    _apply_stock_for_movement(db, movement=movement, action_context=action_context)
     return movement
 
 
@@ -469,8 +777,7 @@ def confirm_route_operation(
     if operation.status != "DRAFT":
         raise ValueError("Solo se pueden confirmar operaciones de ruta en borrador")
 
-    route_stop = _get_route_stop(db, route_stop_id=operation.route_stop_id)
-    delivery_point = _get_delivery_point(db, route_stop=route_stop)
+    delivery_point = cast(Any, _delivery_point_for_operation(db, operation=operation))
     items = list(
         db.scalars(
             select(LogisticsRouteOperationItem)
@@ -478,82 +785,23 @@ def confirm_route_operation(
             .order_by(LogisticsRouteOperationItem.created_at.asc())
         ).all()
     )
-
-    out_items = [item for item in items if item.direction == "OUT"]
-    in_items = [item for item in items if item.direction == "IN"]
-    movement_ids: list[str] = []
-
-    if out_items:
-        out_payload = _build_movement_payload(
-            session=session,
-            delivery_point=delivery_point,
-            route_stop_id=operation.route_stop_id,
-            movement_type="SC",
-            items=out_items,
-        )
-        out_movement = create_movement(
-            db,
-            tenant_id=session.tenant_id,
-            created_by=action_context.actor_user_id,
-            payload=out_payload,
-            action_context=action_context,
-        )
-        out_movement = _confirm_and_apply_movement(
-            db,
-            tenant_id=session.tenant_id,
-            movement=out_movement,
-            action_context=action_context,
-        )
-        movement_ids.append(out_movement.id)
-        _append_customer_possession(
-            db,
-            tenant_id=session.tenant_id,
-            customer_id=delivery_point.customer_id if delivery_point is not None else None,
-            movement=out_movement,
-            items=out_items,
-            source_type=SOURCE_MOBILE_DELIVERY,
-            event_type=EVENT_IN_TO_CUSTOMER,
-            action_context=action_context,
-        )
-
-    if in_items:
-        in_payload = _build_movement_payload(
-            session=session,
-            delivery_point=delivery_point,
-            route_stop_id=operation.route_stop_id,
-            movement_type="IC",
-            items=in_items,
-        )
-        in_movement = create_movement(
-            db,
-            tenant_id=session.tenant_id,
-            created_by=action_context.actor_user_id,
-            payload=in_payload,
-            action_context=action_context,
-        )
-        in_movement = _confirm_and_apply_movement(
-            db,
-            tenant_id=session.tenant_id,
-            movement=in_movement,
-            action_context=action_context,
-        )
-        movement_ids.append(in_movement.id)
-        _append_customer_possession(
-            db,
-            tenant_id=session.tenant_id,
-            customer_id=delivery_point.customer_id if delivery_point is not None else None,
-            movement=in_movement,
-            items=in_items,
-            source_type=SOURCE_MOBILE_PICKUP,
-            event_type=EVENT_OUT_FROM_CUSTOMER,
-            action_context=action_context,
-        )
-
-    movement_ids.sort()
+    movement_ids, effect_summary = confirm_route_operation_effects(
+        db,
+        session=session,
+        operation=operation,
+        delivery_point=delivery_point,
+        items=items,
+        action_context=action_context,
+    )
     operation.movement_ids_json = json.dumps(movement_ids)
     operation.status = "CONFIRMED"
     operation.performed_by = action_context.actor_user_id
     operation.performed_at = datetime.now(UTC)
+    latest_location = get_latest_vehicle_location_event(db, session_id=session.id)
+    if latest_location is not None:
+        operation.location_event_id = latest_location.id
+        operation.location_lat = float(latest_location.lat)
+        operation.location_lng = float(latest_location.lng)
     db.add(operation)
     db.flush()
     audit_logistics_action(
@@ -566,6 +814,8 @@ def confirm_route_operation(
             "operation_id": operation.id,
             "operation_type": operation.operation_type,
             "movement_ids": movement_ids,
+            "effect_summary": effect_summary,
+            "financial_omission_reason": effect_summary.get("financial_omission_reason"),
         },
     )
     return _build_operation_read(db, operation=operation)
@@ -574,72 +824,7 @@ def confirm_route_operation(
 def build_current_composition(
     db: Session, *, session: LogisticsVehicleSession
 ) -> CurrentCompositionRead:
-    from plugins.logistics.backend.integrations.stock import get_warehouse_balances
-
-    balances = get_warehouse_balances(
-        db,
-        tenant_id=session.tenant_id,
-        warehouse_id=session.mobile_warehouse_id,
-    )
-    reference_date = (session.departed_at or session.opened_at).date()
-    product_lines: list[CompositionLineRead] = []
-    total_packages = 0.0
-    total_weight = 0.0
-    total_adr_points = 0.0
-    for balance in balances.items:
-        quantity = float(balance.quantity)
-        if quantity <= 0:
-            continue
-        weight_kg = _product_weight(db, product_id=balance.product_id)
-        total_line_weight = weight_kg * quantity if weight_kg is not None else None
-        adr_points = None
-        adr_cfg = _latest_adr_config(
-            db,
-            tenant_id=session.tenant_id,
-            product_id=balance.product_id,
-            today=reference_date,
-        )
-        if adr_cfg is not None and adr_cfg.adr_points is not None:
-            adr_points = float(adr_cfg.adr_points) * quantity
-        else:
-            fallback = _fallback_prod_adr(
-                db,
-                tenant_id=session.tenant_id,
-                product_id=balance.product_id,
-                today=reference_date,
-            )
-            if fallback is not None and fallback.points is not None:
-                adr_points = float(fallback.points) * quantity
-        product_lines.append(
-            CompositionLineRead(
-                product_id=balance.product_id,
-                product_name=balance.product_name,
-                quantity=quantity,
-                weight_kg=total_line_weight,
-                adr_points=adr_points,
-            )
-        )
-        total_packages += quantity
-        total_weight += total_line_weight or 0
-        total_adr_points += adr_points or 0
-    product_lines.sort(key=lambda line: line.product_id)
-    confirmed_ops = db.scalar(
-        select(func.count(LogisticsRouteOperation.id))
-        .where(
-            LogisticsRouteOperation.session_id == session.id,
-            LogisticsRouteOperation.status == "CONFIRMED",
-        )
-    )
-    return CurrentCompositionRead(
-        session_id=session.id,
-        composition_version=(int(confirmed_ops or 0) + 1),
-        product_lines=product_lines,
-        totals=CompositionTotalsRead(
-            total_packages=total_packages,
-            total_weight_kg=total_weight,
-            total_adr_points=total_adr_points,
-        ),
-    )
+    return build_current_composition_v2(db, session=session)
 
 
 def list_route_incidents(db: Session, *, session_id: str) -> list[RouteIncidentRead]:
@@ -684,6 +869,138 @@ def create_route_incident(
         details={"incident_id": incident.id, "incident_type": incident.incident_type},
     )
     return _build_incident_read(incident)
+
+
+def _validate_route_event_payload(
+    db: Session, *, session: LogisticsVehicleSession, payload
+) -> None:
+    if payload.incident_mode not in VALID_INCIDENT_MODES:
+        raise ValueError("incident_mode no soportado")
+
+    if payload.incident_mode == "NONE":
+        if payload.type is not None:
+            raise ValueError("incident_mode NONE no permite type")
+        if payload.target_incident_id is not None:
+            raise ValueError("incident_mode NONE no permite target_incident_id")
+        return
+
+    if payload.incident_mode == "CREATE":
+        if payload.type is None:
+            raise ValueError("incident_mode CREATE requiere type")
+        if payload.target_incident_id is not None:
+            raise ValueError("incident_mode CREATE no permite target_incident_id")
+        if payload.type not in VALID_INCIDENT_TYPES:
+            raise ValueError("Tipo de incidencia de ruta no soportado")
+        _require_related_operation(
+            db,
+            session_id=session.id,
+            operation_id=payload.related_operation_id,
+        )
+        return
+
+    if payload.target_incident_id is None:
+        raise ValueError("incident_mode CORRECT_EXISTING requiere target_incident_id")
+
+
+def confirm_route_event(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    payload,
+    action_context: LogisticsActionContext,
+) -> RouteOperationRead:
+    if session.status not in ROUTE_MUTABLE_STATUSES:
+        raise ValueError("La jornada no permite registrar operaciones de ruta en este estado")
+
+    _validate_operation_payload(payload)
+    _validate_route_event_payload(db, session=session, payload=payload)
+
+    existing = _existing_operation_by_idempotency_key(
+        db,
+        session_id=session.id,
+        idempotency_key=payload.idempotency_key,
+    )
+    if existing is not None:
+        return _build_operation_read(db, operation=existing)
+
+    context = _resolve_operation_context(
+        db,
+        session=session,
+        route_stop_id=payload.route_stop_id,
+        context_type=payload.context_type,
+        customer_id=payload.customer_id,
+        warehouse_id=payload.warehouse_id,
+        require_explicit=True,
+    )
+
+    operation = _create_route_operation_record(
+        db,
+        session=session,
+        payload=payload,
+        action_context=action_context,
+        context=context,
+    )
+    confirmed_operation = confirm_route_operation(
+        db,
+        session=session,
+        operation_id=operation.id,
+        action_context=action_context,
+    )
+
+    if payload.incident_mode == "CREATE":
+        incident_payload = type(
+            "SyntheticRouteIncidentCreatePayload",
+            (),
+            {
+                "route_stop_id": payload.route_stop_id,
+                "related_operation_id": payload.related_operation_id or confirmed_operation.id,
+                "type": payload.type,
+                "notes": payload.incident_notes or payload.notes,
+            },
+        )()
+        create_route_incident(
+            db,
+            session=session,
+            payload=incident_payload,
+            action_context=action_context,
+        )
+        return confirmed_operation
+
+    if payload.incident_mode == "CORRECT_EXISTING":
+        incident = db.scalar(
+            select(LogisticsRouteIncident).where(
+                LogisticsRouteIncident.id == payload.target_incident_id,
+                LogisticsRouteIncident.session_id == session.id,
+            )
+        )
+        if incident is None:
+            raise LookupError("Incidencia de ruta no encontrada")
+        if incident.status != "OPEN":
+            raise ValueError("La incidencia ya no está abierta para corrección")
+        if incident.incident_type not in RECONCILABLE_INCIDENT_TYPES:
+            raise ValueError("Esta incidencia no admite corrección operativa en este slice")
+        incident.status = "CORRECTED"
+        incident.corrective_operation_id = confirmed_operation.id
+        incident.closed_by = action_context.actor_user_id
+        incident.closed_at = datetime.now(UTC)
+        if payload.incident_notes:
+            incident.notes = f"{incident.notes or ''}\nCorrección: {payload.incident_notes}".strip()
+        db.add(incident)
+        db.flush()
+        audit_logistics_action(
+            db,
+            context=action_context,
+            action="vehicle_session.route_incident.correct",
+            entity_type="vehicle_session",
+            entity_id=session.id,
+            details={
+                "incident_id": incident.id,
+                "incident_type": incident.incident_type,
+                "corrective_operation_id": confirmed_operation.id,
+            },
+        )
+
+    return confirmed_operation
 
 
 def resolve_route_incident(

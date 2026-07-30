@@ -1,6 +1,17 @@
 from __future__ import annotations
 
-from sqlalchemy import Column, DateTime, MetaData, Numeric, String, Table, Boolean, UniqueConstraint, inspect, text
+from sqlalchemy import (
+    Boolean,
+    Column,
+    DateTime,
+    MetaData,
+    Numeric,
+    String,
+    Table,
+    UniqueConstraint,
+    inspect,
+    text,
+)
 from sqlalchemy.schema import CreateColumn
 
 from plugins.logistics.backend.models import (

@@ -12,6 +12,7 @@ import {
   createCylinder,
   listSelectedLoadSerials,
   logisticsKeys,
+  type LoadSerialSelectionContext,
   releaseLoadSerial,
   searchLoadSerials,
   selectLoadSerial,
@@ -25,17 +26,33 @@ import {
   type CylinderFormState,
 } from "../../cylinders/forms/cylinder-form-state";
 import { formatLoadSerialAssignmentStatus } from "./jornada-labels";
-import type { EditableLoadPlanItem } from "./SessionLoadTab";
+
+export type SerialSelectionItem = {
+  product_id: string;
+  product_name: string;
+  planned_quantity: string;
+  source_warehouse_id?: string | null;
+};
 
 type Props = {
   open: boolean;
   sessionId: string;
-  item: EditableLoadPlanItem | null;
+  item: SerialSelectionItem | null;
+  selectionContext?: LoadSerialSelectionContext;
+  allowCreateFallback?: boolean;
   onClose: () => void;
   onSelectionCountChange: (productId: string, selectedCount: number) => void;
 };
 
-export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionCountChange }: Props) {
+export function LoadSerialsDialog({
+  open,
+  sessionId,
+  item,
+  selectionContext = "LOAD_PLAN",
+  allowCreateFallback = true,
+  onClose,
+  onSelectionCountChange,
+}: Props) {
   const queryClient = useQueryClient();
   const autoSubmittedQueryRef = useRef("");
   const [manualSearchValue, setManualSearchValue] = useState("");
@@ -48,18 +65,21 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
   const [createMeta, setCreateMeta] = useState<CylinderCreateMetaState>(EMPTY_CYLINDER_CREATE_META);
 
   const selectedQuery = useQuery({
-    queryKey: item ? logisticsKeys.loadSerials.selected(sessionId, item.product_id) : ["logistics", "load-serials", "none"],
-    queryFn: () => listSelectedLoadSerials(sessionId, item!.product_id),
+    queryKey: item
+      ? logisticsKeys.loadSerials.selected(sessionId, item.product_id, selectionContext)
+      : ["logistics", "load-serials", "none"],
+    queryFn: () => listSelectedLoadSerials(sessionId, item!.product_id, selectionContext),
     enabled: open && Boolean(item),
   });
   const manualSearchQuery = useQuery({
     queryKey: item
-      ? logisticsKeys.loadSerials.search(sessionId, item.product_id, manualSearchValue)
+      ? logisticsKeys.loadSerials.search(sessionId, item.product_id, manualSearchValue, selectionContext)
       : ["logistics", "load-serials", "search", "none"],
     queryFn: () =>
       searchLoadSerials(sessionId, {
         product_id: item!.product_id,
         source_warehouse_id: item!.source_warehouse_id,
+        selection_context: selectionContext,
         query: manualSearchValue,
       }),
     enabled: open && Boolean(item) && manualSearchValue.trim().length >= 2,
@@ -70,6 +90,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
       selectLoadSerial(sessionId, {
         product_id: item!.product_id,
         source_warehouse_id: item!.source_warehouse_id,
+        selection_context: selectionContext,
         serial,
       }),
     onSuccess: async () => {
@@ -79,7 +100,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
       setManualSearchValue("");
       setManualSearchSelected("");
       await queryClient.invalidateQueries({
-        queryKey: logisticsKeys.loadSerials.selected(sessionId, item!.product_id),
+        queryKey: logisticsKeys.loadSerials.selected(sessionId, item!.product_id, selectionContext),
       });
     },
     onError: (cause) => {
@@ -121,7 +142,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
     onSuccess: async () => {
       setError(null);
       await queryClient.invalidateQueries({
-        queryKey: logisticsKeys.loadSerials.selected(sessionId, item!.product_id),
+        queryKey: logisticsKeys.loadSerials.selected(sessionId, item!.product_id, selectionContext),
       });
     },
     onError: (cause) => {
@@ -213,7 +234,9 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
       title={item ? `Seriales · ${item.product_name}` : "Seriales de carga"}
       description={
         item
-          ? `Escanea o escribe seriales. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
+          ? selectionContext === "ROUTE_PICKUP"
+            ? `Escanea o escribe seriales recogidos en ruta. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
+            : `Escanea o escribe seriales. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
           : "Escanea o escribe seriales de envases."
       }
       maxWidthClassName="max-w-3xl"
@@ -254,7 +277,7 @@ export function LoadSerialsDialog({ open, sessionId, item, onClose, onSelectionC
           </div>
 
           {error ? <Alert title="Serial no agregado">{error}</Alert> : null}
-          {fallbackAvailable ? (
+          {fallbackAvailable && allowCreateFallback ? (
             <div className="flex justify-end">
               <Button type="button" variant="secondary" onClick={openRegisterFallback}>
                 Registrar envase

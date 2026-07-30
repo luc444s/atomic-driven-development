@@ -203,6 +203,7 @@ export function PlanningWorkspace() {
           quantity: i.quantity,
           unit_weight_kg: i.unit_weight_kg,
         })),
+        quote_id: id,
         vehicle_id: draft.vehicle?.id,
         notes: `Cotización #${draft.id.slice(0, 4).toUpperCase()} — ${draft.customer.name}${draft.conditions ? `. ${draft.conditions}` : ""}`,
         planned_start_at: startAt,

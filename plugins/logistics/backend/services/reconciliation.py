@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select, update
 from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
@@ -13,6 +13,7 @@ from plugins.logistics.backend.dto.reconciliation import (
 )
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
+    LogisticsCylinder,
     LogisticsInventoryDiscrepancy,
     LogisticsOperation,
     LogisticsOperationItem,
@@ -246,6 +247,31 @@ def close_vehicle_session(
     )
 
     sync_reservation_from_session(db, session=session)
+
+    transit_remaining = db.scalar(
+        select(func.count(LogisticsCylinder.id)).where(
+            LogisticsCylinder.tenant_id == session.tenant_id,
+            LogisticsCylinder.session_id == session.id,
+            LogisticsCylinder.current_state.in_(
+                ("CARGA_EN_VEHICULO", "EN_RUTA")
+            ),
+        )
+    )
+    if transit_remaining and transit_remaining > 0:
+        raise ValueError(
+            f"No se puede cerrar la sesión: {transit_remaining} cilindros "
+            f"aún en tránsito. Ejecuta el retorno primero."
+        )
+
+    db.execute(
+        update(LogisticsCylinder)
+        .where(
+            LogisticsCylinder.tenant_id == session.tenant_id,
+            LogisticsCylinder.session_id == session.id,
+        )
+        .values(session_id=None)
+    )
+
     audit_logistics_action(
         db,
         context=action_context,

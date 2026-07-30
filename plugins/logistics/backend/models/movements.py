@@ -75,6 +75,10 @@ class LogisticsMovement(Base):
     parent_movement_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_movements.id"), nullable=True, index=True
     )
+    origin_movement_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_movements.id"), nullable=True, index=True
+    )
+    last_stock_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

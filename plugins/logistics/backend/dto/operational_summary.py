@@ -43,6 +43,7 @@ class SessionOperationalSummaryCompositionRead(BaseModel):
     total_products: int = 0
     total_units: float = 0
     total_weight_kg: float | None = None
+    total_adr_points: float = 0
 
 
 class SessionOperationalSummaryWaybillRead(BaseModel):

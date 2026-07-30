@@ -358,6 +358,7 @@ def create_reservation(
         driver_id=payload.driver_id,
         adr_required=payload.adr_required,
         notes=payload.notes,
+        quote_id=payload.quote_id,
         status=status,
         conflict_reason=conflict_reason,
         permit_override=payload.permit_override,

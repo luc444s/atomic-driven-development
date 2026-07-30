@@ -123,6 +123,9 @@ class LogisticsCylinder(Base):
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     is_medical: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     medical_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

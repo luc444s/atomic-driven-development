@@ -24,7 +24,19 @@ from plugins.logistics.backend.services.state_machine import StateTransitionErro
 
 ACTIVE_ASSIGNMENT_STATUSES = {"SELECTED", "CONFIRMED"}
 COMPATIBLE_CYLINDER_STATES = {"LLENADO_OK", "EN_ALMACEN_VACIO"}
+ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES = {"EN_CLIENTE_VACIO"}
 VALID_RELEASE_REASONS = {"MANUAL", "TIMEOUT", "OPERATION_CANCELLED"}
+SELECTION_CONTEXT_LOAD_PLAN = "LOAD_PLAN"
+SELECTION_CONTEXT_ROUTE_PICKUP = "ROUTE_PICKUP"
+
+
+def _normalize_selection_context(value: str | None) -> str:
+    if not value:
+        return SELECTION_CONTEXT_LOAD_PLAN
+    normalized = value.strip().upper()
+    if normalized not in {SELECTION_CONTEXT_LOAD_PLAN, SELECTION_CONTEXT_ROUTE_PICKUP}:
+        raise ValueError("Contexto de selección serial no soportado")
+    return normalized
 
 
 def _build_assignment_read(assignment: LogisticsLoadSerialAssignment) -> LoadSerialAssignmentRead:
@@ -128,8 +140,13 @@ def _resolve_cylinder_for_selection(
 
 
 def list_selected_load_serial_assignments(
-    db: Session, *, session_id: str, product_id: str | None = None
+    db: Session,
+    *,
+    session_id: str,
+    product_id: str | None = None,
+    selection_context: str | None = None,
 ) -> list[LoadSerialAssignmentRead]:
+    context = _normalize_selection_context(selection_context)
     stmt = select(LogisticsLoadSerialAssignment).where(
         LogisticsLoadSerialAssignment.session_id == session_id,
         LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
@@ -139,6 +156,18 @@ def list_selected_load_serial_assignments(
     assignments = list(
         db.scalars(stmt.order_by(LogisticsLoadSerialAssignment.selected_at.asc())).all()
     )
+    if context == SELECTION_CONTEXT_ROUTE_PICKUP:
+        filtered: list[LogisticsLoadSerialAssignment] = []
+        for assignment in assignments:
+            cylinder = db.scalar(
+                select(LogisticsCylinder).where(LogisticsCylinder.id == assignment.cylinder_id)
+            )
+            if (
+                cylinder is not None
+                and cylinder.current_state in ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
+            ):
+                filtered.append(assignment)
+        assignments = filtered
     return [_build_assignment_read(item) for item in assignments]
 
 
@@ -148,8 +177,10 @@ def search_load_serial_candidates(
     session: LogisticsVehicleSession,
     product_id: str,
     source_warehouse_id: str | None,
+    selection_context: str | None,
     query: str,
 ) -> list[LoadSerialSearchResultRead]:
+    context = _normalize_selection_context(selection_context)
     normalized_query = query.strip().upper()
     if len(normalized_query) < 2:
         return []
@@ -193,10 +224,14 @@ def search_load_serial_candidates(
                 if active_assignment.session_id == session.id
                 else "Ocupado en otra jornada"
             )
-        elif cylinder.current_state not in COMPATIBLE_CYLINDER_STATES:
+        elif cylinder.current_state not in (
+            ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
+            if context == SELECTION_CONTEXT_ROUTE_PICKUP
+            else COMPATIBLE_CYLINDER_STATES
+        ):
             availability_status = "UNAVAILABLE"
             context_label = cylinder.current_state
-        elif not _warehouse_matches_cylinder(
+        elif context != SELECTION_CONTEXT_ROUTE_PICKUP and not _warehouse_matches_cylinder(
             db,
             tenant_id=session.tenant_id,
             warehouse_id=source_warehouse_id,
@@ -282,9 +317,11 @@ def select_load_serial(
     session: LogisticsVehicleSession,
     product_id: str,
     source_warehouse_id: str | None,
+    selection_context: str | None,
     serial: str,
     action_context: LogisticsActionContext,
 ) -> LoadSerialAssignmentRead:
+    context = _normalize_selection_context(selection_context)
     cylinder = _resolve_cylinder_for_selection(
         db,
         tenant_id=session.tenant_id,
@@ -296,9 +333,14 @@ def select_load_serial(
         raise ValueError("El cilindro no está activo")
     if not _product_matches_cylinder(cylinder, product_id=product_id):
         raise ValueError("El serial no corresponde al producto seleccionado")
-    if cylinder.current_state not in COMPATIBLE_CYLINDER_STATES:
+    compatible_states = (
+        ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
+        if context == SELECTION_CONTEXT_ROUTE_PICKUP
+        else COMPATIBLE_CYLINDER_STATES
+    )
+    if cylinder.current_state not in compatible_states:
         raise ValueError("El cilindro no está disponible para carga operativa")
-    if not _warehouse_matches_cylinder(
+    if context != SELECTION_CONTEXT_ROUTE_PICKUP and not _warehouse_matches_cylinder(
         db,
         tenant_id=session.tenant_id,
         warehouse_id=source_warehouse_id,
@@ -323,6 +365,7 @@ def select_load_serial(
         cylinder_serial=cylinder.serial,
         assignment_status="SELECTED",
         selected_by=action_context.actor_user_id,
+        notes=context,
     )
     db.add(assignment)
     try:
@@ -459,6 +502,7 @@ def confirm_selected_serials_for_operation(
                     cylinder_id=cylinder.id,
                     payload=CylinderTransitionRequest(
                         to_state="CARGA_EN_VEHICULO",
+                        session_id=session_id,
                         origin="SESSION_LOAD_CONFIRM",
                         notes=f"VehicleSession {session_id}",
                     ),
@@ -500,6 +544,7 @@ def mark_confirmed_serials_on_outbound(
                 cylinder_id=cylinder.id,
                 payload=CylinderTransitionRequest(
                     to_state="EN_RUTA",
+                    session_id=session_id,
                     origin="SESSION_OUTBOUND",
                     notes=f"VehicleSession {session_id}",
                 ),

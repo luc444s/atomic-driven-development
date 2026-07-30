@@ -48,6 +48,7 @@ def list_warehouses(
     stmt = select(LogisticsWarehouse).where(
         LogisticsWarehouse.tenant_id == tenant_id,
         LogisticsWarehouse.is_active.is_(True),
+        LogisticsWarehouse.warehouse_type != "MOBILE",
     )
     if allowed_warehouse_ids is not None:
         stmt = stmt.where(LogisticsWarehouse.id.in_(allowed_warehouse_ids))

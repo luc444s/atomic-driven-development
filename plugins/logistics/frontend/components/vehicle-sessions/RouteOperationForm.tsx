@@ -16,11 +16,13 @@ export type RouteSelectOption = {
   label: string;
 };
 
+export type RouteContextType = "STOP" | "CUSTOMER_EMERGENCY" | "WAREHOUSE_EMERGENCY";
 export type RouteDraftItem = {
   product_id: string;
   product_name: string;
   quantity: string;
   direction: "OUT" | "IN";
+  selected_serials_count: number;
 };
 
 export type RouteCorrectionContext = {
@@ -34,17 +36,26 @@ type Props = {
   canRegisterOperation: boolean;
   operationType: string;
   routeStopId: string;
+  contextType: RouteContextType;
+  customerId: string;
+  warehouseId: string;
   operationNotes: string;
   draftItems: RouteDraftItem[];
   stopOptions: RouteSelectOption[];
+  customerOptions: RouteSelectOption[];
+  warehouseOptions: RouteSelectOption[];
   operationOptions: RouteSelectOption[];
   directionOptions: RouteSelectOption[];
   correctionContext: RouteCorrectionContext | null;
   isPending: boolean;
   onOperationTypeChange: (value: string) => void;
   onRouteStopChange: (value: string) => void;
+  onContextTypeChange: (value: RouteContextType) => void;
+  onCustomerChange: (value: string) => void;
+  onWarehouseChange: (value: string) => void;
   onOperationNotesChange: (value: string) => void;
   onOpenProductSearch: (direction?: "OUT" | "IN") => void;
+  onOpenSerialScanner: (index: number) => void;
   onUpdateDraftItem: (index: number, patch: Partial<RouteDraftItem>) => void;
   onRemoveDraftItem: (index: number) => void;
   onCancelCorrection: () => void;
@@ -55,30 +66,43 @@ export function RouteOperationForm({
   canRegisterOperation,
   operationType,
   routeStopId,
+  contextType,
+  customerId,
+  warehouseId,
   operationNotes,
   draftItems,
   stopOptions,
+  customerOptions,
+  warehouseOptions,
   operationOptions,
   directionOptions,
   correctionContext,
   isPending,
   onOperationTypeChange,
   onRouteStopChange,
+  onContextTypeChange,
+  onCustomerChange,
+  onWarehouseChange,
   onOperationNotesChange,
   onOpenProductSearch,
+  onOpenSerialScanner,
   onUpdateDraftItem,
   onRemoveDraftItem,
   onCancelCorrection,
   onSubmit,
 }: Props) {
+  const usesStopContext = Boolean(routeStopId);
+  const showCustomerContext = !usesStopContext && contextType === "CUSTOMER_EMERGENCY";
+  const showWarehouseContext = !usesStopContext && contextType === "WAREHOUSE_EMERGENCY";
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>{correctionContext ? "Corrección operativa" : "Operación de ruta"}</CardTitle>
+        <CardTitle>{correctionContext ? "Corrección operativa" : "Registrar evento de ruta"}</CardTitle>
         <CardDescription>
           {correctionContext
             ? "La operación original no se edita. Esta nueva operación reconcilia la realidad actual."
-            : "La calle se registra aquí. La composición vigente y la carta porte salen de estas operaciones confirmadas."}
+            : "Captura el hecho real de calle en un solo flujo. Si hubo desvío, puedes vincular la incidencia desde aquí."}
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -106,22 +130,70 @@ export function RouteOperationForm({
             ) : null}
 
             <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2 text-sm text-foreground">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Tipo</span>
                 <Select value={operationType} onChange={onOperationTypeChange} options={operationOptions} />
               </label>
-              <label className="space-y-2 text-sm text-foreground">
+              <label className="block space-y-2 text-sm text-foreground">
                 <span>Parada</span>
                 <Select value={routeStopId} onChange={onRouteStopChange} options={stopOptions} placeholder="Sin parada" />
               </label>
             </div>
 
-            <label className="space-y-2 text-sm text-foreground">
+            {usesStopContext ? (
+              <div className="rounded-md border border-border p-4">
+                <p className="mb-3 text-sm font-medium text-foreground">Contexto operativo</p>
+                <p className="text-sm text-muted-foreground">
+                  La operación queda vinculada a la parada seleccionada. El cliente se deriva automáticamente desde ese punto de entrega.
+                </p>
+              </div>
+            ) : (
+              <div className="rounded-md border border-border p-4 space-y-4">
+                <p className="mb-3 text-sm font-medium text-foreground">Contexto operativo</p>
+                <div className="grid gap-4 md:grid-cols-2">
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Contexto</span>
+                    <Select
+                      value={contextType}
+                      onChange={(value) => onContextTypeChange(value as RouteContextType)}
+                      options={[
+                        { value: "CUSTOMER_EMERGENCY", label: "Cliente emergencia" },
+                        { value: "WAREHOUSE_EMERGENCY", label: "Almacén emergencia" },
+                      ]}
+                    />
+                  </label>
+                  {showCustomerContext ? (
+                    <label className="block space-y-2 text-sm text-foreground">
+                      <span>Cliente</span>
+                      <Select
+                        value={customerId}
+                        onChange={onCustomerChange}
+                        options={customerOptions}
+                        placeholder="Seleccionar cliente"
+                      />
+                    </label>
+                  ) : null}
+                  {showWarehouseContext ? (
+                    <label className="block space-y-2 text-sm text-foreground">
+                      <span>Almacén</span>
+                      <Select
+                        value={warehouseId}
+                        onChange={onWarehouseChange}
+                        options={warehouseOptions}
+                        placeholder="Seleccionar almacén"
+                      />
+                    </label>
+                  ) : null}
+                </div>
+              </div>
+            )}
+
+            <label className="block space-y-2 text-sm text-foreground">
               <span>Notas</span>
               <Input
                 value={operationNotes}
                 onChange={(event) => onOperationNotesChange(event.target.value)}
-                placeholder={correctionContext ? "Describe la reconciliación controlada" : "Entrega parcial, recojo de vacíos..."}
+                placeholder={correctionContext ? "Describe la reconciliación controlada" : "Entrega parcial, recojo de vacíos, contingencia..."}
               />
             </label>
 
@@ -165,6 +237,14 @@ export function RouteOperationForm({
                                 <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
                                   Quitar
                                 </Button>
+                                <div className="md:col-span-3 flex items-center justify-between gap-2">
+                                  <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
+                                    Escanear seriales
+                                  </Button>
+                                  <span className="text-xs text-muted-foreground">
+                                    {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
+                                  </span>
+                                </div>
                               </div>
                             ))
                         ) : (
@@ -216,6 +296,16 @@ export function RouteOperationForm({
                         <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
                           Quitar
                         </Button>
+                        {operationType === "PICKUP" || item.direction === "IN" ? (
+                          <div className="md:col-span-4 flex items-center justify-between gap-2">
+                            <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
+                              Escanear seriales
+                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
+                            </span>
+                          </div>
+                        ) : null}
                       </div>
                     ))
                   )}
@@ -233,7 +323,7 @@ export function RouteOperationForm({
                     : "Confirmando..."
                   : correctionContext
                     ? "Confirmar corrección"
-                    : "Confirmar operación"}
+                    : "Confirmar evento"}
               </Button>
             </div>
           </>

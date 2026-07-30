@@ -6,11 +6,14 @@ from sqlalchemy.orm import Session
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
+    LogisticsCylinder,
     LogisticsLoadPlan,
     LogisticsLoadPlanItem,
     LogisticsOperation,
     LogisticsVehicleSession,
 )
+from plugins.logistics.backend.schemas import CylinderTransitionRequest
+from plugins.logistics.backend.services.cylinders import transition_cylinder
 from plugins.logistics.backend.services.load_serials import (
     confirm_selected_serials_for_operation,
     ensure_required_serials_for_load_plan,
@@ -235,6 +238,32 @@ def return_remaining_stock(
         notes=notes,
         action_context=action_context,
     )
+
+    # 2. DESPUÉS: transicionar seriales a EN_ALMACEN_VACIO
+    #    TODO(0031.1): bulk transition para N > 100
+    cylinders = list(db.scalars(
+        select(LogisticsCylinder).where(
+            LogisticsCylinder.tenant_id == session.tenant_id,
+            LogisticsCylinder.session_id == session.id,
+            LogisticsCylinder.current_state.in_(
+                ("CARGA_EN_VEHICULO", "EN_RUTA",
+                 "EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO")
+            ),
+        )
+    ).all())
+    for cylinder in cylinders:
+        transition_cylinder(
+            db, tenant_id=session.tenant_id,
+            cylinder_id=cylinder.id,
+            payload=CylinderTransitionRequest(
+                to_state="EN_ALMACEN_VACIO",
+                session_id=session.id,
+                origin="SESSION_RETURN",
+                notes=f"Retorno sesión {session.id}",
+            ),
+            action_context=action_context,
+        )
+
     session.status = "AWAITING_RECONCILIATION"
     session.updated_by = action_context.actor_user_id
     db.add(session)

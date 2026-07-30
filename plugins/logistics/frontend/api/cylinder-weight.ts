@@ -19,9 +19,22 @@ export type ProductContent = {
   content_kg: number | null;
 };
 
+export type SerializedCylinderSummary = {
+  product_id: string;
+  product_sku: string;
+  product_name: string;
+  serialized_count: number;
+};
+
 export function listAvailableCylindersWithWeight(warehouse_id?: string) {
   return apiRequest<CylinderWeight[]>(
     withQuery(`${API_PREFIX}/cylinders/available-with-weight`, { warehouse_id })
+  );
+}
+
+export function listSerializedCylinderSummary(warehouse_id: string) {
+  return apiRequest<SerializedCylinderSummary[]>(
+    withQuery(`${API_PREFIX}/cylinders/serialized-summary`, { warehouse_id })
   );
 }
 
@@ -32,4 +45,3 @@ export function getCylinderWeight(cylinderId: string) {
 export function getProductContent(productId: string) {
   return apiRequest<ProductContent>(`${API_PREFIX}/products/${productId}/content`);
 }
-

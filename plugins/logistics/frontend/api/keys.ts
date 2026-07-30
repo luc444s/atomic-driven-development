@@ -87,15 +87,19 @@ export const logisticsKeys = {
       [...logisticsKeys.vehicleSessions.detail(id), "route-stop-results"] as const,
     routeStopProgress: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "route-stop-progress"] as const,
+    routeControlState: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "route-control-state"] as const,
+    locationHistory: (id: string, filters: Record<string, string | undefined>) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "location-history", filters] as const,
   },
   loadPlans: {
     detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "load-plan"] as const,
   },
   loadSerials: {
-    selected: (sessionId: string, productId: string) =>
-      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", productId, "selected"] as const,
-    search: (sessionId: string, productId: string, query: string) =>
-      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", productId, "search", query] as const,
+    selected: (sessionId: string, productId: string, selectionContext = "LOAD_PLAN") =>
+      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", selectionContext, productId, "selected"] as const,
+    search: (sessionId: string, productId: string, query: string, selectionContext = "LOAD_PLAN") =>
+      [...logisticsKeys.vehicleSessions.detail(sessionId), "load-serials", selectionContext, productId, "search", query] as const,
   },
   reconciliation: {
     detail: (sessionId: string) => [...logisticsKeys.vehicleSessions.detail(sessionId), "reconciliation"] as const,

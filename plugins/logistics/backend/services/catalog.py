@@ -133,7 +133,9 @@ def list_warehouses_catalog(db: Session, *, tenant_id: str) -> list[LogisticsWar
         db.scalars(
             select(LogisticsWarehouse)
             .where(
-                LogisticsWarehouse.tenant_id == tenant_id, LogisticsWarehouse.is_active.is_(True)
+                LogisticsWarehouse.tenant_id == tenant_id,
+                LogisticsWarehouse.is_active.is_(True),
+                LogisticsWarehouse.warehouse_type != "MOBILE",
             )
             .order_by(LogisticsWarehouse.name)
         ).all()

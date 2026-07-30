@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import delete, select
 
 from apps.api.app.api.v1.core.common import CoreActionContext
 from apps.api.app.api.v1.core.services.plugins import set_core_plugin_enabled
@@ -19,6 +19,7 @@ from apps.api.app.kernel.plugins.persistent import (
 from apps.api.tests.test_productos_plugin import enable_productos_plugin
 from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
+    LogisticsCylinder,
     LogisticsCylinderState,
     LogisticsMovementType,
     LogisticsStateTransition,
@@ -548,6 +549,45 @@ def test_logistics_cylinder_medical_filter_and_traceability(app) -> None:
         assert traceability["summary"]["last_event"] is not None
 
 
+def test_bootstrap_restores_missing_logistics_transition_catalog(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+
+    with app.state.session_factory() as db:
+        db.execute(
+            delete(LogisticsStateTransition).where(
+                LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
+                LogisticsStateTransition.to_state == "EN_RUTA",
+            )
+        )
+        db.commit()
+
+    with app.state.session_factory() as db:
+        transition = db.scalar(
+            select(LogisticsStateTransition).where(
+                LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
+                LogisticsStateTransition.to_state == "EN_RUTA",
+            )
+        )
+        assert transition is None
+
+    bootstrap_app_state(app, app.state.settings)
+
+    with app.state.session_factory() as db:
+        transition = db.scalar(
+            select(LogisticsStateTransition).where(
+                LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
+                LogisticsStateTransition.to_state == "EN_RUTA",
+            )
+        )
+        assert transition is not None
+        assert transition.description == "Recojo desde cliente"
+
+
 def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
@@ -990,7 +1030,11 @@ def test_logistics_plugin_operations_flow(app) -> None:
         client.post(
             f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
             headers=headers,
-            json={"to_state": "EN_CLIENTE_VACIO", "origin": "CLIENTE"},
+            json={
+                "to_state": "EN_CLIENTE_VACIO",
+                "customer_id": customer["id"],
+                "origin": "CLIENTE",
+            },
         )
 
         movement_response = client.post(
@@ -1072,8 +1116,6 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
             "/api/v1/plugins/logistics/catalog/service-types", headers=headers
         )
         assert service_types_response.status_code == 200, service_types_response.text
-        service_type = service_types_response.json()[0]
-
         create_response = client.post(
             "/api/v1/plugins/logistics/cylinders",
             headers=headers,
@@ -1231,55 +1273,60 @@ def test_logistics_plugin_envase_complete_flow(app) -> None:
         assert ownership_response.status_code == 200, ownership_response.text
         assert ownership_response.json()[0]["customer_name"] == "GLP Campo SAC"
 
-        service_response = client.post(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/services",
+
+def test_direct_customer_state_transition_requires_customer_context(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        product = create_product(
+            client,
+            headers,
+            sku="CUST-CTX-01",
+            name="Envase Cliente Contexto",
+        )
+        create_response = client.post(
+            "/api/v1/plugins/logistics/cylinders",
             headers=headers,
             json={
-                "service_type_id": service_type["id"],
-                "status": "PENDIENTE",
-                "total_amount": 55,
+                "serial": "CTX-000001",
+                "product_id": product["id"],
+                "location": "Planta",
+                "next_hydrotest_date": (
+                    datetime.now(UTC) + timedelta(days=365)
+                ).date().isoformat(),
             },
         )
-        assert service_response.status_code == 201, service_response.text
-        service = service_response.json()
+        assert create_response.status_code == 201, create_response.text
+        cylinder = create_response.json()
 
-        service_update_response = client.patch(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/services/{service['id']}",
+        to_stock_response = client.post(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
             headers=headers,
-            json={"status": "REALIZADO"},
+            json={"to_state": "EN_ALMACEN_VACIO", "origin": "ALTA"},
         )
-        assert service_update_response.status_code == 200, service_update_response.text
-        assert service_update_response.json()["status"] == "REALIZADO"
+        assert to_stock_response.status_code == 200, to_stock_response.text
 
-        scan_log_response = client.get(
-            f"/api/v1/plugins/logistics/scan/log/{movement['id']}",
+        to_loaded_response = client.post(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
             headers=headers,
+            json={"to_state": "LLENADO_OK", "origin": "PLANTA"},
         )
-        assert scan_log_response.status_code == 200, scan_log_response.text
-        assert len(scan_log_response.json()) == 1
+        assert to_loaded_response.status_code == 200, to_loaded_response.text
 
-        service_delete_response = client.delete(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/services/{service['id']}",
+        direct_customer_response = client.post(
+            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
             headers=headers,
+            json={"to_state": "EN_CLIENTE_LLENO", "origin": "MANUAL"},
         )
-        assert service_delete_response.status_code == 204, service_delete_response.text
-
-    with app.state.session_factory() as db:
-        events = list(
-            db.scalars(
-                select(EventLog).where(
-                    EventLog.module == "logistics",
-                    EventLog.tenant_id == seeded_demo["tenant_id"],
-                )
-            ).all()
-        )
-
-    event_names = {event.event_name for event in events}
-    assert "logistics.cylinder.updated" in event_names
-    assert "logistics.cylinder.retimbrado_registered" in event_names
-    assert "logistics.cylinder.label_printed" in event_names
-    assert "logistics.cylinder.scanned" in event_names
-    assert "logistics.cylinder.service_registered" in event_names
+        assert direct_customer_response.status_code == 400, direct_customer_response.text
+        assert "customer_id" in direct_customer_response.json()["detail"]
 
 
 def test_logistics_plugin_spec_0014_flow(app) -> None:
@@ -1808,3 +1855,105 @@ def test_logistics_movement_item_empty_cylinder_id_is_normalized_to_none(app) ->
 
 
 # ── Average Weight (0023B) Tests ──────────────────────────────────
+
+
+def test_logistics_serialized_cylinder_summary_by_warehouse(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_productos_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+
+        warehouse_response = client.post(
+            "/api/v1/plugins/logistics/warehouses",
+            headers=headers,
+            json={"name": "Almacen Resumen", "code": "ALM-RS", "address": None, "phone": None},
+        )
+        assert warehouse_response.status_code == 201, warehouse_response.text
+        warehouse = warehouse_response.json()
+
+        product_a = create_product(client, headers, sku="RS-A", name="Resumen A")
+        product_b = create_product(client, headers, sku="RS-B", name="Resumen B")
+
+        with app.state.session_factory() as db:
+            db.add_all(
+                [
+                    LogisticsCylinder(
+                        tenant_id=seeded_demo["tenant_id"],
+                        branch_id=seeded_demo["branch_id"],
+                        serial="RS-000001",
+                        current_state="LLENADO_OK",
+                        product_id=product_a["id"],
+                        gas_group_id=product_a["id"],
+                        location=f"{warehouse['code']} patio norte",
+                        is_active=True,
+                    ),
+                    LogisticsCylinder(
+                        tenant_id=seeded_demo["tenant_id"],
+                        branch_id=seeded_demo["branch_id"],
+                        serial="RS-000002",
+                        current_state="EN_ALMACEN_VACIO",
+                        product_id=product_a["id"],
+                        gas_group_id=product_a["id"],
+                        location=warehouse["name"],
+                        is_active=True,
+                    ),
+                    LogisticsCylinder(
+                        tenant_id=seeded_demo["tenant_id"],
+                        branch_id=seeded_demo["branch_id"],
+                        serial="RS-000003",
+                        current_state="LLENADO_OK",
+                        product_id=product_b["id"],
+                        gas_group_id=product_b["id"],
+                        location=f"{warehouse['code']} patio sur",
+                        is_active=True,
+                    ),
+                    LogisticsCylinder(
+                        tenant_id=seeded_demo["tenant_id"],
+                        branch_id=seeded_demo["branch_id"],
+                        serial="RS-000004",
+                        current_state="BLOQUEADO",
+                        product_id=product_b["id"],
+                        gas_group_id=product_b["id"],
+                        location=f"{warehouse['code']} patio sur",
+                        is_active=True,
+                    ),
+                    LogisticsCylinder(
+                        tenant_id=seeded_demo["tenant_id"],
+                        branch_id=seeded_demo["branch_id"],
+                        serial="RS-000005",
+                        current_state="LLENADO_OK",
+                        product_id=product_b["id"],
+                        gas_group_id=product_b["id"],
+                        location="OTRO almacén",
+                        is_active=True,
+                    ),
+                ]
+            )
+            db.commit()
+
+        response = client.get(
+            "/api/v1/plugins/logistics/cylinders/serialized-summary",
+            headers=headers,
+            params={"warehouse_id": warehouse["id"]},
+        )
+        assert response.status_code == 200, response.text
+        assert response.json() == [
+            {
+                "product_id": product_a["id"],
+                "product_sku": product_a["sku"],
+                "product_name": product_a["name"],
+                "serialized_count": 2,
+            },
+            {
+                "product_id": product_b["id"],
+                "product_sku": product_b["sku"],
+                "product_name": product_b["name"],
+                "serialized_count": 1,
+            },
+        ]

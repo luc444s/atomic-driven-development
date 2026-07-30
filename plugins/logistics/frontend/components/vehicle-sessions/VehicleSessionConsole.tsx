@@ -35,6 +35,8 @@ export function VehicleSessionConsole({
   cancellation,
   stepper,
 }: Props) {
+  const totalAdr = operationalSummary?.composition?.total_adr_points ?? 0;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-3">
@@ -55,6 +57,17 @@ export function VehicleSessionConsole({
           </Button>
         ) : null}
       </div>
+
+      {totalAdr > 0 ? (
+        <div className="rounded-lg border-2 border-rose-500/40 bg-rose-500/10 px-4 py-3">
+          <p className="text-sm font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+            PELIGRO: VEHÍCULO CON MERCANCÍA PELIGROSA
+          </p>
+          <p className="mt-1 text-xs text-rose-600/80 dark:text-rose-400/80">
+            Puntos ADR totales: {totalAdr}. Consulte la carta porte para el detalle de la carga.
+          </p>
+        </div>
+      ) : null}
 
       <SessionStepper
         status={session.status}

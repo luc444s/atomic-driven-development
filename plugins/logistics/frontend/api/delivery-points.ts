@@ -26,6 +26,7 @@ export type LogisticsDeliveryPoint = {
   fiscal_operation_document: string | null;
   fiscal_operation_type: string | null;
   gps_link: string | null;
+  gps_coordinates: { lat: number; lng: number } | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -48,4 +49,3 @@ export function updateDeliveryPoint(deliveryPointId: string, payload: Record<str
     body: JSON.stringify(payload),
   });
 }
-

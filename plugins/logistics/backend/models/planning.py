@@ -54,6 +54,9 @@ class LogisticsPlanningReservation(Base):
     driver_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True, index=True)
     adr_required: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    quote_id: Mapped[str | None] = mapped_column(
+        ForeignKey("ventas_quote_drafts.id"), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(String(30), nullable=False, default="PLANNED", index=True)
     conflict_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
     permit_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)

@@ -75,6 +75,7 @@ export function VehicleSessionsPage() {
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [vehicleForm, setVehicleForm] = useState(EMPTY_VEHICLE_FORM);
   const [routeForm, setRouteForm] = useState(EMPTY_ROUTE_FORM);
+  const [fixedVehicleId, setFixedVehicleId] = useState<string | null>(null);
 
   const sessionsQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.list({}),
@@ -233,6 +234,7 @@ export function VehicleSessionsPage() {
 
   function openCreateJornada(vehicleId?: string) {
     setError(null);
+    setFixedVehicleId(vehicleId ?? null);
     setFormState((current) => ({
       ...EMPTY_FORM,
       vehicle_id: vehicleId ?? current.vehicle_id,
@@ -301,6 +303,7 @@ export function VehicleSessionsPage() {
         onClose={() => {
           setIsOpen(false);
           setFormState(EMPTY_FORM);
+          setFixedVehicleId(null);
         }}
         form={formState}
         setForm={setFormState}
@@ -312,6 +315,7 @@ export function VehicleSessionsPage() {
         onSubmit={onSubmit}
         onOpenCreateVehicle={() => setIsVehicleOpen(true)}
         onOpenCreateRoute={() => setIsRouteOpen(true)}
+        fixedVehicleId={fixedVehicleId}
         setRouteVehicle={(vehicleId) =>
           setRouteForm((current) => ({ ...current, vehicle_id: vehicleId }))
         }

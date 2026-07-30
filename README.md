@@ -77,6 +77,8 @@ Variables base:
 cp .env.example .env
 ```
 
+El backend carga automáticamente el `.env` del root del proyecto al resolver `get_settings()`.
+
 Crear entorno virtual e instalar dependencias:
 
  ```bash

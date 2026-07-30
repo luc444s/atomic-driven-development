@@ -122,6 +122,7 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial jornada V1",
             "idempotency_key": "test-v1-stock-seed",
         },
@@ -326,6 +327,7 @@ def test_operational_summary_marks_route_gap_when_departed_without_route(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial summary",
             "idempotency_key": "test-summary-stock-seed",
         },
@@ -442,6 +444,7 @@ def test_load_serials_are_required_and_block_duplicate_selection(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial seriales",
             "idempotency_key": "test-load-serial-stock-seed",
         },
@@ -617,6 +620,7 @@ def test_load_serials_confirm_and_release_on_cancel(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial seriales 2",
             "idempotency_key": "test-load-serial-stock-seed-2",
         },
@@ -1060,6 +1064,7 @@ def test_vehicle_session_reconciliation_auto_closes(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial jornada auto close",
             "idempotency_key": "test-auto-close-stock-seed",
         },
@@ -1124,14 +1129,7 @@ def test_vehicle_session_reconciliation_auto_closes(
         headers=headers,
     )
     assert returning_response.status_code == 200, returning_response.text
-
-    return_remaining_response = client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/return-remaining",
-        headers=headers,
-        json={},
-    )
-    assert return_remaining_response.status_code == 200, return_remaining_response.text
-    assert return_remaining_response.json()["status"] == "AWAITING_RECONCILIATION"
+    assert returning_response.json()["status"] == "AWAITING_RECONCILIATION"
 
     reconciliation_view_response = client.get(
         f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/reconciliation",
@@ -1210,6 +1208,7 @@ def test_vehicle_session_waybill_is_available_inside_jornada(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial carta porte",
             "idempotency_key": "test-waybill-stock-seed",
         },
@@ -1408,6 +1407,7 @@ def test_route_operation_changes_composition_and_outdates_waybill(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial ruta operation",
             "idempotency_key": "test-route-operation-stock-seed",
         },
@@ -1645,6 +1645,7 @@ def test_exchange_incident_and_route_stop_progress(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial exchange",
             "idempotency_key": "test-exchange-stock-seed",
         },
@@ -1957,6 +1958,7 @@ def test_route_stop_result_minimal_updates_progress_and_summary(
             "product_id": product["id"],
             "warehouse_id": warehouse["id"],
             "quantity": 20,
+            "unit_cost": 5.0,
             "reason": "Stock inicial stop result",
             "idempotency_key": "test-stop-result-stock-seed",
         },

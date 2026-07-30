@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from uuid import uuid4
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     DateTime,
     ForeignKey,
@@ -133,6 +134,7 @@ class LogisticsDeliveryPoint(Base):
     fiscal_operation_document: Mapped[str | None] = mapped_column(String(50), nullable=True)
     fiscal_operation_type: Mapped[str | None] = mapped_column(String(30), nullable=True)
     gps_link: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    gps_coordinates: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

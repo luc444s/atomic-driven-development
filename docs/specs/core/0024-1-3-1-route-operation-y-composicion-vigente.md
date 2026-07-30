@@ -14,6 +14,15 @@ extends:
 
 ## Contexto
 
+## Nota de vigencia
+
+`SPEC 0033 - RouteOperation con Efectos Separados` ajusta esta spec en dos puntos no opcionales:
+
+1. una `RouteOperation` confirmada ya no requiere siempre `Movement` derivado;
+2. `composition/current` debe leerse como verdad fisica de la jornada, no como mera proyeccion financiera.
+
+Esta spec se conserva como base historica del modelo, pero sus reglas sobre `PICKUP -> IC` y `cada operacion confirmada -> uno o mas movements` quedan superadas por `0033`.
+
 `SPEC 0024.1.3` definió correctamente a `Carta Porte` como una proyección documental versionada de la jornada en movimiento.
 
 Sin embargo, esa spec todavía depende de una capa operativa que hoy no está cerrada en el sistema:
@@ -190,18 +199,35 @@ Lo orquesta o lo referencia.
 
 ### Regla mínima esperada
 
-Cada operación confirmada debe quedar asociada a uno o más `movements` reales que expliquen su efecto inventariable.
+Lectura histórica original:
+
+```text
+cada operacion confirmada debe quedar asociada a uno o mas movements reales
+```
+
+Lectura vigente desde `SPEC 0033`:
+
+```text
+una RouteOperation confirmada puede no tener Movement
+si su efecto es fisico/documental y no financiero
+```
 
 Regla complementaria:
 
 1. `movement_ids` debe admitir múltiples movements por operación;
 2. en especial, `EXCHANGE` necesita poder apuntar a los dos movements que lo materializan.
 
-Ejemplos:
+Ejemplos históricos de esta spec:
 
 - `DELIVERY` -> `SC`
 - `PICKUP` -> `IC`
 - `EXCHANGE` -> `SC + IC`
+
+Lectura vigente desde `SPEC 0033`:
+
+- `DELIVERY` -> `SC` cuando exista efecto financiero;
+- `PICKUP` -> efecto fisico obligatorio, `IC` solo si hay devolucion financiera real;
+- `EXCHANGE` -> separar parte `OUT` y parte `IN` por efecto.
 
 ### Regla de trazabilidad
 
@@ -240,7 +266,8 @@ No es una tabla nueva.
 
 Es una proyección derivada de:
 
-- saldo del almacén móvil;
+- verdad fisica de cilindros presentes en sesion;
+- saldo del almacén móvil cuando aplique para productos no serializados o agregados;
 - carga inicial confirmada;
 - operaciones de ruta confirmadas.
 
@@ -286,6 +313,7 @@ Reglas complementarias de composición:
 1. `product_lines` debe salir en orden determinista, como mínimo `product_id ASC`;
 2. ese orden estable forma parte de la consistencia del hash y evita diferencias falsas sin cambio real;
 3. `composition_version` queda reservado como soporte futuro para debug y auditoría operacional.
+4. si `stock` y presencia fisica divergen, la composición vigente debe reflejar la presencia fisica.
 
 ## Regla sobre el stepper
 
@@ -298,7 +326,7 @@ un stepper visualmente avanzado no equivale a una verdad operacional cerrada
 Consecuencia:
 
 - `OUTBOUND` no debe tratarse como dominio resuelto solo porque el modal y el estado existen;
-- la verdad de `OUTBOUND` depende de `RouteOperation + Movements + Composición Vigente`.
+- la verdad de `OUTBOUND` depende de `RouteOperation + Composición Vigente`, y `Movement` solo cuando exista consecuencia financiera/documental derivada.
 
 ### Evolución opcional futura
 

@@ -31,7 +31,6 @@ from plugins.logistics.backend.schemas import (
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
     CylinderOwnershipRead,
-    TraceabilityPagination,
     CylinderPageRead,
     CylinderRead,
     CylinderRetimbradoCreateRequest,
@@ -109,6 +108,8 @@ from plugins.logistics.backend.schemas import (
     ScanLogRead,
     ScanRequest,
     ServiceTypeRead,
+    StockBridgeLogRead,
+    TraceabilityPagination,
     TransferAlbaranRead,
     VehicleCreateRequest,
     VehicleDeliveryPointCreateRequest,
@@ -120,6 +121,7 @@ from plugins.logistics.backend.schemas import (
     VehicleUpdateRequest,
     WarehouseCreateRequest,
     WarehouseRead,
+    WarehouseSerializedCylinderSummaryItem,
     WarehouseUpdateRequest,
     WarrantyCreateRequest,
     WarrantyRead,
@@ -155,6 +157,7 @@ from plugins.logistics.backend.services.cylinders import (
     list_cylinders,
     list_cylinders_page,
     summarize_cylinders,
+    summarize_serialized_cylinders_by_warehouse,
     transition_cylinder,
     update_cylinder,
 )
@@ -224,6 +227,7 @@ from plugins.logistics.backend.services.extras import (
 )
 from plugins.logistics.backend.services.movements import (
     cancel_movement,
+    compute_stock_sync_status,
     confirm_movement,
     create_movement,
     get_movement,
@@ -558,6 +562,26 @@ def get_cylinder_summary(
     _: User = REQUIRE_CYLINDER_READ,
 ) -> list[CylinderSummaryItem]:
     return summarize_cylinders(db, tenant_id=tenant_context.current_tenant_id)
+
+
+@router.get(
+    "/cylinders/serialized-summary",
+    response_model=list[WarehouseSerializedCylinderSummaryItem],
+)
+def get_serialized_cylinder_summary_by_warehouse(
+    warehouse_id: str = Query(...),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_READ,
+) -> list[WarehouseSerializedCylinderSummaryItem]:
+    try:
+        return summarize_serialized_cylinders_by_warehouse(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            warehouse_id=warehouse_id,
+        )
+    except LookupError as exc:
+        raise _not_found("Warehouse") from exc
 
 
 @router.get("/cylinders/available-with-weight", response_model=list[CylinderWeightRead])
@@ -1827,15 +1851,19 @@ def get_movements(
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_MOVEMENT_READ,
 ) -> list[MovementRead]:
+    movements = list_movements(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        movement_type=movement_type,
+        status=status_filter,
+        customer=customer,
+    )
     return [
-        MovementRead.model_validate(item)
-        for item in list_movements(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            movement_type=movement_type,
-            status=status_filter,
-            customer=customer,
-        )
+        MovementRead.model_validate({
+            **movement.__dict__,
+            "stock_sync_status": compute_stock_sync_status(db, movement=movement),
+        })
+        for movement in movements
     ]
 
 
@@ -1849,7 +1877,10 @@ def get_movement_detail(
     movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
     if movement is None:
         raise _not_found("Movement")
-    return MovementRead.model_validate(movement)
+    return MovementRead.model_validate({
+        **movement.__dict__,
+        "stock_sync_status": compute_stock_sync_status(db, movement=movement),
+    })
 
 
 @router.get("/movements/{movement_id}/items", response_model=list[MovementItemRead])
@@ -1882,6 +1913,34 @@ def get_movement_history(
         MovementStatusHistoryRead.model_validate(item)
         for item in list_movement_history(db, movement_id=movement_id)
     ]
+
+
+@router.get(
+    "/movements/{movement_id}/stock-bridge-log",
+    response_model=list[StockBridgeLogRead],
+)
+def get_movement_stock_bridge_log(
+    movement_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_MOVEMENT_READ,
+) -> list[StockBridgeLogRead]:
+    from plugins.logistics.backend.models import LogisticsStockBridgeLog
+
+    movement = get_movement(db, tenant_id=tenant_context.current_tenant_id, movement_id=movement_id)
+    if movement is None:
+        raise _not_found("Movement")
+    entries = list(
+        db.scalars(
+            select(LogisticsStockBridgeLog)
+            .where(
+                LogisticsStockBridgeLog.tenant_id == movement.tenant_id,
+                LogisticsStockBridgeLog.movement_id == movement.id,
+            )
+            .order_by(LogisticsStockBridgeLog.created_at.desc())
+        ).all()
+    )
+    return [StockBridgeLogRead.model_validate(entry) for entry in entries]
 
 
 @router.post("/movements", response_model=MovementRead, status_code=status.HTTP_201_CREATED)

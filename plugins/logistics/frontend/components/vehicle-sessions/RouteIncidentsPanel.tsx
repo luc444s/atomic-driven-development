@@ -75,7 +75,7 @@ export function RouteIncidentsPanel({
       <CardHeader>
         <CardTitle>Incidencias</CardTitle>
         <CardDescription>
-          Las incidencias detectan desvíos de calle. La corrección siempre entra como operación nueva.
+          Seguimiento de desvíos ya registrados en calle. La corrección sigue entrando como operación nueva.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">

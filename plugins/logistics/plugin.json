@@ -1,7 +1,7 @@
 {
   "id": "logistics",
   "name": "Logistics",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "api_version": "1",
   "requires": [
     "crm"
@@ -91,6 +91,10 @@
     "logistics.route.completed",
     "logistics.route.created",
     "logistics.route.started",
+    "logistics.route_control.status_changed",
+    "logistics.route_control.stop_arrived_manually",
+    "logistics.route_control.stop_departed_manually",
+    "logistics.vehicle_location.recorded",
     "logistics.vehicle_session.cancelled",
     "logistics.vehicle_session.created",
     "logistics.vehicle_session.loading_started",

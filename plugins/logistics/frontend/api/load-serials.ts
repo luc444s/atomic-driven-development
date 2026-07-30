@@ -25,8 +25,14 @@ export type LoadSerialSearchResult = {
   context_label: string | null;
 };
 
-export function listSelectedLoadSerials(sessionId: string, productId: string) {
-  const query = new URLSearchParams({ product_id: productId });
+export type LoadSerialSelectionContext = "LOAD_PLAN" | "ROUTE_PICKUP";
+
+export function listSelectedLoadSerials(
+  sessionId: string,
+  productId: string,
+  selectionContext: LoadSerialSelectionContext = "LOAD_PLAN"
+) {
+  const query = new URLSearchParams({ product_id: productId, selection_context: selectionContext });
   return apiRequest<LoadSerialAssignment[]>(
     `${API_PREFIX}/vehicle-sessions/${sessionId}/load-serials/selected?${query.toString()}`
   );
@@ -38,11 +44,13 @@ export function searchLoadSerials(
     product_id: string;
     query: string;
     source_warehouse_id?: string | null;
+    selection_context?: LoadSerialSelectionContext;
   }
 ) {
   const query = new URLSearchParams({
     product_id: payload.product_id,
     query: payload.query,
+    selection_context: payload.selection_context ?? "LOAD_PLAN",
   });
   if (payload.source_warehouse_id) {
     query.set("source_warehouse_id", payload.source_warehouse_id);
@@ -57,6 +65,7 @@ export function selectLoadSerial(
   payload: {
     product_id: string;
     source_warehouse_id?: string | null;
+    selection_context?: LoadSerialSelectionContext;
     serial: string;
   }
 ) {

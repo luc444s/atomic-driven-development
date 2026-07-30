@@ -83,7 +83,9 @@ def list_balances(
             & (StockConfig.product_id == StockBalance.product_id)
             & (StockConfig.warehouse_id == StockBalance.warehouse_id),
         )
-        .where(StockBalance.tenant_id == tenant_id)
+        .where(
+            StockBalance.tenant_id == tenant_id,
+        )
     )
     if q:
         term = f"%{q.strip()}%"
@@ -317,7 +319,9 @@ def list_global_ledger(
         select(StockLedger, Product, LogisticsWarehouse)
         .join(Product, Product.id == StockLedger.product_id)
         .join(LogisticsWarehouse, LogisticsWarehouse.id == StockLedger.warehouse_id)
-        .where(StockLedger.tenant_id == tenant_id)
+        .where(
+            StockLedger.tenant_id == tenant_id,
+        )
     )
     if product_id is not None:
         stmt = stmt.where(StockLedger.product_id == product_id)

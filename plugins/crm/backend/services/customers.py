@@ -252,7 +252,7 @@ def list_customers(
     country_code: str | None = None,
     is_active: bool | None = None,
     payment_term_code: str | None = None,
-    limit: int = 20,
+    limit: int = 10,
     offset: int = 0,
 ) -> tuple[list[CrmCustomer], int]:
     filters = build_customer_filters(
@@ -276,7 +276,7 @@ def list_customers(
 
 
 def search_customers(
-    db: Session, *, tenant_id: str, query: str, limit: int = 20
+    db: Session, *, tenant_id: str, query: str, limit: int = 10
 ) -> list[CustomerSearchItemRead]:
     term = f"%{query.strip()}%"
     stmt = (

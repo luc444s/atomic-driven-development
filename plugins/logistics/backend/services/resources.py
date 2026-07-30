@@ -27,7 +27,10 @@ def list_warehouses(db: Session, *, tenant_id: str) -> list[LogisticsWarehouse]:
     return list(
         db.scalars(
             select(LogisticsWarehouse)
-            .where(LogisticsWarehouse.tenant_id == tenant_id)
+            .where(
+                LogisticsWarehouse.tenant_id == tenant_id,
+                LogisticsWarehouse.warehouse_type != "MOBILE",
+            )
             .order_by(LogisticsWarehouse.is_active.desc(), LogisticsWarehouse.name)
         ).all()
     )
@@ -302,6 +305,7 @@ def create_delivery_point(
         fiscal_operation_document=payload.fiscal_operation_document,
         fiscal_operation_type=payload.fiscal_operation_type,
         gps_link=payload.gps_link,
+        gps_coordinates=payload.gps_coordinates,
     )
     db.add(delivery_point)
     db.flush()
@@ -371,6 +375,8 @@ def update_delivery_point(
         delivery_point.fiscal_operation_type = payload.fiscal_operation_type
     if payload.gps_link is not None:
         delivery_point.gps_link = payload.gps_link
+    if payload.gps_coordinates is not None:
+        delivery_point.gps_coordinates = payload.gps_coordinates
     if payload.is_active is not None:
         delivery_point.is_active = payload.is_active
     db.add(delivery_point)

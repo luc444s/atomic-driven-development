@@ -3,7 +3,7 @@ id: "0036"
 title: "Evento de Ruta Unificado y Contexto Operativo Explícito"
 domain: logistics
 module: jornadas
-status: borrador
+status: en-progreso
 extends:
   - docs/specs/core/0033-route-operation-efectos-separados.md
   - docs/specs/core/0024-1-3-3-reconciliacion-controlada-sobre-incidencias-de-ruta.md
@@ -14,7 +14,12 @@ extends:
 
 ## Estado
 
-Borrador - v1
+En progreso — v2
+
+Cambios en v2 respecto a v1:
+- Se define explícitamente `RoutesPage` como panel de control de rutas (deja de ser "secundario")
+- Se define el modal de ruta (`SessionRouteTab`) como hub de asignación/creación rápida de rutas
+- Se agrega `RouteControlMapPanel` con toolbar de asignación de ruta
 
 ## Contexto
 
@@ -303,6 +308,108 @@ type RouteIncident = {
   notes?: string | null
 }
 ```
+
+## Superficies UX explícitas
+
+Dónde vive cada pieza de esta spec en la UI real.
+
+### A. `RoutesPage` — Panel de control de rutas
+
+**Archivo**: `plugins/logistics/frontend/pages/RoutesPage.tsx`
+
+Deja de ser "Rutas (secundario)". Es el panel central de gestión de rutas. La ejecución (entregar, iniciar, agenda) se traslada completamente a la jornada activa.
+
+Responsabilidades:
+- Listar todas las rutas con filtro por fecha/estado
+- Seleccionar una ruta → ver detalle: datos + paradas
+- **Crear ruta** (conservado)
+- **Agregar parada** a la ruta seleccionada (conservado). El diálogo se extrae como `AddStopDialog` reutilizable
+- **Mapa de contexto de ruta**: `LocationMap` con los stops de la ruta seleccionada, usando `buildRouteControlMapView`. Solo lectura (sin arrive/depart)
+- **Asignar ruta a sesión activa**: selector de sesiones activas (`OUTBOUND`, `RETURNING`) + botón. Usa `POST /vehicle-sessions/{session_id}/assign-route`
+
+Eliminado de esta página (se ejecuta desde la jornada):
+- ~~Iniciar ruta~~ → el operador inicia desde el stepper de la jornada
+- ~~Entregar parada~~ → el operador registra el evento de ruta desde el composer
+- ~~Agenda~~ → reemplazado por planificación (`PlanningReservation`)
+
+Regla: `RoutesPage` no ejecuta. Solo planifica y asigna.
+
+### B. `SessionRouteTab` — Hub de ruta en jornada activa
+
+**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/SessionRouteTab.tsx`
+
+Se accede desde el stepper de `VehicleSessionDetailPage` → clic en paso "En ruta" o "De regreso" → `RouteModal` → `SessionRouteTab`.
+
+Responsabilidades:
+- **Muestra la ruta asignada** como texto (solo lectura, asignada desde `RoutesPage` o al crear la jornada)
+- **Botón "Registrar evento de ruta"** → abre el composer unificado (`RouteOperationForm`)
+- Resto de botones: Composición, Progreso, Operaciones, Resultados, Incidencias, Mapa de contexto
+- **Waybill** en columna izquierda
+
+Regla arquitectónica fuerte:
+```text
+La ruta planificada no se edita en ejecución.
+La realidad se registra como operación.
+```
+Si al operador "le falta una parada", no modifica la ruta: registra una `RouteOperation` con `context_type = CUSTOMER_EMERGENCY` desde el composer. El hecho queda trazado sin alterar el plan.
+
+### C. `RouteControlMapPanel` — Mapa de contexto de ejecución
+
+**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/RouteControlMapPanel.tsx`
+
+Se abre desde el botón "Mapa de contexto" en `SessionRouteTab`.
+
+Responsabilidades:
+- Mapa con stops planificados, posición del vehículo, ruta viajada
+- **Marcar llegada / Marcar salida** sobre la parada activa
+- **Indicadores**: estado, paradas completadas, progreso, parada activa
+- Si no hay ruta asignada, alerta informativa
+
+No tiene controles de edición de ruta. La ruta planificada no se modifica desde aquí: la realidad se registra como `RouteOperation` desde el composer.
+
+### D. `AddStopDialog` — Diálogo de parada
+
+**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/AddStopDialog.tsx` (nuevo, extraído de `RoutesPage`)
+
+Usado exclusivamente por `RoutesPage` durante la planificación. No se usa en ejecución: durante la jornada, las paradas no planificadas se registran como `RouteOperation` con `CUSTOMER_EMERGENCY`.
+
+Props:
+- `open`, `onClose`
+- `routeId` — ruta a la que se agrega
+- `onSuccess` — callback post-creación
+
+Internamente: `<Select>` de delivery points + `<Input>` de orden + `POST /routes/{routeId}/stops`.
+
+### D. `RouteOperationForm` — Composer unificado de evento
+
+**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/RouteOperationForm.tsx`
+
+Se abre desde el botón "Registrar evento de ruta" en `SessionRouteTab`. También desde "Corregir" en `RouteIncidentsPanel`.
+
+Campos:
+1. **Tipo**: DELIVERY | PICKUP | EXCHANGE
+2. **Parada**: selector de stops de la ruta. `Sin parada` activa contexto manual
+3. **Contexto operativo** (sin parada): `Cliente emergencia` o `Almacén emergencia`
+4. **Notas**: texto libre
+5. **Productos**: búsqueda + cantidades + seriales
+6. **Bloque de incidencia** (opcional, toggle):
+   - Checkbox "Marcar como incidencia/desvío"
+   - Tipo de incidencia (select)
+   - Notas de incidencia
+
+Flujos del composer:
+- `incident_mode = NONE` → solo `RouteOperation`
+- `incident_mode = CREATE` → `RouteOperation` + `RouteIncident`
+- `incident_mode = CORRECT_EXISTING` → `RouteOperation` correctiva + cierre de incidencia
+
+### E. `RouteIncidentsPanel` — Bandeja de incidencias
+
+**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/RouteIncidentsPanel.tsx`
+
+Acciones:
+- **Resolver**: cierra incidencia sin compensación física
+- **Corregir**: abre el composer unificado en modo `CORRECT_EXISTING`
+- **Registrar incidencia sin movimiento**: acción secundaria para casos como `CUSTOMER_ABSENT`, `FAILED_DELIVERY`. No crea `RouteOperation`.
 
 ## Reglas de UX
 
@@ -598,10 +705,43 @@ Lo que cambia es el punto de captura UX:
 | UI demasiado cargada | medio | mostrar el bloque de incidencia solo cuando el usuario lo activa |
 | Duplicar lógica entre `create_route_operation` y `correct_route_incident` | alto | extraer un comando común de `RouteEventComposer` y dejar la incidencia como post-efecto controlado |
 
-## Implementación mínima sugerida
+## Implementación
 
-1. agregar `context_type`, `customer_id`, `customer_name_snapshot`, `warehouse_id`, `warehouse_name_snapshot` a `lg_route_operations`;
-2. ampliar DTO/API de creación de operación para soportar `incident_mode` y contexto manual;
-3. reemplazar la captura principal separada por un composer único de confirmación;
-4. dejar la bandeja de incidencias como historial + acciones `Resolver` / `Corregir ahora` / `Registrar incidencia sin movimiento`;
-5. hacer que `Corregir ahora` abra el mismo composer prellenado.
+### Ya implementado (cambios no commiteados)
+
+1. `context_type`, `customer_id`, `customer_name_snapshot`, `warehouse_id`, `warehouse_name_snapshot` en `lg_route_operations` (migración 037)
+2. `RouteEventConfirmRequest` DTO con `incident_mode` y contexto manual
+3. `confirm_route_event()` en backend — confirma atómicamente operación + incidencia opcional
+4. `POST /{session_id}/route-events/confirm` endpoint
+5. `_resolve_operation_context()` — valida STOP vs CUSTOMER_EMERGENCY vs WAREHOUSE_EMERGENCY
+6. `RouteOperationForm` con campos de contexto (parada, contexto manual, customer, warehouse)
+7. `confirmRouteEvent()` en API frontend
+8. `useSessionRouteTabController.createAndConfirmMutation` — wired al form
+9. `RouteControlMapPanel` con mapa, arrive/depart (archivo untracked)
+10. `route-control-view.ts` — buildRouteControlMapView (archivo untracked)
+11. `LocationMap` en `shared/ui/`
+
+### Pendiente — Fase 1: Backend + RoutesPage
+
+**Backend**:
+1. `AssignRouteRequest` DTO en `dto/sessions.py`
+2. `assign_route_to_session()` en `services/sessions.py`
+3. `POST /vehicle-sessions/{session_id}/assign-route` en `routers/sessions.py`
+
+**Frontend API**:
+4. `assignRouteToSession()` en `api/sessions.ts`
+
+**RoutesPage**:
+5. Título: `"Rutas (secundario)"` → `"Rutas"` con descripción profesional
+6. Agregar `LocationMap` con stops de la ruta seleccionada (usa `buildRouteControlMapView`)
+7. Agregar selector de sesiones activas + botón "Asignar ruta"
+8. Extraer diálogo de parada a `AddStopDialog.tsx` (reutilizable)
+9. Quitar `deliverRouteStop`, `startRoute`, agenda — imports, mutations, y botones
+10. Quitar `deliverRouteStop` y `startRoute` de `api/routes.ts` si no se usan en otro lado
+
+### Pendiente — Fase 2: Composer unificado completo
+
+1. `RouteOperationForm`: agregar bloque opcional de incidencia (checkbox, tipo, notas)
+2. `useSessionRouteTabUiState`: `incidentMode`, `incidentType`, `incidentNotes`
+3. `useSessionRouteTabController`: soportar `incident_mode = CREATE` en el submit
+4. `RouteIncidentsPanel`: botón secundario "Registrar incidencia sin movimiento" → `REGISTER_INCIDENT_ONLY`

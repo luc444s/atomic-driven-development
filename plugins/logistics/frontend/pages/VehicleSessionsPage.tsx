@@ -95,7 +95,7 @@ export function VehicleSessionsPage() {
     queryFn: () => listRoutes({}),
   });
   const plannedReservationsQuery = useQuery({
-    queryKey: planningKeys.reservations.list({ start: new Date().toISOString() }),
+    queryKey: planningKeys.reservations.list({ start: "now" }),
     queryFn: () => listPlanningReservations({ start: new Date().toISOString() }),
   });
 
@@ -379,14 +379,10 @@ export function VehicleSessionsPage() {
 
       <Dialog
         open={isRoutesLibraryOpen}
-        title="Rutas"
-        description="Superficie secundaria de soporte accesible desde Jornadas."
         onClose={() => setIsRoutesLibraryOpen(false)}
         maxWidthClassName="max-w-[1500px]"
       >
-        <div className="h-[70vh] overflow-y-auto">
-          <RoutesPage />
-        </div>
+        <RoutesPage />
       </Dialog>
 
       <Dialog

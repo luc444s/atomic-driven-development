@@ -24,8 +24,8 @@ from plugins.logistics.backend.services.rules import (
     ensure_session_can_depart,
     ensure_session_can_mark_returning,
     ensure_session_can_start_loading,
-    get_session_start_queue_blocker,
     ensure_single_live_session,
+    get_session_start_queue_blocker,
 )
 
 
@@ -376,5 +376,40 @@ def cancel_session(
         entity_type="vehicle_session",
         entity_id=session.id,
         payload={"notes": notes or ""},
+    )
+    return session
+
+
+def assign_route_to_session(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    route_id: str,
+    action_context: LogisticsActionContext,
+) -> LogisticsVehicleSession:
+    from plugins.logistics.backend.services.routes import get_route
+
+    if session.status in {"CLOSED", "CANCELLED"}:
+        raise ValueError("No se puede asignar ruta a una jornada finalizada o cancelada")
+
+    route = get_route(db, tenant_id=session.tenant_id, route_id=route_id)
+    if route is None:
+        raise LookupError("Ruta no encontrada")
+
+    old_route_id = session.route_id
+    session.route_id = route_id
+    session.updated_by = action_context.actor_user_id
+    db.add(session)
+
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="vehicle_session.route.assign",
+        entity_type="vehicle_session",
+        entity_id=session.id,
+        details={
+            "previous_route_id": old_route_id,
+            "new_route_id": route_id,
+        },
     )
     return session

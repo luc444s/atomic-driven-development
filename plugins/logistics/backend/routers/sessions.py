@@ -9,6 +9,7 @@ from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.dto.sessions import (
+    AssignRouteRequest,
     DriverOptionRead,
     SessionActionRequest,
     SessionHistoryEntryRead,
@@ -17,6 +18,7 @@ from plugins.logistics.backend.dto.sessions import (
     VehicleSessionRead,
 )
 from plugins.logistics.backend.services.sessions import (
+    assign_route_to_session,
     cancel_session,
     create_vehicle_session,
     depart_session,
@@ -248,6 +250,30 @@ def post_cancel(
             db,
             session=session,
             notes=payload.notes,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return build_session_snapshot(db, session=session)
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post("/{session_id}/assign-route", response_model=VehicleSessionDetailRead)
+def post_assign_route(
+    session_id: str,
+    payload: AssignRouteRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> VehicleSessionDetailRead:
+    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
+    try:
+        session = assign_route_to_session(
+            db,
+            session=session,
+            route_id=payload.route_id,
             action_context=build_action_context(request, tenant_context),
         )
         db.commit()

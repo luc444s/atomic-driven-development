@@ -132,6 +132,10 @@ class SessionWaybillStateRead(BaseModel):
     can_regenerate: bool = False
 
 
+class AssignRouteRequest(BaseModel):
+    route_id: str = Field(min_length=1, max_length=36)
+
+
 class SessionWaybillRegenerateRequest(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
     event: str = Field(min_length=1, max_length=40)

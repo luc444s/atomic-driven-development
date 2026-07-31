@@ -218,6 +218,13 @@ export function regenerateSessionWaybill(sessionId: string, payload: SessionWayb
   });
 }
 
+export function assignRouteToSession(sessionId: string, routeId: string) {
+  return apiRequest<VehicleSessionDetail>(`${API_PREFIX}/vehicle-sessions/${sessionId}/assign-route`, {
+    method: "POST",
+    body: JSON.stringify({ route_id: routeId }),
+  });
+}
+
 export type VehicleLocationRecordPayload = {
   lat: number;
   lng: number;

@@ -8,6 +8,7 @@ extends:
   - docs/specs/core/0033-route-operation-efectos-separados.md
   - docs/specs/core/0024-1-3-3-reconciliacion-controlada-sobre-incidencias-de-ruta.md
   - docs/specs/core/0024-1-3-2-exchange-incidencias-y-progreso-real-de-stop.md
+  - docs/specs/core/0036.1-route-builder-visual.md
 ---
 
 # SPEC 0036 - Evento de Ruta Unificado y Contexto Operativo Explícito
@@ -313,26 +314,17 @@ type RouteIncident = {
 
 Dónde vive cada pieza de esta spec en la UI real.
 
-### A. `RoutesPage` — Panel de control de rutas
+### A. `RoutesPage` — Constructor Map First (SPEC 0036.1)
 
 **Archivo**: `plugins/logistics/frontend/pages/RoutesPage.tsx`
 
-Deja de ser "Rutas (secundario)". Es el panel central de gestión de rutas. La ejecución (entregar, iniciar, agenda) se traslada completamente a la jornada activa.
+Rediseñado como constructor visual Map First. Ver SPEC 0036.1 para detalle completo.
 
 Responsabilidades:
-- Listar todas las rutas con filtro por fecha/estado
-- Seleccionar una ruta → ver detalle: datos + paradas
-- **Crear ruta** (conservado)
-- **Agregar parada** a la ruta seleccionada (conservado). El diálogo se extrae como `AddStopDialog` reutilizable
-- **Mapa de contexto de ruta**: `LocationMap` con los stops de la ruta seleccionada, usando `buildRouteControlMapView`. Solo lectura (sin arrive/depart)
-- **Asignar ruta a sesión activa**: selector de sesiones activas (`OUTBOUND`, `RETURNING`) + botón. Usa `POST /vehicle-sessions/{session_id}/assign-route`
-
-Eliminado de esta página (se ejecuta desde la jornada):
-- ~~Iniciar ruta~~ → el operador inicia desde el stepper de la jornada
-- ~~Entregar parada~~ → el operador registra el evento de ruta desde el composer
-- ~~Agenda~~ → reemplazado por planificación (`PlanningReservation`)
-
-Regla: `RoutesPage` no ejecuta. Solo planifica y asigna.
+- Sidebar izquierdo: lista de rutas guardadas con iconos 🟢→🔴
+- Mapa central: constructor interactivo en 3 fases (partida → destino → paradas)
+- Panel derecho: nombre auto-generado, fecha, vehículo, asignar a sesión
+- Se abre también desde `CreateJornadaDialog` cuando no hay rutas
 
 ### B. `SessionRouteTab` — Hub de ruta en jornada activa
 
@@ -367,20 +359,13 @@ Responsabilidades:
 
 No tiene controles de edición de ruta. La ruta planificada no se modifica desde aquí: la realidad se registra como `RouteOperation` desde el composer.
 
-### D. `AddStopDialog` — Diálogo de parada
+### D. `RouteContextMap` — Mapa minimal en jornada (SPEC 0036.1)
 
-**Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/AddStopDialog.tsx` (nuevo, extraído de `RoutesPage`)
+**Archivo**: `plugins/logistics/frontend/components/route-builder/RouteContextMap.tsx`
 
-Usado exclusivamente por `RoutesPage` durante la planificación. No se usa en ejecución: durante la jornada, las paradas no planificadas se registran como `RouteOperation` con `CUSTOMER_EMERGENCY`.
+Mapa de solo lectura dentro del contexto de ruta (`SessionRouteTab`). Muestra los stops con iconos 🟢🔵🔴 y polilínea. Sin controles de edición. Ver SPEC 0036.1.
 
-Props:
-- `open`, `onClose`
-- `routeId` — ruta a la que se agrega
-- `onSuccess` — callback post-creación
-
-Internamente: `<Select>` de delivery points + `<Input>` de orden + `POST /routes/{routeId}/stops`.
-
-### D. `RouteOperationForm` — Composer unificado de evento
+### E. `RouteOperationForm` — Composer unificado de evento
 
 **Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/RouteOperationForm.tsx`
 
@@ -402,7 +387,7 @@ Flujos del composer:
 - `incident_mode = CREATE` → `RouteOperation` + `RouteIncident`
 - `incident_mode = CORRECT_EXISTING` → `RouteOperation` correctiva + cierre de incidencia
 
-### E. `RouteIncidentsPanel` — Bandeja de incidencias
+### F. `RouteIncidentsPanel` — Bandeja de incidencias
 
 **Archivo**: `plugins/logistics/frontend/components/vehicle-sessions/RouteIncidentsPanel.tsx`
 

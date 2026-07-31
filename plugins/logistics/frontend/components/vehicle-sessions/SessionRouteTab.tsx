@@ -7,6 +7,9 @@ import {
   CardHeader,
   CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
+import { useQuery } from "../../../../../apps/web/src/lib/react-query";
+import { listRouteStops, logisticsKeys } from "../../api";
+import { RouteContextMap } from "../route-builder/RouteContextMap";
 import { SessionWaybillCard } from "./SessionWaybillCard";
 import { SessionRouteTabDialogs } from "./SessionRouteTabDialogs";
 import { useSessionRouteTabController } from "./useSessionRouteTabController";
@@ -21,6 +24,14 @@ type Props = {
 
 export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionStatus }: Props) {
   const controller = useSessionRouteTabController({ open, routeId, sessionId, sessionStatus });
+
+  const stopsQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
+    queryFn: () => listRouteStops(routeId!),
+    enabled: open && Boolean(routeId),
+  });
+
+  const stops = stopsQuery.data ?? [];
 
   return (
     <div className="space-y-4">
@@ -69,6 +80,15 @@ export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionSt
               </div>
             </CardContent>
           </Card>
+
+          {routeId && stops.length > 0 ? (
+            <RouteContextMap
+              stops={stops}
+              activeStopId={null}
+              completedStops={0}
+              totalStops={stops.length}
+            />
+          ) : null}
         </div>
       </div>
 

@@ -99,17 +99,28 @@ export function CreateJornadaDialog({
         </label>
         <label className="block space-y-2 text-sm text-foreground">
           <span>Ruta (opcional)</span>
-          <div className="space-y-2">
-            <Select
-              value={form.route_id}
-              onChange={(value) => setForm((current) => ({ ...current, route_id: value }))}
-              placeholder="Sin ruta"
-              options={routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${formatRouteStatus(route.status)}` }))}
-            />
-            <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
-              Crear ruta
-            </Button>
-          </div>
+          {routes.length > 0 ? (
+            <div className="space-y-2">
+              <Select
+                value={form.route_id}
+                onChange={(value) => setForm((current) => ({ ...current, route_id: value }))}
+                placeholder="Sin ruta"
+                options={routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${formatRouteStatus(route.status)}` }))}
+              />
+              <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
+                Crear ruta
+              </Button>
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed border-border p-4 text-center">
+              <p className="text-sm text-muted-foreground">No hay rutas disponibles.</p>
+              <div className="mt-2">
+                <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
+                  Crear primera ruta
+                </Button>
+              </div>
+            </div>
+          )}
         </label>
         <div className="flex justify-end gap-3">
           <Button type="button" variant="secondary" onClick={onClose}>

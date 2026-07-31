@@ -5,7 +5,6 @@ import type {
 
 import { AgendaPage } from "./pages/AgendaPage";
 import { CylindersPage } from "./pages/CylindersPage";
-import { DeliveryPointsPage } from "./pages/DeliveryPointsPage";
 import { EquipmentPage } from "./pages/EquipmentPage";
 import { LoadsPage } from "./pages/LoadsPage";
 import { MovementsPage } from "./pages/MovementsPage";
@@ -89,12 +88,6 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         title: "Vehículos",
         component: VehiclesPage,
         requiredPermissions: ["logistics.vehicle.read"],
-      },
-      {
-        path: "logistics/delivery-points",
-        title: "Puntos de entrega",
-        component: DeliveryPointsPage,
-        requiredPermissions: ["logistics.route.read"],
       },
       {
         path: "logistics/contracts",

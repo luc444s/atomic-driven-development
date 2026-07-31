@@ -66,6 +66,7 @@ export function VehicleSessionsPage() {
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
   const [isRoutesLibraryOpen, setIsRoutesLibraryOpen] = useState(false);
+  const [routesAutoStart, setRoutesAutoStart] = useState(false);
   const [isWarehousesOpen, setIsWarehousesOpen] = useState(false);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [openVehicleId, setOpenVehicleId] = useState<string | null>(null);
@@ -314,7 +315,10 @@ export function VehicleSessionsPage() {
         isPending={createMutation.isPending}
         onSubmit={onSubmit}
         onOpenCreateVehicle={() => setIsVehicleOpen(true)}
-        onOpenCreateRoute={() => setIsRouteOpen(true)}
+        onOpenCreateRoute={() => {
+          setRoutesAutoStart(true);
+          setIsRoutesLibraryOpen(true);
+        }}
         fixedVehicleId={fixedVehicleId}
         setRouteVehicle={(vehicleId) =>
           setRouteForm((current) => ({ ...current, vehicle_id: vehicleId }))
@@ -379,10 +383,20 @@ export function VehicleSessionsPage() {
 
       <Dialog
         open={isRoutesLibraryOpen}
-        onClose={() => setIsRoutesLibraryOpen(false)}
+        onClose={() => {
+          setIsRoutesLibraryOpen(false);
+          setRoutesAutoStart(false);
+        }}
         maxWidthClassName="max-w-[1500px]"
       >
-        <RoutesPage />
+        <RoutesPage
+          autoStart={routesAutoStart}
+          onRouteCreated={(routeId) => {
+            setFormState((current) => ({ ...current, route_id: routeId }));
+            setIsRoutesLibraryOpen(false);
+            setRoutesAutoStart(false);
+          }}
+        />
       </Dialog>
 
       <Dialog

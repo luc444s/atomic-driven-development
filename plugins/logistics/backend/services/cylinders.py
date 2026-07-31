@@ -1,6 +1,8 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
+from datetime import datetime
+
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 
@@ -11,6 +13,7 @@ from plugins.logistics.backend.common import (
 )
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
+    LogisticsCylinderEvent,
     LogisticsCylinderStateLog,
     LogisticsMovement,
     LogisticsWarehouse,
@@ -764,3 +767,123 @@ def _register_initial_entry(
             idempotency_key=f"cylinder-create:{cylinder.id}:stock",
             action_context=action_context,
         )
+
+
+_LOCATION_DEFINING_EVENTS = {
+    "WAREHOUSE_IN",
+    "VEHICLE_LOAD",
+    "CUSTOMER_DELIVERY",
+    "CUSTOMER_PICKUP",
+}
+
+_VALID_TRANSITIONS: dict[str | None, set[str]] = {
+    None: {"WAREHOUSE_IN"},
+    "WAREHOUSE": {"WAREHOUSE_OUT", "VEHICLE_LOAD"},
+    "VEHICLE": {"VEHICLE_UNLOAD", "CUSTOMER_DELIVERY"},
+    "CUSTOMER": {"CUSTOMER_PICKUP", "WAREHOUSE_IN"},
+}
+
+
+def record_cylinder_event(
+    db: Session,
+    *,
+    cylinder_id: str,
+    tenant_id: str,
+    event_type: str,
+    location_type: str,
+    location_id: str,
+    warehouse_id: str | None,
+    session_id: str | None,
+    customer_id: str | None,
+    source_type: str,
+    source_id: str | None,
+    occurred_at: datetime,
+    action_context: LogisticsActionContext,
+) -> LogisticsCylinderEvent:
+    from uuid import uuid4 as _uuid4
+
+    previous = get_cylinder_current_location(db, cylinder_id=cylinder_id)
+    previous_ltype = previous[0] if previous else None
+
+    allowed = _VALID_TRANSITIONS.get(previous_ltype, set())
+    if event_type not in allowed and previous_ltype is not None:
+        raise ValueError(
+            f"Transición inválida: {previous_ltype} → {event_type} "
+            f"para cilindro {cylinder_id}"
+        )
+
+    event = LogisticsCylinderEvent(
+        id=str(_uuid4()),
+        tenant_id=tenant_id,
+        cylinder_id=cylinder_id,
+        event_type=event_type,
+        location_type=location_type,
+        location_id=location_id,
+        warehouse_id=warehouse_id,
+        session_id=session_id,
+        customer_id=customer_id,
+        source_type=source_type,
+        source_id=source_id,
+        occurred_at=occurred_at,
+        created_by=action_context.actor_user_id,
+    )
+    db.add(event)
+    db.flush()
+
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action=f"cylinder.event.{event_type.lower()}",
+        entity_type="cylinder",
+        entity_id=cylinder_id,
+        details={
+            "event_id": event.id,
+            "location_type": location_type,
+            "location_id": location_id,
+            "source_type": source_type,
+            "source_id": source_id,
+        },
+    )
+    return event
+
+
+def get_last_location_event(
+    db: Session, *, cylinder_id: str
+) -> LogisticsCylinderEvent | None:
+    return db.scalar(
+        select(LogisticsCylinderEvent)
+        .where(
+            LogisticsCylinderEvent.cylinder_id == cylinder_id,
+            LogisticsCylinderEvent.event_type.in_(_LOCATION_DEFINING_EVENTS),
+        )
+        .order_by(
+            LogisticsCylinderEvent.occurred_at.desc(),
+            LogisticsCylinderEvent.created_at.desc(),
+        )
+        .limit(1)
+    )
+
+
+def get_cylinder_current_location(
+    db: Session, *, cylinder_id: str
+) -> tuple[str, str] | None:
+    event = get_last_location_event(db, cylinder_id=cylinder_id)
+    if event is None:
+        return None
+    return (event.location_type, event.location_id)
+
+
+def list_cylinder_events(
+    db: Session, *, cylinder_id: str, limit: int = 50
+) -> list[LogisticsCylinderEvent]:
+    return list(
+        db.scalars(
+            select(LogisticsCylinderEvent)
+            .where(LogisticsCylinderEvent.cylinder_id == cylinder_id)
+            .order_by(
+                LogisticsCylinderEvent.occurred_at.desc(),
+                LogisticsCylinderEvent.created_at.desc(),
+            )
+            .limit(limit)
+        ).all()
+    )

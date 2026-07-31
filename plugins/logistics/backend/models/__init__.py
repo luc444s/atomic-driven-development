@@ -39,6 +39,7 @@ from .load_plans import LogisticsLoadPlan, LogisticsLoadPlanItem
 from .load_serial_assignments import LogisticsLoadSerialAssignment
 from .movements import LogisticsMovement, LogisticsMovementItem, LogisticsMovementStatusHistory
 from .operations import (
+    LogisticsCylinderEvent,
     LogisticsLoad,
     LogisticsOrder,
     LogisticsOrderItem,

@@ -8,7 +8,13 @@ from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, re
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context, emit_logistics_event
-from plugins.logistics.backend.schemas import CylinderTraceabilityRead
+from plugins.logistics.backend.schemas import CylinderEventRead, CylinderTraceabilityRead
+from plugins.logistics.backend.services.cylinders import (
+    get_cylinder_current_location,
+)
+from plugins.logistics.backend.services.cylinders import (
+    list_cylinder_events as list_events_svc,
+)
 from plugins.logistics.backend.services.traceability import get_cylinder_traceability
 
 router = APIRouter(tags=["logistics"])
@@ -46,3 +52,31 @@ def get_traceability(
         payload={"page": page, "per_page": per_page},
     )
     return result
+
+
+@router.get(
+    "/cylinders/{cylinder_id}/events",
+    response_model=list[CylinderEventRead],
+)
+def get_cylinder_events(
+    cylinder_id: str,
+    limit: int = Query(default=50, ge=1, le=200),
+    db: Session = DB_SESSION,
+    _: User = REQUIRE_CYLINDER_TRACE,
+) -> list[CylinderEventRead]:
+    return [
+        CylinderEventRead.model_validate(event)
+        for event in list_events_svc(db, cylinder_id=cylinder_id, limit=limit)
+    ]
+
+
+@router.get("/cylinders/{cylinder_id}/location")
+def get_cylinder_location(
+    cylinder_id: str,
+    db: Session = DB_SESSION,
+    _: User = REQUIRE_CYLINDER_TRACE,
+) -> dict[str, object]:
+    location = get_cylinder_current_location(db, cylinder_id=cylinder_id)
+    if location is None:
+        return {"location_type": None, "location_id": None}
+    return {"location_type": location[0], "location_id": location[1]}

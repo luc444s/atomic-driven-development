@@ -4,6 +4,7 @@ import type {
   RouteControlState,
   VehicleLocationEvent,
 } from "../../api";
+import { DEFAULT_MAP_CENTER } from "../route-builder/map-defaults";
 
 type LatLng = { lat: number; lng: number };
 
@@ -24,7 +25,7 @@ export type RouteControlMapView = {
   vehiclePosition: LatLng | null;
 };
 
-const DEFAULT_CENTER: LatLng = { lat: -12.0464, lng: -77.0428 };
+const DEFAULT_CENTER = DEFAULT_MAP_CENTER;
 
 function getDeliveryPointCoordinates(point: LogisticsDeliveryPoint): LatLng | null {
   if (!point.gps_coordinates) {
@@ -46,7 +47,7 @@ export function buildRouteControlMapView(args: {
   const pointsById = new Map(args.deliveryPoints.map((point) => [point.id, point]));
   const stops = args.stops
     .map((stop) => {
-      const deliveryPoint = pointsById.get(stop.delivery_point_id);
+      const deliveryPoint = pointsById.get(stop.delivery_point_id ?? "");
       const position = deliveryPoint ? getDeliveryPointCoordinates(deliveryPoint) : null;
       if (!position) {
         return null;

@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer, Marker, Polyline, Popup, TileLayer, useMap, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -29,6 +29,9 @@ type Props = {
   polylines?: LocationMapPolyline[];
   className?: string;
   height?: number;
+  onMarkerClick?: (id: string) => void;
+  onMarkerDrag?: (id: string, latlng: LatLng) => void;
+  onMapClick?: (latlng: LatLng) => void;
 };
 
 const defaultIcon = L.icon({
@@ -54,6 +57,13 @@ function ChangeView({ center, zoom }: { center: LatLng; zoom: number }) {
   return null;
 }
 
+function MapClickHandler({ onClick }: { onClick: (latlng: LatLng) => void }) {
+  useMapEvents({
+    click: (e) => onClick({ lat: e.latlng.lat, lng: e.latlng.lng }),
+  });
+  return null;
+}
+
 export function LocationMap({
   center,
   zoom = 12,
@@ -61,18 +71,22 @@ export function LocationMap({
   polylines = [],
   className,
   height = 320,
+  onMarkerClick,
+  onMarkerDrag,
+  onMapClick,
 }: Props) {
   const theme = useThemeStore((s) => s.theme);
   const isDark = theme === "dark";
 
   return (
     <div className={cn("overflow-hidden rounded-md border border-border", className)} style={{ height }}>
-      <MapContainer center={[center.lat, center.lng]} zoom={zoom} className="h-full w-full">
+      <MapContainer center={[center.lat, center.lng]} zoom={zoom} className="h-full w-full" doubleClickZoom={!onMapClick} zoomControl={true} scrollWheelZoom={true}>
         <TileLayer
           url={isDark ? darkTile : lightTile}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <ChangeView center={center} zoom={zoom} />
+        {onMapClick ? <MapClickHandler onClick={onMapClick} /> : null}
         {polylines.map((polyline) => (
           <Polyline
             key={polyline.id}
@@ -85,7 +99,23 @@ export function LocationMap({
           />
         ))}
         {markers.map((marker) => (
-          <Marker key={marker.id} position={[marker.position.lat, marker.position.lng]}>
+          <Marker
+            key={marker.id}
+            position={[marker.position.lat, marker.position.lng]}
+            draggable={Boolean(onMarkerDrag)}
+            eventHandlers={{
+              ...(onMarkerClick ? { click: () => onMarkerClick(marker.id) } : {}),
+              ...(onMarkerDrag
+                ? {
+                    dragend: (e: L.LeafletEvent) => {
+                      const target = e.target as L.Marker;
+                      const pos = target.getLatLng();
+                      onMarkerDrag(marker.id, { lat: pos.lat, lng: pos.lng });
+                    },
+                  }
+                : {}),
+            }}
+          >
             {marker.label ? (
               <Popup>
                 <span className="text-sm">{marker.label}</span>

@@ -244,6 +244,24 @@ class CylinderTransitionRequest(BaseModel):
     metadata_json: dict[str, object] = Field(default_factory=dict)
 
 
+class CylinderEventRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    cylinder_id: str
+    event_type: str
+    location_type: str
+    location_id: str
+    warehouse_id: str | None
+    session_id: str | None
+    customer_id: str | None
+    source_type: str
+    source_id: str | None
+    occurred_at: datetime
+    created_at: datetime
+    created_by: str
+
+
 class CylinderSummaryItem(BaseModel):
     state: str
     count: int
@@ -560,7 +578,7 @@ class RouteStopRead(BaseModel):
 
     id: str
     route_id: str
-    delivery_point_id: str
+    delivery_point_id: str | None
     stop_order: int
     scheduled_time: time | None
     status: str
@@ -573,9 +591,10 @@ class RouteStopRead(BaseModel):
 
 
 class RouteStopCreateRequest(BaseModel):
-    delivery_point_id: str
+    delivery_point_id: str | None = None
     stop_order: int | None = None
     scheduled_time: time | None = None
+    gps_coordinates: dict[str, object] | None = None
     notes: str | None = None
 
 

@@ -21,12 +21,13 @@ export type LogisticsRoute = {
 export type LogisticsRouteStop = {
   id: string;
   route_id: string;
-  delivery_point_id: string;
+  delivery_point_id: string | null;
   stop_order: number;
   scheduled_time: string | null;
   status: string;
   arrival_time: string | null;
   departure_time: string | null;
+  gps_coordinates: Record<string, unknown> | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

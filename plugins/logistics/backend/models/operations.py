@@ -123,8 +123,8 @@ class LogisticsRouteStop(Base):
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
     route_id: Mapped[str] = mapped_column(ForeignKey("lg_routes.id"), nullable=False, index=True)
-    delivery_point_id: Mapped[str] = mapped_column(
-        ForeignKey("lg_delivery_points.id"), nullable=False, index=True
+    delivery_point_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_delivery_points.id"), nullable=True, index=True
     )
     stop_order: Mapped[int] = mapped_column(Integer, nullable=False)
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
@@ -138,6 +138,36 @@ class LogisticsRouteStop(Base):
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
 
+
+class LogisticsCylinderEvent(Base):
+    __tablename__ = "lg_cylinder_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    cylinder_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_cylinders.id"), nullable=False, index=True
+    )
+    event_type: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
+    location_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    location_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    warehouse_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_warehouses.id"), nullable=True, index=True
+    )
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
+    )
+    customer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=True, index=True
+    )
+    source_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    source_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    occurred_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), nullable=False, default=utc_now
+    )
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
 
 
 # ── LogisticsLoad ────────────────────────────────────────

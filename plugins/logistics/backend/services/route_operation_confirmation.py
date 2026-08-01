@@ -264,6 +264,160 @@ def _append_customer_possession_from_movement(
         )
 
 
+def _record_delivery_cylinder_events(
+    db: Session,
+    *,
+    tenant_id: str,
+    session: LogisticsVehicleSession,
+    movement: LogisticsMovement,
+    items: list[LogisticsRouteOperationItem],
+    customer_id: str | None,
+    action_context: LogisticsActionContext,
+) -> None:
+    if customer_id is None:
+        return
+
+    from datetime import UTC, datetime
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    movement_items = list_movement_items(db, movement_id=movement.id)
+    for mitem in movement_items:
+        if mitem.cylinder_id is None:
+            continue
+        record_cylinder_event(
+            db,
+            cylinder_id=mitem.cylinder_id,
+            tenant_id=tenant_id,
+            event_type="CUSTOMER_DELIVERY",
+            location_type="CUSTOMER",
+            location_id=customer_id,
+            warehouse_id=None,
+            session_id=session.id,
+            customer_id=customer_id,
+            source_type="ROUTE_OPERATION",
+            source_id=movement.id,
+            occurred_at=datetime.now(UTC),
+            action_context=action_context,
+        )
+
+
+def _record_pickup_cylinder_events(
+    db: Session,
+    *,
+    tenant_id: str,
+    session: LogisticsVehicleSession,
+    movement: LogisticsMovement,
+    customer_id: str | None,
+    action_context: LogisticsActionContext,
+) -> None:
+    if customer_id is None:
+        return
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    movement_items = list_movement_items(db, movement_id=movement.id)
+    now = datetime.now(UTC)
+    for mitem in movement_items:
+        if mitem.cylinder_id is None:
+            continue
+        record_cylinder_event(
+            db,
+            cylinder_id=mitem.cylinder_id,
+            tenant_id=tenant_id,
+            event_type="CUSTOMER_PICKUP",
+            location_type="CUSTOMER",
+            location_id=customer_id,
+            warehouse_id=None,
+            session_id=session.id,
+            customer_id=customer_id,
+            source_type="ROUTE_OPERATION",
+            source_id=movement.id,
+            occurred_at=now,
+            action_context=action_context,
+        )
+
+
+def _record_physical_pickup_events(
+    db: Session,
+    *,
+    tenant_id: str,
+    session: LogisticsVehicleSession,
+    operation: LogisticsRouteOperation,
+    items: list[LogisticsRouteOperationItem],
+    customer_id: str | None,
+    action_context: LogisticsActionContext,
+) -> None:
+    if customer_id is None:
+        return
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    now = datetime.now(UTC)
+    for item in items:
+        if not _item_is_serialized(db, session=session, item=item):
+            continue
+        serials = _resolve_serial_ids_nocheck(
+            db,
+            session_id=session.id,
+            product_id=item.product_id,
+            quantity=int(item.quantity),
+        )
+        for cylinder_id in serials:
+            record_cylinder_event(
+                db,
+                cylinder_id=cylinder_id,
+                tenant_id=tenant_id,
+                event_type="CUSTOMER_PICKUP",
+                location_type="CUSTOMER",
+                location_id=customer_id,
+                warehouse_id=None,
+                session_id=session.id,
+                customer_id=customer_id,
+                source_type="ROUTE_OPERATION",
+                source_id=operation.id,
+                occurred_at=now,
+                action_context=action_context,
+            )
+
+
+def _item_is_serialized(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    item: LogisticsRouteOperationItem,
+) -> bool:
+    return product_requires_serial_capture(
+        db,
+        tenant_id=session.tenant_id,
+        session_id=session.id,
+        product_id=item.product_id,
+        source_warehouse_id=None,
+    )
+
+
+def _resolve_serial_ids_nocheck(
+    db: Session, *, session_id: str, product_id: str, quantity: int
+) -> list[str]:
+    return list(
+        db.scalars(
+            select(LogisticsLoadSerialAssignment.cylinder_id)
+            .join(
+                LogisticsCylinder,
+                LogisticsCylinder.id == LogisticsLoadSerialAssignment.cylinder_id,
+            )
+            .where(
+                LogisticsLoadSerialAssignment.session_id == session_id,
+                LogisticsLoadSerialAssignment.product_id == product_id,
+                LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+                LogisticsCylinder.current_state == "EN_CLIENTE_VACIO",
+            )
+            .order_by(LogisticsLoadSerialAssignment.selected_at.asc())
+            .limit(quantity)
+        ).all()
+    )
+
+
 def _apply_physical_only_pickup(
     db: Session,
     *,
@@ -352,6 +506,16 @@ def _apply_physical_only_pickup(
             notes=operation.notes,
         )
 
+    _record_physical_pickup_events(
+        db,
+        tenant_id=session.tenant_id,
+        session=session,
+        operation=operation,
+        items=items,
+        customer_id=customer_id,
+        action_context=action_context,
+    )
+
 
 def _promote_route_pickup_assignments(
     db: Session,
@@ -436,6 +600,15 @@ def confirm_route_operation_effects(
             event_type=EVENT_IN_TO_CUSTOMER,
             action_context=action_context,
         )
+        _record_delivery_cylinder_events(
+            db,
+            tenant_id=session.tenant_id,
+            session=session,
+            movement=out_movement,
+            items=out_items,
+            customer_id=delivery_point.customer_id if delivery_point is not None else None,
+            action_context=action_context,
+        )
 
     if in_items and out_movement is not None:
         for item in in_items:
@@ -478,6 +651,14 @@ def confirm_route_operation_effects(
             items=in_items,
             source_type=SOURCE_MOBILE_PICKUP,
             event_type=EVENT_OUT_FROM_CUSTOMER,
+            action_context=action_context,
+        )
+        _record_pickup_cylinder_events(
+            db,
+            tenant_id=session.tenant_id,
+            session=session,
+            movement=in_movement,
+            customer_id=delivery_point.customer_id if delivery_point is not None else None,
             action_context=action_context,
         )
     elif in_items:

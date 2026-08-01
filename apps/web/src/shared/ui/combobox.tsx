@@ -65,7 +65,7 @@ export function Combobox({
   const canOpen = normalizedQuery.length >= minSearchLength;
 
   const selected = options.find((option) => option.value === value) ?? null;
-  const displayLabel = selected?.label ?? selectedLabel ?? null;
+  const displayLabel = selected?.label ?? selectedLabel ?? (value || null);
 
   const filteredOptions = useMemo(() => {
     if (!normalizedQuery) {

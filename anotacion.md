@@ -223,3 +223,39 @@ La logica del submodulo es:
 - trazar su estado inicial;
 - registrar su movimiento de origen;
 - operar luego todo su ciclo de vida logistico.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Anotacion MILTON
+
+LO QUE SE VA AMEJORAR
+1.-  INTERFAZ RAPIDA PARA CREAR ENVASES, SE LIMITARA A SERIAL, y de fallback elegira la matricula, se usara un combo box
+se llamara en automatico los datos de pruductos, ya esta predefinidos los nombres, ademas de 
+retimbrado tendra infuencia directa en el peso de la bombona, esto afecta a jornadas de manera directa,
+preparar sobre grab2 relacionados a cilindros
+optimizar vistas
+
+en carta porte se mostrara la denoominacion de mercancia EJEMPLO UN 1072 OXIGENO COMPRIMIDO, Que quedara predefinido, cargamos los gases con la capacidad real y la presion real
+
+
+A futuro, control de gases liquido, que es produccion
+
+
+
+

@@ -365,6 +365,7 @@ export function VehicleSessionDetailPage({
         sessionId={session.id}
         sessionStatus={session.status}
         routeId={session.route_id}
+        routeDate={session.route_date}
       />
 
       <ReconciliationModal

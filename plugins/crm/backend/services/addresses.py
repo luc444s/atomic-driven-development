@@ -27,6 +27,21 @@ def list_addresses(db: Session, *, tenant_id: str, customer_id: str) -> list[Crm
     )
 
 
+def list_addresses_with_gps(db: Session, *, tenant_id: str) -> list[CrmCustomerAddress]:
+    return list(
+        db.scalars(
+            select(CrmCustomerAddress)
+            .where(
+                CrmCustomerAddress.tenant_id == tenant_id,
+                CrmCustomerAddress.latitude.is_not(None),
+                CrmCustomerAddress.longitude.is_not(None),
+                CrmCustomerAddress.is_active.is_(True),
+            )
+            .order_by(CrmCustomerAddress.created_at.asc())
+        ).all()
+    )
+
+
 def get_address(db: Session, *, tenant_id: str, address_id: str) -> CrmCustomerAddress | None:
     return db.scalar(
         select(CrmCustomerAddress).where(

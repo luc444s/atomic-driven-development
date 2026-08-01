@@ -9,6 +9,7 @@ from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsLoadPlan,
     LogisticsLoadPlanItem,
+    LogisticsLoadSerialAssignment,
     LogisticsOperation,
     LogisticsVehicleSession,
 )
@@ -211,6 +212,14 @@ def confirm_load_plan(
     session.loaded_weight_kg = confirmed_weight
     session.updated_by = action_context.actor_user_id
     db.add(session)
+
+    _record_vehicle_load_cylinder_events(
+        db,
+        tenant_id=session.tenant_id,
+        session=session,
+        action_context=action_context,
+    )
+
     return session
 
 
@@ -263,6 +272,14 @@ def return_remaining_stock(
             ),
             action_context=action_context,
         )
+        _record_warehouse_in_event(
+            db,
+            tenant_id=session.tenant_id,
+            session=session,
+            cylinder_id=cylinder.id,
+            warehouse_id=target,
+            action_context=action_context,
+        )
 
     session.status = "AWAITING_RECONCILIATION"
     session.updated_by = action_context.actor_user_id
@@ -276,3 +293,71 @@ def return_remaining_stock(
         details={"destination_warehouse_id": target},
     )
     return session
+
+
+def _record_vehicle_load_cylinder_events(
+    db: Session,
+    *,
+    tenant_id: str,
+    session: LogisticsVehicleSession,
+    action_context: LogisticsActionContext,
+) -> None:
+    from datetime import UTC, datetime
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    assignments = list(
+        db.scalars(
+            select(LogisticsLoadSerialAssignment).where(
+                LogisticsLoadSerialAssignment.session_id == session.id,
+                LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+            )
+        ).all()
+    )
+    now = datetime.now(UTC)
+    for assignment in assignments:
+        record_cylinder_event(
+            db,
+            cylinder_id=assignment.cylinder_id,
+            tenant_id=tenant_id,
+            event_type="VEHICLE_LOAD",
+            location_type="VEHICLE",
+            location_id=session.id,
+            warehouse_id=None,
+            session_id=session.id,
+            customer_id=None,
+            source_type="LOAD",
+            source_id=assignment.id,
+            occurred_at=now,
+            action_context=action_context,
+        )
+
+
+def _record_warehouse_in_event(
+    db: Session,
+    *,
+    tenant_id: str,
+    session: LogisticsVehicleSession,
+    cylinder_id: str,
+    warehouse_id: str,
+    action_context: LogisticsActionContext,
+) -> None:
+    from datetime import UTC, datetime
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    record_cylinder_event(
+        db,
+        cylinder_id=cylinder_id,
+        tenant_id=tenant_id,
+        event_type="WAREHOUSE_IN",
+        location_type="WAREHOUSE",
+        location_id=warehouse_id,
+        warehouse_id=warehouse_id,
+        session_id=session.id,
+        customer_id=None,
+        source_type="SESSION_RETURN",
+        source_id=session.id,
+        occurred_at=datetime.now(UTC),
+        action_context=action_context,
+    )

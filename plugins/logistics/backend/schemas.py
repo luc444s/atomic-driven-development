@@ -585,6 +585,8 @@ class RouteStopRead(BaseModel):
     arrival_time: datetime | None
     departure_time: datetime | None
     gps_coordinates: dict[str, object] | None
+    customer_id: str | None = None
+    customer_name_snapshot: str | None = None
     notes: str | None
     created_at: datetime
     updated_at: datetime
@@ -595,6 +597,8 @@ class RouteStopCreateRequest(BaseModel):
     stop_order: int | None = None
     scheduled_time: time | None = None
     gps_coordinates: dict[str, object] | None = None
+    customer_id: str | None = None
+    customer_name_snapshot: str | None = None
     notes: str | None = None
 
 

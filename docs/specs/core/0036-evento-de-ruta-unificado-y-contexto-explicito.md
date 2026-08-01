@@ -9,6 +9,7 @@ extends:
   - docs/specs/core/0024-1-3-3-reconciliacion-controlada-sobre-incidencias-de-ruta.md
   - docs/specs/core/0024-1-3-2-exchange-incidencias-y-progreso-real-de-stop.md
   - docs/specs/core/0036.1-route-builder-visual.md
+  - docs/specs/core/0036.2-customer-address-gps.md
 ---
 
 # SPEC 0036 - Evento de Ruta Unificado y Contexto Operativo Explícito

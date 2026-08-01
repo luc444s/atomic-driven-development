@@ -1,4 +1,5 @@
 import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
+import { LocationPicker } from "../../../../apps/web/src/shared/ui/location-picker";
 import type { CustomerAddressPayload } from "../types";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 
@@ -8,6 +9,8 @@ type AddressSectionProps = {
 };
 
 export function AddressSection({ value, onChange }: AddressSectionProps) {
+  const hasCoords = value.latitude != null && value.longitude != null;
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <label className="block space-y-2 text-sm text-foreground md:col-span-2">
@@ -49,6 +52,19 @@ export function AddressSection({ value, onChange }: AddressSectionProps) {
         />
         <span>Marcar como sede / establecimiento operativo</span>
       </label>
+
+      <div className="space-y-2 md:col-span-2">
+        <p className="text-sm font-medium text-foreground">Coordenadas GPS</p>
+        <LocationPicker
+          value={hasCoords ? { lat: value.latitude!, lng: value.longitude! } : null}
+          onChange={(location) =>
+            onChange({ ...value, latitude: location.lat, longitude: location.lng, geocode_source: "MANUAL" })
+          }
+          searchPlaceholder="Buscar dirección..."
+          placeholder="Haz clic en el mapa para seleccionar las coordenadas"
+          height={220}
+        />
+      </div>
     </div>
   );
 }

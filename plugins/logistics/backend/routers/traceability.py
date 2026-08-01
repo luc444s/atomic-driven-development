@@ -11,6 +11,7 @@ from plugins.logistics.backend.common import build_action_context, emit_logistic
 from plugins.logistics.backend.schemas import CylinderEventRead, CylinderTraceabilityRead
 from plugins.logistics.backend.services.cylinders import (
     get_cylinder_current_location,
+    list_cylinders_at_customers,
 )
 from plugins.logistics.backend.services.cylinders import (
     list_cylinder_events as list_events_svc,
@@ -80,3 +81,14 @@ def get_cylinder_location(
     if location is None:
         return {"location_type": None, "location_id": None}
     return {"location_type": location[0], "location_id": location[1]}
+
+
+@router.get("/cylinders/at-customers")
+def get_cylinders_at_customers(
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+    _: User = REQUIRE_CYLINDER_TRACE,
+) -> list[dict[str, object]]:
+    return list_cylinders_at_customers(
+        db, tenant_id=tenant_context.current_tenant_id
+    )

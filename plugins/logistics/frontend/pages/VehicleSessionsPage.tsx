@@ -106,7 +106,7 @@ export function VehicleSessionsPage() {
         vehicle_id: formState.vehicle_id,
         driver_id: formState.driver_id,
         origin_warehouse_id: formState.origin_warehouse_id || null,
-        route_id: formState.route_id || null,
+        route_id: formState.route_id,
       }),
     onSuccess: async (session) => {
       setIsOpen(false);
@@ -191,6 +191,10 @@ export function VehicleSessionsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!formState.route_id) {
+      setError("Selecciona una ruta antes de crear la jornada.");
+      return;
+    }
     setError(null);
     try {
       await createMutation.mutateAsync();

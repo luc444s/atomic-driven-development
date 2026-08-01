@@ -28,6 +28,8 @@ export type LogisticsRouteStop = {
   arrival_time: string | null;
   departure_time: string | null;
   gps_coordinates: Record<string, unknown> | null;
+  customer_id: string | null;
+  customer_name_snapshot: string | null;
   notes: string | null;
   created_at: string;
   updated_at: string;

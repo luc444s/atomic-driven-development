@@ -187,6 +187,8 @@ def create_route_stop(
         stop_order=stop_order,
         scheduled_time=payload.scheduled_time,
         gps_coordinates=payload.gps_coordinates,
+        customer_id=payload.customer_id,
+        customer_name_snapshot=payload.customer_name_snapshot,
         notes=payload.notes,
     )
     db.add(stop)

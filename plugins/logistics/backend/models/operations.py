@@ -126,6 +126,10 @@ class LogisticsRouteStop(Base):
     delivery_point_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_delivery_points.id"), nullable=True, index=True
     )
+    customer_id: Mapped[str | None] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=True, index=True
+    )
+    customer_name_snapshot: Mapped[str | None] = mapped_column(String(120), nullable=True)
     stop_order: Mapped[int] = mapped_column(Integer, nullable=False)
     scheduled_time: Mapped[time | None] = mapped_column(Time, nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="PENDIENTE")

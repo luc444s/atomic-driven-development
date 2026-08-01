@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from datetime import datetime
 
-from sqlalchemy import distinct, select
+from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
 from plugins.crm.backend.services.customers import require_customer
@@ -20,6 +20,7 @@ from plugins.logistics.backend.models import (
     LogisticsCustomerCylinderLedger,
     LogisticsCylinder,
     LogisticsCylinderContract,
+    LogisticsCylinderEvent,
     LogisticsCylinderOwnership,
     LogisticsCylinderStateLog,
     LogisticsMovement,
@@ -326,6 +327,43 @@ def _apply_customer_possession_ledger(
         product.condition_bucket(condition_code).at_customer += quantity
 
 
+def _cylinder_events_at_customer(
+    db: Session, *, tenant_id: str, customer_id: str
+) -> set[str]:
+    """Cilindros actualmente en cliente según lg_cylinder_events."""
+    from sqlalchemy import and_
+
+    sub = (
+        select(
+            LogisticsCylinderEvent.cylinder_id,
+            func.max(LogisticsCylinderEvent.occurred_at).label("max_occurred"),
+        )
+        .where(
+            LogisticsCylinderEvent.tenant_id == tenant_id,
+            LogisticsCylinderEvent.customer_id == customer_id,
+            LogisticsCylinderEvent.event_type.in_(
+                ("CUSTOMER_DELIVERY", "CUSTOMER_PICKUP", "WAREHOUSE_IN", "VEHICLE_LOAD")
+            ),
+        )
+        .group_by(LogisticsCylinderEvent.cylinder_id)
+        .subquery()
+    )
+
+    rows = db.execute(
+        select(LogisticsCylinderEvent.cylinder_id)
+        .join(
+            sub,
+            and_(
+                LogisticsCylinderEvent.cylinder_id == sub.c.cylinder_id,
+                LogisticsCylinderEvent.occurred_at == sub.c.max_occurred,
+            ),
+        )
+        .where(LogisticsCylinderEvent.location_type == "CUSTOMER")
+    ).all()
+
+    return {row.cylinder_id for row in rows}
+
+
 def get_customer_cylinder_summary(
     db: Session,
     *,
@@ -396,6 +434,10 @@ def get_customer_cylinder_summary(
     )
     latest_ownerships = _latest_ownership_map(db, cylinder_ids=candidate_ids, as_of=as_of)
 
+    events_at_customer = _cylinder_events_at_customer(
+        db, tenant_id=tenant_id, customer_id=customer_id
+    )
+
     for cylinder_id in candidate_ids:
         ownership = latest_ownerships.get(cylinder_id)
         state = latest_states.get(cylinder_id)
@@ -408,6 +450,12 @@ def get_customer_cylinder_summary(
         )
         condition = (ownership.condition if ownership else None) or cylinder.condition
         condition_bucket = product.condition_bucket(condition)
+
+        if cylinder_id in events_at_customer:
+            product.at_customer += 1
+            condition_bucket.at_customer += 1
+            continue
+
         if state in AT_CUSTOMER_STATES:
             if ownership is not None and ownership.customer_id == customer_id:
                 product.at_customer += 1

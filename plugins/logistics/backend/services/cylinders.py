@@ -778,9 +778,9 @@ _LOCATION_DEFINING_EVENTS = {
 
 _VALID_TRANSITIONS: dict[str | None, set[str]] = {
     None: {"WAREHOUSE_IN"},
-    "WAREHOUSE": {"WAREHOUSE_OUT", "VEHICLE_LOAD"},
-    "VEHICLE": {"VEHICLE_UNLOAD", "CUSTOMER_DELIVERY"},
-    "CUSTOMER": {"CUSTOMER_PICKUP", "WAREHOUSE_IN"},
+    "WAREHOUSE": {"VEHICLE_LOAD"},
+    "VEHICLE": {"CUSTOMER_DELIVERY", "WAREHOUSE_IN"},
+    "CUSTOMER": {"CUSTOMER_PICKUP", "VEHICLE_LOAD"},
 }
 
 
@@ -811,6 +811,18 @@ def record_cylinder_event(
             f"Transición inválida: {previous_ltype} → {event_type} "
             f"para cilindro {cylinder_id}"
         )
+
+    existing = db.scalar(
+        select(LogisticsCylinderEvent).where(
+            LogisticsCylinderEvent.cylinder_id == cylinder_id,
+            LogisticsCylinderEvent.event_type == event_type,
+            LogisticsCylinderEvent.location_id == location_id,
+            LogisticsCylinderEvent.source_type == source_type,
+            LogisticsCylinderEvent.source_id == source_id,
+        )
+    )
+    if existing is not None:
+        return existing
 
     event = LogisticsCylinderEvent(
         id=str(_uuid4()),
@@ -887,3 +899,68 @@ def list_cylinder_events(
             .limit(limit)
         ).all()
     )
+
+
+def list_cylinders_at_customers(
+    db: Session, *, tenant_id: str
+) -> list[dict[str, object]]:
+    """Devuelve cilindros actualmente en posesión de clientes usando lg_cylinder_events."""
+    from sqlalchemy import and_
+
+    sub = (
+        select(
+            LogisticsCylinderEvent.cylinder_id,
+            func.max(LogisticsCylinderEvent.occurred_at).label("max_occurred"),
+        )
+        .where(
+            LogisticsCylinderEvent.tenant_id == tenant_id,
+            LogisticsCylinderEvent.event_type.in_(
+                ("CUSTOMER_DELIVERY", "CUSTOMER_PICKUP", "WAREHOUSE_IN")
+            ),
+        )
+        .group_by(LogisticsCylinderEvent.cylinder_id)
+        .subquery()
+    )
+
+    latest_events = (
+        select(LogisticsCylinderEvent)
+        .join(
+            sub,
+            and_(
+                LogisticsCylinderEvent.cylinder_id == sub.c.cylinder_id,
+                LogisticsCylinderEvent.occurred_at == sub.c.max_occurred,
+            ),
+        )
+        .where(
+            LogisticsCylinderEvent.location_type == "CUSTOMER",
+            LogisticsCylinderEvent.tenant_id == tenant_id,
+        )
+        .subquery()
+    )
+
+    results = list(
+        db.execute(
+            select(
+                latest_events.c.cylinder_id,
+                latest_events.c.customer_id,
+                latest_events.c.location_id,
+                LogisticsCylinder.serial,
+                LogisticsCylinder.current_state,
+            )
+            .join(
+                LogisticsCylinder,
+                LogisticsCylinder.id == latest_events.c.cylinder_id,
+            )
+            .order_by(LogisticsCylinder.serial)
+        ).all()
+    )
+
+    return [
+        {
+            "cylinder_id": r.cylinder_id,
+            "serial": r.serial,
+            "customer_id": r.customer_id,
+            "current_state": r.current_state,
+        }
+        for r in results
+    ]

@@ -103,9 +103,17 @@ export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T
   }
 
   if (!response.ok) {
-    let detail = payload?.detail;
+    const detail = payload?.detail;
     let message: string;
-    if (typeof detail === "object" && detail !== null && "message" in detail) {
+    if (Array.isArray(detail)) {
+      message = (detail as Array<{ msg?: string; loc?: unknown[] }>)
+        .map((error) => error.msg)
+        .filter(Boolean)
+        .join(". ");
+      if (!message) {
+        message = `HTTP ${response.status} al consultar la API`;
+      }
+    } else if (typeof detail === "object" && detail !== null && "message" in detail) {
       message = String((detail as Record<string, unknown>).message);
     } else if (typeof detail === "string") {
       message = detail;

@@ -98,14 +98,17 @@ export function CreateJornadaDialog({
           />
         </label>
         <label className="block space-y-2 text-sm text-foreground">
-          <span>Ruta (opcional)</span>
+          <span>Ruta</span>
           {routes.length > 0 ? (
             <div className="space-y-2">
               <Select
                 value={form.route_id}
                 onChange={(value) => setForm((current) => ({ ...current, route_id: value }))}
-                placeholder="Sin ruta"
-                options={routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${formatRouteStatus(route.status)}` }))}
+                placeholder="Seleccionar ruta"
+                options={routes.map((route) => ({
+                  value: route.id,
+                  label: route.notes?.includes("→") ? route.notes : `${route.route_date} · ${formatRouteStatus(route.status)}`,
+                }))}
               />
               <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
                 Crear ruta

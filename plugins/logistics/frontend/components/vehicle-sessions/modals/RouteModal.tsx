@@ -7,9 +7,10 @@ type Props = {
   sessionId: string;
   sessionStatus: string;
   routeId: string | null;
+  routeDate: string | null;
 };
 
-export function RouteModal({ open, onClose, routeId, sessionId, sessionStatus }: Props) {
+export function RouteModal({ open, onClose, routeId, routeDate, sessionId, sessionStatus }: Props) {
   return (
     <Dialog
       open={open}
@@ -18,7 +19,7 @@ export function RouteModal({ open, onClose, routeId, sessionId, sessionStatus }:
       description="Superficie base para operar la ruta sin salir del ciclo principal."
       maxWidthClassName="max-w-4xl"
     >
-      <SessionRouteTab routeId={routeId} sessionId={sessionId} sessionStatus={sessionStatus} open={open} />
+      <SessionRouteTab routeId={routeId} routeDate={routeDate} sessionId={sessionId} sessionStatus={sessionStatus} open={open} />
     </Dialog>
   );
 }

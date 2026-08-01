@@ -103,6 +103,10 @@ export async function listCustomerAddresses(customerId: string): Promise<Custome
   return apiRequest<CustomerAddress[]>(`${CRM_BASE}/customers/${customerId}/addresses`);
 }
 
+export async function listCustomerAddressesWithGps(): Promise<CustomerAddress[]> {
+  return apiRequest<CustomerAddress[]>(`${CRM_BASE}/customers/addresses-gps`);
+}
+
 export async function createCustomerAddress(customerId: string, payload: CustomerAddressPayload): Promise<CustomerAddress> {
   return apiRequest<CustomerAddress>(`${CRM_BASE}/customers/${customerId}/addresses`, {
     method: "POST",

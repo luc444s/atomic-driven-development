@@ -48,6 +48,7 @@ from plugins.crm.backend.services.addresses import (
     get_address,
     get_contact,
     list_addresses,
+    list_addresses_with_gps,
     list_contacts,
     set_fiscal_address,
     update_address,
@@ -442,6 +443,21 @@ def patch_toggle_customer(
         if "cannot be disabled" in message:
             raise _conflict(message) from exc
         raise _bad_request(message) from exc
+
+
+@router.get(
+    "/customers/addresses-gps",
+    response_model=list[CustomerAddressRead],
+    dependencies=[REQUIRE_CUSTOMER_READ],
+)
+def get_customer_addresses_with_gps(
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    db: Session = DB_SESSION,
+) -> list[CustomerAddressRead]:
+    return [
+        _serialize_address(item)
+        for item in list_addresses_with_gps(db, tenant_id=tenant_context.current_tenant_id)
+    ]
 
 
 @router.get(

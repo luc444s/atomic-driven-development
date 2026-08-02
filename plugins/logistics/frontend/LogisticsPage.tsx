@@ -66,7 +66,6 @@ export function LogisticsPage() {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isHydrotestOpen, setIsHydrotestOpen] = useState(false);
   const [isWarrantyOpen, setIsWarrantyOpen] = useState(false);
-  const [isCreateCustomerSearchOpen, setIsCreateCustomerSearchOpen] = useState(false);
   const [isWarrantyCustomerSearchOpen, setIsWarrantyCustomerSearchOpen] = useState(false);
   const [isRetimbradoOpen, setIsRetimbradoOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
@@ -122,7 +121,6 @@ export function LogisticsPage() {
     setPanelError(null);
     setScanFallbackHint(null);
     setScanFallbackAvailable(false);
-    setIsCreateCustomerSearchOpen(false);
   }
 
   const mutations = useCylinderMutations({
@@ -156,13 +154,28 @@ export function LogisticsPage() {
     },
   });
 
-  async function handleCreateCylinder(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function handleCreateCylinder(serials: string[]) {
     setPanelError(null);
-    try {
-      await mutations.createMutation.mutateAsync(buildCreateCylinderPayload(cylinderForm, createMeta));
-    } catch (error) {
-      setPanelError(error instanceof Error ? error.message : "No se pudo crear el envase.");
+    let lastError: string | null = null;
+    for (const serial of serials) {
+      try {
+        const formWithSerial = { ...cylinderForm, serial };
+        await mutations.createMutation.mutateAsync(buildCreateCylinderPayload(formWithSerial, createMeta));
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : `Error al crear ${serial}`;
+      }
+    }
+    if (serials.length > 1 && !lastError) {
+      onCylinderFormChange({ ...cylinderForm, serial: "" });
+      setTimeout(() => {
+        const input = document.querySelector<HTMLInputElement>('input[placeholder="Nro. de serie del cilindro"]');
+        input?.focus();
+      }, 0);
+    } else if (lastError) {
+      setPanelError(lastError);
+    } else {
+      setIsCreateOpen(false);
+      resetCreateDialog();
     }
   }
 
@@ -484,11 +497,10 @@ export function LogisticsPage() {
           },
           {
             key: "ph",
-            header: "PH / ADR",
+            header: "PH",
             render: (row) => (
               <div className="space-y-1 text-xs text-muted-foreground">
                 <p>PH: {formatDate(row.next_hydrotest_date)}</p>
-                <p>ADR: {row.adr_un_number || "-"}</p>
                 {row.is_medical ? <p className="font-medium text-amber-500">MEDICINAL</p> : null}
               </div>
             ),
@@ -496,7 +508,11 @@ export function LogisticsPage() {
           {
             key: "location",
             header: "Ubicación",
-            render: (row) => <span className="text-sm text-foreground">{row.location || "-"}</span>,
+            render: (row) => (
+              <span className="text-sm text-foreground">
+                {row.location_context || row.location || "-"}
+              </span>
+            ),
           },
           {
             key: "actions",
@@ -540,28 +556,12 @@ export function LogisticsPage() {
         createMeta={createMeta}
         onCreateMetaChange={setCreateMeta}
         gasOptions={data.gasOptions}
-        brandOptions={data.brandOptions}
         warehouseOptions={warehouseOptions}
-        sublineOptions={data.sublineOptions}
-        conditions={data.conditionsQuery.data ?? []}
         isPending={mutations.createMutation.isPending}
         error={panelError}
         onSubmit={handleCreateCylinder}
-        onCustomerSearchClick={() => setIsCreateCustomerSearchOpen(true)}
         compactMode={scanFallbackHint !== null}
         compactHint={scanFallbackHint}
-      />
-
-      <CustomerSearchDialog
-        open={isCreateCustomerSearchOpen}
-        onOpenChange={setIsCreateCustomerSearchOpen}
-        onSelect={(customer: CustomerBrief) =>
-          setCreateMeta((current) => ({
-            ...current,
-            customer_id: customer.id,
-            customer_name: customer.display_name,
-          }))
-        }
       />
 
       <DetailMenuDialog
@@ -596,9 +596,6 @@ export function LogisticsPage() {
         cylinderForm={cylinderForm}
         onCylinderFormChange={handleCylinderFormChange}
         gasOptions={data.gasOptions}
-        brandOptions={data.brandOptions}
-        sublineOptions={data.sublineOptions}
-        conditions={data.conditionsQuery.data ?? []}
         isPending={mutations.updateMutation.isPending}
         serial={selectedCylinder?.serial ?? ""}
         onSubmit={handleUpdateCylinder}

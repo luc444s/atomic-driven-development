@@ -11,6 +11,7 @@ from .catalog import (
     LogisticsServiceType,
 )
 from .contracts import (
+    LogisticsContractExcessTracking,
     LogisticsContractType,
     LogisticsCylinderContract,
     LogisticsCylinderContractHistory,

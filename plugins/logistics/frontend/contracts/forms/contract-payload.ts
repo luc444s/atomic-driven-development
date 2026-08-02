@@ -24,6 +24,8 @@ export function buildCreatePayload(form: ContractFormState): CreateContractPaylo
     contract_file_path: toNullable(form.contract_file_path),
     notes: toNullable(form.notes),
     observations: toNullable(form.observations),
+    excess_wait_days: Number(form.excess_wait_days || "3"),
+    auto_renew_on_excess: form.auto_renew_on_excess,
   };
 }
 

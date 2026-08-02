@@ -66,6 +66,11 @@ class LogisticsCylinderContract(Base):
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     observations: Mapped[str | None] = mapped_column(Text, nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    excess_wait_days: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    auto_renew_on_excess: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    source_contract_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_cylinder_contracts.id"), nullable=True, index=True
+    )
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
@@ -102,3 +107,37 @@ class LogisticsContractType(Base):
     duration_unit: Mapped[str] = mapped_column(String(20), nullable=False)
     duration_value: Mapped[int] = mapped_column(Integer, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+# ── LogisticsContractExcessTracking ────────────────────────────────────
+# Estado vivo del exceso de cupo (SPEC 0023AD.4). Un registro por
+# (customer, cylinder_type_id) mientras el exceso siga vivo.
+
+
+class LogisticsContractExcessTracking(Base):
+    __tablename__ = "lg_contract_excess_tracking"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(
+        ForeignKey("crm_customers.id"), nullable=False, index=True
+    )
+    cylinder_type_id: Mapped[str] = mapped_column(
+        ForeignKey("prod_products.id"), nullable=False, index=True
+    )
+    excess_qty: Mapped[int] = mapped_column(Integer, nullable=False)
+    first_detected_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    excess_wait_days: Mapped[int] = mapped_column(Integer, nullable=False)
+    auto_renew_on_excess: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    base_unit_price: Mapped[float] = mapped_column(Numeric(12, 4), nullable=False)
+    base_contract_type: Mapped[str] = mapped_column(String(50), nullable=False)
+    status: Mapped[str] = mapped_column(String(30), nullable=False, default="ACTIVE", index=True)
+    resolved_reason: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    created_contract_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_cylinder_contracts.id"), nullable=True, index=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=utc_now, onupdate=utc_now
+    )

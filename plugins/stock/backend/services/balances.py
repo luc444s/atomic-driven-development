@@ -61,6 +61,55 @@ def _build_balance_read(*, balance, product, warehouse, config) -> StockBalanceR
     )
 
 
+def _ensure_catalog_balances(
+    db: Session,
+    *,
+    tenant_id: str,
+    warehouse_id: str | None,
+    allowed_warehouse_ids: tuple[str, ...] | None,
+) -> None:
+    """Regla de negocio: todo producto del catálogo sin balance se crea en 0.
+
+    Al listar stock, los productos que el sistema detecta y no tienen balance
+    (en los almacenes consultados) se materializan automáticamente con 0.
+    """
+    from sqlalchemy import text
+
+
+    if warehouse_id is not None:
+        warehouse_clause = "w.id = :wid"
+        params: dict = {"tid": tenant_id, "wid": warehouse_id}
+    elif allowed_warehouse_ids:
+        warehouse_clause = "w.id = ANY(:wids)"
+        params = {"tid": tenant_id, "wids": list(allowed_warehouse_ids)}
+    else:
+        warehouse_clause = "w.is_active = TRUE"
+        params = {"tid": tenant_id}
+    db.execute(
+        text(
+            f"""
+            INSERT INTO stk_balance
+                (id, tenant_id, product_id, warehouse_id, quantity,
+                 reserved_quantity, total_cost, updated_at, updated_by)
+            SELECT md5(random()::text || p.id || w.id)::uuid::text,
+                   p.tenant_id, p.id, w.id, 0, 0, 0, now(),
+                   (SELECT id FROM users ORDER BY created_at LIMIT 1)
+            FROM prod_products p
+            CROSS JOIN lg_warehouses w
+            WHERE p.tenant_id = :tid
+              AND p.is_active = TRUE
+              AND {warehouse_clause}
+              AND NOT EXISTS (
+                  SELECT 1 FROM stk_balance s
+                  WHERE s.product_id = p.id AND s.warehouse_id = w.id
+              )
+            """
+        ),
+        params,
+    )
+    db.commit()
+
+
 def list_balances(
     db: Session,
     *,
@@ -73,6 +122,12 @@ def list_balances(
     limit: int,
     offset: int,
 ) -> StockBalancePageRead:
+    _ensure_catalog_balances(
+        db,
+        tenant_id=tenant_id,
+        warehouse_id=warehouse_id,
+        allowed_warehouse_ids=allowed_warehouse_ids,
+    )
     stmt = (
         select(StockBalance, Product, LogisticsWarehouse, StockConfig)
         .join(Product, Product.id == StockBalance.product_id)
@@ -362,3 +417,39 @@ def list_global_ledger(
         )
         for ledger, product, warehouse in rows
     ]
+
+
+def ensure_balances_for_product(
+    db: Session,
+    *,
+    tenant_id: str,
+    product_id: str,
+) -> int:
+    """Crea el contador de stock en 0 del producto en TODOS los almacenes activos.
+
+    Regla de negocio: todo producto del sistema tiene su balance en cada
+    almacén (0 si no hay stock), sin excepción.
+    """
+    from sqlalchemy import text
+
+    result = db.execute(
+        text(
+            """
+            INSERT INTO stk_balance
+                (id, tenant_id, product_id, warehouse_id, quantity,
+                 reserved_quantity, total_cost, updated_at, updated_by)
+            SELECT md5(random()::text || :pid || w.id)::uuid::text,
+                   :tid, :pid, w.id, 0, 0, 0, now(),
+                   (SELECT id FROM users ORDER BY created_at LIMIT 1)
+            FROM lg_warehouses w
+            WHERE w.is_active = TRUE
+              AND NOT EXISTS (
+                  SELECT 1 FROM stk_balance s
+                  WHERE s.product_id = :pid AND s.warehouse_id = w.id
+              )
+            """
+        ),
+        {"tid": tenant_id, "pid": product_id},
+    )
+    db.flush()
+    return int(result.rowcount or 0)  # type: ignore[union-attr]

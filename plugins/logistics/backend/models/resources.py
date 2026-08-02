@@ -8,6 +8,7 @@ from sqlalchemy import (
     JSON,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
     Integer,
     Numeric,
@@ -44,6 +45,12 @@ class LogisticsWarehouse(Base):
     address: Mapped[str | None] = mapped_column(String(200), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     warehouse_type: Mapped[str] = mapped_column(String(20), nullable=False, default="FIXED")
+    is_primary: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
+    formatted_address: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    place_id: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    geocode_source: Mapped[str | None] = mapped_column(String(20), nullable=True)
     is_active: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(

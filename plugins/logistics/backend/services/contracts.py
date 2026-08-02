@@ -270,6 +270,9 @@ def create_contract(
         contract_file_path=payload.contract_file_path,
         notes=payload.notes,
         observations=payload.observations,
+        excess_wait_days=payload.excess_wait_days,
+        auto_renew_on_excess=payload.auto_renew_on_excess,
+        source_contract_id=payload.source_contract_id,
         created_by=created_by,
     )
     db.add(contract)

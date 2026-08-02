@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from packages.sdk import PluginContext
 from plugins.stock.backend.router import router
 

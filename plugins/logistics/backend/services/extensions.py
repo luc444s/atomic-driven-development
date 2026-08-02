@@ -489,7 +489,81 @@ def cylinder_to_read(db: Session, cylinder: LogisticsCylinder) -> Any:
     read = CylinderRead.model_validate(cylinder)
     enrich_cylinder_with_weight_source(db, read, cylinder)
     enrich_cylinder_with_product_adr(db, read, cylinder)
+    enrich_cylinder_with_current_warehouse(db, read, cylinder)
     return read
+
+
+def enrich_cylinder_with_current_warehouse(
+    db: Session, cylinder_read: Any, cylinder: LogisticsCylinder
+) -> None:
+    """Resuelve el contexto de ubicación del envase (SPEC 0023 — ubicación derivada).
+
+    Prioridad:
+    1. En cliente (ownership + estado EN_CLIENTE_*): "En cliente: {nombre}"
+    2. En vehículo (sesión de vehículo): "En vehículo: {placa}"
+    3. En almacén (último movimiento con warehouse): "En almacén: {nombre}"
+    """
+    from sqlalchemy import select
+
+    from plugins.logistics.backend.models import (
+        LogisticsCylinderOwnership,
+        LogisticsMovement,
+        LogisticsMovementItem,
+        LogisticsVehicle,
+        LogisticsVehicleSession,
+    )
+
+    AT_CUSTOMER_STATES = {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}
+
+    # 1. En cliente
+    if cylinder.current_state in AT_CUSTOMER_STATES:
+        ownership = db.scalar(
+            select(LogisticsCylinderOwnership)
+            .where(LogisticsCylinderOwnership.cylinder_id == cylinder.id)
+            .order_by(LogisticsCylinderOwnership.change_date.desc())
+            .limit(1)
+        )
+        if ownership is not None and ownership.customer_id:
+            customer_name = ownership.customer_name or "cliente"
+            cylinder_read.location_context = f"En cliente: {customer_name}"
+            return
+
+    # 2. En vehículo
+    if cylinder.session_id is not None:
+        session = db.get(LogisticsVehicleSession, cylinder.session_id)
+        if session is not None:
+            vehicle = db.get(LogisticsVehicle, session.vehicle_id)
+            plate = vehicle.plate if vehicle is not None else "vehículo"
+            cylinder_read.location_context = f"En vehículo: {plate}"
+            return
+
+    # 3. En almacén
+    row = db.execute(
+        select(
+            LogisticsMovement.warehouse_id,
+            LogisticsWarehouse.name.label("warehouse_name"),
+        )
+        .join(
+            LogisticsMovementItem,
+            LogisticsMovementItem.movement_id == LogisticsMovement.id,
+        )
+        .outerjoin(
+            LogisticsWarehouse,
+            LogisticsWarehouse.id == LogisticsMovement.warehouse_id,
+        )
+        .where(
+            LogisticsMovementItem.cylinder_id == cylinder.id,
+            LogisticsMovement.warehouse_id.is_not(None),
+        )
+        .order_by(LogisticsMovement.created_at.desc())
+        .limit(1)
+    ).first()
+    if row is not None:
+        cylinder_read.warehouse_id = row.warehouse_id
+        cylinder_read.warehouse_name = row.warehouse_name
+        cylinder_read.location_context = (
+            f"En almacén: {row.warehouse_name}" if row.warehouse_name else None
+        )
 
 
 def enrich_cylinder_with_product_adr(

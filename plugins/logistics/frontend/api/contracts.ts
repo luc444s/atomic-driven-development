@@ -27,6 +27,9 @@ export type LogisticsCylinderContract = {
   contract_file_path: string | null;
   notes: string | null;
   observations: string | null;
+  excess_wait_days: number;
+  auto_renew_on_excess: boolean;
+  source_contract_id: string | null;
   created_at: string;
 };
 
@@ -97,9 +100,36 @@ export type CreateContractPayload = {
   contract_file_path?: string | null;
   notes?: string | null;
   observations?: string | null;
+  excess_wait_days?: number;
+  auto_renew_on_excess?: boolean;
+  source_contract_id?: string | null;
 };
 
 export type UpdateContractPayload = Partial<CreateContractPayload>;
+
+export type ContractExcessPolicyPayload = {
+  excess_wait_days?: number;
+  auto_renew_on_excess?: boolean;
+};
+
+export type ContractExcessTracking = {
+  id: string;
+  customer_id: string;
+  cylinder_type_id: string;
+  product_name: string | null;
+  excess_qty: number;
+  first_detected_at: string;
+  last_seen_at: string;
+  excess_wait_days: number;
+  auto_renew_on_excess: boolean;
+  base_unit_price: number;
+  base_contract_type: string;
+  status: string;
+  resolved_reason: string | null;
+  created_contract_id: string | null;
+  contract_number: string | null;
+  days_pending: number | null;
+};
 
 export type TerminateContractPayload = {
   reason: string;
@@ -259,5 +289,25 @@ export function listCoreSignatureSessionsForContract(contractId: string) {
       entity_type: "cylinder_contract",
       entity_id: contractId,
     })
+  );
+}
+
+export function updateContractExcessPolicy(contractId: string, payload: ContractExcessPolicyPayload) {
+  return apiRequest<LogisticsCylinderContract>(
+    `${API_PREFIX}/cylinders/contracts/${contractId}/excess-policy`,
+    { method: "PATCH", body: JSON.stringify(payload) }
+  );
+}
+
+export function listCustomerExcessTracking(customerId: string) {
+  return apiRequest<ContractExcessTracking[]>(
+    `${API_PREFIX}/customers/${customerId}/excess-tracking`
+  );
+}
+
+export function resolveExcessTracking(trackingId: string, reason: string) {
+  return apiRequest<ContractExcessTracking>(
+    `${API_PREFIX}/excess-tracking/${trackingId}/resolve`,
+    { method: "POST", body: JSON.stringify({ reason }) }
   );
 }

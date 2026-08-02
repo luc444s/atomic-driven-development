@@ -6,7 +6,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from apps.api.app.core.pagination import NumberedPageRead, NumberedPaginationRead
 
-CYLINDER_ENTRY_MODES = ("EMPTY_FROM_CUSTOMER", "FULL_FROM_SUPPLIER")
+CYLINDER_ENTRY_MODES = (
+    "EMPTY_FROM_WAREHOUSE",
+    "FULL_FROM_WAREHOUSE",
+    "EMPTY_FROM_CUSTOMER",
+    "FULL_FROM_SUPPLIER",
+)
 
 
 class CylinderStateRead(BaseModel):
@@ -81,6 +86,9 @@ class CylinderRead(BaseModel):
     adr_points: int | None
     adr_unit_measure: str | None
     location: str | None
+    location_context: str | None = None
+    warehouse_id: str | None = None
+    warehouse_name: str | None = None
     is_active: bool
     is_medical: bool
     medical_notes: str | None
@@ -285,6 +293,12 @@ class WarehouseRead(BaseModel):
     warehouse_type: str
     address: str | None
     phone: str | None
+    is_primary: bool = False
+    latitude: float | None = None
+    longitude: float | None = None
+    formatted_address: str | None = None
+    place_id: str | None = None
+    geocode_source: str | None = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -296,6 +310,11 @@ class WarehouseCreateRequest(BaseModel):
     branch_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
+    latitude: float | None = None
+    longitude: float | None = None
+    formatted_address: str | None = Field(default=None, max_length=255)
+    place_id: str | None = Field(default=None, max_length=64)
+    geocode_source: str | None = Field(default=None, max_length=20)
 
 
 class WarehouseUpdateRequest(BaseModel):
@@ -304,6 +323,11 @@ class WarehouseUpdateRequest(BaseModel):
     branch_id: str | None = None
     address: str | None = Field(default=None, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
+    latitude: float | None = None
+    longitude: float | None = None
+    formatted_address: str | None = Field(default=None, max_length=255)
+    place_id: str | None = Field(default=None, max_length=64)
+    geocode_source: str | None = Field(default=None, max_length=20)
     is_active: bool | None = None
 
 
@@ -1715,6 +1739,9 @@ class CylinderContractRead(BaseModel):
     contract_file_path: str | None = None
     notes: str | None = None
     observations: str | None = None
+    excess_wait_days: int = 3
+    auto_renew_on_excess: bool = True
+    source_contract_id: str | None = None
     created_at: datetime
 
 
@@ -1732,6 +1759,45 @@ class CylinderContractCreate(BaseModel):
     contract_file_path: str | None = None
     notes: str | None = None
     observations: str | None = None
+    excess_wait_days: int = 3
+    auto_renew_on_excess: bool = True
+    source_contract_id: str | None = None
+
+
+class ContractExcessPolicyUpdate(BaseModel):
+    excess_wait_days: int | None = None
+    auto_renew_on_excess: bool | None = None
+
+
+class ContractExcessTrackingRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    customer_id: str
+    cylinder_type_id: str
+    product_name: str | None = None
+    excess_qty: int
+    first_detected_at: datetime
+    last_seen_at: datetime
+    excess_wait_days: int
+    auto_renew_on_excess: bool
+    base_unit_price: float
+    base_contract_type: str
+    status: str
+    resolved_reason: str | None = None
+    created_contract_id: str | None = None
+    contract_number: str | None = None
+    days_pending: int | None = None
+
+
+class ContractExcessResolveRequest(BaseModel):
+    reason: str = "resolucion manual"
+
+
+class SoftLimitConfirmRequest(BaseModel):
+    customer_id: str
+    contract_id: str | None = None
+    source: str = "web"
 
 
 class CylinderContractUpdate(BaseModel):

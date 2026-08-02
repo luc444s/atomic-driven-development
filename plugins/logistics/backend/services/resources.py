@@ -63,6 +63,11 @@ def create_warehouse(
         code=payload.code.strip().upper(),
         address=payload.address,
         phone=payload.phone,
+        latitude=payload.latitude,
+        longitude=payload.longitude,
+        formatted_address=payload.formatted_address,
+        place_id=payload.place_id,
+        geocode_source=payload.geocode_source,
     )
     db.add(warehouse)
     db.flush()
@@ -99,6 +104,9 @@ def update_warehouse(
         warehouse.address = payload.address
     if payload.phone is not None:
         warehouse.phone = payload.phone
+    for field_name in ["latitude", "longitude", "formatted_address", "place_id", "geocode_source"]:
+        if field_name in payload.model_fields_set:
+            setattr(warehouse, field_name, getattr(payload, field_name))
     if payload.is_active is not None:
         warehouse.is_active = payload.is_active
     db.add(warehouse)
@@ -394,3 +402,33 @@ def update_delivery_point(
         },
     )
     return delivery_point
+
+
+def set_primary_warehouse(
+    db: Session,
+    *,
+    warehouse: LogisticsWarehouse,
+    action_context: LogisticsActionContext,
+) -> LogisticsWarehouse:
+    """Marca un almacén como principal (excluyente: desmarca los demás)."""
+    from sqlalchemy import update
+
+    if not warehouse.is_active:
+        raise ValueError("No se puede marcar como principal un almacén inactivo")
+    db.execute(
+        update(LogisticsWarehouse)
+        .where(LogisticsWarehouse.tenant_id == warehouse.tenant_id)
+        .values(is_primary=False)
+    )
+    warehouse.is_primary = True
+    db.add(warehouse)
+    db.flush()
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="warehouse.set_primary",
+        entity_type="warehouse",
+        entity_id=warehouse.id,
+        details={"name": warehouse.name, "code": warehouse.code},
+    )
+    return warehouse

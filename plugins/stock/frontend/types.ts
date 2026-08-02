@@ -96,6 +96,7 @@ export type LogisticsWarehouseOption = {
   code: string;
   address: string | null;
   phone: string | null;
+  is_primary: boolean; // almacen principal
   is_active: boolean;
   created_at: string;
   updated_at: string;

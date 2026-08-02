@@ -5,7 +5,6 @@ import type { CustomerBrief } from "../../../crm/frontend/types";
 import {
   createDeliveryPoint,
   listDeliveryPoints,
-  listZones,
   logisticsKeys,
   updateDeliveryPoint,
 } from "../api";
@@ -66,7 +65,6 @@ export function DeliveryPointsPage() {
     queryKey: logisticsKeys.deliveryPoints(),
     queryFn: listDeliveryPoints,
   });
-  const zonesQuery = useQuery({ queryKey: logisticsKeys.zones(), queryFn: listZones });
   const customersQuery = useQuery({
     queryKey: ["crm", "customers", "logistics-lookup"],
     queryFn: () => listCustomers({ limit: 200, offset: 0 }),
@@ -154,11 +152,6 @@ export function DeliveryPointsPage() {
               },
               { key: "address", header: "Dirección", render: (row) => row.address },
               { key: "contact", header: "Contacto", render: (row) => row.contact_name ?? "-" },
-              {
-                key: "zone",
-                header: "Zona",
-                render: (row) => zonesQuery.data?.find((zone) => zone.id === row.zone_id)?.name ?? "-",
-              },
               {
                 key: "actions",
                 header: "Editar",
@@ -261,14 +254,6 @@ export function DeliveryPointsPage() {
               height={260}
             />
           </div>
-          <label className="block space-y-2 text-sm text-foreground">
-            <span>Zona</span>
-            <Select
-              value={formState.zone_id}
-              onChange={(value) => setFormState((current) => ({ ...current, zone_id: value }))}
-              placeholder="Sin zona"
-              options={(zonesQuery.data ?? []).map((zone) => ({ value: zone.id, label: zone.name }))} />
-          </label>
           <div className="flex justify-end gap-3">
             <Button type="button" variant="secondary" onClick={closeDialog}>
               Cancelar

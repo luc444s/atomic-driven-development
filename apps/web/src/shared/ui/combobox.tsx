@@ -252,7 +252,7 @@ export function Combobox({
 
       {/* Dropdown list */}
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-50 mt-1 rounded-md border border-border bg-popover shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-[9999] mt-1 rounded-md border border-border bg-popover shadow-lg">
           <div className="max-h-60 overflow-auto py-1" role="listbox">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option, index) => {

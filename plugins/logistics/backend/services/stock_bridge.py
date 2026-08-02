@@ -601,7 +601,9 @@ def adjust_required_product_stock(
         warehouse_id=warehouse_id,
         quantity=quantity,
         reason=reason,
-        unit_cost=None,
+        unit_cost=_resolve_purchase_unit_cost(
+            db, tenant_id=tenant_id, product_id=product_id
+        ),
         idempotency_key=idempotency_key,
         action_context=build_stock_action_context(action_context),
     )

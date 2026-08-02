@@ -196,7 +196,7 @@ El flujo esperado es:
 7. guardar;
 8. el sistema debe hacer dos cosas juntas:
    - crear la ficha del envase;
-   - generar el movimiento inicial del envase;
+   - generar el movimiento inicial del envase; 
 9. una vez creado, el usuario puede seguir operando el envase.
 
 ## Operacion del envase despues del alta
@@ -223,6 +223,7 @@ La logica del submodulo es:
 - trazar su estado inicial;
 - registrar su movimiento de origen;
 - operar luego todo su ciclo de vida logistico.
+
 
 
 

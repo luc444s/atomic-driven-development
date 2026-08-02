@@ -330,17 +330,12 @@ export function LoadSerialsDialog({
             createMeta={createMeta}
             onCreateMetaChange={setCreateMeta}
             gasOptions={item ? [{ id: item.product_id, name: item.product_name }] : []}
-            brandOptions={[]}
             warehouseOptions={[]}
-            sublineOptions={[]}
-            conditions={[]}
             isPending={createCylinderMutation.isPending}
             error={createError}
-            onSubmit={(event) => {
-              event.preventDefault();
-              void createCylinderMutation.mutateAsync();
+            onSubmit={async (serials) => {
+              await createCylinderMutation.mutateAsync();
             }}
-            onCustomerSearchClick={() => undefined}
             compactMode
             compactHint="Envase no registrado. Se creara con serial, codigo de barras y producto inferido desde la carga planificada."
           />

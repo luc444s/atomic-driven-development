@@ -37,6 +37,7 @@ class StockWarehouseRead(BaseModel):
     code: str
     address: str | None = None
     phone: str | None = None
+    is_primary: bool = False
     is_active: bool
     created_at: datetime
     updated_at: datetime

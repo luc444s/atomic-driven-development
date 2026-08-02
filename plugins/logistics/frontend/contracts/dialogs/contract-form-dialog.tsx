@@ -198,6 +198,32 @@ export function ContractFormDialog({
             </Labeled>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Labeled label="Límite de espera de exceso (días)">
+              <Input
+                type="number"
+                value={form.excess_wait_days}
+                onChange={field("excess_wait_days")}
+                min="0"
+                placeholder="Días de tolerancia antes de auto-crear contrato"
+              />
+            </Labeled>
+            <Labeled label="Auto-crear contrato al exceder">
+              <Select
+                value={form.auto_renew_on_excess ? "true" : "false"}
+                onChange={(v) => onFormChange({ ...form, auto_renew_on_excess: v === "true" })}
+                options={[
+                  { value: "true", label: "Sí (automático)" },
+                  { value: "false", label: "No (requiere acción manual)" },
+                ]}
+              />
+            </Labeled>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Si el cliente supera el cupo y el exceso persiste más del límite de espera, el sistema crea
+            automáticamente un contrato nuevo por los envases excedentes.
+          </p>
+
           <Labeled label="Archivo contrato">
             <div className="space-y-2">
               {form.contract_file_path ? (

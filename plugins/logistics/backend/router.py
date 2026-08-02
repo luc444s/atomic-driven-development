@@ -146,7 +146,6 @@ from plugins.logistics.backend.services.catalog import (
     list_service_types_catalog,
     list_vehicles_catalog,
     list_warehouses_catalog,
-    list_zones_catalog,
 )
 from plugins.logistics.backend.services.cylinders import (
     create_cylinder,
@@ -271,14 +270,13 @@ from plugins.logistics.backend.services.resources import (
     create_delivery_point,
     create_vehicle,
     create_warehouse,
-    create_zone,
     get_delivery_point,
     get_vehicle,
     get_warehouse,
     list_delivery_points,
     list_vehicles,
     list_warehouses,
-    list_zones,
+    set_primary_warehouse,
     update_delivery_point,
     update_vehicle,
     update_warehouse,
@@ -469,18 +467,6 @@ def get_delivery_point_catalog(
     return [
         DeliveryPointRead.model_validate(item)
         for item in list_delivery_points_catalog(db, tenant_id=tenant_context.current_tenant_id)
-    ]
-
-
-@router.get("/catalog/zones", response_model=list[ZoneRead])
-def get_zone_catalog(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_WAREHOUSE_READ,
-) -> list[ZoneRead]:
-    return [
-        ZoneRead.model_validate(item)
-        for item in list_zones_catalog(db, tenant_id=tenant_context.current_tenant_id)
     ]
 
 
@@ -1113,40 +1099,6 @@ def update_warehouse_endpoint(
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     return WarehouseRead.model_validate(warehouse)
-
-
-@router.get("/zones", response_model=list[ZoneRead])
-def get_zones(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_WAREHOUSE_READ,
-) -> list[ZoneRead]:
-    return [
-        ZoneRead.model_validate(item)
-        for item in list_zones(db, tenant_id=tenant_context.current_tenant_id)
-    ]
-
-
-@router.post("/zones", response_model=ZoneRead, status_code=status.HTTP_201_CREATED)
-def create_zone_endpoint(
-    payload: ZoneCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_WAREHOUSE_MANAGE,
-) -> ZoneRead:
-    try:
-        zone = create_zone(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    return ZoneRead.model_validate(zone)
 
 
 @router.get("/vehicles", response_model=list[VehicleRead])
@@ -3423,3 +3375,29 @@ def get_product_content_endpoint(
         )
     except Exception as exc:
         _raise_service_error(exc)
+
+
+@router.patch("/warehouses/{warehouse_id}/primary", response_model=WarehouseRead)
+def set_primary_warehouse_endpoint(
+    warehouse_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_WAREHOUSE_MANAGE,
+) -> WarehouseRead:
+    warehouse = get_warehouse(
+        db, tenant_id=tenant_context.current_tenant_id, warehouse_id=warehouse_id
+    )
+    if warehouse is None:
+        raise _not_found("Warehouse")
+    try:
+        warehouse = set_primary_warehouse(
+            db,
+            warehouse=warehouse,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return WarehouseRead.model_validate(warehouse)

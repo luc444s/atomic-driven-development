@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Never
 
@@ -14,7 +14,14 @@ from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, re
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
+from plugins.logistics.backend.models.contracts import (
+    LogisticsContractExcessTracking,
+    LogisticsCylinderContract,
+)
 from plugins.logistics.backend.schemas import (
+    ContractExcessPolicyUpdate,
+    ContractExcessResolveRequest,
+    ContractExcessTrackingRead,
     ContractHistoryRead,
     ContractTypeRead,
     CylinderContractActivate,
@@ -24,6 +31,7 @@ from plugins.logistics.backend.schemas import (
     CylinderContractSign,
     CylinderContractTerminate,
     CylinderContractUpdate,
+    SoftLimitConfirmRequest,
 )
 from plugins.logistics.backend.services.contracts import (
     activate_contract,
@@ -40,6 +48,11 @@ from plugins.logistics.backend.services.contracts import (
     update_contract,
     upload_contract_file,
 )
+from plugins.logistics.backend.services.contracts_excess import (
+    confirm_soft_limit,
+    resolve_excess_tracking,
+    update_excess_policy,
+)
 
 router = APIRouter(prefix="/cylinders", tags=["logistics-contracts"])
 
@@ -52,6 +65,7 @@ REQUIRE_CONTRACT_UPDATE = Depends(require_permission("logistics.contract.update"
 REQUIRE_CONTRACT_ACTIVATE = Depends(require_permission("logistics.contract.activate"))
 REQUIRE_CONTRACT_TERMINATE = Depends(require_permission("logistics.contract.terminate"))
 REQUIRE_CONTRACT_RENEW = Depends(require_permission("logistics.contract.renew"))
+REQUIRE_SOFT_LIMIT_CONFIRM = Depends(require_permission("logistics.contract.update"))
 UPLOAD_FILE = File(...)
 
 
@@ -105,6 +119,9 @@ def _contract_to_read(contract) -> CylinderContractRead:
         contract_file_path=contract.contract_file_path,
         notes=contract.notes,
         observations=contract.observations,
+        excess_wait_days=contract.excess_wait_days,
+        auto_renew_on_excess=contract.auto_renew_on_excess,
+        source_contract_id=contract.source_contract_id,
         created_at=contract.created_at,
     )
 
@@ -409,3 +426,123 @@ def cancel_contract_endpoint(
         db.rollback()
         _raise_service_error(exc)
     return _contract_to_read(contract)
+
+
+# ── Motor de exceso de contratos (SPEC 0023AD.4) ───────────────────────
+
+
+@router.patch("/contracts/{contract_id}/excess-policy", response_model=CylinderContractRead)
+def update_excess_policy_endpoint(
+    contract_id: str,
+    body: ContractExcessPolicyUpdate,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CONTRACT_UPDATE,
+) -> CylinderContractRead:
+    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
+    if contract is None:
+        raise _not_found("Contract")
+    try:
+        contract = update_excess_policy(
+            db,
+            contract=contract,
+            excess_wait_days=body.excess_wait_days,
+            auto_renew_on_excess=body.auto_renew_on_excess,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return _contract_to_read(contract)
+
+
+@router.post(
+    "/excess-tracking/{tracking_id}/resolve",
+    response_model=ContractExcessTrackingRead,
+)
+def resolve_excess_tracking_endpoint(
+    tracking_id: str,
+    body: ContractExcessResolveRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CONTRACT_UPDATE,
+) -> ContractExcessTrackingRead:
+    tracking = db.get(LogisticsContractExcessTracking, tracking_id)
+    if tracking is None or tracking.tenant_id != tenant_context.current_tenant_id:
+        raise _not_found("ExcessTracking")
+    try:
+        tracking = resolve_excess_tracking(
+            db,
+            tracking=tracking,
+            payload=body,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return _tracking_to_read(db, tracking)
+
+
+@router.post(
+    "/contracts/{contract_id}/soft-limit-confirm", status_code=status.HTTP_204_NO_CONTENT
+)
+def confirm_soft_limit_endpoint(
+    contract_id: str,
+    body: SoftLimitConfirmRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SOFT_LIMIT_CONFIRM,
+) -> None:
+    contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
+    if contract is None:
+        raise _not_found("Contract")
+    try:
+        confirm_soft_limit(
+            db,
+            payload=body,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+
+
+def _tracking_to_read(db: Session, tracking) -> ContractExcessTrackingRead:
+    contract_number = None
+    if tracking.created_contract_id:
+        contract = db.get(LogisticsCylinderContract, tracking.created_contract_id)
+        contract_number = contract.contract_number if contract else None
+    now = datetime.now(UTC)
+    days_pending = None
+    if tracking.status == "ACTIVE":
+        days_pending = max(
+            0,
+            int(
+                tracking.excess_wait_days
+                - (now - tracking.first_detected_at).total_seconds() / 86400
+            ),
+        )
+    return ContractExcessTrackingRead(
+        id=tracking.id,
+        customer_id=tracking.customer_id,
+        cylinder_type_id=tracking.cylinder_type_id,
+        product_name=None,
+        excess_qty=tracking.excess_qty,
+        first_detected_at=tracking.first_detected_at,
+        last_seen_at=tracking.last_seen_at,
+        excess_wait_days=tracking.excess_wait_days,
+        auto_renew_on_excess=tracking.auto_renew_on_excess,
+        base_unit_price=float(tracking.base_unit_price),
+        base_contract_type=tracking.base_contract_type,
+        status=tracking.status,
+        resolved_reason=tracking.resolved_reason,
+        created_contract_id=tracking.created_contract_id,
+        contract_number=contract_number,
+        days_pending=days_pending,
+    )

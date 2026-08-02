@@ -29,17 +29,6 @@ export type BaseCylinderPayload = {
   last_hydrotest_date?: string | null;
   location?: string | null;
   next_hydrotest_date?: string | null;
-  adr_category?: string | null;
-  adr_un_number?: string | null;
-  adr_label?: string | null;
-  adr_package_type?: string | null;
-  adr_weight_kg?: number | null;
-  adr_merchandise?: string | null;
-  adr_tunnel?: string | null;
-  adr_subline?: string | null;
-  adr_factor?: number | null;
-  adr_points?: number | null;
-  adr_unit_measure?: string | null;
 };
 
 

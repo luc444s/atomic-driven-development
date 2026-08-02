@@ -28,7 +28,7 @@ export function CylinderFormFields({
     <div className="space-y-4">
       <FormRow title="Identificación">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Serial"><Input value={form.serial} onChange={(event) => updateField("serial", event.target.value)} /></Field>
+        <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Serial"><Input value={form.serial} onChange={(event) => { updateField("serial", event.target.value); if (!form.barcode2) { updateField("barcode2", event.target.value); } }} /></Field>
         <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Descripción"><Input value={form.description} onChange={(event) => updateField("description", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-4 xl:col-span-4" label="Ubicación"><Input value={form.location} onChange={(event) => updateField("location", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-2 xl:col-span-2" label="Caja / lote"><Input value={form.box_number} onChange={(event) => updateField("box_number", event.target.value)} /></Field>
@@ -37,7 +37,6 @@ export function CylinderFormFields({
 
       <FormRow title="Códigos y Clasificación">
       <div className="grid grid-cols-1 gap-3 md:grid-cols-6 xl:grid-cols-12">
-        <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Barcode producto"><Input value={form.barcode1} onChange={(event) => updateField("barcode1", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Matrícula etiqueta"><Input value={form.barcode2} onChange={(event) => updateField("barcode2", event.target.value)} /></Field>
         <Field className="col-span-full md:col-span-3 xl:col-span-3" label="Gas">
           <Select
@@ -45,8 +44,13 @@ export function CylinderFormFields({
             onChange={(value) => {
               updateField("gas_group_id", value);
               const product = gasProducts.find((p) => p.id === value);
-              if (product?.content_kg && !form.weight_origin) {
-                updateField("weight_origin", product.content_kg.toString());
+              if (product?.content_kg) {
+                if (!form.weight_origin) {
+                  updateField("weight_origin", product.content_kg.toString());
+                }
+                if (!form.content_kg) {
+                  updateField("content_kg", product.content_kg.toString());
+                }
               }
             }}
             placeholder="Sin asignar"

@@ -159,6 +159,8 @@ export function ContractsPage() {
       contract_file_path: c.contract_file_path || "",
       notes: c.notes || "",
       observations: c.observations || "",
+      excess_wait_days: String(c.excess_wait_days ?? 3),
+      auto_renew_on_excess: c.auto_renew_on_excess ?? true,
     });
     setSelectedContractFile(null);
     setIsEditOpen(true);

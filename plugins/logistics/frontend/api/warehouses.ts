@@ -10,6 +10,11 @@ export type LogisticsWarehouse = {
   warehouse_type: string;
   address: string | null;
   phone: string | null;
+  is_primary: boolean;
+  latitude: number | null;
+  longitude: number | null;
+  formatted_address: string | null;
+  place_id: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -39,4 +44,11 @@ export function updateWarehouse(warehouseId: string, payload: Record<string, unk
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export function setPrimaryWarehouse(warehouseId: string) {
+  return apiRequest<LogisticsWarehouse>(
+    `${API_PREFIX}/warehouses/${warehouseId}/primary`,
+    { method: "PATCH" }
+  );
 }

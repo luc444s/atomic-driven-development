@@ -163,6 +163,7 @@ def get_stock_warehouses_catalog(
             address=warehouse.address,
             phone=warehouse.phone,
             is_active=warehouse.is_active,
+            is_primary=warehouse.is_primary,
             created_at=warehouse.created_at,
             updated_at=warehouse.updated_at,
         )

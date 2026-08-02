@@ -41,20 +41,33 @@ from plugins.productos.backend.models import Product
 
 ENTRY_MODE_EMPTY_FROM_CUSTOMER = "EMPTY_FROM_CUSTOMER"
 ENTRY_MODE_FULL_FROM_SUPPLIER = "FULL_FROM_SUPPLIER"
+ENTRY_MODE_EMPTY_FROM_WAREHOUSE = "EMPTY_FROM_WAREHOUSE"
+ENTRY_MODE_FULL_FROM_WAREHOUSE = "FULL_FROM_WAREHOUSE"
 
 ENTRY_MODE_TARGET_STATE = {
     ENTRY_MODE_EMPTY_FROM_CUSTOMER: "EN_ALMACEN_VACIO",
     ENTRY_MODE_FULL_FROM_SUPPLIER: "LLENADO_OK",
+    ENTRY_MODE_EMPTY_FROM_WAREHOUSE: "EN_ALMACEN_VACIO",
+    ENTRY_MODE_FULL_FROM_WAREHOUSE: "LLENADO_OK",
 }
 
 ENTRY_MODE_MOVEMENT_TYPE = {
     ENTRY_MODE_EMPTY_FROM_CUSTOMER: "IC",
     ENTRY_MODE_FULL_FROM_SUPPLIER: "IFP",
+    ENTRY_MODE_EMPTY_FROM_WAREHOUSE: None,
+    ENTRY_MODE_FULL_FROM_WAREHOUSE: None,
 }
 
 ENTRY_MODE_DOCUMENT_TYPE = {
     ENTRY_MODE_EMPTY_FROM_CUSTOMER: "IC",
     ENTRY_MODE_FULL_FROM_SUPPLIER: "IP",
+    ENTRY_MODE_EMPTY_FROM_WAREHOUSE: None,
+    ENTRY_MODE_FULL_FROM_WAREHOUSE: None,
+}
+
+ENTRY_MODE_FULL_STATES = {
+    ENTRY_MODE_FULL_FROM_SUPPLIER,
+    ENTRY_MODE_FULL_FROM_WAREHOUSE,
 }
 
 SERIALIZED_WAREHOUSE_AVAILABILITY_STATES = ("EN_ALMACEN_VACIO", "LLENADO_OK")
@@ -251,6 +264,22 @@ def summarize_serialized_cylinders_by_warehouse(
     return sorted(items, key=lambda item: (-item.serialized_count, item.product_sku, item.product_name))
 
 
+def _resolve_initial_content_kg(
+    db: Session, payload: CylinderCreateRequest
+) -> float | None:
+    """Deriva el content_kg del gas cuando el envase entra lleno sin peso explícito."""
+    if payload.entry_mode not in ENTRY_MODE_FULL_STATES:
+        return payload.content_kg
+    if payload.content_kg is not None and payload.content_kg > 0:
+        return payload.content_kg
+    product_id = payload.product_id or payload.gas_group_id
+    if product_id:
+        product = db.get(Product, product_id)
+        if product is not None and product.weight_kg and product.weight_kg > 0:
+            return float(product.weight_kg)
+    return payload.content_kg
+
+
 def create_cylinder(
     db: Session,
     *,
@@ -259,6 +288,9 @@ def create_cylinder(
     warehouse_id: str | None,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinder:
+    resolved_content_kg = _resolve_initial_content_kg(db, payload)
+    if resolved_content_kg != payload.content_kg:
+        payload = payload.model_copy(update={"content_kg": resolved_content_kg})
     _validate_initial_entry_payload(payload, warehouse_id=warehouse_id)
     cylinder = LogisticsCylinder(
         tenant_id=tenant_id,
@@ -619,11 +651,11 @@ def _validate_initial_entry_payload(
         )
     if payload.entry_mode == ENTRY_MODE_EMPTY_FROM_CUSTOMER and not payload.customer_id:
         raise ValueError("customer_id es obligatorio cuando el envase entra vacio desde cliente")
-    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER:
+    if payload.entry_mode in ENTRY_MODE_FULL_STATES:
         if payload.product_id is None and payload.gas_group_id is None:
-            raise ValueError("product_id es obligatorio cuando el envase entra lleno desde proveedor")
+            raise ValueError("product_id es obligatorio cuando el envase entra lleno")
         if not payload.minimal_route_create and (payload.content_kg is None or payload.content_kg <= 0):
-            raise ValueError("content_kg debe ser mayor que cero cuando el envase entra lleno desde proveedor")
+            raise ValueError("content_kg debe ser mayor que cero cuando el envase entra lleno")
 
 
 def _build_document_reference(payload: CylinderCreateRequest) -> str | None:
@@ -710,7 +742,7 @@ def _register_initial_entry(
     from plugins.logistics.backend.services.movements import confirm_movement, create_movement
 
     product = None
-    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and (
+    if payload.entry_mode in ENTRY_MODE_FULL_STATES and (
         payload.product_id is not None or payload.gas_group_id is not None
     ):
         product = _resolve_stock_product_for_gas(
@@ -720,50 +752,52 @@ def _register_initial_entry(
             gas_group_id=payload.gas_group_id or "",
         )
 
-    movement = create_movement(
-        db,
-        tenant_id=tenant_id,
-        created_by=action_context.actor_user_id,
-        payload=MovementCreateRequest(
-            branch_id=payload.branch_id,
-            movement_type=ENTRY_MODE_MOVEMENT_TYPE[payload.entry_mode or ENTRY_MODE_EMPTY_FROM_CUSTOMER],
-            document_series=ENTRY_MODE_DOCUMENT_TYPE.get(payload.entry_mode or ""),
-            document_number=payload.document_number,
-            customer_id=payload.customer_id,
-            warehouse_id=warehouse_id,
-            notes=_build_initial_state_notes(
-                payload=payload,
+    movement_type = ENTRY_MODE_MOVEMENT_TYPE.get(payload.entry_mode or "")
+    if movement_type is not None:
+        movement = create_movement(
+            db,
+            tenant_id=tenant_id,
+            created_by=action_context.actor_user_id,
+            payload=MovementCreateRequest(
+                branch_id=payload.branch_id,
+                movement_type=movement_type,
+                document_series=ENTRY_MODE_DOCUMENT_TYPE.get(payload.entry_mode or ""),
+                document_number=payload.document_number,
+                customer_id=payload.customer_id,
                 warehouse_id=warehouse_id,
-                document_reference=document_reference,
+                notes=_build_initial_state_notes(
+                    payload=payload,
+                    warehouse_id=warehouse_id,
+                    document_reference=document_reference,
+                ),
+                items=[
+                    {
+                        "cylinder_id": cylinder.id,
+                        "product_id": product.id if product is not None else None,
+                        "product_name": product.name if product is not None else None,
+                        "quantity": 1,
+                        "quantity_in": payload.content_kg if payload.entry_mode in ENTRY_MODE_FULL_STATES and payload.content_kg is not None else 1,
+                        "notes": document_reference,
+                    }
+                ],
             ),
-            items=[
-                {
-                    "cylinder_id": cylinder.id,
-                    "product_id": product.id if product is not None else None,
-                    "product_name": product.name if product is not None else None,
-                    "quantity": 1,
-                    "quantity_in": payload.content_kg if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and payload.content_kg is not None else 1,
-                    "notes": document_reference,
-                }
-            ],
-        ),
-        action_context=action_context,
-    )
-    confirm_movement(
-        db,
-        tenant_id=tenant_id,
-        movement=movement,
-        action_context=action_context,
-    )
+            action_context=action_context,
+        )
+        confirm_movement(
+            db,
+            tenant_id=tenant_id,
+            movement=movement,
+            action_context=action_context,
+        )
 
-    if payload.entry_mode == ENTRY_MODE_FULL_FROM_SUPPLIER and product is not None and payload.content_kg is not None:
+    if payload.entry_mode in ENTRY_MODE_FULL_STATES and product is not None and payload.content_kg is not None:
         adjust_required_product_stock(
             db,
             tenant_id=tenant_id,
             warehouse_id=warehouse_id,
             product_id=product.id,
             quantity=payload.content_kg,
-            reason=f"Alta cilindro lleno desde proveedor: {document_reference or cylinder.serial}",
+            reason=f"Alta cilindro lleno: {document_reference or cylinder.serial}",
             idempotency_key=f"cylinder-create:{cylinder.id}:stock",
             action_context=action_context,
         )

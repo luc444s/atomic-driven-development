@@ -34,17 +34,6 @@ describe("logistics frontend helpers", () => {
       average_weight_source: null,
       last_hydrotest_date: "2026-01-01",
       next_hydrotest_date: "2031-01-01",
-      adr_category: "2F",
-      adr_un_number: "1047",
-      adr_label: "GLP",
-      adr_package_type: "CIL",
-      adr_weight_kg: 22.5,
-      adr_merchandise: "Gas licuado de petroleo",
-      adr_tunnel: "B/D",
-      adr_subline: "GLP",
-      adr_factor: 1,
-      adr_points: 3,
-      adr_unit_measure: "KG",
       location: "Patio norte",
       is_active: true,
       is_medical: false,
@@ -56,7 +45,7 @@ describe("logistics frontend helpers", () => {
     expect(form.barcode2).toBe("MAT-200001");
     expect(form.gas_group_id).toBe("prod-1");
     expect(form.price).toBe("175");
-    expect(form.adr_package_type).toBe("CIL");
+    expect(form.location).toBe("Patio norte");
     expect(form.is_active).toBe(true);
   });
 

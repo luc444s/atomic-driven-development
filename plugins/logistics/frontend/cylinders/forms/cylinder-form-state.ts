@@ -3,7 +3,6 @@ import type { CylinderEntryMode } from "../../api";
 export type CylinderFormState = {
   serial: string;
   description: string;
-  barcode1: string;
   barcode2: string;
   gas_group_id: string;
   content_kg: string;
@@ -22,17 +21,6 @@ export type CylinderFormState = {
   weight_current: string;
   last_hydrotest_date: string;
   next_hydrotest_date: string;
-  adr_category: string;
-  adr_un_number: string;
-  adr_label: string;
-  adr_package_type: string;
-  adr_weight_kg: string;
-  adr_merchandise: string;
-  adr_tunnel: string;
-  adr_subline: string;
-  adr_factor: string;
-  adr_points: string;
-  adr_unit_measure: string;
   location: string;
   is_active: boolean;
   is_medical: boolean;
@@ -115,7 +103,6 @@ export type CylinderCreateMetaState = {
 export const EMPTY_CYLINDER_FORM: CylinderFormState = {
   serial: "",
   description: "",
-  barcode1: "",
   barcode2: "",
   gas_group_id: "",
   content_kg: "",
@@ -134,17 +121,6 @@ export const EMPTY_CYLINDER_FORM: CylinderFormState = {
   weight_current: "",
   last_hydrotest_date: "",
   next_hydrotest_date: "",
-  adr_category: "",
-  adr_un_number: "",
-  adr_label: "",
-  adr_package_type: "",
-  adr_weight_kg: "",
-  adr_merchandise: "",
-  adr_tunnel: "",
-  adr_subline: "",
-  adr_factor: "",
-  adr_points: "",
-  adr_unit_measure: "",
   location: "",
   is_active: true,
   is_medical: false,

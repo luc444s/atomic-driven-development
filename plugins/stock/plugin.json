@@ -3,7 +3,10 @@
   "name": "Stock",
   "version": "0.2.0",
   "api_version": "1",
-  "requires": ["logistics", "productos"],
+  "requires": [
+    "logistics",
+    "productos"
+  ],
   "backend_entrypoint": "backend.plugin:register",
   "frontend_entrypoint": "frontend/register.ts",
   "permissions": [

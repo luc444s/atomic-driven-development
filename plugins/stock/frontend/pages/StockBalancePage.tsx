@@ -62,6 +62,24 @@ export function StockBalancePage() {
   });
   const warehousesQuery = useQuery({ queryKey: stockKeys.warehouses, queryFn: listWarehousesCatalog });
 
+  useEffect(() => {
+    if (!warehouseFilter && warehousesQuery.data?.length) {
+      const primary = warehousesQuery.data.find((warehouse) => warehouse.is_primary);
+      if (primary) {
+        setWarehouseFilter(primary.id);
+      }
+    }
+  }, [warehousesQuery.data, warehouseFilter]);
+
+  useEffect(() => {
+    if (!warehouseFilter && warehousesQuery.data?.length) {
+      const primary = warehousesQuery.data.find((warehouse) => warehouse.is_primary);
+      if (primary) {
+        setWarehouseFilter(primary.id);
+      }
+    }
+  }, [warehousesQuery.data, warehouseFilter]);
+
   const totalPages = balancesQuery.data
     ? Math.max(1, Math.ceil(balancesQuery.data.total / balancesQuery.data.limit))
     : 1;

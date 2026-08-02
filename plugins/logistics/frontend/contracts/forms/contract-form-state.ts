@@ -13,6 +13,8 @@ export type ContractFormState = {
   contract_file_path: string;
   notes: string;
   observations: string;
+  excess_wait_days: string;
+  auto_renew_on_excess: boolean;
 };
 
 export type TerminateFormState = {
@@ -34,6 +36,8 @@ export const EMPTY_CONTRACT_FORM: ContractFormState = {
   contract_file_path: "",
   notes: "",
   observations: "",
+  excess_wait_days: "3",
+  auto_renew_on_excess: true,
 };
 
 export const EMPTY_TERMINATE_FORM: TerminateFormState = {

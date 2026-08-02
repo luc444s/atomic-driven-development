@@ -77,26 +77,18 @@ export function DetailMenuDialog({
               <div><span className="text-muted-foreground">Estado:</span> <CylinderStateBadge state={selectedCylinder.current_state} /></div>
               <div><span className="text-muted-foreground">Gas:</span> {productById.get(selectedCylinder.product_id ?? "") || gasById.get(selectedCylinder.gas_group_id ?? "") || "-"}</div>
               <div><span className="text-muted-foreground">Marca:</span> {brandById.get(selectedCylinder.brand_id ?? "") || "-"}</div>
-              <div><span className="text-muted-foreground">Barcode producto:</span> {selectedCylinder.barcode1 || "-"}</div>
               <div><span className="text-muted-foreground">Matrícula:</span> {selectedCylinder.barcode2 || "-"}</div>
               <div><span className="text-muted-foreground">Condición:</span> {selectedCylinder.condition || "-"}</div>
-              <div><span className="text-muted-foreground">Ubicación:</span> {selectedCylinder.location || "-"}</div>
+              <div><span className="text-muted-foreground">Ubicación:</span> {selectedCylinder.location_context || selectedCylinder.warehouse_name || selectedCylinder.location || "-"}</div>
               <div><span className="text-muted-foreground">Contenido kg:</span> {selectedCylinder.content_kg?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Peso:</span> {selectedCylinder.weight_current?.toString() || selectedCylinder.weight_origin?.toString() || (selectedCylinder.average_weight_source?.weight_kg?.toString() ?? "-")}{!selectedCylinder.weight_current && !selectedCylinder.weight_origin && selectedCylinder.average_weight_source ? <span className="ml-1 text-xs italic text-muted-foreground">(peso por defecto de producto)</span> : !selectedCylinder.weight_current && !selectedCylinder.weight_origin ? <span className="ml-1 text-xs italic text-muted-foreground">(sin peso real)</span> : null}</div>
               <div><span className="text-muted-foreground">Volumen m3:</span> {selectedCylinder.volume_m3?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Costo:</span> {selectedCylinder.cost?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Precio:</span> {selectedCylinder.price?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">PH siguiente:</span> {formatDate(selectedCylinder.next_hydrotest_date) || "-"}</div>
-              <div><span className="text-muted-foreground">ADR UN:</span> {selectedCylinder.adr_un_number || "-"}</div>
-              <div><span className="text-muted-foreground">ADR etiqueta:</span> {selectedCylinder.adr_label || "-"}</div>
-              <div><span className="text-muted-foreground">ADR mercancía:</span> {selectedCylinder.adr_merchandise || "-"}</div>
               <div>{selectedCylinder.is_medical ? <span className="font-medium text-amber-500">&bull; Medicinal</span> : null}</div>
             </CardContent>
           </Card>
-
-          {!selectedCylinder.barcode2 ? (
-            <Alert title="Falta matrícula de etiqueta">Este envase aún no tiene `barcode2` para etiqueta y escaneo.</Alert>
-          ) : null}
 
           {selectedCylinder.is_medical ? (
             <Alert title="Uso medicinal">Este envase está marcado para uso medicinal. La trazabilidad debe ser completa y auditable.</Alert>

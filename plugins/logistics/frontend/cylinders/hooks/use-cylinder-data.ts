@@ -28,12 +28,14 @@ import {
 } from "../../../../productos/frontend/api";
 
 export interface CylinderDataPermissions {
+  canCreate: boolean;
   canTrace: boolean;
   canTransition: boolean;
   canOwnershipRead: boolean;
   canServiceRead: boolean;
   canServiceManage: boolean;
   canScanRead: boolean;
+  canWarehouseRead: boolean;
 }
 
 export interface UseCylinderDataInput {
@@ -92,7 +94,7 @@ export function useCylinderData(input: UseCylinderDataInput) {
   const warehousesQuery = useQuery({
     queryKey: logisticsKeys.warehouses(),
     queryFn: listWarehouses,
-    enabled: permissions.canCreate,
+    enabled: permissions.canCreate || permissions.canWarehouseRead,
   });
 
   const transitionsQuery = useQuery({

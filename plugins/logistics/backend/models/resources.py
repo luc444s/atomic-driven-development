@@ -120,9 +120,6 @@ class LogisticsDeliveryPoint(Base):
     contact_email: Mapped[str | None] = mapped_column(String(100), nullable=True)
     address: Mapped[str] = mapped_column(String(200), nullable=False)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
-    zone_id: Mapped[str | None] = mapped_column(
-        ForeignKey("lg_zones.id"), nullable=True, index=True
-    )
     warehouse_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_warehouses.id"), nullable=True, index=True
     )

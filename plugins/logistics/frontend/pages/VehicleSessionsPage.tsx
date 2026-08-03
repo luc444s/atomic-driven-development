@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
@@ -7,8 +7,11 @@ import { Card, CardContent } from "../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import {
   createRoute,
+  createRouteStop,
+  updateRouteGpsStart,
   createVehicle,
   createVehicleSession,
+  listCustomerAddressesByCustomers,
   listPlanningReservations,
   listDriverOptions,
   listRoutes,
@@ -43,6 +46,9 @@ const EMPTY_FORM: JornadaCreateForm = {
   driver_id: "",
   origin_warehouse_id: "",
   route_id: "",
+  customer_ids: [],
+  address_ids: [],
+  customer_names: {},
 };
 
 const EMPTY_VEHICLE_FORM: JornadaVehicleForm = {
@@ -100,14 +106,69 @@ export function VehicleSessionsPage() {
     queryFn: () => listPlanningReservations({ start: new Date().toISOString() }),
   });
 
+  const customerNamesRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    customerNamesRef.current = formState.customer_names;
+  }, [formState.customer_names]);
+
   const createMutation = useMutation({
-    mutationFn: () =>
-      createVehicleSession({
+    mutationFn: async () => {
+      let routeId = formState.route_id;
+      const originWarehouse = formState.origin_warehouse_id
+        ? warehousesQuery.data?.find((warehouse) => warehouse.id === formState.origin_warehouse_id)
+        : null;
+
+      if (!routeId && formState.address_ids.length > 0) {
+        const addresses = await listCustomerAddressesByCustomers(formState.customer_ids.join(","));
+        const destinationAddressId = formState.address_ids[formState.address_ids.length - 1] ?? null;
+        const destinationAddress = addresses.find((item) => item.id === destinationAddressId);
+        const destinationLabel = destinationAddress?.customer_id
+          ? customerNamesRef.current[destinationAddress.customer_id] ?? destinationAddress.line1
+          : destinationAddress?.line1 ?? null;
+        const route = await createRoute({
+          route_date: new Date().toISOString().slice(0, 10),
+          vehicle_id: formState.vehicle_id || null,
+          driver_id: formState.driver_id || null,
+          origin_label: originWarehouse?.name ?? null,
+          destination_label: destinationLabel,
+          notes:
+            originWarehouse?.name && destinationLabel
+              ? `${originWarehouse.name} → ${destinationLabel}`
+              : originWarehouse?.name ?? "Jornada automática",
+        });
+        routeId = route.id;
+        if (originWarehouse?.latitude != null && originWarehouse?.longitude != null) {
+          await updateRouteGpsStart(route.id, {
+            gps_coordinates: { lat: originWarehouse.latitude, lng: originWarehouse.longitude },
+          });
+        }
+        let order = 1;
+        for (const addressId of formState.address_ids) {
+          const address = addresses.find((item) => item.id === addressId);
+          await createRouteStop(route.id, {
+            customer_id: address?.customer_id ?? null,
+            customer_name_snapshot: address?.customer_id
+              ? (customerNamesRef.current[address.customer_id] ?? null)
+              : null,
+            gps_coordinates:
+              address?.latitude != null && address?.longitude != null
+                ? { lat: address.latitude, lng: address.longitude }
+                : null,
+            notes: address?.line1 ?? null,
+            stop_order: order,
+          });
+          order += 1;
+        }
+        await queryClient.invalidateQueries({ queryKey: logisticsKeys.routes.all() });
+      }
+
+      return createVehicleSession({
         vehicle_id: formState.vehicle_id,
         driver_id: formState.driver_id,
         origin_warehouse_id: formState.origin_warehouse_id || null,
-        route_id: formState.route_id,
-      }),
+        route_id: routeId || null,
+      });
+    },
     onSuccess: async (session) => {
       setIsOpen(false);
       setFormState(EMPTY_FORM);
@@ -146,6 +207,8 @@ export function VehicleSessionsPage() {
       createRoute({
         route_date: routeForm.route_date,
         vehicle_id: routeForm.vehicle_id || null,
+        origin_label: routeForm.notes.includes("→") ? routeForm.notes.split("→", 2)[0]?.trim() || null : null,
+        destination_label: routeForm.notes.includes("→") ? routeForm.notes.split("→", 2)[1]?.trim() || null : null,
         notes: routeForm.notes || null,
       }),
     onSuccess: async (route) => {
@@ -191,7 +254,7 @@ export function VehicleSessionsPage() {
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!formState.route_id) {
+    if (!formState.route_id && formState.address_ids.length === 0) {
       setError("Selecciona una ruta antes de crear la jornada.");
       return;
     }

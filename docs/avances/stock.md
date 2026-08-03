@@ -85,6 +85,12 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 - `stock` usa el branch del almacén en auditoría/eventos;
 - en transferencias, el `event_log.branch_id` se resuelve desde el almacén origen y el payload incluye `from_branch_id` y `to_branch_id`.
 
+### 2.7 Ajuste positivo toma costo activo de productos
+
+- para `POST /stock/adjust` con cantidad positiva, `stock` ahora resuelve `unit_cost` desde el costo activo `BASE` del producto en `productos`;
+- si el producto no tiene costo activo, el ajuste se bloquea con error claro;
+- el modal de ajuste ya no pide costo manual como fuente primaria: informa que el costo se toma del producto.
+
 ---
 
 ## 3. Cobertura actual de la SPEC 0016

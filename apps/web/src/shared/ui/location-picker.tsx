@@ -10,7 +10,15 @@ import type { Map as LeafletMap } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { useThemeStore } from "../../features/theme/store";
+const leafletZoomStyles = `
+.systutor-map .leaflet-top,
+.systutor-map .leaflet-bottom { z-index: 1100; }
+.systutor-map .systutor-marker { z-index: 700 !important; }
+.systutor-map .leaflet-control-attribution { display: none; }
+.systutor-map .leaflet-control-zoom a { color: #333; }
+`;
+
+import { getApiBaseUrl } from "../api/client";
 import { cn } from "./cn";
 import { Input } from "./input";
 
@@ -21,6 +29,7 @@ type LatLng = { lat: number; lng: number };
 type LocationPickerProps = {
   value: LatLng | null;
   onChange: (location: LatLng) => void;
+  onAddressResolved?: (result: { display_name: string; address: Record<string, string> } | null) => void;
   className?: string;
   placeholder?: string;
   searchPlaceholder?: string;
@@ -30,7 +39,6 @@ type LocationPickerProps = {
 const DEFAULT_ZOOM = 13;
 
 const lightTile = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-const darkTile = "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png";
 
 const defaultIcon = L.icon({
   iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
@@ -93,7 +101,7 @@ function SearchControl({
 }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<
-    { lat: string; lon: string; display_name: string }[]
+    { lat: number; lng: number; display_name: string }[]
   >([]);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -127,7 +135,7 @@ function SearchControl({
       setLoading(true);
       try {
         const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(value)}&limit=5&countrycodes=es`,
+          `${getApiBaseUrl()}/api/v1/geocode/search?q=${encodeURIComponent(value)}&limit=5`,
           { headers: { "Accept-Language": "es" } },
         );
         if (!response.ok) return;
@@ -143,7 +151,7 @@ function SearchControl({
   }
 
   function selectResult(result: (typeof results)[0]) {
-    onSelect({ lat: Number.parseFloat(result.lat), lng: Number.parseFloat(result.lon) });
+    onSelect({ lat: result.lat, lng: result.lng });
     setQuery(result.display_name);
     setOpen(false);
     setResults([]);
@@ -158,7 +166,7 @@ function SearchControl({
         className={cn(loading && "opacity-60")}
       />
       {open ? (
-        <div className="absolute left-0 right-0 top-full z-[1000] mt-1 max-h-48 overflow-auto rounded-md border border-border bg-popover shadow-lg">
+        <div className="absolute left-0 right-0 top-full z-[9999] mt-1 max-h-48 overflow-auto rounded-md border border-border bg-popover shadow-lg">
           {results.map((result) => (
             <button
               key={result.display_name}
@@ -178,16 +186,14 @@ function SearchControl({
 export function LocationPicker({
   value,
   onChange,
+  onAddressResolved,
   className,
   placeholder,
   searchPlaceholder,
   height = 300,
 }: LocationPickerProps) {
-  const theme = useThemeStore((s) => s.theme);
   const mapRef = useRef<LeafletMap | null>(null);
   const [mapReady, setMapReady] = useState(false);
-
-  const isDark = theme === "dark";
 
   const handleMapReady = useCallback(() => {
     setMapReady(true);
@@ -204,24 +210,36 @@ export function LocationPicker({
     }
     let cancelled = false;
     setResolving(true);
+    console.log("[GEOCODE-FETCH]", getApiBaseUrl(), value.lat, value.lng);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 8000);
     fetch(
-      `https://nominatim.openstreetmap.org/reverse?format=json&lat=${value.lat}&lon=${value.lng}`,
-      { headers: { "Accept-Language": "es" } },
+      `${getApiBaseUrl()}/api/v1/geocode/reverse?lat=${value.lat}&lng=${value.lng}`,
+      { headers: { "Accept-Language": "es" }, signal: controller.signal },
     )
-      .then((r) => (r.ok ? r.json() : null))
+      .then((r) => {
+        console.log("[GEOCODE-STATUS]", r.status);
+        return r.ok ? r.json() : null;
+      })
       .then((data) => {
+        console.log("[GEOCODE-DATA]", data?.display_name);
         if (!cancelled) {
           setAddress(data?.display_name ?? null);
           setResolving(false);
+          if (data?.display_name) {
+            onAddressResolved?.({ display_name: data.display_name, address: data.address ?? {} });
+          }
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("[GEOCODE-ERROR]", error);
         if (!cancelled) {
           setAddress(null);
           setResolving(false);
         }
-      });
-    return () => { cancelled = true; };
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => { cancelled = true; controller.abort(); };
   }, [value?.lat, value?.lng]);
 
   return (
@@ -232,9 +250,10 @@ export function LocationPicker({
         searchPlaceholder={searchPlaceholder}
       />
       <div
-        className="overflow-hidden rounded-md border border-border"
+        className="systutor-map isolate overflow-hidden rounded-md border border-border"
         style={{ height }}
       >
+        <style>{leafletZoomStyles}</style>
         <MapContainer
           center={[defaultCenter.lat, defaultCenter.lng]}
           zoom={value ? DEFAULT_ZOOM : 6}
@@ -243,7 +262,7 @@ export function LocationPicker({
           whenReady={handleMapReady}
         >
           <TileLayer
-            url={isDark ? darkTile : lightTile}
+            url={lightTile}
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           />
           <ClickMarker value={value} onChange={onChange} />

@@ -19,6 +19,7 @@ import {
   PlanningProductLinesEditor,
   type PlanningProductCatalogItem,
 } from "./planning-product-lines-editor";
+import { formatRouteLabel } from "../../lib/route-labels";
 
 export type PlanningReservationFormValues = {
   vehicle_id: string;
@@ -130,7 +131,7 @@ export function PlanningReservationForm({
       </div>
       <div className="space-y-2">
         <label className="text-sm font-medium">Ruta</label>
-        <Select value={form.route_id} onChange={(value) => setForm((current) => ({ ...current, route_id: value }))} options={[{ value: "", label: "Sin ruta" }, ...routes.map((route) => ({ value: route.id, label: `${route.route_date} · ${route.status}` }))]} />
+        <Select value={form.route_id} onChange={(value) => setForm((current) => ({ ...current, route_id: value }))} options={[{ value: "", label: "Sin ruta" }, ...routes.map((route) => ({ value: route.id, label: formatRouteLabel(route) }))]} />
       </div>
       <div className="md:col-span-2">
         <PlanningProductLinesEditor

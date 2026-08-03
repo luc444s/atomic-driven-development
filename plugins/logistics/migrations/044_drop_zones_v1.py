@@ -8,16 +8,21 @@ revision = "0044"
 def upgrade(db) -> None:
     bind = db.connection()
     inspector = inspect(bind)
+    dialect = bind.dialect.name
 
     tables = set(inspector.get_table_names())
     if "lg_zones" in tables:
-        # Quitar FK de delivery points antes de dropear la tabla
-        bind.execute(text(
-            "ALTER TABLE lg_delivery_points DROP CONSTRAINT IF EXISTS fk_lg_delivery_point_zone"
-        ))
-        bind.execute(text(
-            "ALTER TABLE lg_delivery_points DROP COLUMN IF EXISTS zone_id"
-        ))
+        columns = {col["name"] for col in inspector.get_columns("lg_delivery_points")}
+        if "zone_id" in columns:
+            # SQLite no soporta DROP CONSTRAINT nombrado; el FK desaparece al quitar la columna.
+            if dialect != "sqlite":
+                bind.execute(
+                    text(
+                        "ALTER TABLE lg_delivery_points "
+                        "DROP CONSTRAINT IF EXISTS fk_lg_delivery_point_zone"
+                    )
+                )
+            bind.execute(text("ALTER TABLE lg_delivery_points DROP COLUMN zone_id"))
         bind.execute(text("DROP TABLE IF EXISTS lg_zones"))
 
 

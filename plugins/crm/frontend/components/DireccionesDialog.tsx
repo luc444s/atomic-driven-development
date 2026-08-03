@@ -1,7 +1,7 @@
 import { FormEvent } from "react";
 import { AddressSection } from "./AddressSection";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
+import { PaginatedDataTable } from "../../../../apps/web/src/shared/ui/paginated-data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { Input } from "../../../../apps/web/src/shared/ui/input";
 import type { CustomerAddressPayload } from "../types";
@@ -43,10 +43,10 @@ export function DireccionesDialog({
       title="Direcciones"
       description="Gestiona direcciones fiscales, comerciales y otras direcciones base del cliente."
       onClose={onClose}
-      maxWidthClassName="max-w-4xl"
+      maxWidthClassName="max-w-6xl"
     >
       <div className="space-y-4 text-sm text-foreground">
-        <DataTable
+        <PaginatedDataTable
           dense
           columns={[
             {
@@ -55,7 +55,15 @@ export function DireccionesDialog({
               render: (row) => (row.label as string) || (row.address_type as string),
             },
             { key: "type", header: "Tipo", render: (row) => row.address_type as string },
-            { key: "address", header: "Dirección", render: (row) => row.line1 as string },
+            {
+              key: "address",
+              header: "Dirección",
+              render: (row) => {
+                const line1 = (row.line1 as string) || "";
+                const parts = line1.split(",").map((part) => part.trim()).filter(Boolean);
+                return parts.slice(0, 2).join(", ") || "-";
+              },
+            },
             {
               key: "locality",
               header: "Localidad",

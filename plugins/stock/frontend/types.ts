@@ -61,6 +61,7 @@ export type StockAdjustPayload = {
   product_id: string;
   warehouse_id: string;
   quantity: number;
+  unit_cost: number | null;
   reason: string | null;
   idempotency_key?: string | null;
 };

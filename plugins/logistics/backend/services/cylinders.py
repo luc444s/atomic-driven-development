@@ -26,6 +26,10 @@ from plugins.logistics.backend.schemas import (
     MovementCreateRequest,
     WarehouseSerializedCylinderSummaryItem,
 )
+from plugins.logistics.backend.services.cylinder_location import (
+    cylinder_is_at_warehouse,
+    resolve_cylinder_current_warehouse,
+)
 from plugins.logistics.backend.services.envase import (
     CUSTOMER_POSSESSION_STATES,
     get_latest_ownership,
@@ -34,6 +38,8 @@ from plugins.logistics.backend.services.envase import (
 from plugins.logistics.backend.services.state_machine import (
     StateTransitionError,
     ensure_transition_allowed,
+    has_valid_adr,
+    has_valid_hydrotest,
     list_allowed_transitions,
 )
 from plugins.logistics.backend.services.stock_bridge import adjust_required_product_stock
@@ -71,6 +77,20 @@ ENTRY_MODE_FULL_STATES = {
 }
 
 SERIALIZED_WAREHOUSE_AVAILABILITY_STATES = ("EN_ALMACEN_VACIO", "LLENADO_OK")
+EMPTY_FILL_STATUS = "VACIO"
+LOADED_FILL_STATUS = "CARGADO"
+FILL_OPERATION_ORIGIN = "LLENADO CILINDRO"
+VACATE_OPERATION_ORIGIN = "VACIADO CILINDRO"
+FILL_REASON_CODE = "FILL"
+VACATE_REASON_CODE = "VACATE"
+FILLABLE_EMPTY_STATES = {"CREADO_VACIO", "EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN"}
+NON_WAREHOUSE_STATES = {
+    "CARGA_EN_VEHICULO",
+    "EN_RUTA",
+    "EN_CLIENTE_LLENO",
+    "EN_CLIENTE_VACIO",
+    "PARA_TRASLADO",
+}
 
 
 def list_cylinders(
@@ -223,10 +243,6 @@ def summarize_serialized_cylinders_by_warehouse(
                 LogisticsCylinder.tenant_id == tenant_id,
                 LogisticsCylinder.is_active.is_(True),
                 LogisticsCylinder.current_state.in_(SERIALIZED_WAREHOUSE_AVAILABILITY_STATES),
-                or_(
-                    LogisticsCylinder.location.ilike(f"%{warehouse.code}%"),
-                    LogisticsCylinder.location.ilike(f"%{warehouse.name}%"),
-                ),
             )
             .order_by(LogisticsCylinder.serial.asc())
         ).all()
@@ -234,6 +250,13 @@ def summarize_serialized_cylinders_by_warehouse(
 
     counts_by_product: dict[str, int] = {}
     for cylinder in cylinders:
+        if not cylinder_is_at_warehouse(
+            db,
+            tenant_id=tenant_id,
+            warehouse_id=warehouse.id,
+            cylinder=cylinder,
+        ):
+            continue
         product_id = cylinder.product_id or cylinder.gas_group_id
         if product_id is None:
             continue
@@ -512,6 +535,185 @@ def transition_cylinder(
     return cylinder
 
 
+def fill_cylinder(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    warehouse_id: str,
+    content_kg: float | None,
+    volume_m3: float | None,
+    weight_current: float | None,
+    notes: str | None,
+    action_context: LogisticsActionContext,
+) -> LogisticsCylinder:
+    _validate_fill_payload(content_kg=content_kg, volume_m3=volume_m3)
+    _ensure_fillable_cylinder(db, tenant_id=tenant_id, cylinder=cylinder, warehouse_id=warehouse_id)
+
+    product = _resolve_stock_product_for_gas(
+        db,
+        tenant_id=tenant_id,
+        product_id=cylinder.product_id,
+        gas_group_id=cylinder.gas_group_id or "",
+    )
+    previous_state = cylinder.current_state
+
+    adjust_required_product_stock(
+        db,
+        tenant_id=tenant_id,
+        warehouse_id=warehouse_id,
+        product_id=product.id,
+        quantity=-_resolve_fill_stock_quantity(content_kg=content_kg, volume_m3=volume_m3),
+        reason=f"Llenado cilindro {cylinder.serial}",
+        idempotency_key=f"cylinder-fill:{cylinder.id}:{warehouse_id}:{content_kg}:{volume_m3}",
+        action_context=action_context,
+    )
+
+    cylinder.content_kg = content_kg if content_kg is not None else None
+    cylinder.volume_m3 = volume_m3 if volume_m3 is not None else None
+    cylinder.weight_current = _resolve_filled_weight_current(
+        cylinder,
+        content_kg=content_kg,
+        weight_current=weight_current,
+    )
+    cylinder.current_state = "LLENADO_OK"
+    db.add(cylinder)
+    db.flush()
+
+    warehouse = _require_warehouse(db, tenant_id=tenant_id, warehouse_id=warehouse_id)
+    db.add(
+        LogisticsCylinderStateLog(
+            tenant_id=tenant_id,
+            cylinder_id=cylinder.id,
+            from_state=previous_state,
+            to_state=cylinder.current_state,
+            changed_by=action_context.actor_user_id,
+            origin=FILL_OPERATION_ORIGIN,
+            reason_code=FILL_REASON_CODE,
+            notes=notes,
+            metadata_json={
+                "operation": "fill",
+                "warehouse_id": warehouse.id,
+                "warehouse_name": warehouse.name,
+                "product_id": product.id,
+                "product_name": product.name,
+                "content_kg": content_kg,
+                "volume_m3": volume_m3,
+                "weight_current": cylinder.weight_current,
+            },
+        )
+    )
+
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="cylinder.fill",
+        entity_type="cylinder",
+        entity_id=cylinder.id,
+        details={
+            "serial": cylinder.serial,
+            "warehouse_id": warehouse.id,
+            "warehouse_name": warehouse.name,
+            "product_id": product.id,
+            "product_name": product.name,
+            "content_kg": content_kg,
+            "volume_m3": volume_m3,
+            "from_state": previous_state,
+            "to_state": cylinder.current_state,
+        },
+    )
+    emit_logistics_event(
+        db,
+        context=action_context,
+        event_name="logistics.cylinder.state_changed",
+        entity_type="cylinder",
+        entity_id=cylinder.id,
+        payload={
+            "serial": cylinder.serial,
+            "from_state": previous_state,
+            "to_state": cylinder.current_state,
+            "origin": FILL_OPERATION_ORIGIN,
+            "reason_code": FILL_REASON_CODE,
+            "warehouse_id": warehouse.id,
+            "content_kg": content_kg,
+            "volume_m3": volume_m3,
+        },
+    )
+    return cylinder
+
+
+def vacate_cylinder(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    warehouse_id: str,
+    weight_current: float | None,
+    notes: str | None,
+    action_context: LogisticsActionContext,
+) -> LogisticsCylinder:
+    _ensure_vacatable_cylinder(db, tenant_id=tenant_id, cylinder=cylinder, warehouse_id=warehouse_id)
+    previous_state = cylinder.current_state
+    warehouse = _require_warehouse(db, tenant_id=tenant_id, warehouse_id=warehouse_id)
+
+    cylinder.content_kg = 0
+    cylinder.volume_m3 = 0
+    cylinder.weight_current = _resolve_vacated_weight_current(cylinder, weight_current=weight_current)
+    cylinder.current_state = "EN_ALMACEN_VACIO"
+    db.add(cylinder)
+    db.flush()
+
+    db.add(
+        LogisticsCylinderStateLog(
+            tenant_id=tenant_id,
+            cylinder_id=cylinder.id,
+            from_state=previous_state,
+            to_state=cylinder.current_state,
+            changed_by=action_context.actor_user_id,
+            origin=VACATE_OPERATION_ORIGIN,
+            reason_code=VACATE_REASON_CODE,
+            notes=notes,
+            metadata_json={
+                "operation": "vacate",
+                "warehouse_id": warehouse.id,
+                "warehouse_name": warehouse.name,
+                "weight_current": cylinder.weight_current,
+            },
+        )
+    )
+
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action="cylinder.vacate",
+        entity_type="cylinder",
+        entity_id=cylinder.id,
+        details={
+            "serial": cylinder.serial,
+            "warehouse_id": warehouse.id,
+            "warehouse_name": warehouse.name,
+            "from_state": previous_state,
+            "to_state": cylinder.current_state,
+        },
+    )
+    emit_logistics_event(
+        db,
+        context=action_context,
+        event_name="logistics.cylinder.state_changed",
+        entity_type="cylinder",
+        entity_id=cylinder.id,
+        payload={
+            "serial": cylinder.serial,
+            "from_state": previous_state,
+            "to_state": cylinder.current_state,
+            "origin": VACATE_OPERATION_ORIGIN,
+            "reason_code": VACATE_REASON_CODE,
+            "warehouse_id": warehouse.id,
+        },
+    )
+    return cylinder
+
+
 def _resolve_transition_customer_context(
     db: Session, *, payload: CylinderTransitionRequest
 ) -> tuple[str | None, str | None]:
@@ -525,6 +727,135 @@ def _resolve_transition_customer_context(
     if movement is None:
         return None, None
     return movement.customer_id, movement.customer_name
+
+
+def _validate_fill_payload(*, content_kg: float | None, volume_m3: float | None) -> None:
+    if content_kg is not None and content_kg <= 0:
+        raise ValueError("content_kg debe ser mayor que cero cuando se registra un llenado")
+    if volume_m3 is not None and volume_m3 <= 0:
+        raise ValueError("volume_m3 debe ser mayor que cero cuando se registra un llenado")
+    if content_kg is None and volume_m3 is None:
+        raise ValueError("Debes registrar al menos content_kg o volume_m3 para llenar el cilindro")
+
+
+def _resolve_fill_stock_quantity(*, content_kg: float | None, volume_m3: float | None) -> float:
+    if content_kg is not None:
+        return content_kg
+    assert volume_m3 is not None
+    return volume_m3
+
+
+def _has_positive_load(cylinder: LogisticsCylinder) -> bool:
+    return any(
+        value is not None and float(value) > 0
+        for value in (cylinder.content_kg, cylinder.volume_m3)
+    )
+
+
+def _require_warehouse(
+    db: Session, *, tenant_id: str, warehouse_id: str
+) -> LogisticsWarehouse:
+    warehouse = db.scalar(
+        select(LogisticsWarehouse).where(
+            LogisticsWarehouse.id == warehouse_id,
+            LogisticsWarehouse.tenant_id == tenant_id,
+        )
+    )
+    if warehouse is None:
+        raise LookupError("Warehouse not found")
+    return warehouse
+
+
+def _ensure_cylinder_matches_warehouse(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    warehouse_id: str,
+) -> None:
+    current_warehouse = resolve_cylinder_current_warehouse(
+        db,
+        tenant_id=tenant_id,
+        cylinder=cylinder,
+    )
+    if current_warehouse.warehouse_id is None:
+        return
+    if current_warehouse.warehouse_id == warehouse_id:
+        return
+    raise ValueError(
+        "El cilindro no está ubicado en el almacén origen seleccionado para esta operación"
+    )
+
+
+def _ensure_fillable_cylinder(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    warehouse_id: str,
+) -> None:
+    if cylinder.current_state in NON_WAREHOUSE_STATES:
+        raise ValueError("Solo se puede llenar un cilindro que esté en almacén")
+    if _has_positive_load(cylinder) or cylinder.current_state == "LLENADO_OK":
+        raise ValueError("El cilindro ya tiene carga registrada. Debes vaciarlo antes de volver a llenarlo")
+    if cylinder.current_state not in FILLABLE_EMPTY_STATES:
+        raise ValueError(
+            f"El estado actual '{cylinder.current_state}' no admite llenado operativo"
+        )
+    if not has_valid_adr(db, cylinder):
+        raise ValueError("El cilindro requiere datos ADR válidos del producto antes de llenarlo")
+    if not has_valid_hydrotest(cylinder):
+        raise ValueError("El cilindro requiere prueba hidrostática vigente antes de llenarlo")
+    _ensure_cylinder_matches_warehouse(
+        db,
+        tenant_id=tenant_id,
+        cylinder=cylinder,
+        warehouse_id=warehouse_id,
+    )
+
+
+def _ensure_vacatable_cylinder(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    warehouse_id: str,
+) -> None:
+    if cylinder.current_state in NON_WAREHOUSE_STATES:
+        raise ValueError("Solo se puede vaciar un cilindro que esté en almacén")
+    if not _has_positive_load(cylinder) and cylinder.current_state != "LLENADO_OK":
+        raise ValueError("El cilindro ya está vacío")
+    _ensure_cylinder_matches_warehouse(
+        db,
+        tenant_id=tenant_id,
+        cylinder=cylinder,
+        warehouse_id=warehouse_id,
+    )
+
+
+def _resolve_filled_weight_current(
+    cylinder: LogisticsCylinder,
+    *,
+    content_kg: float | None,
+    weight_current: float | None,
+) -> float | None:
+    if weight_current is not None:
+        return weight_current
+    if content_kg is not None and cylinder.weight_origin is not None:
+        return float(cylinder.weight_origin) + content_kg
+    return float(cylinder.weight_current) if cylinder.weight_current is not None else None
+
+
+def _resolve_vacated_weight_current(
+    cylinder: LogisticsCylinder,
+    *,
+    weight_current: float | None,
+) -> float | None:
+    if weight_current is not None:
+        return weight_current
+    if cylinder.weight_origin is not None:
+        return float(cylinder.weight_origin)
+    return None
 
 
 def _ownership_label_for_non_customer_state(target_state: str) -> str:

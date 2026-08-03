@@ -21,6 +21,8 @@ from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
     LogisticsCylinder,
     LogisticsCylinderState,
+    LogisticsMovement,
+    LogisticsMovementItem,
     LogisticsMovementType,
     LogisticsStateTransition,
 )
@@ -1935,6 +1937,41 @@ def test_logistics_serialized_cylinder_summary_by_warehouse(app) -> None:
                     ),
                 ]
             )
+            movement_cylinder = LogisticsCylinder(
+                tenant_id=seeded_demo["tenant_id"],
+                branch_id=seeded_demo["branch_id"],
+                serial="RS-000006",
+                current_state="LLENADO_OK",
+                product_id=product_a["id"],
+                gas_group_id=product_a["id"],
+                location=None,
+                is_active=True,
+            )
+            db.add(movement_cylinder)
+            db.flush()
+            movement = LogisticsMovement(
+                tenant_id=seeded_demo["tenant_id"],
+                branch_id=seeded_demo["branch_id"],
+                movement_type="IC",
+                warehouse_id=warehouse["id"],
+                status="COMPLETADO",
+                created_by=seeded_demo["user_id"],
+            )
+            db.add(movement)
+            db.flush()
+            db.add(
+                LogisticsMovementItem(
+                    movement_id=movement.id,
+                    cylinder_id=movement_cylinder.id,
+                    product_id=product_a["id"],
+                    product_name=product_a["name"],
+                    quantity_in=1,
+                    quantity=1,
+                    quantity_planned=1,
+                    state_before="EN_ALMACEN_VACIO",
+                    state_after="LLENADO_OK",
+                )
+            )
             db.commit()
 
         response = client.get(
@@ -1948,7 +1985,7 @@ def test_logistics_serialized_cylinder_summary_by_warehouse(app) -> None:
                 "product_id": product_a["id"],
                 "product_sku": product_a["sku"],
                 "product_name": product_a["name"],
-                "serialized_count": 2,
+                "serialized_count": 3,
             },
             {
                 "product_id": product_b["id"],

@@ -11,7 +11,6 @@ export type LogisticsDeliveryPoint = {
   contact_email: string | null;
   address: string;
   phone: string | null;
-  zone_id: string | null;
   warehouse_id: string | null;
   address_id: string | null;
   is_primary: boolean;
@@ -48,4 +47,22 @@ export function updateDeliveryPoint(deliveryPointId: string, payload: Record<str
     method: "PATCH",
     body: JSON.stringify(payload),
   });
+}
+
+export function listDeliveryPointsByCustomers(customerIds: string) {
+  return apiRequest<LogisticsDeliveryPoint[]>(
+    `${API_PREFIX}/delivery-points/by-customers?customer_ids=${encodeURIComponent(customerIds)}`
+  );
+}
+
+export function listCustomerAddressesByCustomers(customerIds: string) {
+  return apiRequest<
+    Array<{
+      id: string;
+      customer_id: string;
+      line1: string;
+      latitude: number | null;
+      longitude: number | null;
+    }>
+  >(`/api/v1/plugins/crm/customer-addresses/gps?customer_ids=${encodeURIComponent(customerIds)}`);
 }

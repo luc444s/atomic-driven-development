@@ -72,10 +72,12 @@ export function ModalAjusteStock({
       if (!quantity.trim()) {
         throw new Error("Ingresa una cantidad");
       }
+      const parsedQuantity = Number(quantity);
       return adjustStock({
         product_id: selectedProduct.id,
         warehouse_id: warehouseId,
-        quantity: Number(quantity),
+        quantity: parsedQuantity,
+        unit_cost: null,
         reason: reason.trim() || null,
       });
     },
@@ -86,6 +88,9 @@ export function ModalAjusteStock({
       onClose();
     },
   });
+
+  const numericQuantity = Number(quantity);
+  const requiresUnitCost = Number.isFinite(numericQuantity) && numericQuantity > 0;
 
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -141,7 +146,14 @@ export function ModalAjusteStock({
             onChange={(event) => setQuantity(event.target.value)}
             placeholder="10 o -2"
           />
+          {requiresUnitCost ? (
+            <span className="text-xs text-muted-foreground">
+              Para ingresos, el costo unitario se tomará del costo activo del producto en Productos.
+            </span>
+          ) : null}
         </label>
+      </div>
+      <div className="grid gap-4 md:grid-cols-1">
         <label className="block space-y-2 text-sm text-foreground">
           <span>Motivo</span>
           <Textarea

@@ -158,6 +158,18 @@ def create_product(client: TestClient, headers: dict[str, str]) -> dict[str, str
     return response.json()
 
 
+def create_active_base_cost(
+    client: TestClient, headers: dict[str, str], *, product_id: str, amount: float
+) -> dict[str, object]:
+    response = client.post(
+        f"/api/v1/plugins/productos/products/{product_id}/costs",
+        headers=headers,
+        json={"cost_type": "BASE", "amount": amount, "currency": "PEN"},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
+
+
 def _setup_stock_env(app):
     """Set up demo seed + all required plugins for stock tests."""
     with app.state.session_factory() as db:
@@ -410,6 +422,52 @@ def test_adjust_zero_quantity_rejected(app) -> None:
         )
         assert response.status_code == 400, response.text
         assert "diferente de cero" in response.text
+
+
+def test_positive_adjust_uses_active_product_cost_when_unit_cost_missing(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH-AC", name="Almacen Auto Cost")
+        product = create_product(client, headers)
+        create_active_base_cost(client, headers, product_id=product["id"], amount=7.5)
+
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 3,
+                "reason": "Ingreso con costo activo",
+            },
+        )
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["quantity"] == 3
+        assert payload["unit_cost"] == 7.5
+        assert payload["total_cost"] == 22.5
+
+
+def test_positive_adjust_without_active_product_cost_is_rejected(app) -> None:
+    _setup_stock_env(app)
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        warehouse = create_warehouse(client, headers, code="WH-NC", name="Almacen No Cost")
+        product = create_product(client, headers)
+
+        response = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 3,
+                "reason": "Ingreso sin costo activo",
+            },
+        )
+        assert response.status_code == 400, response.text
+        assert response.json()["detail"] == "El producto no tiene costo unitario activo. No puedes continuar."
 
 
 def test_adjust_insufficient_stock_rejected(app) -> None:
@@ -1455,8 +1513,8 @@ def test_damage_out_and_negative_stock_warning(app) -> None:
         assert overkill.status_code == 400
 
 
-def test_adjust_positive_requires_unit_cost(app) -> None:
-    seeded = _setup_stock_env(app)
+def test_adjust_positive_requires_active_product_cost(app) -> None:
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-REQ", name="Required")
@@ -1471,14 +1529,15 @@ def test_adjust_positive_requires_unit_cost(app) -> None:
             },
         )
         assert resp.status_code == 400, resp.text
-        assert "unit_cost" in resp.text
+        assert "costo unitario activo" in resp.text
 
+        create_active_base_cost(client, headers, product_id=product["id"], amount=10.0)
         ok = client.post(
             "/api/v1/plugins/stock/adjust",
             headers=headers,
             json={
                 "product_id": product["id"], "warehouse_id": wh["id"],
-                "quantity": 5, "unit_cost": 10.0,
+                "quantity": 5,
             },
         )
         assert ok.status_code == 201, ok.text

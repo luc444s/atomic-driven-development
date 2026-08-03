@@ -8,7 +8,8 @@ import {
   CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { listRouteStops, logisticsKeys } from "../../api";
+import { getRoute, listRouteStops, logisticsKeys } from "../../api";
+import { formatRouteLabel } from "../../lib/route-labels";
 import { RouteContextMap } from "../route-builder/RouteContextMap";
 import { SessionWaybillCard } from "./SessionWaybillCard";
 import { SessionRouteTabDialogs } from "./SessionRouteTabDialogs";
@@ -18,11 +19,21 @@ type Props = {
   open: boolean;
   routeId: string | null;
   routeDate: string | null;
+  routeOriginLabel: string | null;
+  routeDestinationLabel: string | null;
   sessionId: string;
   sessionStatus: string;
 };
 
-export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionStatus }: Props) {
+export function SessionRouteTab({
+  open,
+  routeId,
+  routeDate,
+  routeOriginLabel,
+  routeDestinationLabel,
+  sessionId,
+  sessionStatus,
+}: Props) {
   const controller = useSessionRouteTabController({ open, routeId, sessionId, sessionStatus });
 
   const stopsQuery = useQuery({
@@ -30,8 +41,22 @@ export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionSt
     queryFn: () => listRouteStops(routeId!),
     enabled: open && Boolean(routeId),
   });
+  const routeQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.detail(routeId) : ["logistics", "routes", "none", "detail"],
+    queryFn: () => getRoute(routeId!),
+    enabled: open && Boolean(routeId),
+  });
 
   const stops = stopsQuery.data ?? [];
+  const routeStart = routeQuery.data?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
+  const startPoint =
+    routeStart?.lat != null && routeStart?.lng != null
+      ? {
+          lat: routeStart.lat,
+          lng: routeStart.lng,
+          label: routeOriginLabel ?? "Inicio",
+        }
+      : null;
 
   return (
     <div className="space-y-4">
@@ -57,7 +82,15 @@ export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionSt
               </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
-              <span>Ruta asignada: {routeDate ?? routeId ?? "Sin ruta"}</span>
+              <span>
+                Ruta asignada:{" "}
+                {formatRouteLabel({
+                  route_date: routeDate,
+                  route_id: routeId,
+                  origin_label: routeOriginLabel,
+                  destination_label: routeDestinationLabel,
+                })}
+              </span>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" onClick={controller.openCompositionModal}>
                   Composición vigente
@@ -84,6 +117,7 @@ export function SessionRouteTab({ open, routeId, routeDate, sessionId, sessionSt
           {routeId && stops.length > 0 ? (
             <RouteContextMap
               stops={stops}
+              startPoint={startPoint}
               activeStopId={null}
               completedStops={0}
               totalStops={stops.length}

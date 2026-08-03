@@ -7,6 +7,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from plugins.productos.backend.services.pricing import resolve_active_cost
 from plugins.stock.backend.common import StockActionContext, audit_stock_action, emit_stock_event
 from plugins.stock.backend.models import StockBalance, StockConfig, StockLedger
 from plugins.stock.backend.schemas import StockBalanceRead, StockConfigRead, StockTransferResultRead
@@ -155,8 +156,15 @@ def adjust_stock(
         raise ValueError("La cantidad debe ser diferente de cero")
 
     is_positive = quantity_decimal > Decimal("0.000")
-    if is_positive and unit_cost is None:
-        raise ValueError("unit_cost es obligatorio para ajustes positivos")
+    resolved_unit_cost = unit_cost
+    if is_positive and resolved_unit_cost is None:
+        active_cost = resolve_active_cost(db, product_id=product_id, cost_type="BASE")
+        if active_cost is not None:
+            resolved_unit_cost = float(active_cost.amount)
+    if is_positive and resolved_unit_cost is None:
+        raise ValueError(
+            "El producto no tiene costo unitario activo. No puedes continuar."
+        )
 
     balance = _lock_balance(
         db,
@@ -173,8 +181,8 @@ def adjust_stock(
         raise ValueError("Stock insuficiente para el ajuste")
 
     if is_positive:
-        assert unit_cost is not None
-        uc = _to_cost(unit_cost)
+        assert resolved_unit_cost is not None
+        uc = _to_cost(resolved_unit_cost)
         total_cost_in = uc * quantity_decimal
         new_total_cost = current_total_cost + total_cost_in
     else:

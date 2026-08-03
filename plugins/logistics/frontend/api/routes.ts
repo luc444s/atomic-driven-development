@@ -11,7 +11,10 @@ export type LogisticsRoute = {
   route_date: string;
   driver_id: string;
   vehicle_id: string | null;
+  origin_label: string | null;
+  destination_label: string | null;
   status: string;
+  gps_start_coordinates: Record<string, unknown> | null;
   notes: string | null;
   created_by: string;
   created_at: string;
@@ -137,4 +140,3 @@ export function updateRouteStopGps(routeId: string, stopId: string, payload: { g
     body: JSON.stringify(payload),
   });
 }
-

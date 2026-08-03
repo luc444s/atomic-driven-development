@@ -106,6 +106,15 @@ def _get_confirmed_transfer_out_operation(
 def _build_destination(
     db: Session, *, route_id: str | None
 ) -> SessionWaybillDestinationRead:
+    def _compose_destination_label(
+        customer_name: str | None, address: str | None
+    ) -> str | None:
+        normalized_customer = customer_name.strip() if customer_name else None
+        normalized_address = address.strip() if address else None
+        if normalized_customer and normalized_address and normalized_customer != normalized_address:
+            return f"{normalized_customer} - {normalized_address}"
+        return normalized_customer or normalized_address
+
     if route_id is None:
         return SessionWaybillDestinationRead()
     first_stop = db.scalar(
@@ -121,7 +130,15 @@ def _build_destination(
         )
     )
     if delivery_point is None:
-        return SessionWaybillDestinationRead(id=first_stop.delivery_point_id)
+        destination_label = _compose_destination_label(
+            first_stop.customer_name_snapshot,
+            first_stop.notes,
+        )
+        return SessionWaybillDestinationRead(
+            id=first_stop.customer_id or first_stop.delivery_point_id,
+            name=destination_label,
+            address=destination_label,
+        )
     return SessionWaybillDestinationRead(
         id=delivery_point.id,
         name=delivery_point.customer_name,

@@ -104,6 +104,8 @@ class LogisticsRoute(Base):
     vehicle_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_vehicles.id"), nullable=True, index=True
     )
+    origin_label: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    destination_label: Mapped[str | None] = mapped_column(String(200), nullable=True)
     status: Mapped[str] = mapped_column(String(50), nullable=False, default="PLANIFICADO")
     gps_start_coordinates: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -198,5 +200,4 @@ class LogisticsLoad(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now
     )
-
 

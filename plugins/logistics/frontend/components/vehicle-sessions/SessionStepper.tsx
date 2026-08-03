@@ -76,15 +76,22 @@ export function SessionStepper({
           {SESSION_STEPS.map((step, index) => {
             const isCompleted = isClosed || index < currentIndex;
             const isCurrent = !isClosed && index === currentIndex;
+            const isReachable = isClosed || index <= currentIndex;
 
             return (
               <div key={step.status} className="flex min-w-[144px] flex-1 items-start sm:min-w-[156px]">
                 <button
                   type="button"
-                  onClick={() => onOpenContext(step.context)}
+                  onClick={() => {
+                    if (!isReachable) {
+                      return;
+                    }
+                    onOpenContext(step.context);
+                  }}
+                  disabled={!isReachable}
                   className={cn(
                     "flex flex-col items-center gap-2 rounded-xl px-2 py-1 text-center transition",
-                    "hover:bg-accent/50"
+                    isReachable ? "hover:bg-accent/50" : "cursor-not-allowed opacity-70"
                   )}
                 >
                   <span

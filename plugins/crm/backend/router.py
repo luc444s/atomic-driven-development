@@ -446,17 +446,23 @@ def patch_toggle_customer(
 
 
 @router.get(
-    "/customers/addresses-gps",
+    "/customer-addresses/gps",
     response_model=list[CustomerAddressRead],
     dependencies=[REQUIRE_CUSTOMER_READ],
 )
 def get_customer_addresses_with_gps(
+    customer_ids: str | None = Query(default=None, alias="customer_ids"),
     tenant_context: TenantContext = TENANT_CONTEXT,
     db: Session = DB_SESSION,
 ) -> list[CustomerAddressRead]:
+    ids = [cid.strip() for cid in (customer_ids or "").split(",") if cid.strip()]
     return [
         _serialize_address(item)
-        for item in list_addresses_with_gps(db, tenant_id=tenant_context.current_tenant_id)
+        for item in list_addresses_with_gps(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            customer_ids=ids or None,
+        )
     ]
 
 

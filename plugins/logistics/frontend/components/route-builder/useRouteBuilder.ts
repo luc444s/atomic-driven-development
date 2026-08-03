@@ -163,6 +163,8 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
       const route = await createRoute({
         route_date: routeDate,
         vehicle_id: vehicleId || null,
+        origin_label: startPoint?.name ?? null,
+        destination_label: endPoint?.name ?? null,
         notes: derived || null,
       });
 

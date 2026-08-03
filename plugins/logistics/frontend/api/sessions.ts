@@ -13,6 +13,7 @@ export type SessionStockSummary = {
   warehouse_name: string;
   total_products: number;
   total_units: number;
+  total_adr_points: number;
 };
 
 export type SessionHistoryEntry = {
@@ -33,6 +34,9 @@ export type VehicleSession = {
   mobile_warehouse_code: string;
   mobile_warehouse_name: string;
   route_id: string | null;
+  route_date: string | null;
+  route_origin_label: string | null;
+  route_destination_label: string | null;
   status: string;
   opened_at: string;
   ready_at: string | null;

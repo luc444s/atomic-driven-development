@@ -12,6 +12,7 @@ from plugins.logistics.backend.models import (
     LogisticsAdrProductConfig,
     LogisticsAgendaTask,
     LogisticsCylinder,
+    LogisticsCylinderStateLog,
     LogisticsDriverParameter,
     LogisticsEquipment,
     LogisticsLoad,
@@ -44,6 +45,14 @@ from plugins.logistics.backend.schemas import (
     VehicleDeliveryPointRead,
     VehicleEligibilityRead,
     VehicleRouteRestrictionUpsertRequest,
+)
+from plugins.logistics.backend.services.cylinder_location import (
+    resolve_cylinder_current_warehouse,
+)
+from plugins.logistics.backend.services.cylinders import (
+    EMPTY_FILL_STATUS,
+    FILL_REASON_CODE,
+    LOADED_FILL_STATUS,
 )
 from plugins.logistics.backend.services.product_bridge import (
     resolve_product_adr,
@@ -490,7 +499,45 @@ def cylinder_to_read(db: Session, cylinder: LogisticsCylinder) -> Any:
     enrich_cylinder_with_weight_source(db, read, cylinder)
     enrich_cylinder_with_product_adr(db, read, cylinder)
     enrich_cylinder_with_current_warehouse(db, read, cylinder)
+    enrich_cylinder_with_fill_status(db, read, cylinder)
     return read
+
+
+def enrich_cylinder_with_fill_status(
+    db: Session, cylinder_read: Any, cylinder: LogisticsCylinder
+) -> None:
+    cylinder_read.fill_status = (
+        LOADED_FILL_STATUS
+        if any(
+            value is not None and float(value) > 0
+            for value in (cylinder.content_kg, cylinder.volume_m3)
+        )
+        else EMPTY_FILL_STATUS
+    )
+    last_fill = db.scalar(
+        select(LogisticsCylinderStateLog)
+        .where(
+            LogisticsCylinderStateLog.cylinder_id == cylinder.id,
+            LogisticsCylinderStateLog.reason_code == FILL_REASON_CODE,
+        )
+        .order_by(
+            LogisticsCylinderStateLog.created_at.desc(),
+            LogisticsCylinderStateLog.id.desc(),
+        )
+        .limit(1)
+    )
+    if last_fill is None:
+        return
+    cylinder_read.last_fill_at = last_fill.created_at
+    metadata = last_fill.metadata_json or {}
+    warehouse_id = metadata.get("warehouse_id")
+    warehouse_name = metadata.get("warehouse_name")
+    cylinder_read.last_fill_warehouse_id = (
+        warehouse_id if isinstance(warehouse_id, str) else None
+    )
+    cylinder_read.last_fill_warehouse_name = (
+        warehouse_name if isinstance(warehouse_name, str) else None
+    )
 
 
 def enrich_cylinder_with_current_warehouse(
@@ -507,8 +554,6 @@ def enrich_cylinder_with_current_warehouse(
 
     from plugins.logistics.backend.models import (
         LogisticsCylinderOwnership,
-        LogisticsMovement,
-        LogisticsMovementItem,
         LogisticsVehicle,
         LogisticsVehicleSession,
     )
@@ -538,31 +583,18 @@ def enrich_cylinder_with_current_warehouse(
             return
 
     # 3. En almacén
-    row = db.execute(
-        select(
-            LogisticsMovement.warehouse_id,
-            LogisticsWarehouse.name.label("warehouse_name"),
-        )
-        .join(
-            LogisticsMovementItem,
-            LogisticsMovementItem.movement_id == LogisticsMovement.id,
-        )
-        .outerjoin(
-            LogisticsWarehouse,
-            LogisticsWarehouse.id == LogisticsMovement.warehouse_id,
-        )
-        .where(
-            LogisticsMovementItem.cylinder_id == cylinder.id,
-            LogisticsMovement.warehouse_id.is_not(None),
-        )
-        .order_by(LogisticsMovement.created_at.desc())
-        .limit(1)
-    ).first()
-    if row is not None:
-        cylinder_read.warehouse_id = row.warehouse_id
-        cylinder_read.warehouse_name = row.warehouse_name
+    current_warehouse = resolve_cylinder_current_warehouse(
+        db,
+        tenant_id=cylinder.tenant_id,
+        cylinder=cylinder,
+    )
+    if current_warehouse.warehouse_id is not None:
+        cylinder_read.warehouse_id = current_warehouse.warehouse_id
+        cylinder_read.warehouse_name = current_warehouse.warehouse_name
         cylinder_read.location_context = (
-            f"En almacén: {row.warehouse_name}" if row.warehouse_name else None
+            f"En almacén: {current_warehouse.warehouse_name}"
+            if current_warehouse.warehouse_name
+            else None
         )
 
 

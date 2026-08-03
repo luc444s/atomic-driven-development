@@ -28,6 +28,7 @@ from plugins.logistics.backend.schemas import (
     AgendaTaskTypeRead,
     AgendaTaskUpdateRequest,
     CylinderCreateRequest,
+    CylinderFillRequest,
     CylinderLabelDataRead,
     CylinderLabelHistoryRead,
     CylinderOwnershipRead,
@@ -44,6 +45,7 @@ from plugins.logistics.backend.schemas import (
     CylinderTransitionRead,
     CylinderTransitionRequest,
     CylinderUpdateRequest,
+    CylinderVacateRequest,
     CylinderWeightRead,
     DeliveryPointCreateRequest,
     DeliveryPointRead,
@@ -127,8 +129,6 @@ from plugins.logistics.backend.schemas import (
     WarrantyRead,
     WaybillRead,
     WaybillSummaryRead,
-    ZoneCreateRequest,
-    ZoneRead,
 )
 from plugins.logistics.backend.services.agenda import (
     cancel_agenda_task,
@@ -149,6 +149,7 @@ from plugins.logistics.backend.services.catalog import (
 )
 from plugins.logistics.backend.services.cylinders import (
     create_cylinder,
+    fill_cylinder,
     get_allowed_transitions,
     get_cylinder,
     get_cylinder_by_serial,
@@ -159,6 +160,7 @@ from plugins.logistics.backend.services.cylinders import (
     summarize_serialized_cylinders_by_warehouse,
     transition_cylinder,
     update_cylinder,
+    vacate_cylinder,
 )
 from plugins.logistics.backend.services.dispatch import (
     assign_dispatch_guide,
@@ -1033,6 +1035,82 @@ def transition_cylinder_endpoint(
     return cylinder_to_read(db, cylinder)
 
 
+@router.post("/cylinders/{cylinder_id}/fill", response_model=CylinderRead)
+def fill_cylinder_endpoint(
+    cylinder_id: str,
+    payload: CylinderFillRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_UPDATE,
+) -> CylinderRead:
+    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
+    if cylinder is None:
+        raise _not_found("Cylinder")
+    try:
+        resolved_warehouse_id = _resolve_entry_warehouse_id(
+            db,
+            tenant_context,
+            payload.warehouse_id,
+        )
+        cylinder = fill_cylinder(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            cylinder=cylinder,
+            warehouse_id=resolved_warehouse_id,
+            content_kg=payload.content_kg,
+            volume_m3=payload.volume_m3,
+            weight_current=payload.weight_current,
+            notes=payload.notes,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return cylinder_to_read(db, cylinder)
+
+
+@router.post("/cylinders/{cylinder_id}/vacate", response_model=CylinderRead)
+def vacate_cylinder_endpoint(
+    cylinder_id: str,
+    payload: CylinderVacateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_UPDATE,
+) -> CylinderRead:
+    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
+    if cylinder is None:
+        raise _not_found("Cylinder")
+    try:
+        resolved_warehouse_id = _resolve_entry_warehouse_id(
+            db,
+            tenant_context,
+            payload.warehouse_id,
+        )
+        cylinder = vacate_cylinder(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            cylinder=cylinder,
+            warehouse_id=resolved_warehouse_id,
+            weight_current=payload.weight_current,
+            notes=payload.notes,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return cylinder_to_read(db, cylinder)
+
+
 @router.get("/warehouses", response_model=list[WarehouseRead])
 def get_warehouses(
     db: Session = DB_SESSION,
@@ -1159,6 +1237,22 @@ def update_vehicle_endpoint(
         db.rollback()
         raise _conflict(exc) from exc
     return VehicleRead.model_validate(vehicle)
+
+
+@router.get("/delivery-points/by-customers", response_model=list[DeliveryPointRead])
+def get_delivery_points_by_customers(
+    customer_ids: str = Query(default="", alias="customer_ids"),
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> list[DeliveryPointRead]:
+    ids = [cid.strip() for cid in customer_ids.split(",") if cid.strip()]
+    items = list_delivery_points(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        customer_ids=ids or None,
+    )
+    return [DeliveryPointRead.model_validate(item) for item in items]
 
 
 @router.get("/delivery-points", response_model=list[DeliveryPointRead])

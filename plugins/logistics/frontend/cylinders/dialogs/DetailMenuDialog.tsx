@@ -1,9 +1,32 @@
 // Auto-generado por split-tsx.py (limpiado manualmente)
 import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
+import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
 import type { LogisticsCylinder } from "../../api";
+
+type ViewSection = "trace" | "ph" | "retimbrados" | "custody" | "services" | "label";
+
+interface ActionCardButtonProps {
+  title: string;
+  description: string;
+  onClick: () => void;
+}
+
+function ActionCardButton({ title, description, onClick }: ActionCardButtonProps) {
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      onClick={onClick}
+      className="h-auto w-full flex-col items-start gap-1 rounded-lg border border-border bg-surface p-4 text-left"
+    >
+      <span className="text-sm font-medium text-foreground">{title}</span>
+      <span className="text-xs text-muted-foreground">{description}</span>
+    </Button>
+  );
+}
 
 interface DetailMenuDialogProps {
   selectedCylinder: LogisticsCylinder | null;
@@ -19,6 +42,7 @@ interface DetailMenuDialogProps {
   canServiceManage: boolean;
   canLabelPrint: boolean;
   openEditDialog: () => void;
+  openFillingDialog: (mode: "fill" | "vacate") => void;
   setIsHydrotestOpen: (open: boolean) => void;
   setIsWarrantyOpen: (open: boolean) => void;
   setIsTransitionOpen: (open: boolean) => void;
@@ -26,9 +50,10 @@ interface DetailMenuDialogProps {
   setIsServiceOpen: (open: boolean) => void;
   setIsPrintLabelOpen: (open: boolean) => void;
   setIsScanOpen: (open: boolean) => void;
-  openViewSection: (section: string) => void;
+  openViewSection: (section: ViewSection) => void;
   closeDetailContext: () => void;
   formatDate: (date: string | null | undefined) => string;
+  formatDateTime: (date: string | null | undefined) => string;
 }
 
 export function DetailMenuDialog({
@@ -45,6 +70,7 @@ export function DetailMenuDialog({
   canServiceManage,
   canLabelPrint,
   openEditDialog,
+  openFillingDialog,
   setIsHydrotestOpen,
   setIsWarrantyOpen,
   setIsTransitionOpen,
@@ -55,6 +81,7 @@ export function DetailMenuDialog({
   openViewSection,
   closeDetailContext,
   formatDate,
+  formatDateTime,
 }: DetailMenuDialogProps) {
   return (
     <Dialog
@@ -80,9 +107,11 @@ export function DetailMenuDialog({
               <div><span className="text-muted-foreground">Matrícula:</span> {selectedCylinder.barcode2 || "-"}</div>
               <div><span className="text-muted-foreground">Condición:</span> {selectedCylinder.condition || "-"}</div>
               <div><span className="text-muted-foreground">Ubicación:</span> {selectedCylinder.location_context || selectedCylinder.warehouse_name || selectedCylinder.location || "-"}</div>
+              <div><span className="text-muted-foreground">Lectura material:</span> {selectedCylinder.fill_status || "-"}</div>
               <div><span className="text-muted-foreground">Contenido kg:</span> {selectedCylinder.content_kg?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Peso:</span> {selectedCylinder.weight_current?.toString() || selectedCylinder.weight_origin?.toString() || (selectedCylinder.average_weight_source?.weight_kg?.toString() ?? "-")}{!selectedCylinder.weight_current && !selectedCylinder.weight_origin && selectedCylinder.average_weight_source ? <span className="ml-1 text-xs italic text-muted-foreground">(peso por defecto de producto)</span> : !selectedCylinder.weight_current && !selectedCylinder.weight_origin ? <span className="ml-1 text-xs italic text-muted-foreground">(sin peso real)</span> : null}</div>
               <div><span className="text-muted-foreground">Volumen m3:</span> {selectedCylinder.volume_m3?.toString() || "-"}</div>
+              <div><span className="text-muted-foreground">Último llenado:</span> {formatDateTime(selectedCylinder.last_fill_at)}{selectedCylinder.last_fill_warehouse_name ? ` · ${selectedCylinder.last_fill_warehouse_name}` : ""}</div>
               <div><span className="text-muted-foreground">Costo:</span> {selectedCylinder.cost?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Precio:</span> {selectedCylinder.price?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">PH siguiente:</span> {formatDate(selectedCylinder.next_hydrotest_date) || "-"}</div>
@@ -101,13 +130,15 @@ export function DetailMenuDialog({
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                {canUpdate ? <button type="button" onClick={openEditDialog} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Editar ficha</p><p className="mt-1 text-xs text-muted-foreground">Actualiza los datos principales.</p></button> : null}
-                {canMaintenance ? <button type="button" onClick={() => setIsHydrotestOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar PH</p><p className="mt-1 text-xs text-muted-foreground">Nueva prueba hidrostática.</p></button> : null}
-                {canMaintenance ? <button type="button" onClick={() => setIsWarrantyOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar garantía</p><p className="mt-1 text-xs text-muted-foreground">Asocia una garantía comercial.</p></button> : null}
-                {canTransition ? <button type="button" onClick={() => setIsTransitionOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Corrección de estado</p><p className="mt-1 text-xs text-muted-foreground">Solo para regularización o corrección excepcional.</p></button> : null}
-                {canRetimbrado ? <button type="button" onClick={() => setIsRetimbradoOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Registrar retimbrado</p><p className="mt-1 text-xs text-muted-foreground">Carga la ficha técnica del reestampado.</p></button> : null}
-                {canServiceManage ? <button type="button" onClick={() => setIsServiceOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Agregar servicio</p><p className="mt-1 text-xs text-muted-foreground">Registra un servicio operativo.</p></button> : null}
-                {canLabelPrint ? <button type="button" onClick={() => setIsPrintLabelOpen(true)} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Imprimir etiqueta</p><p className="mt-1 text-xs text-muted-foreground">Genera el registro de impresión.</p></button> : null}
+                {canUpdate ? <ActionCardButton title="Editar ficha" description="Actualiza los datos principales." onClick={openEditDialog} /> : null}
+                {canUpdate ? <ActionCardButton title="Registrar llenado" description="Descuenta stock y deja la carga técnica dentro del envase." onClick={() => openFillingDialog("fill")} /> : null}
+                {canUpdate ? <ActionCardButton title="Registrar vaciado" description="Deja el envase en cero sin devolver stock en este slice." onClick={() => openFillingDialog("vacate")} /> : null}
+                {canMaintenance ? <ActionCardButton title="Registrar PH" description="Nueva prueba hidrostática." onClick={() => setIsHydrotestOpen(true)} /> : null}
+                {canMaintenance ? <ActionCardButton title="Registrar garantía" description="Asocia una garantía comercial." onClick={() => setIsWarrantyOpen(true)} /> : null}
+                {canTransition ? <ActionCardButton title="Corrección de estado" description="Solo para regularización o corrección excepcional." onClick={() => setIsTransitionOpen(true)} /> : null}
+                {canRetimbrado ? <ActionCardButton title="Registrar retimbrado" description="Carga la ficha técnica del reestampado." onClick={() => setIsRetimbradoOpen(true)} /> : null}
+                {canServiceManage ? <ActionCardButton title="Agregar servicio" description="Registra un servicio operativo." onClick={() => setIsServiceOpen(true)} /> : null}
+                {canLabelPrint ? <ActionCardButton title="Imprimir etiqueta" description="Genera el registro de impresión." onClick={() => setIsPrintLabelOpen(true)} /> : null}
               </div>
             </CardContent>
           </Card>
@@ -119,12 +150,12 @@ export function DetailMenuDialog({
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                <button type="button" onClick={() => openViewSection("trace")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Trazabilidad de estado</p><p className="mt-1 text-xs text-muted-foreground">Transiciones registradas.</p></button>
-                <button type="button" onClick={() => openViewSection("ph")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">PH y garantías</p><p className="mt-1 text-xs text-muted-foreground">Mantenimiento legal y comercial.</p></button>
-                <button type="button" onClick={() => openViewSection("retimbrados")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Retimbrados</p><p className="mt-1 text-xs text-muted-foreground">Ficha técnica del reestampado.</p></button>
-                <button type="button" onClick={() => openViewSection("custody")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Custodia e impresión</p><p className="mt-1 text-xs text-muted-foreground">Tenencia y etiquetas impresas.</p></button>
-                <button type="button" onClick={() => openViewSection("services")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Servicios y escaneos</p><p className="mt-1 text-xs text-muted-foreground">Mantenimiento y eventos de campo.</p></button>
-                <button type="button" onClick={() => openViewSection("label")} className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"><p className="text-sm font-medium text-foreground">Etiqueta operativa</p><p className="mt-1 text-xs text-muted-foreground">Resumen rápido para impresión.</p></button>
+                <ActionCardButton title="Trazabilidad de estado" description="Transiciones registradas." onClick={() => openViewSection("trace")} />
+                <ActionCardButton title="PH y garantías" description="Mantenimiento legal y comercial." onClick={() => openViewSection("ph")} />
+                <ActionCardButton title="Retimbrados" description="Ficha técnica del reestampado." onClick={() => openViewSection("retimbrados")} />
+                <ActionCardButton title="Custodia e impresión" description="Tenencia y etiquetas impresas." onClick={() => openViewSection("custody")} />
+                <ActionCardButton title="Servicios y escaneos" description="Mantenimiento y eventos de campo." onClick={() => openViewSection("services")} />
+                <ActionCardButton title="Etiqueta operativa" description="Resumen rápido para impresión." onClick={() => openViewSection("label")} />
               </div>
             </CardContent>
           </Card>

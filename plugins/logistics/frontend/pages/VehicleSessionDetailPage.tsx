@@ -366,6 +366,8 @@ export function VehicleSessionDetailPage({
         sessionStatus={session.status}
         routeId={session.route_id}
         routeDate={session.route_date}
+        routeOriginLabel={session.route_origin_label}
+        routeDestinationLabel={session.route_destination_label}
       />
 
       <ReconciliationModal

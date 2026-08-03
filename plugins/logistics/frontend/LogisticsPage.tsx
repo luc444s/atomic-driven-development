@@ -39,8 +39,15 @@ import {
   buildCylinderPayload,
   buildCreateCylinderPayload,
 } from "./cylinders/forms/cylinder-payload";
-import { formatDate } from "./cylinders/utils/formatters";
+import {
+  type CylinderFillingFormState,
+  type CylinderFillingMode,
+  EMPTY_CYLINDER_FILLING_FORM,
+  buildCylinderFillingFormState,
+} from "./cylinders/forms/cylinder-filling";
+import { formatDate, formatDateTime } from "./cylinders/utils/formatters";
 import { CreateCylinderDialog } from "./cylinders/dialogs/create-cylinder-dialog";
+import { CylinderFillingDialog } from "./cylinders/dialogs/CylinderFillingDialog";
 import { EditCylinderDialog } from "./cylinders/dialogs/edit-cylinder-dialog";
 import { CylinderViewSectionDialog } from "./cylinders/dialogs/cylinder-view-section-dialog";
 import { DetailMenuDialog } from "./cylinders/dialogs/DetailMenuDialog";
@@ -72,6 +79,7 @@ export function LogisticsPage() {
   const [isTransitionOpen, setIsTransitionOpen] = useState(false);
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
+  const [isFillingOpen, setIsFillingOpen] = useState(false);
   const [isDetailMenuOpen, setIsDetailMenuOpen] = useState(false);
   const [selectedViewSection, setSelectedViewSection] = useState<"trace" | "ph" | "retimbrados" | "custody" | "services" | "label" | null>(null);
   const [nextState, setNextState] = useState("");
@@ -83,6 +91,10 @@ export function LogisticsPage() {
   const [serviceForm, setServiceForm] = useState<ServiceFormState>(EMPTY_SERVICE_FORM);
   const [printLabelForm, setPrintLabelForm] = useState<PrintLabelFormState>(EMPTY_PRINT_LABEL_FORM);
   const [scanForm, setScanForm] = useState<ScanFormState>(EMPTY_SCAN_FORM);
+  const [fillingMode, setFillingMode] = useState<CylinderFillingMode>("fill");
+  const [fillingForm, setFillingForm] = useState<CylinderFillingFormState>(
+    EMPTY_CYLINDER_FILLING_FORM,
+  );
   const [panelError, setPanelError] = useState<string | null>(null);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; onConfirm: () => void } | null>(null);
@@ -134,6 +146,7 @@ export function LogisticsPage() {
     setIsServiceOpen,
     setIsPrintLabelOpen,
     setIsScanOpen,
+    setIsFillingOpen,
     setNextState,
     setHydrotestForm,
     setWarrantyForm,
@@ -141,6 +154,7 @@ export function LogisticsPage() {
     setServiceForm,
     setPrintLabelForm,
     setScanForm,
+    setFillingForm,
     setCylinderForm,
     setCreateMeta,
     gasGroupIdRef,
@@ -320,6 +334,26 @@ export function LogisticsPage() {
     }
   }
 
+  async function handleCylinderFilling(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setDetailError(null);
+    try {
+      if (fillingMode === "fill") {
+        await mutations.fillMutation.mutateAsync(fillingForm);
+      } else {
+        await mutations.vacateMutation.mutateAsync(fillingForm);
+      }
+    } catch (error) {
+      setDetailError(
+        error instanceof Error
+          ? error.message
+          : fillingMode === "fill"
+            ? "No se pudo registrar el llenado."
+            : "No se pudo registrar el vaciado.",
+      );
+    }
+  }
+
   function openScanFallbackCreate() {
     if (!scanFallbackAvailable) {
       return;
@@ -358,12 +392,20 @@ export function LogisticsPage() {
     setIsEditOpen(true);
   }
 
+  function openFillingDialog(mode: CylinderFillingMode) {
+    setFillingMode(mode);
+    setFillingForm(buildCylinderFillingFormState(selectedCylinder, mode));
+    setDetailError(null);
+    setIsFillingOpen(true);
+  }
+
   function closeDetailContext() {
     setSelectedCylinder(null);
     setDetailError(null);
     setIsEditOpen(false);
     setIsDetailMenuOpen(false);
     setSelectedViewSection(null);
+    setIsFillingOpen(false);
   }
 
   function openViewSection(section: NonNullable<typeof selectedViewSection>) {
@@ -564,6 +606,23 @@ export function LogisticsPage() {
         compactHint={scanFallbackHint}
       />
 
+      <CylinderFillingDialog
+        open={isFillingOpen}
+        mode={fillingMode}
+        cylinder={selectedCylinder}
+        form={fillingForm}
+        warehouseOptions={warehouseOptions}
+        error={detailError}
+        isPending={
+          fillingMode === "fill"
+            ? mutations.fillMutation.isPending
+            : mutations.vacateMutation.isPending
+        }
+        onOpenChange={setIsFillingOpen}
+        onFormChange={setFillingForm}
+        onSubmit={handleCylinderFilling}
+      />
+
       <DetailMenuDialog
         selectedCylinder={selectedCylinder}
         isDetailMenuOpen={isDetailMenuOpen}
@@ -578,6 +637,7 @@ export function LogisticsPage() {
         canServiceManage={permissions.canServiceManage}
         canLabelPrint={permissions.canLabelPrint}
         openEditDialog={openEditDialog}
+        openFillingDialog={openFillingDialog}
         setIsHydrotestOpen={setIsHydrotestOpen}
         setIsWarrantyOpen={setIsWarrantyOpen}
         setIsTransitionOpen={setIsTransitionOpen}
@@ -588,6 +648,7 @@ export function LogisticsPage() {
         openViewSection={openViewSection}
         closeDetailContext={closeDetailContext}
         formatDate={formatDate}
+        formatDateTime={formatDateTime}
       />
 
       <EditCylinderDialog

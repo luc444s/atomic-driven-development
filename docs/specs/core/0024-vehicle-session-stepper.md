@@ -220,7 +220,7 @@ Usar `session.closed_at` formateado con `toLocaleString()`.
 | En ruta / De regreso | `"route"` |
 | Pend. conciliación / Cerrada | `"reconciliation"` |
 
-Pasos futuros atenuados pero clickeables. Nunca disparan transiciones de estado.
+Pasos futuros atenuados y no clickeables. Solo los pasos ya alcanzados pueden abrir su contexto. Nunca disparan transiciones de estado.
 
 ---
 

@@ -67,7 +67,7 @@ export function Select({ value, onChange, options, placeholder, className, requi
     ? createPortal(
         <div
           ref={menuRef}
-          className="fixed z-[90] max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-lg"
+          className="fixed z-[1200] max-h-60 overflow-auto rounded-md border border-border bg-popover shadow-lg"
           style={{ top: menuStyle.top, left: menuStyle.left, width: menuStyle.width }}
         >
           {options.map((opt) => (

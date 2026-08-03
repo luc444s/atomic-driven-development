@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, Field
 
@@ -28,6 +28,7 @@ class SessionStockSummaryRead(BaseModel):
     warehouse_name: str
     total_products: int = 0
     total_units: float = 0
+    total_adr_points: float = 0
 
 
 class SessionHistoryEntryRead(BaseModel):
@@ -48,6 +49,9 @@ class VehicleSessionRead(BaseModel):
     mobile_warehouse_code: str
     mobile_warehouse_name: str
     route_id: str | None = None
+    route_date: date | None = None
+    route_origin_label: str | None = None
+    route_destination_label: str | None = None
     status: str
     opened_at: datetime
     ready_at: datetime | None = None

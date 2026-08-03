@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import re
 from datetime import UTC, date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from plugins.crm.backend.services.customers import get_customer
+from plugins.crm.backend.models import CrmCustomer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -33,6 +34,67 @@ from plugins.logistics.backend.services.extensions import (
     validate_route_weight_limit,
     validate_vehicle_for_route,
 )
+
+ROUTE_LABEL_PREFIX_RE = re.compile(r"^\d+\s*·\s*")
+
+
+def _clean_route_label(value: str | None) -> str | None:
+    if value is None:
+        return None
+    normalized = ROUTE_LABEL_PREFIX_RE.sub("", value).strip()
+    return normalized or None
+
+
+def _split_route_notes(notes: str | None) -> tuple[str | None, str | None]:
+    if notes is None or "→" not in notes:
+        return None, None
+    origin, destination = notes.split("→", 1)
+    return _clean_route_label(origin), _clean_route_label(destination)
+
+
+def _build_destination_label(customer_name: str | None, location: str | None) -> str | None:
+    customer_name = _clean_route_label(customer_name)
+    location = _clean_route_label(location)
+    if customer_name and location and customer_name != location:
+        return f"{customer_name} - {location}"
+    return customer_name or location
+
+
+def _resolve_stop_destination_label(db: Session, *, stop: LogisticsRouteStop) -> str | None:
+    customer_name = stop.customer_name_snapshot
+    location = stop.notes
+    if stop.delivery_point_id:
+        delivery_point = db.scalar(
+            select(LogisticsDeliveryPoint).where(
+                LogisticsDeliveryPoint.id == stop.delivery_point_id
+            )
+        )
+        if delivery_point is not None:
+            customer_name = customer_name or delivery_point.customer_name
+            location = location or delivery_point.address
+    if customer_name is None and stop.customer_id is not None:
+        customer = db.scalar(select(CrmCustomer).where(CrmCustomer.id == stop.customer_id))
+        if customer is not None:
+            customer_name = customer_name or customer.legal_name
+    return _build_destination_label(customer_name, location)
+
+
+def sync_route_labels(db: Session, *, route: LogisticsRoute) -> None:
+    note_origin, note_destination = _split_route_notes(route.notes)
+    if route.origin_label is None:
+        route.origin_label = note_origin
+
+    stops = list_route_stops(db, route_id=route.id)
+    if stops:
+        destination_label = _resolve_stop_destination_label(db, stop=stops[-1])
+        if destination_label is not None:
+            route.destination_label = destination_label
+        elif route.destination_label is None:
+            route.destination_label = note_destination
+    elif route.destination_label is None:
+        route.destination_label = note_destination
+
+    db.add(route)
 
 
 def list_routes(
@@ -76,12 +138,15 @@ def create_route(
     payload: RouteCreateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsRoute:
+    note_origin, note_destination = _split_route_notes(payload.notes)
     route = LogisticsRoute(
         tenant_id=tenant_id,
         branch_id=payload.branch_id,
         route_date=payload.route_date,
         driver_id=payload.driver_id or action_context.actor_user_id,
         vehicle_id=payload.vehicle_id,
+        origin_label=_clean_route_label(payload.origin_label) or note_origin,
+        destination_label=_clean_route_label(payload.destination_label) or note_destination,
         notes=payload.notes,
         created_by=created_by,
     )
@@ -116,12 +181,27 @@ def update_route(
     payload: RouteUpdateRequest,
     action_context: LogisticsActionContext,
 ) -> LogisticsRoute:
+    note_origin, note_destination = _split_route_notes(
+        payload.notes if payload.notes is not None else route.notes
+    )
     if payload.route_date is not None:
         route.route_date = payload.route_date
     if payload.driver_id is not None:
         route.driver_id = payload.driver_id
     if payload.vehicle_id is not None:
         route.vehicle_id = payload.vehicle_id
+    if payload.origin_label is not None:
+        route.origin_label = _clean_route_label(payload.origin_label)
+    elif payload.notes is not None and note_origin is not None:
+        route.origin_label = note_origin
+    elif route.origin_label is None:
+        route.origin_label = note_origin
+    if payload.destination_label is not None:
+        route.destination_label = _clean_route_label(payload.destination_label)
+    elif payload.notes is not None and note_destination is not None:
+        route.destination_label = note_destination
+    elif route.destination_label is None:
+        route.destination_label = note_destination
     if payload.status is not None:
         route.status = payload.status
     if payload.notes is not None:
@@ -193,6 +273,7 @@ def create_route_stop(
     )
     db.add(stop)
     db.flush()
+    sync_route_labels(db, route=route)
     audit_logistics_action(
         db,
         context=action_context,
@@ -221,6 +302,9 @@ def update_route_stop(
         stop.notes = payload.notes
     db.add(stop)
     db.flush()
+    route = db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == stop.route_id))
+    if route is not None:
+        sync_route_labels(db, route=route)
     audit_logistics_action(
         db,
         context=action_context,
@@ -235,6 +319,7 @@ def update_route_stop(
 def delete_route_stop(
     db: Session, *, stop: LogisticsRouteStop, action_context: LogisticsActionContext
 ) -> None:
+    route = db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == stop.route_id))
     audit_logistics_action(
         db,
         context=action_context,
@@ -244,6 +329,9 @@ def delete_route_stop(
         details={"route_id": stop.route_id, "stop_order": stop.stop_order},
     )
     db.delete(stop)
+    db.flush()
+    if route is not None:
+        sync_route_labels(db, route=route)
 
 
 def list_loads(db: Session, *, route_id: str) -> list[LogisticsLoad]:
@@ -538,11 +626,11 @@ def create_agenda_tasks_from_route(
         )
         if delivery_point is None:
             raise ValueError("Punto de entrega no encontrado para la parada de ruta")
-        customer = None
-        customer = get_customer(
-            db,
-            tenant_id=tenant_id,
-            customer_id=delivery_point.customer_id,
+        customer = db.scalar(
+            select(CrmCustomer).where(
+                CrmCustomer.id == delivery_point.customer_id,
+                CrmCustomer.tenant_id == tenant_id,
+            )
         )
         task = LogisticsAgendaTask(
             tenant_id=tenant_id,

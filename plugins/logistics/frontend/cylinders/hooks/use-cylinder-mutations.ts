@@ -2,8 +2,10 @@ import { useCoreMutation } from "../../../../../apps/web/src/lib/use-core-mutati
 import { toast } from "../../../../../apps/web/src/shared/ui/toast";
 import {
   createCylinder,
+  fillCylinder,
   updateCylinder,
   transitionCylinder,
+  vacateCylinder,
   createHydrotestFromForm,
   createWarrantyFromForm,
   createRetimbradoFromForm,
@@ -32,6 +34,12 @@ import {
   EMPTY_SCAN_FORM,
 } from "../forms/cylinder-form-state";
 import { buildCylinderPayload, buildCreateCylinderPayload } from "../forms/cylinder-payload";
+import {
+  type CylinderFillingFormState,
+  EMPTY_CYLINDER_FILLING_FORM,
+  buildFillCylinderPayload,
+  buildVacateCylinderPayload,
+} from "../forms/cylinder-filling";
 
 export interface CylinderMutationActions {
   selectedCylinderId: string;
@@ -44,6 +52,7 @@ export interface CylinderMutationActions {
   setIsServiceOpen: (v: boolean) => void;
   setIsPrintLabelOpen: (v: boolean) => void;
   setIsScanOpen: (v: boolean) => void;
+  setIsFillingOpen: (v: boolean) => void;
   setNextState: (v: string) => void;
   setHydrotestForm: (v: HydrotestFormState | ((prev: HydrotestFormState) => HydrotestFormState)) => void;
   setWarrantyForm: (v: WarrantyFormState | ((prev: WarrantyFormState) => WarrantyFormState)) => void;
@@ -51,6 +60,7 @@ export interface CylinderMutationActions {
   setServiceForm: (v: ServiceFormState) => void;
   setPrintLabelForm: (v: PrintLabelFormState) => void;
   setScanForm: (v: ScanFormState) => void;
+  setFillingForm: (v: CylinderFillingFormState) => void;
   setCylinderForm: (v: CylinderFormState | ((prev: CylinderFormState) => CylinderFormState)) => void;
   setCreateMeta: (v: CylinderCreateMetaState | ((prev: CylinderCreateMetaState) => CylinderCreateMetaState)) => void;
   gasGroupIdRef: React.MutableRefObject<string>;
@@ -70,6 +80,7 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
     setIsServiceOpen,
     setIsPrintLabelOpen,
     setIsScanOpen,
+    setIsFillingOpen,
     setNextState,
     setHydrotestForm,
     setWarrantyForm,
@@ -77,6 +88,7 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
     setServiceForm,
     setPrintLabelForm,
     setScanForm,
+    setFillingForm,
     resetCreateDialog,
     onCreateSuccess,
   } = actions;
@@ -116,6 +128,34 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
       onSuccess: (cylinder: any) => {
         setSelectedCylinder(cylinder);
         setNextState("");
+      },
+      invalidate: (cylinder: any) => getCylinderQueryKeys(cylinder.id),
+    },
+  );
+
+  const fillMutation = useCoreMutation(
+    (form: CylinderFillingFormState) =>
+      fillCylinder(selectedCylinderId, buildFillCylinderPayload(form)),
+    {
+      successMessage: "Llenado registrado",
+      onSuccess: (cylinder: any) => {
+        setSelectedCylinder(cylinder);
+        setIsFillingOpen(false);
+        setFillingForm(EMPTY_CYLINDER_FILLING_FORM);
+      },
+      invalidate: (cylinder: any) => getCylinderQueryKeys(cylinder.id),
+    },
+  );
+
+  const vacateMutation = useCoreMutation(
+    (form: CylinderFillingFormState) =>
+      vacateCylinder(selectedCylinderId, buildVacateCylinderPayload(form)),
+    {
+      successMessage: "Vaciado registrado",
+      onSuccess: (cylinder: any) => {
+        setSelectedCylinder(cylinder);
+        setIsFillingOpen(false);
+        setFillingForm(EMPTY_CYLINDER_FILLING_FORM);
       },
       invalidate: (cylinder: any) => getCylinderQueryKeys(cylinder.id),
     },
@@ -223,6 +263,8 @@ export function useCylinderMutations(actions: CylinderMutationActions) {
     createMutation,
     updateMutation,
     transitionMutation,
+    fillMutation,
+    vacateMutation,
     hydrotestMutation,
     warrantyMutation,
     retimbradoMutation,

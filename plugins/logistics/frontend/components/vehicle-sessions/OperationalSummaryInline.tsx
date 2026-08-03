@@ -6,6 +6,7 @@ import {
   VEHICLE_SESSION_STATUS_LABELS,
   type VehicleSessionDetail,
 } from "../../api";
+import { formatRouteLabel } from "../../lib/route-labels";
 import { formatWaybillSyncStatus } from "./jornada-labels";
 import { VehicleSessionStatusBadge } from "./VehicleSessionStatusBadge";
 
@@ -41,7 +42,15 @@ export function OperationalSummaryInline({ session, summary, isLoading }: Props)
       label: "Almacén móvil",
       value: session.mobile_warehouse_name ?? session.mobile_warehouse_code ?? "Sin almacén móvil",
     },
-    { label: "Ruta", value: session.route_date ?? session.route_id ?? "Sin ruta" },
+    {
+      label: "Ruta",
+      value: formatRouteLabel({
+        route_date: session.route_date,
+        route_id: session.route_id,
+        origin_label: session.route_origin_label,
+        destination_label: session.route_destination_label,
+      }),
+    },
     { label: "Apertura", value: new Date(session.opened_at).toLocaleString() },
     { label: "Peso planificado", value: `${session.planned_weight_kg ?? 0} kg` },
     { label: "Peso confirmado", value: `${session.loaded_weight_kg ?? 0} kg` },

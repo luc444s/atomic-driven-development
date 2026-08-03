@@ -28,7 +28,6 @@ type DeliveryPointFormState = {
   contact_email: string;
   address: string;
   phone: string;
-  zone_id: string;
   warehouse_id: string;
   delivery_day: string;
   visit_day: string;
@@ -45,7 +44,6 @@ const EMPTY_FORM: DeliveryPointFormState = {
   contact_email: "",
   address: "",
   phone: "",
-  zone_id: "",
   warehouse_id: "",
   delivery_day: "",
   visit_day: "",
@@ -78,7 +76,6 @@ export function DeliveryPointsPage() {
         contact_email: payload.contact_email || null,
         address: payload.address,
         phone: payload.phone || null,
-        zone_id: payload.zone_id || null,
         warehouse_id: payload.warehouse_id || null,
         delivery_day: payload.delivery_day || null,
         visit_day: payload.visit_day || null,
@@ -172,7 +169,6 @@ export function DeliveryPointsPage() {
                         contact_email: row.contact_email ?? "",
                         address: row.address,
                         phone: row.phone ?? "",
-                        zone_id: row.zone_id ?? "",
                         warehouse_id: row.warehouse_id ?? "",
                         delivery_day: row.delivery_day ?? "",
                         visit_day: row.visit_day ?? "",

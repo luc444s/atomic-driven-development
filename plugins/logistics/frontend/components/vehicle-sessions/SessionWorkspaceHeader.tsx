@@ -8,6 +8,7 @@ import {
 } from "../../../../../apps/web/src/shared/ui/card";
 
 import { VEHICLE_SESSION_STATUS_LABELS, type VehicleSessionDetail } from "../../api";
+import { formatRouteLabel } from "../../lib/route-labels";
 
 function SessionStatusBadge({ status }: { status: string }) {
   const variant =
@@ -57,7 +58,13 @@ export function SessionWorkspaceHeader({ session }: Props) {
           <span className="font-medium">Apertura:</span> {new Date(session.opened_at).toLocaleString()}
         </div>
         <div>
-          <span className="font-medium">Ruta:</span> {session.route_date ?? session.route_id ?? "Sin ruta"}
+          <span className="font-medium">Ruta:</span>{" "}
+          {formatRouteLabel({
+            route_date: session.route_date,
+            route_id: session.route_id,
+            origin_label: session.route_origin_label,
+            destination_label: session.route_destination_label,
+          })}
         </div>
         <div>
           <span className="font-medium">Peso planificado:</span> {session.planned_weight_kg ?? 0} kg

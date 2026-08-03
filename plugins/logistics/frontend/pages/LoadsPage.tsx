@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Select } from "../../../../apps/web/src/shared/ui/select";
 import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { formatRouteLabel } from "../lib/route-labels";
 
 type LoadFormState = {
   route_id: string;
@@ -98,8 +99,8 @@ export function LoadsPage() {
                   value={formState.route_id}
                   onChange={(value) => setFormState({ route_id: value, stop_id: "", cylinder_ids: [] })}
                   placeholder="Selecciona una ruta"
-                  options={(routesQuery.data ?? []).map((route) => ({ value: route.id, label: `${route.route_date} · ${route.status}` }))} />
-              </label>
+                  options={(routesQuery.data ?? []).map((route) => ({ value: route.id, label: formatRouteLabel(route) }))} />
+               </label>
               <label className="block space-y-2 text-sm text-foreground">
                 <span>Parada</span>
                 <Select

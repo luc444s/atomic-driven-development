@@ -89,6 +89,10 @@ class CylinderRead(BaseModel):
     location_context: str | None = None
     warehouse_id: str | None = None
     warehouse_name: str | None = None
+    fill_status: str | None = None
+    last_fill_at: datetime | None = None
+    last_fill_warehouse_id: str | None = None
+    last_fill_warehouse_name: str | None = None
     is_active: bool
     is_medical: bool
     medical_notes: str | None
@@ -252,6 +256,20 @@ class CylinderTransitionRequest(BaseModel):
     metadata_json: dict[str, object] = Field(default_factory=dict)
 
 
+class CylinderFillRequest(BaseModel):
+    warehouse_id: str | None = None
+    content_kg: float | None = None
+    volume_m3: float | None = None
+    weight_current: float | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
+class CylinderVacateRequest(BaseModel):
+    warehouse_id: str | None = None
+    weight_current: float | None = None
+    notes: str | None = Field(default=None, max_length=500)
+
+
 class CylinderEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -404,7 +422,6 @@ class DeliveryPointRead(BaseModel):
     contact_email: str | None
     address: str
     phone: str | None
-    zone_id: str | None
     warehouse_id: str | None
     address_id: str | None
     is_primary: bool
@@ -431,7 +448,6 @@ class DeliveryPointCreateRequest(BaseModel):
     contact_email: str | None = Field(default=None, max_length=100)
     address: str = Field(min_length=1, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
-    zone_id: str | None = None
     warehouse_id: str | None = None
     address_id: str | None = None
     is_primary: bool = False
@@ -455,7 +471,6 @@ class DeliveryPointUpdateRequest(BaseModel):
     contact_email: str | None = Field(default=None, max_length=100)
     address: str | None = Field(default=None, min_length=1, max_length=200)
     phone: str | None = Field(default=None, max_length=50)
-    zone_id: str | None = None
     warehouse_id: str | None = None
     address_id: str | None = None
     is_primary: bool | None = None
@@ -573,6 +588,8 @@ class RouteRead(BaseModel):
     route_date: date
     driver_id: str
     vehicle_id: str | None
+    origin_label: str | None
+    destination_label: str | None
     status: str
     gps_start_coordinates: dict[str, object] | None
     notes: str | None
@@ -586,6 +603,8 @@ class RouteCreateRequest(BaseModel):
     route_date: date
     driver_id: str | None = None
     vehicle_id: str | None = None
+    origin_label: str | None = Field(default=None, max_length=200)
+    destination_label: str | None = Field(default=None, max_length=200)
     notes: str | None = None
 
 
@@ -593,6 +612,8 @@ class RouteUpdateRequest(BaseModel):
     route_date: date | None = None
     driver_id: str | None = None
     vehicle_id: str | None = None
+    origin_label: str | None = Field(default=None, max_length=200)
+    destination_label: str | None = Field(default=None, max_length=200)
     status: str | None = Field(default=None, max_length=50)
     notes: str | None = None
 

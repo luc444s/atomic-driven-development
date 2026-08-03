@@ -21,6 +21,28 @@ from plugins.productos.backend.schemas import (
 )
 
 
+def resolve_active_cost(
+    db: Session,
+    *,
+    product_id: str,
+    cost_type: str = "BASE",
+    on_date: date | None = None,
+) -> ProductCost | None:
+    target_date = on_date or date.today()
+    normalized_cost_type = cost_type.strip().upper()
+    return db.scalar(
+        select(ProductCost)
+        .where(
+            ProductCost.product_id == product_id,
+            ProductCost.cost_type == normalized_cost_type,
+            ProductCost.valid_from <= target_date,
+            (ProductCost.valid_to.is_(None)) | (ProductCost.valid_to >= target_date),
+        )
+        .order_by(ProductCost.valid_from.desc(), ProductCost.created_at.desc())
+        .limit(1)
+    )
+
+
 def list_prices(db: Session, *, product_id: str) -> list[ProductPrice]:
     return list(
         db.scalars(

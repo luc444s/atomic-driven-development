@@ -51,6 +51,10 @@ export type LogisticsCylinder = {
   location_context: string | null;
   warehouse_id: string | null;
   warehouse_name: string | null;
+  fill_status: string | null;
+  last_fill_at: string | null;
+  last_fill_warehouse_id: string | null;
+  last_fill_warehouse_name: string | null;
   is_active: boolean;
   is_medical: boolean;
   medical_notes: string | null;
@@ -296,6 +300,20 @@ export type TransitionCylinderPayload = {
   metadata_json?: Record<string, unknown>;
 };
 
+export type FillCylinderPayload = {
+  warehouse_id?: string | null;
+  content_kg?: number | null;
+  volume_m3?: number | null;
+  weight_current?: number | null;
+  notes?: string | null;
+};
+
+export type VacateCylinderPayload = {
+  warehouse_id?: string | null;
+  weight_current?: number | null;
+  notes?: string | null;
+};
+
 export function createHydrotestFromForm(cylinderId: string, form: HydrotestFormState) {
   return createHydrotest(cylinderId, {
     test_date: form.test_date,
@@ -431,6 +449,20 @@ export function createCylinder(payload: CreateCylinderPayload) {
 export function updateCylinder(cylinderId: string, payload: UpdateCylinderPayload) {
   return apiRequest<LogisticsCylinder>(`${API_PREFIX}/cylinders/${cylinderId}`, {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function fillCylinder(cylinderId: string, payload: FillCylinderPayload) {
+  return apiRequest<LogisticsCylinder>(`${API_PREFIX}/cylinders/${cylinderId}/fill`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function vacateCylinder(cylinderId: string, payload: VacateCylinderPayload) {
+  return apiRequest<LogisticsCylinder>(`${API_PREFIX}/cylinders/${cylinderId}/vacate`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }

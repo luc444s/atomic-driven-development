@@ -555,4 +555,5 @@ Todos deben implementarse **dentro del plugin logistics** como submódulos, no c
 
 | Fecha | Cambio |
 |---|---|
+| 2026-08-03 | SPEC 0038: jornadas ya resuelve `serializados` y buscador de seriales con una helper atomica de `almacen actual del envase` (ultimo movimiento primero, `location` como fallback). Caso validado: `LU93FJ` / `AIRE COMPRIMIDO B10 / 200BAR` ahora cuenta en `FUENTE DE PIEDRA-MALAGA` y aparece `AVAILABLE` en el buscador. |
 | 2026-06-28 | Creación del documento con análisis completo del módulo logistics actual vs legacy |

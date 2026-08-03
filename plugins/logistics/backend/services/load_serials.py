@@ -19,6 +19,7 @@ from plugins.logistics.backend.models import (
     LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import CylinderTransitionRequest
+from plugins.logistics.backend.services.cylinder_location import cylinder_is_at_warehouse
 from plugins.logistics.backend.services.cylinders import transition_cylinder
 from plugins.logistics.backend.services.state_machine import StateTransitionError
 
@@ -67,16 +68,20 @@ def _warehouse_matches_cylinder(
 ) -> bool:
     if warehouse_id is None:
         return True
-    warehouse = db.scalar(
-        select(LogisticsWarehouse).where(
+    exists = db.scalar(
+        select(LogisticsWarehouse.id).where(
             LogisticsWarehouse.id == warehouse_id,
             LogisticsWarehouse.tenant_id == tenant_id,
         )
     )
-    if warehouse is None:
+    if exists is None:
         raise LookupError("Almacén origen no encontrado")
-    location = (cylinder.location or "").upper()
-    return warehouse.code.upper() in location or warehouse.name.upper() in location
+    return cylinder_is_at_warehouse(
+        db,
+        tenant_id=tenant_id,
+        warehouse_id=warehouse_id,
+        cylinder=cylinder,
+    )
 
 
 def _active_assignment_for_cylinder(

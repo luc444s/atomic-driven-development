@@ -1,5 +1,6 @@
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import type { LogisticsRoute } from "../../api";
+import { formatRouteLabel } from "../../lib/route-labels";
 
 type Props = {
   routes: LogisticsRoute[];
@@ -26,7 +27,7 @@ export function RouteListSidebar({
       {routes.length ? (
         <div className="space-y-2">
           {routes.map((route) => {
-            const displayName = route.notes?.includes("→") ? route.notes : route.route_date;
+            const displayName = formatRouteLabel(route);
             const isSelected = route.id === selectedRouteId;
 
             return (

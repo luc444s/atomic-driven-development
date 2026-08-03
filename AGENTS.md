@@ -13,6 +13,22 @@ Define reglas operativas para agentes de IA en SYSTUTOR OSS. Reduce ambiguedad, 
 - toda accion importante debe ser auditable
 - migracion legacy controlada, validada y trazable
 
+## Ley de contexto operativo
+
+Toda vista, respuesta operativa o contrato de lectura debe priorizar contexto de negocio entendible antes que IDs crudos. Regla minima:
+
+- que paso
+- donde paso
+- con quien paso
+- cuando paso
+
+Si aplica al flujo, agregar tambien:
+
+- en que estado esta
+- por que importa o que falta
+
+Regla derivada: ninguna vista operativa debe mostrar un identificador crudo si puede mostrar contexto de negocio util.
+
 ## Orden de lectura obligatorio
 
 1. **Engram** (`mem_context` + `mem_search` con keywords de la tarea) — prioridad sobre cualquier .md

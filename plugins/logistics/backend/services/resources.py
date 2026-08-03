@@ -258,14 +258,20 @@ def update_vehicle(
     return vehicle
 
 
-def list_delivery_points(db: Session, *, tenant_id: str) -> list[LogisticsDeliveryPoint]:
-    return list(
-        db.scalars(
-            select(LogisticsDeliveryPoint)
-            .where(LogisticsDeliveryPoint.tenant_id == tenant_id)
-            .order_by(LogisticsDeliveryPoint.is_primary.desc(), LogisticsDeliveryPoint.address)
-        ).all()
+def list_delivery_points(
+    db: Session,
+    *,
+    tenant_id: str,
+    customer_ids: list[str] | None = None,
+) -> list[LogisticsDeliveryPoint]:
+    stmt = (
+        select(LogisticsDeliveryPoint)
+        .where(LogisticsDeliveryPoint.tenant_id == tenant_id)
+        .order_by(LogisticsDeliveryPoint.is_primary.desc(), LogisticsDeliveryPoint.address)
     )
+    if customer_ids:
+        stmt = stmt.where(LogisticsDeliveryPoint.customer_id.in_(customer_ids))
+    return list(db.scalars(stmt).all())
 
 
 def get_delivery_point(
@@ -298,7 +304,6 @@ def create_delivery_point(
         contact_email=payload.contact_email,
         address=payload.address.strip(),
         phone=payload.phone,
-        zone_id=payload.zone_id,
         warehouse_id=payload.warehouse_id,
         address_id=payload.address_id,
         is_primary=payload.is_primary,
@@ -353,8 +358,6 @@ def update_delivery_point(
         delivery_point.address = payload.address.strip()
     if payload.phone is not None:
         delivery_point.phone = payload.phone
-    if payload.zone_id is not None:
-        delivery_point.zone_id = payload.zone_id
     if payload.warehouse_id is not None:
         delivery_point.warehouse_id = payload.warehouse_id
     if payload.address_id is not None:

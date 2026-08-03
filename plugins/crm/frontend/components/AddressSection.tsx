@@ -11,6 +11,38 @@ type AddressSectionProps = {
 export function AddressSection({ value, onChange }: AddressSectionProps) {
   const hasCoords = value.latitude != null && value.longitude != null;
 
+  function handleAddressResolved(
+    result: { display_name: string; address: Record<string, string> } | null,
+  ) {
+    console.log("[ADDR-RESOLVED]", result?.display_name, "| value.line1:", value.line1);
+    if (!result) {
+      return;
+    }
+    const a = result.address;
+    const city =
+      a.city ??
+      a.town ??
+      a.village ??
+      a.municipality ??
+      a.county ??
+      "";
+    const next = { ...value };
+    // Dinámico: el mapa manda → los campos siguen al marker.
+    // Dirección enriquecida: "Camino de la Barca, Azuqueca de Henares, Guadalajara, Castilla-La Mancha, 19200, España"
+    if (result.display_name) {
+      next.line1 = result.display_name;
+    }
+    if (city) {
+      next.city = city;
+      next.district = city;
+    }
+    if (a.postcode) {
+      next.postal_code = a.postcode;
+    }
+    next.geocode_source = "MANUAL";
+    onChange(next);
+  }
+
   return (
     <div className="grid gap-4 md:grid-cols-2">
       <label className="block space-y-2 text-sm text-foreground md:col-span-2">
@@ -60,6 +92,7 @@ export function AddressSection({ value, onChange }: AddressSectionProps) {
           onChange={(location) =>
             onChange({ ...value, latitude: location.lat, longitude: location.lng, geocode_source: "MANUAL" })
           }
+          onAddressResolved={handleAddressResolved}
           searchPlaceholder="Buscar dirección..."
           placeholder="Haz clic en el mapa para seleccionar las coordenadas"
           height={220}

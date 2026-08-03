@@ -20,7 +20,7 @@ export function Dialog({
   actions,
   onClose,
   maxWidthClassName = "max-w-2xl",
-  zIndexClassName = "z-50",
+  zIndexClassName = "z-[1000]",
 }: DialogProps) {
   if (!open) return null;
 

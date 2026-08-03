@@ -49,9 +49,8 @@ def _get_warehouse(db: Session, warehouse_id: str) -> LogisticsWarehouse:
     return warehouse
 
 
-def _resolve_route_date(db: Session, route_id: str) -> date | None:
-    route = db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == route_id))
-    return route.route_date if route is not None else None
+def _get_route(db: Session, route_id: str) -> LogisticsRoute | None:
+    return db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == route_id))
 
 
 def _build_stock_summary(
@@ -209,7 +208,8 @@ def _build_session_read(
     driver = _get_user(db, session.driver_id)
     origin = _get_warehouse(db, session.origin_warehouse_id)
     mobile = _get_warehouse(db, session.mobile_warehouse_id)
-    route_date = _resolve_route_date(db, session.route_id) if session.route_id else None
+    route = _get_route(db, session.route_id) if session.route_id else None
+    route_date = route.route_date if route is not None else None
     stock_summary = _build_stock_summary(
         db, tenant_id=session.tenant_id, mobile_warehouse_id=session.mobile_warehouse_id
     )
@@ -247,6 +247,8 @@ def _build_session_read(
             mobile_warehouse_name=mobile.name,
             route_id=session.route_id,
             route_date=route_date,
+            route_origin_label=route.origin_label if route is not None else None,
+            route_destination_label=route.destination_label if route is not None else None,
             status=session.status,
             opened_at=session.opened_at,
             ready_at=session.ready_at,
@@ -281,6 +283,8 @@ def _build_session_read(
         mobile_warehouse_name=mobile.name,
         route_id=session.route_id,
         route_date=route_date,
+        route_origin_label=route.origin_label if route is not None else None,
+        route_destination_label=route.destination_label if route is not None else None,
         status=session.status,
         opened_at=session.opened_at,
         ready_at=session.ready_at,

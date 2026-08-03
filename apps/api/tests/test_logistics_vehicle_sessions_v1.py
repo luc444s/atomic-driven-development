@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -14,12 +15,18 @@ from apps.api.tests.test_logistics_plugin import (
     enable_productos_plugin,
     enable_stock_plugin,
 )
+from plugins.logistics.backend.dto.sessions import SessionStockSummaryRead
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsLoadSerialAssignment,
+    LogisticsMovement,
+    LogisticsMovementItem,
+    LogisticsRoute,
+    LogisticsRouteStop,
     LogisticsVehicleSession,
 )
 from plugins.logistics.backend.services.rules import get_next_transition_blocker
+from plugins.logistics.backend.services.session_waybills import _build_destination
 
 
 def _build_session(
@@ -80,6 +87,90 @@ def test_get_next_transition_blocker_covers_all_statuses() -> None:
         get_next_transition_blocker(_build_session("CANCELLED"))
         == "La jornada ya no puede modificarse"
     )
+
+
+def test_vehicle_session_exposes_route_labels(
+    client: TestClient, app, seeded_demo: dict[str, str], monkeypatch
+) -> None:
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    monkeypatch.setattr(
+        "plugins.logistics.backend.services.snapshots._build_stock_summary",
+        lambda *args, **kwargs: SessionStockSummaryRead(
+            warehouse_id="wh-test",
+            warehouse_code="WH",
+            warehouse_name="Warehouse Test",
+            total_products=0,
+            total_units=0,
+        ),
+    )
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Base Norte", "code": "BASE-N", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-LABEL",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "Labels",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    drivers_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    driver_id = drivers_response.json()[0]["id"]
+
+    route_date = datetime.now(UTC).date().isoformat()
+    route_response = client.post(
+        "/api/v1/plugins/logistics/routes",
+        headers=headers,
+        json={
+            "route_date": route_date,
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_label": "Base Norte",
+            "destination_label": "Cliente Sur",
+            "notes": "Base Norte → Cliente Sur",
+        },
+    )
+    assert route_response.status_code == 201, route_response.text
+    route = route_response.json()
+    assert route["origin_label"] == "Base Norte"
+    assert route["destination_label"] == "Cliente Sur"
+
+    create_session_response = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+            "route_id": route["id"],
+        },
+    )
+    assert create_session_response.status_code == 201, create_session_response.text
+    session = create_session_response.json()
+    assert session["route_date"] == route_date
+    assert session["route_origin_label"] == "Base Norte"
+    assert session["route_destination_label"] == "Cliente Sur"
 
 
 def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[str, str]) -> None:
@@ -863,13 +954,163 @@ def test_load_serial_search_shows_other_product_as_unavailable(
     assert payload[0]["context_label"] == "Corresponde a otro producto"
 
 
+def test_confirm_and_ready_moves_empty_stock_serial_into_vehicle(
+    client: TestClient, app, seeded_demo: dict[str, str], monkeypatch
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    enable_stock_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+    monkeypatch.setattr(
+        "plugins.logistics.backend.services.snapshots._build_stock_summary",
+        lambda *args, **kwargs: SessionStockSummaryRead(
+            warehouse_id="wh-test",
+            warehouse_code="WH",
+            warehouse_name="Warehouse Test",
+            total_products=0,
+            total_units=0,
+            total_adr_points=0,
+        ),
+    )
+    monkeypatch.setattr(
+        "plugins.logistics.backend.services.session_waybills.build_current_composition",
+        lambda *args, **kwargs: SimpleNamespace(
+            product_lines=[],
+            totals=SimpleNamespace(
+                total_packages=0,
+                total_weight_kg=0,
+                total_adr_points=0,
+            ),
+        ),
+    )
+
+    warehouse = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Empty Load", "code": "ALM-EL", "address": None, "phone": None},
+    ).json()
+    vehicle = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-EL",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "EL",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    ).json()
+    product = create_product(client, headers, sku="EL-GLP10", name="Bombona 10kg EL")
+    assert client.post(
+        "/api/v1/plugins/stock/adjust",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "warehouse_id": warehouse["id"],
+            "quantity": 20,
+            "unit_cost": 5.0,
+            "reason": "Stock inicial empty load",
+            "idempotency_key": "test-empty-load-stock-seed",
+        },
+    ).status_code == 201
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="EL-000001",
+            current_state="EN_ALMACEN_VACIO",
+            product_id=product["id"],
+            gas_group_id=product["id"],
+            location=f"{warehouse['code']} patio norte",
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.commit()
+        cylinder_id = cylinder.id
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+    assert client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+        headers=headers,
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
+        headers=headers,
+        json={
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "planned_quantity": 1,
+                    "source_warehouse_id": warehouse["id"],
+                }
+            ]
+        },
+    ).status_code == 200
+    assert client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "EL-000001",
+        },
+    ).status_code == 200
+
+    ready_response = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+        headers=headers,
+        json={},
+    )
+    assert ready_response.status_code == 200, ready_response.text
+
+    cylinder_after_confirm = client.get(
+        f"/api/v1/plugins/logistics/cylinders/{cylinder_id}",
+        headers=headers,
+    )
+    assert cylinder_after_confirm.status_code == 200, cylinder_after_confirm.text
+    assert cylinder_after_confirm.json()["current_state"] == "CARGA_EN_VEHICULO"
+    with app.state.session_factory() as db:
+        cylinder_after_confirm_db = db.scalar(
+            select(LogisticsCylinder).where(LogisticsCylinder.id == cylinder_id)
+        )
+        assert cylinder_after_confirm_db is not None
+        assert cylinder_after_confirm_db.session_id == session["id"]
+
+
 def test_load_serial_search_supports_numeric_lookup_inside_prefixed_serial(
-    client: TestClient, app, seeded_demo: dict[str, str]
+    client: TestClient, app, seeded_demo: dict[str, str], monkeypatch
 ) -> None:
     enable_productos_plugin(app, seeded_demo)
     enable_crm_plugin(app, seeded_demo)
     enable_logistics_plugin(app, seeded_demo)
     headers = auth_headers(client)
+    monkeypatch.setattr(
+        "plugins.logistics.backend.services.snapshots._build_stock_summary",
+        lambda *args, **kwargs: SessionStockSummaryRead(
+            warehouse_id="wh-test",
+            warehouse_code="WH",
+            warehouse_name="Warehouse Test",
+            total_products=0,
+            total_units=0,
+            total_adr_points=0,
+        ),
+    )
 
     warehouse_response = client.post(
         "/api/v1/plugins/logistics/warehouses",
@@ -951,6 +1192,131 @@ def test_load_serial_search_supports_numeric_lookup_inside_prefixed_serial(
     )
     assert select_response.status_code == 200, select_response.text
     assert select_response.json()["cylinder_serial"] == "BOMBONA1-LUCAS-000200"
+
+
+def test_load_serial_search_uses_last_movement_warehouse_when_location_missing(
+    client: TestClient, app, seeded_demo: dict[str, str], monkeypatch
+) -> None:
+    enable_productos_plugin(app, seeded_demo)
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+    monkeypatch.setattr(
+        "plugins.logistics.backend.services.snapshots._build_stock_summary",
+        lambda *args, **kwargs: SessionStockSummaryRead(
+            warehouse_id="wh-test",
+            warehouse_code="WH",
+            warehouse_name="Warehouse Test",
+            total_products=0,
+            total_units=0,
+            total_adr_points=0,
+        ),
+    )
+
+    warehouse_response = client.post(
+        "/api/v1/plugins/logistics/warehouses",
+        headers=headers,
+        json={"name": "Almacen Movimiento", "code": "ALM-MV", "address": None, "phone": None},
+    )
+    assert warehouse_response.status_code == 201, warehouse_response.text
+    warehouse = warehouse_response.json()
+
+    vehicle_response = client.post(
+        "/api/v1/plugins/logistics/vehicles",
+        headers=headers,
+        json={
+            "plate": "TRK-MV",
+            "vehicle_type": "Camion",
+            "brand": "Test",
+            "model": "MV",
+            "capacity_weight": 2000,
+            "useful_load": 2000,
+            "warehouse_id": warehouse["id"],
+        },
+    )
+    assert vehicle_response.status_code == 201, vehicle_response.text
+    vehicle = vehicle_response.json()
+
+    product = create_product(client, headers, sku="MV-AIR", name="Aire comprimido B10 / 200BAR")
+
+    with app.state.session_factory() as db:
+        cylinder = LogisticsCylinder(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            serial="MV-000001",
+            current_state="EN_ALMACEN_VACIO",
+            product_id=product["id"],
+            gas_group_id=product["id"],
+            location=None,
+            is_active=True,
+        )
+        db.add(cylinder)
+        db.flush()
+        movement = LogisticsMovement(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            movement_type="IC",
+            warehouse_id=warehouse["id"],
+            status="COMPLETADO",
+            created_by=seeded_demo["user_id"],
+        )
+        db.add(movement)
+        db.flush()
+        db.add(
+            LogisticsMovementItem(
+                movement_id=movement.id,
+                cylinder_id=cylinder.id,
+                product_id=product["id"],
+                product_name=product["name"],
+                quantity_in=1,
+                quantity=1,
+                quantity_planned=1,
+                state_before="EN_ALMACEN_VACIO",
+                state_after="EN_ALMACEN_VACIO",
+            )
+        )
+        db.commit()
+
+    driver_id = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    ).json()[0]["id"]
+    session = client.post(
+        "/api/v1/plugins/logistics/vehicle-sessions",
+        headers=headers,
+        json={
+            "vehicle_id": vehicle["id"],
+            "driver_id": driver_id,
+            "origin_warehouse_id": warehouse["id"],
+        },
+    ).json()
+
+    search_response = client.get(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/search",
+        headers=headers,
+        params={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "query": "MV-000001",
+        },
+    )
+    assert search_response.status_code == 200, search_response.text
+    payload = search_response.json()
+    assert len(payload) == 1
+    assert payload[0]["serial"] == "MV-000001"
+    assert payload[0]["availability_status"] == "AVAILABLE"
+
+    select_response = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "source_warehouse_id": warehouse["id"],
+            "serial": "MV-000001",
+        },
+    )
+    assert select_response.status_code == 200, select_response.text
+    assert select_response.json()["cylinder_serial"] == "MV-000001"
 
 
 def test_confirm_and_ready_blocks_origin_line_without_positive_quantity(
@@ -1314,6 +1680,58 @@ def test_vehicle_session_waybill_is_available_inside_jornada(
     history = history_response.json()
     assert len(history) == 1
     assert history[0]["version"] == 1
+
+
+def test_session_waybill_uses_route_stop_snapshot_when_delivery_point_missing(
+    client: TestClient, app, seeded_demo: dict[str, str]
+) -> None:
+    enable_crm_plugin(app, seeded_demo)
+    enable_logistics_plugin(app, seeded_demo)
+    headers = auth_headers(client)
+
+    expected_destination = (
+        "ALESSANDRO MIGNOLLI DE LAGUNO - Boquilla del Pozo, Esguevillas de Esgueva, "
+        "Valladolid, Castilla y León, 47176, España"
+    )
+    stop_address = (
+        "Boquilla del Pozo, Esguevillas de Esgueva, Valladolid, Castilla y León, "
+        "47176, España"
+    )
+
+    customer = create_customer(
+        client,
+        headers,
+        name="ALESSANDRO MIGNOLLI DE LAGUNO",
+        document_number="20100070970",
+    )
+
+    with app.state.session_factory() as db:
+        route = LogisticsRoute(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=seeded_demo["branch_id"],
+            route_date=datetime.now(UTC).date(),
+            driver_id=seeded_demo["user_id"],
+            vehicle_id=None,
+            destination_label=expected_destination,
+            created_by=seeded_demo["user_id"],
+        )
+        db.add(route)
+        db.flush()
+        db.add(
+            LogisticsRouteStop(
+                route_id=route.id,
+                delivery_point_id=None,
+                customer_id=customer["id"],
+                customer_name_snapshot="ALESSANDRO MIGNOLLI DE LAGUNO",
+                notes=stop_address,
+                stop_order=1,
+            )
+        )
+        db.commit()
+        destination = _build_destination(db, route_id=route.id)
+
+    assert destination.name == expected_destination
+    assert destination.address == expected_destination
 
 
 def test_route_operation_changes_composition_and_outdates_waybill(

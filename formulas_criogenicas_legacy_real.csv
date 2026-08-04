@@ -1,0 +1,517 @@
+Cod_Producto,Bombona,Cod_Contenido,ContenidoFuente,Cod_UnidadFuente,UnidadFuenteLegacy,CantidadFuenteLegacy,M3GasResultado,PesoNetoKgResultado
+319,"Argomet10  (Ar 90% + Metano 10%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.597000,1.050000,0.000000
+321,"Argomet10 (Ar 90% + Metano 10%) B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.194000,2.100000,0.000000
+329,"Argomet10 (Ar 90% + Metano 10%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",4.791000,3.150000,5.000000
+322,"Argomet10 (Ar 90% + Metano 10%) B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.472000,2.940000,0.000000
+330,"Argomet10 (Ar 90% + Metano 10%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",6.708000,4.410000,7.000000
+323,"Argomet10 (Ar 90% + Metano 10%) B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",6.388000,4.200000,0.000000
+331,"Argomet10 (Ar 90% + Metano 10%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",9.582000,6.300000,10.000000
+324,"Argomet10 (Ar 90% + Metano 10%) B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",9.582000,6.300000,0.000000
+332,"Argomet10 (Ar 90% + Metano 10%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",14.373000,9.450000,14.990000
+325,"Argomet10 (Ar 90% + Metano 10%) B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",12.776000,8.400000,0.000000
+333,"Argomet10 (Ar 90% + Metano 10%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",19.165000,12.600000,19.990000
+327,"Argomet10 (Ar 90% + Metano 10%) B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.396000,1.580000,2.500000
+326,"Argomet10 (Ar 90% + Metano 10%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",15.971000,10.500000,0.000000
+334,"Argomet10 (Ar 90% + Metano 10%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",23.956000,15.750000,24.990000
+320,"Argomet10 (Ar 90% + Metano 10%) B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.236000,1.470000,0.000000
+328,"Argomet10 (Ar 90% + Metano 10%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.354000,2.210000,3.500000
+53,"Argón industrial 12*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",212.940000,126.000000,212.940000
+68,"Argón industrial 12*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",319.410000,189.000000,319.410000
+55,"Argón industrial 12*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",340.704000,201.600000,340.700000
+71,"Argón industrial 12*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",511.056000,302.400000,511.060000
+54,"Argón industrial 16*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",283.920000,168.000000,283.920000
+69,"Argón industrial 16*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",425.880000,252.000000,425.880000
+56,"Argón industrial 16*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",454.272000,268.800000,454.270000
+71,"Argón industrial 16*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",681.408000,403.200000,681.410000
+44,"Argón industrial B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.549000,2.100000,3.550000
+60,"Argón industrial B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",5.324000,3.150000,5.320000
+45,"Argón industrial B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.969000,2.940000,4.970000
+61,"Argón industrial B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",7.453000,4.410000,7.450000
+46,"Argón industrial B16 / 200BAR",377,"Argón Liquido - LAR",3,"UND",5.678000,3.360000,5.680000
+62,"Argón industrial B16 / 300BAR",377,"Argón Liquido - LAR",3,"UND",8.518000,5.040000,8.520000
+41,"Argón industrial B2 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.710000,0.420000,0.710000
+57,"Argón industrial B2 / 300BAR",377,"Argón Liquido - LAR",3,"UND",1.065000,0.630000,1.060000
+47,"Argón industrial B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",7.098000,4.200000,7.100000
+63,"Argón industrial B20 /300BAR",377,"Argón Liquido - LAR",3,"UND",10.647000,6.300000,10.650000
+48,"Argón industrial B25 / 200BAR",377,"Argón Liquido - LAR",3,"UND",8.873000,5.250000,8.870000
+49,"Argón industrial B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",10.647000,6.300000,10.650000
+64,"Argón industrial B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",15.971000,9.450000,15.970000
+50,"Argón industrial B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",14.196000,8.400000,14.200000
+65,"Argón industrial B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",21.294000,12.600000,21.290000
+42,"Argón industrial B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.775000,1.050000,1.770000
+58,"Argón industrial B5 /300BAR",377,"Argón Liquido - LAR",3,"UND",2.662000,1.580000,2.660000
+51,"Argón industrial B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",17.745000,10.500000,17.750000
+66,"Argón industrial B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",26.618000,15.750000,26.620000
+43,"Argón industrial B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.484000,1.470000,2.480000
+59,"Argón industrial B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.726000,2.210000,3.730000
+52,"Argón industrial B80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",28.392000,16.800000,28.390000
+67,"Argón industrial B80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",42.588000,25.200000,42.590000
+305,"Hidrinac35  (Ar 65% + H2 35%) B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.307000,2.100000,2.370000
+313,"Hidrinac35  (Ar 65% + H2 35%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.460000,3.150000,3.550000
+314,"Hidrinac35  (Ar 65% + H2 35%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",4.844000,4.410000,4.970000
+307,"Hidrinac35  (Ar 65% + H2 35%) B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.614000,4.200000,4.730000
+315,"Hidrinac35  (Ar 65% + H2 35%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",6.921000,6.300000,7.100000
+309,"Hidrinac35  (Ar 65% + H2 35%) B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",9.227000,8.400000,9.470000
+317,"Hidrinac35  (Ar 65% + H2 35%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",13.841000,12.600000,14.200000
+318,"Hidrinac35  (Ar 65% + H2 35%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",17.301000,15.750000,17.750000
+304,"Hidrinac35  (Ar 65% + H2 35%) B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.615000,1.470000,1.660000
+306,"Hidrinac35 (Ar 65% + H2 35%)  B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.230000,2.940000,3.310000
+308,"Hidrinac35 (Ar 65% + H2 35%)  B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",6.921000,6.300000,7.100000
+316,"Hidrinac35 (Ar 65% + H2 35%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",10.381000,9.450000,10.650000
+303,"Hidrinac35 (Ar 65% + H2 35%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.153000,1.050000,1.180000
+311,"Hidrinac35 (Ar 65% + H2 35%) B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",1.730000,1.580000,1.780000
+310,"Hidrinac35 (Ar 65% + H2 35%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",11.534000,10.500000,11.840000
+312,"Hidrinac35 (Ar 65% + H2 35%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.422000,2.210000,2.490000
+346,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",92.477000,136.800000,196.960000
+361,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",294.770000,205.200000,478.000000
+348,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",147.963000,218.880000,315.140000
+363,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",471.632000,328.320000,764.810000
+347,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",123.302000,182.400000,262.620000
+362,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",393.026000,273.600000,637.340000
+364,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",628.842000,437.760000,1019.740000
+338,"IG541 (Ar 40%, N2 52%, CO2 8%) B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.541000,2.280000,3.280000
+353,"IG541 (Ar 40%, N2 52%, CO2 8%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",4.913000,3.420000,7.970000
+339,"IG541 (Ar 40%, N2 52%, CO2 8%) B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.158000,3.190000,4.600000
+354,"IG541 (Ar 40%, N2 52%, CO2 8%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",6.878000,4.790000,11.150000
+340,"IG541 (Ar 40%, N2 52%, CO2 8%) B16 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.466000,3.650000,5.250000
+355,"IG541 (Ar 40%, N2 52%, CO2 8%) B16 / 300BAR",377,"Argón Liquido - LAR",3,"UND",7.861000,5.470000,12.750000
+335,"IG541 (Ar 40%, N2 52%, CO2 8%) B2 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.308000,0.460000,0.660000
+350,"IG541 (Ar 40%, N2 52%, CO2 8%) B2 / 300BAR",377,"Argón Liquido - LAR",3,"UND",0.983000,0.680000,1.590000
+341,"IG541 (Ar 40%, N2 52%, CO2 8%) B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.083000,4.560000,6.570000
+356,"IG541 (Ar 40%, N2 52%, CO2 8%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",9.826000,6.840000,15.930000
+342,"IG541 (Ar 40%, N2 52%, CO2 8%) B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.624000,6.840000,9.850000
+357,"IG541 (Ar 40%, N2 52%, CO2 8%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",14.738000,10.260000,23.900000
+343,"IG541 (Ar 40%, N2 52%, CO2 8%) B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",6.165000,9.120000,13.130000
+358,"IG541 (Ar 40%, N2 52%, CO2 8%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",19.651000,13.680000,31.870000
+336,"IG541 (Ar 40%, N2 52%, CO2 8%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.771000,1.140000,1.640000
+351,"IG541 (Ar 40%, N2 52%, CO2 8%) B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.456000,1.710000,3.980000
+344,"IG541 (Ar 40%, N2 52%, CO2 8%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",7.706000,11.400000,16.410000
+359,"IG541 (Ar 40%, N2 52%, CO2 8%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",24.564000,17.100000,39.830000
+337,"IG541 (Ar 40%, N2 52%, CO2 8%) B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.079000,1.600000,2.300000
+352,"IG541 (Ar 40%, N2 52%, CO2 8%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.439000,2.390000,5.580000
+345,"IG541 (Ar 40%, N2 52%, CO2 8%) B80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",12.330000,18.240000,26.260000
+360,"IG541 (Ar 40%, N2 52%, CO2 8%) B80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",39.303000,27.360000,63.730000
+349,"IG541 (Ar 40%, N2 52%, CO2 8%)16*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",197.284000,291.840000,420.190000
+83,"QC 15 (Ar 85%, CO2 15%) 12*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",196.513000,136.800000,234.370000
+98,"QC 15 (Ar 85%, CO2 15%) 12*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",294.770000,205.200000,351.560000
+85,"QC 15 (Ar 85%, CO2 15%) 12*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",314.421000,218.880000,375.000000
+100,"QC 15 (Ar 85%, CO2 15%) 12*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",471.632000,328.320000,562.490000
+84,"QC 15 (Ar 85%, CO2 15%) 16*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",262.018000,182.400000,312.500000
+99,"QC 15 (Ar 85%, CO2 15%) 16*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",393.026000,273.600000,468.750000
+86,"QC 15 (Ar 85%, CO2 15%) 16*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",419.228000,291.840000,499.990000
+101,"QC 15 (Ar 85%, CO2 15%) 16*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",628.842000,437.760000,749.990000
+75,"QC 15 (Ar 85%, CO2 15%) B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.275000,2.280000,3.910000
+90,"QC 15 (Ar 85%, CO2 15%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",4.913000,3.420000,5.860000
+76,"QC 15 (Ar 85%, CO2 15%) B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.585000,3.190000,5.470000
+91,"QC 15 (Ar 85%, CO2 15%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",6.878000,4.790000,8.200000
+77,"QC 15 (Ar 85%, CO2 15%) B16 / 200BAR",377,"Argón Liquido - LAR",3,"UND",5.240000,3.650000,6.250000
+92,"QC 15 (Ar 85%, CO2 15%) B16 / 300BAR",377,"Argón Liquido - LAR",3,"UND",7.861000,5.470000,9.370000
+72,"QC 15 (Ar 85%, CO2 15%) B2 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.655000,0.460000,0.780000
+87,"QC 15 (Ar 85%, CO2 15%) B2 / 300BAR",377,"Argón Liquido - LAR",3,"UND",0.983000,0.680000,1.170000
+78,"QC 15 (Ar 85%, CO2 15%) B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",6.550000,4.560000,7.810000
+93,"QC 15 (Ar 85%, CO2 15%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",9.826000,6.840000,11.720000
+79,"QC 15 (Ar 85%, CO2 15%) B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",9.826000,6.840000,11.720000
+94,"QC 15 (Ar 85%, CO2 15%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",14.738000,10.260000,17.580000
+80,"QC 15 (Ar 85%, CO2 15%) B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",13.101000,9.120000,15.620000
+95,"QC 15 (Ar 85%, CO2 15%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",19.651000,13.680000,23.440000
+73,"QC 15 (Ar 85%, CO2 15%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.638000,1.140000,1.950000
+88,"QC 15 (Ar 85%, CO2 15%) B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.456000,1.710000,2.930000
+81,"QC 15 (Ar 85%, CO2 15%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",16.376000,11.400000,19.530000
+96,"QC 15 (Ar 85%, CO2 15%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",24.564000,17.100000,29.300000
+74,"QC 15 (Ar 85%, CO2 15%) B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.293000,1.600000,2.730000
+89,"QC 15 (Ar 85%, CO2 15%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.439000,2.390000,4.100000
+82,"QC 15 (Ar 85%, CO2 15%) B80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",26.202000,18.240000,31.250000
+97,"QC 15 (Ar 85%, CO2 15%) B80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",39.303000,27.360000,46.870000
+143,"QC 2 (Ar 98%, CO2 2%) 12*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",210.669000,127.200000,215.360000
+158,"QC 2 (Ar 98%, CO2 2%) 12*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",317.990000,192.000000,325.080000
+145,"QC 2 (Ar 98%, CO2 2%) 12*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",337.070000,203.520000,344.580000
+160,"QC 2 (Ar 98%, CO2 2%) 12*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",508.785000,307.200000,520.120000
+144,"QC 2 (Ar 98%, CO2 2%) 16*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",280.892000,169.600000,287.150000
+159,"QC 2 (Ar 98%, CO2 2%) 16*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",423.987000,256.000000,433.430000
+146,"QC 2 (Ar 98%, CO2 2%) 16*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",449.426000,271.360000,459.440000
+161,"QC 2 (Ar 98%, CO2 2%) 16*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",678.380000,409.600000,693.490000
+135,"QC 2 (Ar 98%, CO2 2%) B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.511000,2.120000,3.590000
+150,"QC 2 (Ar 98%, CO2 2%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",5.300000,3.200000,5.420000
+136,"QC 2 (Ar 98%, CO2 2%) B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.916000,2.970000,5.030000
+151,"QC 2 (Ar 98%, CO2 2%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",7.420000,4.480000,7.590000
+137,"QC 2 (Ar 98%, CO2 2%) B16 / 200BAR",377,"Argón Liquido - LAR",3,"UND",5.618000,3.390000,5.740000
+152,"QC 2 (Ar 98%, CO2 2%) B16 / 300BAR",377,"Argón Liquido - LAR",3,"UND",8.480000,5.120000,8.670000
+132,"QC 2 (Ar 98%, CO2 2%) B2 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.702000,0.420000,0.720000
+147,"QC 2 (Ar 98%, CO2 2%) B2 / 300BAR",377,"Argón Liquido - LAR",3,"UND",1.060000,0.640000,1.080000
+138,"QC 2 (Ar 98%, CO2 2%) B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",7.022000,4.240000,7.180000
+153,"QC 2 (Ar 98%, CO2 2%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",10.600000,6.400000,10.840000
+139,"QC 2 (Ar 98%, CO2 2%) B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",10.533000,6.360000,10.770000
+154,"QC 2 (Ar 98%, CO2 2%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",15.900000,9.600000,16.250000
+140,"QC 2 (Ar 98%, CO2 2%) B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",14.045000,8.480000,14.360000
+155,"QC 2 (Ar 98%, CO2 2%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",21.199000,12.800000,21.670000
+133,"QC 2 (Ar 98%, CO2 2%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.756000,1.060000,1.790000
+148,"QC 2 (Ar 98%, CO2 2%) B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.650000,1.600000,2.710000
+141,"QC 2 (Ar 98%, CO2 2%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",17.556000,10.600000,17.950000
+156,"QC 2 (Ar 98%, CO2 2%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",26.499000,16.000000,27.090000
+134,"QC 2 (Ar 98%, CO2 2%) B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.458000,1.480000,2.510000
+149,"QC 2 (Ar 98%, CO2 2%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.710000,2.240000,3.790000
+142,"QC 2 (Ar 98%, CO2 2%) B80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",28.089000,16.960000,28.710000
+157,"QC 2 (Ar 98%, CO2 2%) B80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",42.399000,25.600000,43.340000
+113,"QC 8 (Ar 92%, CO2 8%)  12*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",205.234000,132.000000,224.720000
+130,"QC 8 (Ar 92%, CO2 8%)  12*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",492.561000,316.800000,539.320000
+114,"QC 8 (Ar 92%, CO2 8%)  16*50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",273.645000,176.000000,299.620000
+129,"QC 8 (Ar 92%, CO2 8%)  16*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",410.467000,264.000000,449.430000
+105,"QC 8 (Ar 92%, CO2 8%)  B10 / 200BAR",377,"Argón Liquido - LAR",3,"UND",3.421000,2.200000,3.750000
+106,"QC 8 (Ar 92%, CO2 8%)  B14 / 200BAR",377,"Argón Liquido - LAR",3,"UND",4.789000,3.080000,5.240000
+107,"QC 8 (Ar 92%, CO2 8%)  B16 / 200BAR",377,"Argón Liquido - LAR",3,"UND",5.473000,3.520000,5.990000
+122,"QC 8 (Ar 92%, CO2 8%)  B16 / 300BAR",377,"Argón Liquido - LAR",3,"UND",8.209000,5.280000,8.990000
+108,"QC 8 (Ar 92%, CO2 8%)  B20 / 200BAR",377,"Argón Liquido - LAR",3,"UND",6.841000,4.400000,7.490000
+109,"QC 8 (Ar 92%, CO2 8%)  B30 / 200BAR",377,"Argón Liquido - LAR",3,"UND",10.262000,6.600000,11.240000
+110,"QC 8 (Ar 92%, CO2 8%)  B40 / 200BAR",377,"Argón Liquido - LAR",3,"UND",13.682000,8.800000,14.980000
+118,"QC 8 (Ar 92%, CO2 8%)  B5 / 300BAR",377,"Argón Liquido - LAR",3,"UND",2.565000,1.650000,2.810000
+104,"QC 8 (Ar 92%, CO2 8%)  B7 / 200BAR",377,"Argón Liquido - LAR",3,"UND",2.394000,1.540000,2.620000
+112,"QC 8 (Ar 92%, CO2 8%)  B80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",27.364000,17.600000,29.960000
+128,"QC 8 (Ar 92%, CO2 8%) 12*50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",307.850000,198.000000,337.080000
+115,"QC 8 (Ar 92%, CO2 8%) 12*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",328.374000,211.200000,359.550000
+116,"QC 8 (Ar 92%, CO2 8%) 16*80 / 200BAR",377,"Argón Liquido - LAR",3,"UND",437.832000,281.600000,479.400000
+131,"QC 8 (Ar 92%, CO2 8%) 16*80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",656.748000,422.400000,719.090000
+120,"QC 8 (Ar 92%, CO2 8%) B10 / 300BAR",377,"Argón Liquido - LAR",3,"UND",5.131000,3.300000,5.620000
+121,"QC 8 (Ar 92%, CO2 8%) B14 / 300BAR",377,"Argón Liquido - LAR",3,"UND",7.183000,4.620000,7.870000
+102,"QC 8 (Ar 92%, CO2 8%) B2 / 200BAR",377,"Argón Liquido - LAR",3,"UND",0.684000,0.440000,0.750000
+117,"QC 8 (Ar 92%, CO2 8%) B2 / 300BAR",377,"Argón Liquido - LAR",3,"UND",1.026000,0.660000,1.120000
+123,"QC 8 (Ar 92%, CO2 8%) B20 / 300BAR",377,"Argón Liquido - LAR",3,"UND",10.262000,6.600000,11.240000
+124,"QC 8 (Ar 92%, CO2 8%) B30 / 300BAR",377,"Argón Liquido - LAR",3,"UND",15.393000,9.900000,16.850000
+125,"QC 8 (Ar 92%, CO2 8%) B40 / 300BAR",377,"Argón Liquido - LAR",3,"UND",20.523000,13.200000,22.470000
+103,"QC 8 (Ar 92%, CO2 8%) B5 / 200BAR",377,"Argón Liquido - LAR",3,"UND",1.710000,1.100000,1.870000
+111,"QC 8 (Ar 92%, CO2 8%) B50 / 200BAR",377,"Argón Liquido - LAR",3,"UND",17.103000,11.000000,18.730000
+126,"QC 8 (Ar 92%, CO2 8%) B50 / 300BAR",377,"Argón Liquido - LAR",3,"UND",25.654000,16.500000,28.090000
+119,"QC 8 (Ar 92%, CO2 8%) B7 / 300BAR",377,"Argón Liquido - LAR",3,"UND",3.592000,2.310000,3.930000
+127,"QC 8 (Ar 92%, CO2 8%) B80 / 300BAR",377,"Argón Liquido - LAR",3,"UND",41.047000,26.400000,44.940000
+185,"Aire Sintético Comprimido (N2 + O2 20%)  B5 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.268000,0.990000,1.210000
+186,"Aire Sintético Comprimido (N2 + O2 20%)  B7 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.375000,1.390000,1.690000
+187,"Aire Sintético Comprimido (N2 + O2 20%)  B10 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.536000,1.980000,2.410000
+188,"Aire Sintético Comprimido (N2 + O2 20%)  B14 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.751000,2.770000,3.380000
+189,"Aire Sintético Comprimido (N2 + O2 20%) B16 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.858000,3.170000,3.860000
+190,"Aire Sintético Comprimido (N2 + O2 20%) B20 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.072000,3.960000,4.830000
+191,"Aire Sintético Comprimido (N2 + O2 20%) B30 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.240000
+192,"Aire Sintético Comprimido  (N2 + O2 20%)  B40 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.145000,7.920000,9.650000
+193,"Aire Sintético Comprimido (N2 + O2 20%)  B50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.681000,9.900000,12.070000
+194,"Aire Sintético Comprimido (N2 + O2 20%) B80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.289000,15.840000,19.310000
+195,"Aire Sintético Comprimido (N2 + O2 20%)  12*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",32.171000,118.800000,144.790000
+196,"Aire Sintético Comprimido (N2 + O2 20%) 16*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",42.895000,158.400000,193.060000
+197,"Aire Sintético Comprimido (N2 + O2 20%) 12*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",51.474000,190.080000,231.670000
+198,"Aire Sintético Comprimido (N2 + O2 20%) 16*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",68.632000,253.440000,308.890000
+199,"Aire Sintético Comprimido B2 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.161000,0.590000,0.730000
+200,"Aire Sintético Comprimido B5 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.402000,1.490000,1.830000
+201,"Aire Sintético Comprimido B7 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.563000,2.080000,2.560000
+202,"Aire Sintético Comprimido B10 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.804000,2.970000,3.660000
+203,"Aire Sintético Comprimido B14 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.126000,4.160000,5.120000
+204,"Aire Sintético Comprimido B16 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.287000,4.750000,5.850000
+205,"Aire Sintético Comprimido B20 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.310000
+206,"Aire Sintético Comprimido B30 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.413000,8.910000,10.970000
+207,"Aire Sintético Comprimido B40 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.217000,11.880000,14.620000
+208,"Aire Sintético Comprimido B50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.021000,14.850000,18.280000
+209,"Aire Sintético Comprimido B80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",6.434000,23.760000,29.240000
+210,"Aire Sintético Comprimido 12*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",48.257000,178.200000,219.300000
+211,"Aire Sintético Comprimido 16*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",64.342000,237.600000,292.400000
+212,"Aire Sintético Comprimido 12*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",77.210000,285.120000,350.880000
+213,"Aire Sintético Comprimido 16*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",102.947000,380.160000,467.840000
+214,"Nitrógeno Industrial B2 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.446000,0.380000,0.450000
+215,"Nitrógeno Industrial B5 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.114000,0.940000,1.110000
+216,"Nitrógeno Industrial B7 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.559000,1.320000,1.560000
+217,"Nitrógeno Industrial B10 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.228000,1.880000,2.230000
+218,"Nitrógeno Industrial B14 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.119000,2.630000,3.120000
+219,"Nitrógeno Industrial B16 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.564000,3.010000,3.560000
+220,"Nitrógeno Industrial B20 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.456000,3.760000,4.460000
+221,"Nitrógeno Industrial B30 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.683000,5.640000,6.680000
+222,"Nitrógeno Industrial B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.911000,7.520000,8.910000
+223,"Nitrógeno Industrial B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",11.139000,9.400000,11.140000
+224,"Nitrógeno Industrial B80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",17.822000,15.040000,17.820000
+225,"Nitrógeno Industrial 12*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",133.668000,112.800000,133.670000
+226,"Nitrógeno Industrial 16*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",178.224000,150.400000,178.220000
+227,"Nitrógeno Industrial 20*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",222.780000,188.000000,222.780000
+228,"Nitrógeno Industrial 12*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",213.869000,180.480000,213.870000
+229,"Nitrógeno Industrial 16*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",285.158000,240.640000,285.160000
+230,"Nitrógeno Industrial B2 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.668000,0.560000,0.670000
+231,"Nitrógeno Industrial B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.671000,1.410000,1.670000
+232,"Nitrógeno Industrial B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.339000,1.970000,2.340000
+233,"Nitrógeno Industrial B10 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.342000,2.820000,3.340000
+234,"Nitrógeno Industrial B14 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.678000,3.950000,4.680000
+235,"Nitrógeno Industrial B16 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",5.347000,4.510000,5.350000
+236,"Nitrógeno Industrial B20 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.683000,5.640000,6.680000
+237,"Nitrógeno Industrial B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.025000,8.460000,10.030000
+238,"Nitrógeno Industrial B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",13.367000,11.280000,13.370000
+239,"Nitrógeno Industrial B50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.709000,14.100000,16.710000
+240,"Nitrógeno Industrial B80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",26.734000,22.560000,26.730000
+241,"Nitrógeno Industrial 12*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",200.502000,169.200000,200.500000
+242,"Nitrógeno Industrial 16*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",267.336000,225.600000,267.340000
+243,"Nitrógeno Industrial 20*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",334.170000,282.000000,334.170000
+244,"Nitrógeno Industrial 12*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",320.803000,270.720000,320.800000
+245,"Nitrógeno Industrial 16*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",427.738000,360.960000,427.740000
+246,"Helio B5 / 200BAR",380,"Helio Liquido",2,"Litros",0.152000,0.910000,0.150000
+247,"Helio B7 / 200BAR",380,"Helio Liquido",2,"Litros",0.213000,1.270000,0.210000
+248,"Helio B10 / 200BAR",380,"Helio Liquido",2,"Litros",0.304000,1.820000,0.300000
+249,"Helio B14 / 200BAR",380,"Helio Liquido",2,"Litros",0.426000,2.550000,0.430000
+250,"Helio B20 / 200BAR",380,"Helio Liquido",2,"Litros",0.608000,3.640000,0.610000
+251,"Helio B30 / 200BAR",380,"Helio Liquido",2,"Litros",0.912000,5.460000,0.910000
+252,"Helio B40 / 200BAR",380,"Helio Liquido",2,"Litros",1.216000,7.280000,1.220000
+253,"Helio B50 / 200BAR",380,"Helio Liquido",2,"Litros",1.520000,9.100000,1.520000
+254,"Helio B5 / 300BAR",380,"Helio Liquido",2,"Litros",0.228000,1.370000,0.230000
+255,"Helio B7 / 300BAR",380,"Helio Liquido",2,"Litros",0.319000,1.910000,0.320000
+256,"Helio B10 / 300BAR",380,"Helio Liquido",2,"Litros",0.456000,2.730000,0.460000
+257,"Helio B14 / 300BAR",380,"Helio Liquido",2,"Litros",0.638000,3.820000,0.640000
+258,"Helio B20 / 300BAR",380,"Helio Liquido",2,"Litros",0.912000,5.460000,0.910000
+259,"Helio B30 / 300BAR",380,"Helio Liquido",2,"Litros",1.368000,8.190000,1.370000
+260,"Helio B40 / 300BAR",380,"Helio Liquido",2,"Litros",1.824000,10.920000,1.820000
+261,"Helio B50 / 300BAR",380,"Helio Liquido",2,"Litros",2.280000,13.650000,2.280000
+262,"MADURGAS (N2 + Etileno 4%) B40 / 150BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.271000,5.760000,6.820000
+263,"MADURGAS (N2 + Etileno 4%) B50 / 150BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.339000,7.200000,8.530000
+264,"MADURGAS (N2 + Etileno 4%) B40 / 200BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.362000,7.680000,9.100000
+265,"MADURGAS (N2 + Etileno 4%) B50 / 200BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.452000,9.600000,11.370000
+266,"MADURGAS (N2 + Etileno 4%) 12*50 / 200BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",5.428000,115.200000,136.480000
+267,"MADURGAS (N2 + Etileno 4%) 16*50 / 200BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",7.238000,153.600000,181.970000
+268,"MADURGAS (N2 + Etileno 4%) B40 / 300BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.543000,11.520000,13.650000
+269,"MADURGAS (N2 + Etileno 4%) B50 / 300BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",0.679000,14.400000,17.060000
+270,"MADURGAS (N2 + Etileno 4%) 12*50 / 300BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",8.142000,172.800000,204.720000
+271,"MADURGAS (N2 + Etileno 4%) 16*50 / 300BAR",407,"ETILENO PURO B50 / 18,5KG LIQUIDO",3,"UND",10.856000,230.400000,272.960000
+272,"NIDRO5 (N2 95% + H2 5%) B5 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.069000,0.950000,1.070000
+273,"NIDRO5 (N2 95% + H2 5%) B7 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.497000,1.330000,1.500000
+274,"NIDRO5 (N2 95% + H2 5%) B10 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.139000,1.900000,2.150000
+275,"NIDRO5 (N2 95% + H2 5%) B14 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.994000,2.660000,3.010000
+276,"NIDRO5 (N2 95% + H2 5%) B20 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.278000,3.800000,4.290000
+277,"NIDRO5 (N2 95% + H2 5%) B30 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.417000,5.700000,6.440000
+278,"NIDRO5 (N2 95% + H2 5%) B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.556000,7.600000,8.590000
+279,"NIDRO5 (N2 95% + H2 5%) B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.695000,9.500000,10.730000
+280,"NIDRO5 (N2 95% + H2 5%) B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.604000,1.430000,1.610000
+281,"NIDRO5 (N2 95% + H2 5%) B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.246000,2.000000,2.250000
+282,"NIDRO5 (N2 95% + H2 5%) B10 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.208000,2.850000,3.220000
+283,"NIDRO5 (N2 95% + H2 5%) B14 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.492000,3.990000,4.510000
+284,"NIDRO5 (N2 95% + H2 5%) B20 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.417000,5.700000,6.440000
+285,"NIDRO5 (N2 95% + H2 5%) B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",9.625000,8.550000,9.660000
+286,"NIDRO5 (N2 95% + H2 5%) B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.042000,14.250000,16.100000
+287,"Aire Sintético Comprimido (N2 + O2 20%)  B10 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.536000,1.980000,2.410000
+288,"Aire Sintético Comprimido (N2 + O2 20%)  B14 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.751000,2.770000,3.380000
+289,"Aire Sintético Comprimido (N2 + O2 20%)  B5 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.268000,0.990000,1.210000
+290,"Aire Sintético Comprimido (N2 + O2 20%)  B50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.681000,9.900000,12.070000
+291,"Aire Sintético Comprimido (N2 + O2 20%)  B7 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.375000,1.390000,1.690000
+292,"Aire Sintético Comprimido (N2 + O2 20%) 12*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",51.474000,190.080000,231.670000
+293,"Aire Sintético Comprimido (N2 + O2 20%) 16*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",42.895000,158.400000,193.060000
+294,"Aire Sintético Comprimido (N2 + O2 20%) 16*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",68.632000,253.440000,308.890000
+295,"Aire Sintético Comprimido (N2 + O2 20%) B16 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.858000,3.170000,3.860000
+296,"Aire Sintético Comprimido (N2 + O2 20%) B2 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.107000,0.400000,0.480000
+297,"Aire Sintético Comprimido (N2 + O2 20%) B20 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.072000,3.960000,4.830000
+298,"Aire Sintético Comprimido (N2 + O2 20%) B30 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.240000
+299,"Aire Sintético Comprimido (N2 + O2 20%) B80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.289000,15.840000,19.310000
+300,"Aire Sintético Comprimido 12*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",48.257000,178.200000,219.300000
+301,"Aire Sintético Comprimido 12*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",77.210000,285.120000,350.880000
+302,"Aire Sintético Comprimido 16*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",64.342000,237.600000,292.400000
+303,"Aire Sintético Comprimido 16*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",102.947000,380.160000,467.840000
+304,"Aire Sintético Comprimido B10 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.804000,2.970000,3.660000
+305,"Aire Sintético Comprimido B14 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.126000,4.160000,5.120000
+306,"Aire Sintético Comprimido B16 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.287000,4.750000,5.850000
+307,"Aire Sintético Comprimido B2 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.161000,0.590000,0.730000
+308,"Aire Sintético Comprimido B20 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.310000
+309,"Aire Sintético Comprimido B30 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.413000,8.910000,10.970000
+310,"Aire Sintético Comprimido B40 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.217000,11.880000,14.620000
+311,"Aire Sintético Comprimido B5 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.402000,1.490000,1.830000
+312,"Aire Sintético Comprimido B50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.021000,14.850000,18.280000
+313,"Aire Sintético Comprimido B7 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.563000,2.080000,2.560000
+314,"Aire Sintético Comprimido B80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",6.434000,23.760000,29.240000
+315,"Oxigeno Industrial 12*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",150.986000,127.200000,150.990000
+316,"Oxigeno Industrial 12*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",227.904000,192.000000,227.900000
+317,"Oxigeno Industrial 12*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",241.578000,203.520000,241.580000
+318,"Oxigeno Industrial 12*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",364.646000,307.200000,364.650000
+319,"Oxigeno Industrial 16*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",201.315000,169.600000,201.320000
+320,"Oxigeno Industrial 16*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",303.872000,256.000000,303.870000
+321,"Oxigeno Industrial 16*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",322.104000,271.360000,322.100000
+322,"Oxigeno Industrial 16*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",486.195000,409.600000,486.200000
+323,"Oxigeno Industrial B 7 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.329000,1.120000,1.330000
+324,"Oxigeno Industrial B10 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.899000,1.600000,1.900000
+325,"Oxigeno Industrial B10 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.516000,2.120000,2.520000
+326,"Oxigeno Industrial B10 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.798000,3.200000,3.800000
+327,"Oxigeno Industrial B14 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.659000,2.240000,2.660000
+328,"Oxigeno Industrial B14 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.523000,2.970000,3.520000
+329,"Oxigeno Industrial B14 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.318000,4.480000,5.320000
+330,"Oxigeno Industrial B16 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.039000,2.560000,3.040000
+331,"Oxigeno Industrial B16 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.026000,3.390000,4.030000
+332,"Oxigeno Industrial B16 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",6.077000,5.120000,6.080000
+333,"Oxigeno Industrial B2 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.380000,0.320000,0.380000
+334,"Oxigeno Industrial B2 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.503000,0.420000,0.500000
+335,"Oxigeno Industrial B2 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.760000,0.640000,0.760000
+336,"Oxigeno Industrial B20 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.798000,3.200000,3.800000
+337,"Oxigeno Industrial B20 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.033000,4.240000,5.030000
+338,"Oxigeno Industrial B20 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.597000,6.400000,7.600000
+339,"Oxigeno Industrial B30 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.698000,4.800000,5.700000
+340,"Oxigeno Industrial B30 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.549000,6.360000,7.550000
+341,"Oxigeno Industrial B30 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",11.395000,9.600000,11.400000
+342,"Oxigeno Industrial B40 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.597000,6.400000,7.600000
+343,"Oxigeno Industrial B40 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",10.066000,8.480000,10.070000
+344,"Oxigeno Industrial B40 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",15.194000,12.800000,15.190000
+345,"Oxigeno Industrial B5 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.950000,0.800000,0.950000
+346,"Oxigeno Industrial B5 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.258000,1.060000,1.260000
+347,"Oxigeno Industrial B5 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.899000,1.600000,1.900000
+348,"Oxigeno Industrial B50 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",9.496000,8.000000,9.500000
+349,"Oxigeno Industrial B50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",12.582000,10.600000,12.580000
+350,"Oxigeno Industrial B50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",18.992000,16.000000,18.990000
+351,"Oxigeno Industrial B7 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.762000,1.480000,1.760000
+352,"Oxigeno Industrial B7 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.659000,2.240000,2.660000
+353,"Oxigeno Industrial B80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",20.132000,16.960000,20.130000
+354,"Oxigeno Industrial B80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",30.387000,25.600000,30.390000
+206,"Aire Sintético Comprimido B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.552000,8.910000,10.970000
+207,"Aire Sintético Comprimido B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",11.403000,11.880000,14.620000
+200,"Aire Sintético Comprimido B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.425000,1.490000,1.830000
+208,"Aire Sintético Comprimido B50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",14.254000,14.850000,18.280000
+201,"Aire Sintético Comprimido B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.996000,2.080000,2.560000
+209,"Aire Sintético Comprimido B80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",22.806000,23.760000,29.240000
+346,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",84.296000,136.800000,196.960000
+361,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",126.444000,205.200000,478.000000
+348,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",134.874000,218.880000,315.140000
+363,"IG541 (Ar 40%, N2 52%, CO2 8%) 12*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",202.311000,328.320000,764.810000
+347,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",112.395000,182.400000,262.620000
+362,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",168.592000,273.600000,637.340000
+364,"IG541 (Ar 40%, N2 52%, CO2 8%) 16*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",269.748000,437.760000,1019.740000
+338,"IG541 (Ar 40%, N2 52%, CO2 8%) B10 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.405000,2.280000,3.280000
+353,"IG541 (Ar 40%, N2 52%, CO2 8%) B10 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.107000,3.420000,7.970000
+339,"IG541 (Ar 40%, N2 52%, CO2 8%) B14 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.967000,3.190000,4.600000
+354,"IG541 (Ar 40%, N2 52%, CO2 8%) B14 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.950000,4.790000,11.150000
+340,"IG541 (Ar 40%, N2 52%, CO2 8%) B16 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.248000,3.650000,5.250000
+355,"IG541 (Ar 40%, N2 52%, CO2 8%) B16 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.372000,5.470000,12.750000
+335,"IG541 (Ar 40%, N2 52%, CO2 8%) B2 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.281000,0.460000,0.660000
+350,"IG541 (Ar 40%, N2 52%, CO2 8%) B2 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.421000,0.680000,1.590000
+341,"IG541 (Ar 40%, N2 52%, CO2 8%) B20 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.810000,4.560000,6.570000
+356,"IG541 (Ar 40%, N2 52%, CO2 8%) B20 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.215000,6.840000,15.930000
+342,"IG541 (Ar 40%, N2 52%, CO2 8%) B30 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.215000,6.840000,9.850000
+357,"IG541 (Ar 40%, N2 52%, CO2 8%) B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.322000,10.260000,23.900000
+343,"IG541 (Ar 40%, N2 52%, CO2 8%) B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",5.620000,9.120000,13.130000
+358,"IG541 (Ar 40%, N2 52%, CO2 8%) B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.430000,13.680000,31.870000
+336,"IG541 (Ar 40%, N2 52%, CO2 8%) B5 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.702000,1.140000,1.640000
+351,"IG541 (Ar 40%, N2 52%, CO2 8%) B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.054000,1.710000,3.980000
+344,"IG541 (Ar 40%, N2 52%, CO2 8%) B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",7.025000,11.400000,16.410000
+359,"IG541 (Ar 40%, N2 52%, CO2 8%) B50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.537000,17.100000,39.830000
+337,"IG541 (Ar 40%, N2 52%, CO2 8%) B7 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.983000,1.600000,2.300000
+352,"IG541 (Ar 40%, N2 52%, CO2 8%) B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.475000,2.390000,5.580000
+345,"IG541 (Ar 40%, N2 52%, CO2 8%) B80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",11.239000,18.240000,26.260000
+360,"IG541 (Ar 40%, N2 52%, CO2 8%) B80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.859000,27.360000,63.730000
+349,"IG541 (Ar 40%, N2 52%, CO2 8%)16*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",179.832000,291.840000,420.190000
+266,"MADURGAS (N2 + Etileno 4%) 12*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",131.052000,115.200000,136.480000
+270,"MADURGAS (N2 + Etileno 4%) 12*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",196.577000,172.800000,204.720000
+267,"MADURGAS (N2 + Etileno 4%) 16*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",174.735000,153.600000,181.970000
+271,"MADURGAS (N2 + Etileno 4%) 16*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",262.103000,230.400000,272.960000
+262,"MADURGAS (N2 + Etileno 4%) B40 / 150BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.553000,5.760000,6.820000
+264,"MADURGAS (N2 + Etileno 4%) B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.737000,7.680000,9.100000
+268,"MADURGAS (N2 + Etileno 4%) B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",13.105000,11.520000,13.650000
+263,"MADURGAS (N2 + Etileno 4%) B50 / 150BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.191000,7.200000,8.530000
+265,"MADURGAS (N2 + Etileno 4%) B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.921000,9.600000,11.370000
+269,"MADURGAS (N2 + Etileno 4%) B50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.381000,14.400000,17.060000
+274,"NIDRO5 (N2 95% + H2 5%) B10 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.139000,1.900000,2.150000
+282,"NIDRO5 (N2 95% + H2 5%) B10 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.208000,2.850000,3.220000
+275,"NIDRO5 (N2 95% + H2 5%) B14 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.994000,2.660000,3.010000
+283,"NIDRO5 (N2 95% + H2 5%) B14 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.492000,3.990000,4.510000
+276,"NIDRO5 (N2 95% + H2 5%) B20 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.278000,3.800000,4.290000
+284,"NIDRO5 (N2 95% + H2 5%) B20 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.417000,5.700000,6.440000
+277,"NIDRO5 (N2 95% + H2 5%) B30 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.417000,5.700000,6.440000
+285,"NIDRO5 (N2 95% + H2 5%) B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",9.625000,8.550000,9.660000
+278,"NIDRO5 (N2 95% + H2 5%) B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.556000,7.600000,8.590000
+286,"NIDRO5 (N2 95% + H2 5%) B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.042000,14.250000,16.100000
+272,"NIDRO5 (N2 95% + H2 5%) B5 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.069000,0.950000,1.070000
+280,"NIDRO5 (N2 95% + H2 5%) B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.604000,1.430000,1.610000
+279,"NIDRO5 (N2 95% + H2 5%) B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.695000,9.500000,10.730000
+273,"NIDRO5 (N2 95% + H2 5%) B7 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.497000,1.330000,1.500000
+281,"NIDRO5 (N2 95% + H2 5%) B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.246000,2.000000,2.250000
+225,"Nitrógeno Industrial 12*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",133.668000,112.800000,133.670000
+241,"Nitrógeno Industrial 12*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",200.502000,169.200000,200.500000
+228,"Nitrógeno Industrial 12*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",213.869000,180.480000,213.870000
+244,"Nitrógeno Industrial 12*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",320.803000,270.720000,320.800000
+226,"Nitrógeno Industrial 16*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",178.224000,150.400000,178.220000
+242,"Nitrógeno Industrial 16*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",267.336000,225.600000,267.340000
+229,"Nitrógeno Industrial 16*80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",285.158000,240.640000,285.160000
+245,"Nitrógeno Industrial 16*80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",427.738000,360.960000,427.740000
+227,"Nitrógeno Industrial 20*50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",222.780000,188.000000,222.780000
+243,"Nitrógeno Industrial 20*50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",334.170000,282.000000,334.170000
+217,"Nitrógeno Industrial B10 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.228000,1.880000,2.230000
+233,"Nitrógeno Industrial B10 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.342000,2.820000,3.340000
+218,"Nitrógeno Industrial B14 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.119000,2.630000,3.120000
+234,"Nitrógeno Industrial B14 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.678000,3.950000,4.680000
+219,"Nitrógeno Industrial B16 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",3.564000,3.010000,3.560000
+235,"Nitrógeno Industrial B16 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",5.347000,4.510000,5.350000
+214,"Nitrógeno Industrial B2 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.446000,0.380000,0.450000
+230,"Nitrógeno Industrial B2 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",0.668000,0.560000,0.670000
+220,"Nitrógeno Industrial B20 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",4.456000,3.760000,4.460000
+236,"Nitrógeno Industrial B20 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.683000,5.640000,6.680000
+221,"Nitrógeno Industrial B30 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",6.683000,5.640000,6.680000
+237,"Nitrógeno Industrial B30 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",10.025000,8.460000,10.030000
+222,"Nitrógeno Industrial B40 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",8.911000,7.520000,8.910000
+238,"Nitrógeno Industrial B40 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",13.367000,11.280000,13.370000
+215,"Nitrógeno Industrial B5 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.114000,0.940000,1.110000
+231,"Nitrógeno Industrial B5 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.671000,1.410000,1.670000
+223,"Nitrógeno Industrial B50 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",11.139000,9.400000,11.140000
+239,"Nitrógeno Industrial B50 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",16.709000,14.100000,16.710000
+216,"Nitrógeno Industrial B7 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",1.559000,1.320000,1.560000
+232,"Nitrógeno Industrial B7 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",2.339000,1.970000,2.340000
+224,"Nitrógeno Industrial B80 / 200BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",17.822000,15.040000,17.820000
+240,"Nitrógeno Industrial B80 / 300BAR",379,"Nitrogeno Liquido - LIN",2,"Litros",26.734000,22.560000,26.730000
+192,"Aire Sintético Comprimido  (N2 + O2 20%)  B40 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.145000,7.920000,9.650000
+195,"Aire Sintético Comprimido (N2 + O2 20%)  12*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",32.171000,118.800000,144.790000
+187,"Aire Sintético Comprimido (N2 + O2 20%)  B10 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.536000,1.980000,2.410000
+188,"Aire Sintético Comprimido (N2 + O2 20%)  B14 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.751000,2.770000,3.380000
+185,"Aire Sintético Comprimido (N2 + O2 20%)  B5 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.268000,0.990000,1.210000
+193,"Aire Sintético Comprimido (N2 + O2 20%)  B50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.681000,9.900000,12.070000
+186,"Aire Sintético Comprimido (N2 + O2 20%)  B7 / 200BAR ",378,"Oxigeno Liquido - LOX",2,"Litros",0.375000,1.390000,1.690000
+197,"Aire Sintético Comprimido (N2 + O2 20%) 12*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",51.474000,190.080000,231.670000
+196,"Aire Sintético Comprimido (N2 + O2 20%) 16*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",42.895000,158.400000,193.060000
+198,"Aire Sintético Comprimido (N2 + O2 20%) 16*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",68.632000,253.440000,308.890000
+189,"Aire Sintético Comprimido (N2 + O2 20%) B16 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.858000,3.170000,3.860000
+184,"Aire Sintético Comprimido (N2 + O2 20%) B2 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.107000,0.400000,0.480000
+190,"Aire Sintético Comprimido (N2 + O2 20%) B20 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.072000,3.960000,4.830000
+191,"Aire Sintético Comprimido (N2 + O2 20%) B30 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.240000
+194,"Aire Sintético Comprimido (N2 + O2 20%) B80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.289000,15.840000,19.310000
+210,"Aire Sintético Comprimido 12*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",48.257000,178.200000,219.300000
+212,"Aire Sintético Comprimido 12*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",77.210000,285.120000,350.880000
+211,"Aire Sintético Comprimido 16*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",64.342000,237.600000,292.400000
+213,"Aire Sintético Comprimido 16*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",102.947000,380.160000,467.840000
+202,"Aire Sintético Comprimido B10 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.804000,2.970000,3.660000
+203,"Aire Sintético Comprimido B14 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.126000,4.160000,5.120000
+204,"Aire Sintético Comprimido B16 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.287000,4.750000,5.850000
+199,"Aire Sintético Comprimido B2 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.161000,0.590000,0.730000
+205,"Aire Sintético Comprimido B20 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.609000,5.940000,7.310000
+206,"Aire Sintético Comprimido B30 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.413000,8.910000,10.970000
+207,"Aire Sintético Comprimido B40 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.217000,11.880000,14.620000
+200,"Aire Sintético Comprimido B5 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.402000,1.490000,1.830000
+208,"Aire Sintético Comprimido B50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.021000,14.850000,18.280000
+201,"Aire Sintético Comprimido B7 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.563000,2.080000,2.560000
+209,"Aire Sintético Comprimido B80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",6.434000,23.760000,29.240000
+22,"Oxigeno Industrial 12*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",150.986000,127.200000,150.990000
+37,"Oxigeno Industrial 12*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",227.904000,192.000000,227.900000
+24,"Oxigeno Industrial 12*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",241.578000,203.520000,241.580000
+39,"Oxigeno Industrial 12*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",364.646000,307.200000,364.650000
+23,"Oxigeno Industrial 16*50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",201.315000,169.600000,201.320000
+38,"Oxigeno Industrial 16*50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",303.872000,256.000000,303.870000
+25,"Oxigeno Industrial 16*80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",322.104000,271.360000,322.100000
+40,"Oxigeno Industrial 16*80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",486.195000,409.600000,486.200000
+3,"Oxigeno Industrial B 7 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.329000,1.120000,1.330000
+4,"Oxigeno Industrial B10 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.899000,1.600000,1.900000
+14,"Oxigeno Industrial B10 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.516000,2.120000,2.520000
+29,"Oxigeno Industrial B10 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.798000,3.200000,3.800000
+5,"Oxigeno Industrial B14 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.659000,2.240000,2.660000
+15,"Oxigeno Industrial B14 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.523000,2.970000,3.520000
+30,"Oxigeno Industrial B14 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.318000,4.480000,5.320000
+6,"Oxigeno Industrial B16 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.039000,2.560000,3.040000
+16,"Oxigeno Industrial B16 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",4.026000,3.390000,4.030000
+31,"Oxigeno Industrial B16 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",6.077000,5.120000,6.080000
+1,"Oxigeno Industrial B2 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.380000,0.320000,0.380000
+11,"Oxigeno Industrial B2 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.503000,0.420000,0.500000
+26,"Oxigeno Industrial B2 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.760000,0.640000,0.760000
+7,"Oxigeno Industrial B20 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",3.798000,3.200000,3.800000
+17,"Oxigeno Industrial B20 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.033000,4.240000,5.030000
+32,"Oxigeno Industrial B20 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.597000,6.400000,7.600000
+8,"Oxigeno Industrial B30 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",5.698000,4.800000,5.700000
+18,"Oxigeno Industrial B30 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.549000,6.360000,7.550000
+33,"Oxigeno Industrial B30 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",11.395000,9.600000,11.400000
+9,"Oxigeno Industrial B40 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",7.597000,6.400000,7.600000
+19,"Oxigeno Industrial B40 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",10.066000,8.480000,10.070000
+34,"Oxigeno Industrial B40 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",15.194000,12.800000,15.190000
+2,"Oxigeno Industrial B5 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",0.950000,0.800000,0.950000
+12,"Oxigeno Industrial B5 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.258000,1.060000,1.260000
+27,"Oxigeno Industrial B5 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.899000,1.600000,1.900000
+10,"Oxigeno Industrial B50 / 150BAR",378,"Oxigeno Liquido - LOX",2,"Litros",9.496000,8.000000,9.500000
+20,"Oxigeno Industrial B50 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",12.582000,10.600000,12.580000
+35,"Oxigeno Industrial B50 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",18.992000,16.000000,18.990000
+13,"Oxigeno Industrial B7 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",1.762000,1.480000,1.760000
+28,"Oxigeno Industrial B7 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",2.659000,2.240000,2.660000
+21,"Oxigeno Industrial B80 / 200BAR",378,"Oxigeno Liquido - LOX",2,"Litros",20.132000,16.960000,20.130000
+36,"Oxigeno Industrial B80 / 300BAR",378,"Oxigeno Liquido - LOX",2,"Litros",30.387000,25.600000,30.390000

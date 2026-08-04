@@ -48,6 +48,7 @@ export function CylinderFillingDialog({
       open={open}
       title={title}
       description={description}
+      zIndexClassName="z-[1100]"
       onClose={() => onOpenChange(false)}
     >
       <form className="space-y-6" onSubmit={onSubmit}>

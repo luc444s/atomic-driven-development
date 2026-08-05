@@ -9,6 +9,7 @@ type DialogProps = {
   actions?: ReactNode;
   onClose: () => void;
   maxWidthClassName?: string;
+  maxHeightClassName?: string;
   zIndexClassName?: string;
 };
 
@@ -20,6 +21,7 @@ export function Dialog({
   actions,
   onClose,
   maxWidthClassName = "max-w-2xl",
+  maxHeightClassName = "max-h-[85vh]",
   zIndexClassName = "z-[1000]",
 }: DialogProps) {
   if (!open) return null;
@@ -31,7 +33,8 @@ export function Dialog({
     >
       <div
         className={cn(
-          "flex max-h-[85vh] w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl",
+          "flex w-full flex-col overflow-hidden rounded-xl border border-border bg-card shadow-xl",
+          maxHeightClassName,
           maxWidthClassName
         )}
         onClick={(event) => event.stopPropagation()}

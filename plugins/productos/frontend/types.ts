@@ -114,6 +114,8 @@ export type ProductTaxConfig = {
 export type ProductAdr = {
   id: string;
   product_id: string;
+  source_product_id: string | null;
+  source_quantity_liters: number | null;
   category: string | null;
   packaging_type: string | null;
   net_weight_kg: number | null;

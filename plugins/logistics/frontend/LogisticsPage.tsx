@@ -1,20 +1,17 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation } from "../../../apps/web/src/lib/react-query";
-import type { CustomerBrief } from "../../crm/frontend/types";
 import { getMovement, listMovementItems } from "./api/movements";
 
 import { Alert } from "../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../apps/web/src/shared/ui/button";
-import { Card, CardContent } from "../../../apps/web/src/shared/ui/card";
-import { ConfirmDialog } from "../../../apps/web/src/shared/ui/confirm-dialog";
-import { DataTable } from "../../../apps/web/src/shared/ui/data-table";
-import { Pagination } from "../../../apps/web/src/shared/ui/pagination";
-import { CustomerSearchDialog } from "../../crm/frontend/components/CustomerSearchDialog";
 import { getProduct } from "../../productos/frontend/api";
 import { getRealWarehouses } from "./api/warehouses";
-import { CylinderStateBadge, getCylinderStateLabel } from "./CylinderStateBadge";
+import { getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
+import { CylinderDialogsHost } from "./cylinders/components/CylinderDialogsHost";
 import { CylinderFiltersCard } from "./cylinders/components/CylinderFiltersCard";
+import { CylinderSummaryCards } from "./cylinders/components/CylinderSummaryCards";
+import { CylinderTableSection } from "./cylinders/components/CylinderTableSection";
 import type { CylinderEntryMode, LogisticsCylinder } from "./api";
 import {
   type CylinderFormState,
@@ -46,18 +43,6 @@ import {
   buildCylinderFillingFormState,
 } from "./cylinders/forms/cylinder-filling";
 import { formatDate, formatDateTime } from "./cylinders/utils/formatters";
-import { CreateCylinderDialog } from "./cylinders/dialogs/create-cylinder-dialog";
-import { CylinderFillingDialog } from "./cylinders/dialogs/CylinderFillingDialog";
-import { EditCylinderDialog } from "./cylinders/dialogs/edit-cylinder-dialog";
-import { CylinderViewSectionDialog } from "./cylinders/dialogs/cylinder-view-section-dialog";
-import { DetailMenuDialog } from "./cylinders/dialogs/DetailMenuDialog";
-import { HydrotestDialog } from "./cylinders/dialogs/HydrotestDialog";
-import { WarrantyDialog } from "./cylinders/dialogs/WarrantyDialog";
-import { RetimbradoDialog } from "./cylinders/dialogs/RetimbradoDialog";
-import { ServiceDialog } from "./cylinders/dialogs/ServiceDialog";
-import { PrintLabelDialog } from "./cylinders/dialogs/PrintLabelDialog";
-import { TransitionDialog } from "./cylinders/dialogs/TransitionDialog";
-import { ScanDialog } from "./cylinders/dialogs/ScanDialog";
 import { useCylinderPermissions } from "./cylinders/hooks/use-cylinder-permissions";
 import { useCylinderData } from "./cylinders/hooks/use-cylinder-data";
 import { useCylinderMutations } from "./cylinders/hooks/use-cylinder-mutations";
@@ -80,6 +65,7 @@ export function LogisticsPage() {
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [isFillingOpen, setIsFillingOpen] = useState(false);
+  const [isCryogenicFillingOpen, setIsCryogenicFillingOpen] = useState(false);
   const [isDetailMenuOpen, setIsDetailMenuOpen] = useState(false);
   const [selectedViewSection, setSelectedViewSection] = useState<"trace" | "ph" | "retimbrados" | "custody" | "services" | "label" | null>(null);
   const [nextState, setNextState] = useState("");
@@ -442,51 +428,29 @@ export function LogisticsPage() {
 
   return (
     <>
-      <CylinderViewSectionDialog
-        open={selectedViewSection !== null}
-        section={selectedViewSection}
-        cylinderId={selectedCylinderId}
-        onBack={closeViewSectionAndGoBack}
-        hydrotestsData={data.hydrotestsQuery.data ?? []}
-        warrantiesData={data.warrantiesQuery.data ?? []}
-        retimbradosData={data.retimbradosQuery.data ?? []}
-        ownershipData={data.ownershipQuery.data ?? []}
-        labelHistoryData={data.labelHistoryQuery.data ?? []}
-        servicesData={data.servicesQuery.data ?? []}
-        scanData={data.filteredScans}
-        labelData={data.labelDataQuery.data ?? null}
-        serviceTypeById={data.serviceTypeById}
-      />
       <LogisticsSection
-      title="Control de envases"
-      description="Ficha completa del cilindro, trazabilidad, retimbrados, etiquetas, servicios y escaneo en campo."
-      actions={permissions.canCreate ? <Button onClick={() => setIsCreateOpen(true)}>Nuevo envase</Button> : null}
-    >
+        title="Control de envases"
+        description="Ficha completa del cilindro, trazabilidad, retimbrados, etiquetas, servicios y escaneo en campo."
+        actions={
+          <div className="flex items-center gap-3">
+            {permissions.canUpdate ? (
+              <Button onClick={() => setIsCryogenicFillingOpen(true)}>Llenado</Button>
+            ) : null}
+            {permissions.canCreate ? (
+              <Button variant="secondary" onClick={() => setIsCreateOpen(true)}>
+                Nuevo envase
+              </Button>
+            ) : null}
+          </div>
+        }
+      >
       {data.hasMainError ? (
         <Alert title="No se pudo cargar la vista principal">
           Revisa permisos o conectividad con el backend del plugin.
         </Alert>
       ) : null}
 
-      <div className="overflow-x-auto">
-        <div className="flex min-w-max gap-3">
-          {[
-            "CREADO_VACIO",
-            "EN_ALMACEN_VACIO",
-            "LLENADO_OK",
-            "EN_RUTA",
-            "EN_CLIENTE_LLENO",
-            "OBSERVADO",
-          ].map((state) => (
-            <Card key={state} className="min-w-40">
-              <CardContent className="space-y-2 p-4">
-                <CylinderStateBadge state={state} />
-                <p className="text-2xl font-semibold text-foreground">{data.summaryByState.get(state) ?? 0}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
+      <CylinderSummaryCards summaryByState={data.summaryByState} />
 
       <CylinderFiltersCard
         search={search}
@@ -503,139 +467,47 @@ export function LogisticsPage() {
         }}
       />
 
-      <DataTable
-        columns={[
-          {
-            key: "serial",
-            header: "Envase",
-            render: (row) => (
-              <div className="space-y-1">
-                <button
-                  type="button"
-                  onClick={() => openDetail(row)}
-                  className="text-left font-medium text-cyan-300 hover:text-cyan-200"
-                >
-                  {row.serial}
-                </button>
-                <p className="text-xs text-muted-foreground">{row.description || "Sin descripción"}</p>
-                <p className="text-xs text-muted-foreground">{row.barcode2 || row.barcode1 || "Sin barcode"}</p>
-              </div>
-            ),
-          },
-          {
-            key: "gas",
-            header: "Gas / marca",
-            render: (row) => (
-              <div className="space-y-1 text-sm text-foreground">
-                <p>{data.productById.get(row.product_id ?? "") || data.gasById.get(row.gas_group_id ?? "") || "Sin gas"}</p>
-                <p className="text-xs text-muted-foreground">{data.brandById.get(row.brand_id ?? "") || "Sin marca"}</p>
-              </div>
-            ),
-          },
-          {
-            key: "state",
-            header: "Estado",
-            render: (row) => <CylinderStateBadge state={row.current_state} />,
-          },
-          {
-            key: "ph",
-            header: "PH",
-            render: (row) => (
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <p>PH: {formatDate(row.next_hydrotest_date)}</p>
-                {row.is_medical ? <p className="font-medium text-amber-500">MEDICINAL</p> : null}
-              </div>
-            ),
-          },
-          {
-            key: "location",
-            header: "Ubicación",
-            render: (row) => (
-              <span className="text-sm text-foreground">
-                {row.location_context || row.location || "-"}
-              </span>
-            ),
-          },
-          {
-            key: "actions",
-            header: "Acciones",
-            render: (row) => (
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => openDetail(row)}>
-                  Ver ficha
-                </Button>
-              </div>
-            ),
-          },
-        ]}
+      <CylinderTableSection
         rows={data.cylindersQuery.data?.items ?? []}
-        rowKey={(row) => row.id}
-        emptyMessage="Aún no hay envases registrados."
-      />
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-muted-foreground">
-          {data.cylindersQuery.data
-            ? `${data.cylindersQuery.data.pagination.total} envases`
-            : "Cargando envases..."}
-        </p>
-        <Pagination
-          page={data.cylindersQuery.data?.pagination.page ?? page}
-          totalPages={data.cylindersQuery.data?.pagination.total_pages ?? 1}
-          onChange={setPage}
-        />
-      </div>
-
-      <CreateCylinderDialog
-        open={isCreateOpen}
-        onOpenChange={(open) => {
-          setIsCreateOpen(open);
-          if (!open) {
-            resetCreateDialog();
-          }
-        }}
-        cylinderForm={cylinderForm}
-        onCylinderFormChange={handleCylinderFormChange}
-        createMeta={createMeta}
-        onCreateMetaChange={setCreateMeta}
-        gasOptions={data.gasOptions}
-        warehouseOptions={warehouseOptions}
-        isPending={mutations.createMutation.isPending}
-        error={panelError}
-        onSubmit={handleCreateCylinder}
-        compactMode={scanFallbackHint !== null}
-        compactHint={scanFallbackHint}
-      />
-
-      <CylinderFillingDialog
-        open={isFillingOpen}
-        mode={fillingMode}
-        cylinder={selectedCylinder}
-        form={fillingForm}
-        warehouseOptions={warehouseOptions}
-        error={detailError}
-        isPending={
-          fillingMode === "fill"
-            ? mutations.fillMutation.isPending
-            : mutations.vacateMutation.isPending
-        }
-        onOpenChange={setIsFillingOpen}
-        onFormChange={setFillingForm}
-        onSubmit={handleCylinderFilling}
-      />
-
-      <DetailMenuDialog
-        selectedCylinder={selectedCylinder}
-        isDetailMenuOpen={isDetailMenuOpen}
-        detailError={detailError}
+        total={data.cylindersQuery.data?.pagination.total}
+        page={data.cylindersQuery.data?.pagination.page ?? page}
+        totalPages={data.cylindersQuery.data?.pagination.total_pages ?? 1}
         productById={data.productById}
         gasById={data.gasById}
         brandById={data.brandById}
-        canUpdate={permissions.canUpdate}
-        canMaintenance={permissions.canMaintenance}
-        canTransition={permissions.canTransition}
-        canRetimbrado={permissions.canRetimbrado}
-        canServiceManage={permissions.canServiceManage}
-        canLabelPrint={permissions.canLabelPrint}
+        onOpenDetail={openDetail}
+        onPageChange={setPage}
+        formatDate={formatDate}
+      />
+
+      <CylinderDialogsHost
+        selectedViewSection={selectedViewSection}
+        selectedCylinderId={selectedCylinderId}
+        closeViewSectionAndGoBack={closeViewSectionAndGoBack}
+        data={data}
+        permissions={permissions}
+        selectedCylinder={selectedCylinder}
+        detailError={detailError}
+        panelError={panelError}
+        warehouseOptions={warehouseOptions}
+        resetCreateDialog={resetCreateDialog}
+        isCreateOpen={isCreateOpen}
+        setIsCreateOpen={setIsCreateOpen}
+        cylinderForm={cylinderForm}
+        handleCylinderFormChange={handleCylinderFormChange}
+        createMeta={createMeta}
+        setCreateMeta={setCreateMeta}
+        handleCreateCylinder={handleCreateCylinder}
+        scanFallbackHint={scanFallbackHint}
+        isCryogenicFillingOpen={isCryogenicFillingOpen}
+        setIsCryogenicFillingOpen={setIsCryogenicFillingOpen}
+        isFillingOpen={isFillingOpen}
+        fillingMode={fillingMode}
+        fillingForm={fillingForm}
+        setIsFillingOpen={setIsFillingOpen}
+        setFillingForm={setFillingForm}
+        handleCylinderFilling={handleCylinderFilling}
+        isDetailMenuOpen={isDetailMenuOpen}
         openEditDialog={openEditDialog}
         openFillingDialog={openFillingDialog}
         setIsHydrotestOpen={setIsHydrotestOpen}
@@ -649,109 +521,48 @@ export function LogisticsPage() {
         closeDetailContext={closeDetailContext}
         formatDate={formatDate}
         formatDateTime={formatDateTime}
-      />
-
-      <EditCylinderDialog
-        open={isEditOpen}
-        onOpenChange={setIsEditOpen}
-        cylinderForm={cylinderForm}
-        onCylinderFormChange={handleCylinderFormChange}
-        gasOptions={data.gasOptions}
-        isPending={mutations.updateMutation.isPending}
-        serial={selectedCylinder?.serial ?? ""}
-        onSubmit={handleUpdateCylinder}
-      />
-
-      <HydrotestDialog
+        isEditOpen={isEditOpen}
+        setIsEditOpen={setIsEditOpen}
+        handleUpdateCylinder={handleUpdateCylinder}
         isHydrotestOpen={isHydrotestOpen}
-        setIsHydrotestOpen={setIsHydrotestOpen}
         hydrotestForm={hydrotestForm}
         setHydrotestForm={setHydrotestForm}
         handleHydrotest={handleHydrotest}
-        hydrotestMutation={mutations.hydrotestMutation}
-      />
-
-      <WarrantyDialog
         isWarrantyOpen={isWarrantyOpen}
-        setIsWarrantyOpen={setIsWarrantyOpen}
         warrantyForm={warrantyForm}
         setWarrantyForm={setWarrantyForm}
         handleWarranty={handleWarranty}
-        warrantyMutation={mutations.warrantyMutation}
+        isWarrantyCustomerSearchOpen={isWarrantyCustomerSearchOpen}
         setIsWarrantyCustomerSearchOpen={setIsWarrantyCustomerSearchOpen}
-      />
-
-      <CustomerSearchDialog
-        open={isWarrantyCustomerSearchOpen}
-        onOpenChange={setIsWarrantyCustomerSearchOpen}
-        onSelect={(customer: CustomerBrief) =>
-          setWarrantyForm((current) => ({ ...current, customer_id: customer.id, customer_name: customer.display_name }))
-        }
-      />
-
-      <RetimbradoDialog
         isRetimbradoOpen={isRetimbradoOpen}
-        setIsRetimbradoOpen={setIsRetimbradoOpen}
         retimbradoForm={retimbradoForm}
         setRetimbradoForm={setRetimbradoForm}
         handleRetimbrado={handleRetimbrado}
-        retimbradoMutation={mutations.retimbradoMutation}
-      />
-
-      <ServiceDialog
         isServiceOpen={isServiceOpen}
-        setIsServiceOpen={setIsServiceOpen}
         serviceForm={serviceForm}
         setServiceForm={setServiceForm}
         handleService={handleService}
-        serviceMutation={mutations.serviceMutation}
-        serviceTypesQuery={data.serviceTypesQuery}
-      />
-
-      <PrintLabelDialog
         isPrintLabelOpen={isPrintLabelOpen}
-        setIsPrintLabelOpen={setIsPrintLabelOpen}
         printLabelForm={printLabelForm}
         setPrintLabelForm={setPrintLabelForm}
         handlePrintLabel={handlePrintLabel}
-        printLabelMutation={mutations.printLabelMutation}
-      />
-
-      <TransitionDialog
         isTransitionOpen={isTransitionOpen}
-        setIsTransitionOpen={setIsTransitionOpen}
         nextState={nextState}
         setNextState={setNextState}
         handleTransition={handleTransition}
-        transitionMutation={mutations.transitionMutation}
-        transitionsQuery={data.transitionsQuery}
         getCylinderStateLabel={getCylinderStateLabel}
-      />
-
-      <ScanDialog
         isScanOpen={isScanOpen}
-        setIsScanOpen={setIsScanOpen}
         scanForm={scanForm}
         setScanForm={setScanForm}
         handleScan={handleScan}
-        scanMutation={mutations.scanMutation}
-        fallbackMessage={scanFallbackAvailable ? scanFallbackHint : null}
-        onOpenRegisterFallback={scanFallbackAvailable ? openScanFallbackCreate : undefined}
+        scanFallbackAvailable={scanFallbackAvailable}
+        openScanFallbackCreate={openScanFallbackCreate}
+        confirmDelete={confirmDelete}
+        setConfirmDelete={setConfirmDelete}
+        mutations={mutations}
       />
 
-      <ConfirmDialog
-        open={confirmDelete !== null}
-        onClose={() => setConfirmDelete(null)}
-        onConfirm={() => {
-          confirmDelete?.onConfirm();
-          setConfirmDelete(null);
-        }}
-        title="Confirmar eliminación"
-        description="¿Estás seguro de eliminar este servicio?"
-        destructive
-        confirmLabel="Eliminar"
-      />
-    </LogisticsSection>
+      </LogisticsSection>
     </>
   );
 }

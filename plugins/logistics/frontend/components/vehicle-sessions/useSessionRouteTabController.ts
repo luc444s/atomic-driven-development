@@ -18,6 +18,7 @@ import {
   logisticsKeys,
   regenerateSessionWaybill,
   resolveRouteIncident,
+  selectLoadSerial,
   upsertRouteStopResult,
 } from "../../api";
 import { buildCorrectionContext, buildCustomerOptions, buildRouteOperationOptions, buildStopOptions, directionOptions, incidentOptions, operationOptions } from "./session-route-tab-view";
@@ -33,6 +34,7 @@ type Props = {
 export function useSessionRouteTabController({ open, routeId, sessionId, sessionStatus }: Props) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [fastSerialError, setFastSerialError] = useState<string | null>(null);
 
   const stopsQuery = useQuery({
     queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
@@ -137,8 +139,8 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
       return confirmRouteEvent(sessionId, {
         route_stop_id: selectedStopId,
         context_type: resolvedContextType,
-        customer_id: resolvedContextType === "CUSTOMER_EMERGENCY" ? uiState.contextCustomerId || null : null,
-        warehouse_id: resolvedContextType === "WAREHOUSE_EMERGENCY" ? uiState.contextWarehouseId || null : null,
+        customer_id: resolvedContextType === "CUSTOMER" ? uiState.contextCustomerId || null : null,
+        warehouse_id: resolvedContextType === "WAREHOUSE" ? uiState.contextWarehouseId || null : null,
         operation_type: uiState.operationType,
         notes: uiState.operationNotes || null,
         idempotency_key: idempotencyKey,
@@ -306,6 +308,36 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
   const correctionIncident = routeIncidents.find((incident) => incident.id === uiState.correctionIncidentId) ?? null;
   const correctionContext = buildCorrectionContext(correctionIncident, stopOptions, routeOperationOptions);
 
+  async function submitFastSerial() {
+    const serial = uiState.fastSerialInput.trim();
+    if (!serial) return;
+
+    const compLines = compositionQuery.data?.product_lines ?? [];
+    const contextProductId = compLines[0]?.product_id ?? "";
+
+    setFastSerialError(null);
+    try {
+      const result = await selectLoadSerial(sessionId, {
+        product_id: contextProductId,
+        source_warehouse_id: null,
+        selection_context: "LOAD_PLAN",
+        serial,
+      });
+      if (result) {
+        uiState.resetFastSerialInput();
+        const matchingLine = compLines.find((l) => l.product_id === result.product_id);
+        uiState.addDeliveryProduct({
+          product_id: result.product_id,
+          product_name: matchingLine?.product_name ?? result.cylinder_serial,
+          available: matchingLine?.quantity ?? 99,
+          serial: result.cylinder_serial,
+        });
+      }
+    } catch (cause) {
+      setFastSerialError(cause instanceof Error ? cause.message : "No se pudo agregar el serial");
+    }
+  }
+
   return {
     sessionId,
     error,
@@ -332,8 +364,14 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     isCreatingIncident: createIncidentMutation.isPending,
     isResolvingIncident: resolveIncidentMutation.isPending,
     isSavingStopResult: upsertStopResultMutation.isPending,
+    fastSerialError,
     ...uiState,
+    openEventModal: () => {
+      const defaultStopId = stopOptions[0]?.value ?? "";
+      uiState.openEventModal(defaultStopId || undefined);
+    },
     submitRouteEvent,
+    submitFastSerial,
     createIncident,
     confirmResolveIncident,
     closeEventModal,

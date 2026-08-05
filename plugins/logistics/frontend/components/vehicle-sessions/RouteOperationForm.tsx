@@ -16,7 +16,7 @@ export type RouteSelectOption = {
   label: string;
 };
 
-export type RouteContextType = "STOP" | "CUSTOMER_EMERGENCY" | "WAREHOUSE_EMERGENCY";
+export type RouteContextType = "STOP" | "CUSTOMER" | "WAREHOUSE";
 export type RouteDraftItem = {
   product_id: string;
   product_name: string;
@@ -30,6 +30,12 @@ export type RouteCorrectionContext = {
   incidentType: string;
   stopLabel: string;
   relatedOperationLabel: string | null;
+};
+
+type CompositionLine = {
+  product_id: string;
+  product_name: string;
+  quantity: number;
 };
 
 type Props = {
@@ -47,6 +53,9 @@ type Props = {
   operationOptions: RouteSelectOption[];
   directionOptions: RouteSelectOption[];
   correctionContext: RouteCorrectionContext | null;
+  composition: CompositionLine[];
+  fastSerialInput: string;
+  fastSerialError: string | null;
   isPending: boolean;
   onOperationTypeChange: (value: string) => void;
   onRouteStopChange: (value: string) => void;
@@ -60,6 +69,9 @@ type Props = {
   onRemoveDraftItem: (index: number) => void;
   onCancelCorrection: () => void;
   onSubmit: () => void;
+  onAddDeliveryProduct: (product: { product_id: string; product_name: string; available: number; serial?: string }) => void;
+  onFastSerialChange: (value: string) => void;
+  onFastSerialSubmit: () => void;
 };
 
 export function RouteOperationForm({
@@ -77,6 +89,9 @@ export function RouteOperationForm({
   operationOptions,
   directionOptions,
   correctionContext,
+  composition,
+  fastSerialInput,
+  fastSerialError,
   isPending,
   onOperationTypeChange,
   onRouteStopChange,
@@ -90,10 +105,13 @@ export function RouteOperationForm({
   onRemoveDraftItem,
   onCancelCorrection,
   onSubmit,
+  onAddDeliveryProduct,
+  onFastSerialChange,
+  onFastSerialSubmit,
 }: Props) {
   const usesStopContext = Boolean(routeStopId);
-  const showCustomerContext = !usesStopContext && contextType === "CUSTOMER_EMERGENCY";
-  const showWarehouseContext = !usesStopContext && contextType === "WAREHOUSE_EMERGENCY";
+  const showCustomerContext = !usesStopContext && contextType === "CUSTOMER";
+  const showWarehouseContext = !usesStopContext && contextType === "WAREHOUSE";
 
   return (
     <Card>
@@ -157,8 +175,8 @@ export function RouteOperationForm({
                       value={contextType}
                       onChange={(value) => onContextTypeChange(value as RouteContextType)}
                       options={[
-                        { value: "CUSTOMER_EMERGENCY", label: "Cliente emergencia" },
-                        { value: "WAREHOUSE_EMERGENCY", label: "Almacén emergencia" },
+                        { value: "CUSTOMER", label: "Cliente" },
+                        { value: "WAREHOUSE", label: "Almacén" },
                       ]}
                     />
                   </label>
@@ -197,121 +215,201 @@ export function RouteOperationForm({
               />
             </label>
 
-            <div className="space-y-2 rounded-xl border border-border p-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {operationType === "EXCHANGE" ? (
-                  <>
+            <div className="space-y-3 rounded-xl border border-border p-3">
+              {operationType === "DELIVERY" ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      value={fastSerialInput}
+                      onChange={(event) => onFastSerialChange(event.target.value)}
+                      onKeyDown={(event) => { if (event.key === "Enter") onFastSerialSubmit(); }}
+                      placeholder="Escanear o escribir serial"
+                      className="flex-1"
+                    />
+                    <Button type="button" variant="secondary" onClick={onFastSerialSubmit} disabled={!fastSerialInput.trim()}>
+                      Agregar
+                    </Button>
+                  </div>
+                  {fastSerialError ? (
+                    <p className="text-sm text-destructive">{fastSerialError}</p>
+                  ) : null}
+
+                  {composition.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {composition.map((line) => (
+                        <button
+                          key={line.product_id}
+                          type="button"
+                          className="flex min-w-[120px] flex-col items-center rounded-lg border border-border px-3 py-2 text-center transition hover:border-primary hover:bg-accent"
+                          onClick={() =>
+                            onAddDeliveryProduct({
+                              product_id: line.product_id,
+                              product_name: line.product_name,
+                              available: line.quantity,
+                            })
+                          }
+                        >
+                          <span className="text-xs font-medium text-foreground">{line.product_name}</span>
+                          <span className="text-xs text-muted-foreground">{line.quantity} disponibles</span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin carga en el camion.</p>
+                  )}
+
+                  {draftItems.length ? (
+                    <div className="space-y-2 border-t border-border pt-3">
+                      <p className="text-sm font-medium text-foreground">Entregado</p>
+                      {draftItems.map((item, index) => (
+                        <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.2fr_0.8fr_auto]">
+                          <div className="text-sm text-foreground">{item.product_name}</div>
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            value={item.quantity}
+                            onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
+                          />
+                          <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
+                            Quitar
+                          </Button>
+                          <div className="md:col-span-3 flex items-center justify-between gap-2">
+                            <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
+                              Seriales
+                            </Button>
+                            <span className="text-xs text-muted-foreground">
+                              {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin lineas para entregar.</p>
+                  )}
+                </>
+              ) : operationType === "EXCHANGE" ? (
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
                     <Button type="button" variant="secondary" onClick={() => onOpenProductSearch("OUT")}>
                       Agregar entregado
                     </Button>
                     <Button type="button" variant="secondary" onClick={() => onOpenProductSearch("IN")}>
                       Agregar recogido
                     </Button>
-                  </>
-                ) : (
-                  <Button type="button" variant="secondary" onClick={() => onOpenProductSearch()}>
-                    Agregar producto
-                  </Button>
-                )}
-              </div>
-              {draftItems.length ? (
-                <div className="space-y-2">
-                  {operationType === "EXCHANGE" ? (
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Entregado</p>
-                        {draftItems.filter((item) => item.direction === "OUT").length ? (
-                          draftItems
-                            .map((item, index) => ({ item, index }))
-                            .filter(({ item }) => item.direction === "OUT")
-                            .map(({ item, index }) => (
-                              <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.2fr_0.8fr_auto]">
-                                <div className="text-sm text-foreground">{item.product_name}</div>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="0.001"
-                                  value={item.quantity}
-                                  onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
-                                />
-                                <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
-                                  Quitar
-                                </Button>
-                                <div className="md:col-span-3 flex items-center justify-between gap-2">
-                                  <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
-                                    Escanear seriales
+                  </div>
+                  {draftItems.length ? (
+                    <div className="space-y-2">
+                      <div className="grid gap-4 md:grid-cols-2">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-foreground">Entregado</p>
+                          {draftItems.filter((item) => item.direction === "OUT").length ? (
+                            draftItems
+                              .map((item, index) => ({ item, index }))
+                              .filter(({ item }) => item.direction === "OUT")
+                              .map(({ item, index }) => (
+                                <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.2fr_0.8fr_auto]">
+                                  <div className="text-sm text-foreground">{item.product_name}</div>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.001"
+                                    value={item.quantity}
+                                    onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
+                                  />
+                                  <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
+                                    Quitar
                                   </Button>
-                                  <span className="text-xs text-muted-foreground">
-                                    {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
-                                  </span>
+                                  <div className="md:col-span-3 flex items-center justify-between gap-2">
+                                    <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
+                                      Escanear seriales
+                                    </Button>
+                                    <span className="text-xs text-muted-foreground">
+                                      {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
+                                    </span>
+                                  </div>
                                 </div>
-                              </div>
-                            ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Sin líneas entregadas.</p>
-                        )}
-                      </div>
-                      <div className="space-y-2">
-                        <p className="text-sm font-medium text-foreground">Recogido</p>
-                        {draftItems.filter((item) => item.direction === "IN").length ? (
-                          draftItems
-                            .map((item, index) => ({ item, index }))
-                            .filter(({ item }) => item.direction === "IN")
-                            .map(({ item, index }) => (
-                              <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.2fr_0.8fr_auto]">
-                                <div className="text-sm text-foreground">{item.product_name}</div>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="0.001"
-                                  value={item.quantity}
-                                  onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
-                                />
-                                <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
-                                  Quitar
-                                </Button>
-                              </div>
-                            ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Sin líneas recogidas.</p>
-                        )}
+                              ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Sin lineas entregadas.</p>
+                          )}
+                        </div>
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium text-foreground">Recogido</p>
+                          {draftItems.filter((item) => item.direction === "IN").length ? (
+                            draftItems
+                              .map((item, index) => ({ item, index }))
+                              .filter(({ item }) => item.direction === "IN")
+                              .map(({ item, index }) => (
+                                <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.2fr_0.8fr_auto]">
+                                  <div className="text-sm text-foreground">{item.product_name}</div>
+                                  <Input
+                                    type="number"
+                                    min="0"
+                                    step="0.001"
+                                    value={item.quantity}
+                                    onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
+                                  />
+                                  <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
+                                    Quitar
+                                  </Button>
+                                </div>
+                              ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground">Sin lineas recogidas.</p>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ) : (
-                    draftItems.map((item, index) => (
-                      <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.4fr_0.8fr_0.8fr_auto]">
-                        <div className="text-sm text-foreground">{item.product_name}</div>
-                        <Select
-                          value={operationType === "DELIVERY" ? "OUT" : operationType === "PICKUP" ? "IN" : item.direction}
-                          onChange={(value) => onUpdateDraftItem(index, { direction: value as "OUT" | "IN" })}
-                          options={directionOptions}
-                        />
-                        <Input
-                          type="number"
-                          min="0"
-                          step="0.001"
-                          value={item.quantity}
-                          onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
-                        />
-                        <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
-                          Quitar
-                        </Button>
-                        {operationType === "PICKUP" || item.direction === "IN" ? (
-                          <div className="md:col-span-4 flex items-center justify-between gap-2">
-                            <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
-                              Escanear seriales
-                            </Button>
-                            <span className="text-xs text-muted-foreground">
-                              {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
-                            </span>
-                          </div>
-                        ) : null}
-                      </div>
-                    ))
+                    <p className="text-sm text-muted-foreground">Sin lineas todavia.</p>
                   )}
-                </div>
+                </>
               ) : (
-                <p className="text-sm text-muted-foreground">Sin líneas todavía.</p>
+                <>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button type="button" variant="secondary" onClick={() => onOpenProductSearch()}>
+                      Agregar producto
+                    </Button>
+                  </div>
+                  {draftItems.length ? (
+                    <div className="space-y-2">
+                      {draftItems.map((item, index) => (
+                        <div key={`${item.product_id}-${index}`} className="grid gap-2 rounded-lg border border-border p-3 md:grid-cols-[1.4fr_0.8fr_0.8fr_auto]">
+                          <div className="text-sm text-foreground">{item.product_name}</div>
+                          <Select
+                            value={operationType === "PICKUP" ? "IN" : item.direction}
+                            onChange={(value) => onUpdateDraftItem(index, { direction: value as "OUT" | "IN" })}
+                            options={directionOptions}
+                          />
+                          <Input
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            value={item.quantity}
+                            onChange={(event) => onUpdateDraftItem(index, { quantity: event.target.value })}
+                          />
+                          <Button type="button" variant="secondary" onClick={() => onRemoveDraftItem(index)}>
+                            Quitar
+                          </Button>
+                          {item.direction === "IN" ? (
+                            <div className="md:col-span-4 flex items-center justify-between gap-2">
+                              <Button type="button" variant="secondary" onClick={() => onOpenSerialScanner(index)}>
+                                Escanear seriales
+                              </Button>
+                              <span className="text-xs text-muted-foreground">
+                                {item.selected_serials_count}/{Number(item.quantity || "0") || 0}
+                              </span>
+                            </div>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">Sin lineas todavia.</p>
+                  )}
+                </>
               )}
             </div>
 

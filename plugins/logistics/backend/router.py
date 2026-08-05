@@ -27,26 +27,7 @@ from plugins.logistics.backend.schemas import (
     AgendaTaskRead,
     AgendaTaskTypeRead,
     AgendaTaskUpdateRequest,
-    CylinderCreateRequest,
-    CylinderFillRequest,
-    CylinderLabelDataRead,
-    CylinderLabelHistoryRead,
-    CylinderOwnershipRead,
-    CylinderPageRead,
-    CylinderRead,
-    CylinderRetimbradoCreateRequest,
-    CylinderRetimbradoRead,
-    CylinderServiceCreateRequest,
-    CylinderServiceRead,
-    CylinderServiceUpdateRequest,
-    CylinderStateLogRead,
     CylinderStateRead,
-    CylinderSummaryItem,
-    CylinderTransitionRead,
-    CylinderTransitionRequest,
-    CylinderUpdateRequest,
-    CylinderVacateRequest,
-    CylinderWeightRead,
     DeliveryPointCreateRequest,
     DeliveryPointRead,
     DeliveryPointUpdateRequest,
@@ -57,8 +38,6 @@ from plugins.logistics.backend.schemas import (
     DriverParametersUpsertRequest,
     EquipmentCreateRequest,
     EquipmentRead,
-    HydrostaticTestCreateRequest,
-    HydrostaticTestRead,
     IncidentReasonRead,
     LoadBulkCreateRequest,
     LoadConfirmRequest,
@@ -76,12 +55,6 @@ from plugins.logistics.backend.schemas import (
     MovementStatusHistoryRead,
     MovementTypeRead,
     MovementUpdateRequest,
-    OrderCreateRequest,
-    OrderItemCreateRequest,
-    OrderItemRead,
-    OrderItemUpdateRequest,
-    OrderRead,
-    OrderUpdateRequest,
     PlanningGeneratePreloadRequest,
     PlanningPendingOrderRead,
     PlanningPlanOrderRequest,
@@ -90,7 +63,6 @@ from plugins.logistics.backend.schemas import (
     PlanningPreloadRead,
     PlanningStockSummaryItem,
     PlanningStockSummaryRequest,
-    PrintLabelRequest,
     ProductContentRead,
     ReceptionIncidentCreateRequest,
     ReceptionIncidentRead,
@@ -111,7 +83,6 @@ from plugins.logistics.backend.schemas import (
     ScanRequest,
     ServiceTypeRead,
     StockBridgeLogRead,
-    TraceabilityPagination,
     TransferAlbaranRead,
     VehicleCreateRequest,
     VehicleDeliveryPointCreateRequest,
@@ -123,10 +94,7 @@ from plugins.logistics.backend.schemas import (
     VehicleUpdateRequest,
     WarehouseCreateRequest,
     WarehouseRead,
-    WarehouseSerializedCylinderSummaryItem,
     WarehouseUpdateRequest,
-    WarrantyCreateRequest,
-    WarrantyRead,
     WaybillRead,
     WaybillSummaryRead,
 )
@@ -147,21 +115,6 @@ from plugins.logistics.backend.services.catalog import (
     list_vehicles_catalog,
     list_warehouses_catalog,
 )
-from plugins.logistics.backend.services.cylinders import (
-    create_cylinder,
-    fill_cylinder,
-    get_allowed_transitions,
-    get_cylinder,
-    get_cylinder_by_serial,
-    list_cylinder_trace,
-    list_cylinders,
-    list_cylinders_page,
-    summarize_cylinders,
-    summarize_serialized_cylinders_by_warehouse,
-    transition_cylinder,
-    update_cylinder,
-    vacate_cylinder,
-)
 from plugins.logistics.backend.services.dispatch import (
     assign_dispatch_guide,
     close_dispatch,
@@ -176,33 +129,17 @@ from plugins.logistics.backend.services.documents import (
     build_waybill,
     build_waybill_summary,
 )
-from plugins.logistics.backend.services.envase import (
-    build_label_data,
-    create_cylinder_service,
-    create_retimbrado,
-    delete_cylinder_service,
-    get_cylinder_service,
-    list_cylinder_services,
-    list_label_history,
-    list_ownership_history,
-    list_retimbrados,
-    print_label,
-    update_cylinder_service,
-)
 from plugins.logistics.backend.services.extensions import (
     assign_equipment_to_movement,
     build_load_weight_summary,
     create_adr_incompatibility,
     create_equipment,
-    cylinder_to_read,
     delete_adr_incompatibility,
     get_adr_product_config,
     get_agenda_daily_summary,
-    get_cylinder_weight,
     get_product_content,
     link_vehicle_delivery_point,
     list_adr_incompatibilities,
-    list_available_cylinders_with_weight,
     list_driver_parameters,
     list_eligible_vehicles_for_movement,
     list_eligible_vehicles_for_route,
@@ -220,12 +157,6 @@ from plugins.logistics.backend.services.extensions import (
     upsert_adr_product_config,
     upsert_driver_parameters,
 )
-from plugins.logistics.backend.services.extras import (
-    create_hydrotest,
-    create_warranty,
-    list_hydrotests,
-    list_warranties,
-)
 from plugins.logistics.backend.services.movements import (
     cancel_movement,
     compute_stock_sync_status,
@@ -237,17 +168,7 @@ from plugins.logistics.backend.services.movements import (
     list_movements,
     update_movement,
 )
-from plugins.logistics.backend.services.orders import (
-    create_order,
-    create_order_item,
-    delete_order_item,
-    get_order,
-    get_order_item,
-    list_order_items,
-    list_orders,
-    update_order,
-    update_order_item,
-)
+from plugins.logistics.backend.services.orders import get_order
 from plugins.logistics.backend.services.planning import (
     accept_preload,
     build_preload_read,
@@ -384,34 +305,6 @@ def _raise_service_error(exc: Exception) -> Never:
     raise exc
 
 
-def _resolve_active_warehouse_id(tenant_context: TenantContext) -> str:
-    warehouse_ids = tenant_context.current_warehouse_ids
-    if warehouse_ids is None or len(warehouse_ids) != 1:
-        raise ValueError(
-            "No se pudo resolver un almacen activo unico para el usuario. Ajusta el contexto operativo antes de crear el envase."
-        )
-    return warehouse_ids[0]
-
-
-def _resolve_entry_warehouse_id(
-    db: Session,
-    tenant_context: TenantContext,
-    warehouse_id: str | None,
-) -> str:
-    if warehouse_id:
-        if not tenant_context.has_warehouse_access(warehouse_id):
-            raise ValueError("No tienes acceso al almacen seleccionado para el alta operativa")
-        warehouse = get_warehouse(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            warehouse_id=warehouse_id,
-        )
-        if warehouse is None:
-            raise LookupError("Warehouse not found")
-        return warehouse.id
-    return _resolve_active_warehouse_id(tenant_context)
-
-
 @router.get("/catalog/cylinder-states", response_model=list[CylinderStateRead])
 def get_cylinder_states(
     db: Session = DB_SESSION,
@@ -484,631 +377,6 @@ def get_service_type_catalog(
     ]
     db.commit()
     return items
-
-
-@router.get("/cylinders", response_model=list[CylinderRead])
-def get_cylinders(
-    search: str | None = Query(default=None),
-    state: str | None = Query(default=None),
-    active: bool | None = Query(default=True),
-    is_medical: bool | None = Query(default=None),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[CylinderRead]:
-    return [
-        cylinder_to_read(db, cylinder)
-        for cylinder in list_cylinders(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            search=search,
-            state=state,
-            active=active,
-            is_medical=is_medical,
-        )
-    ]
-
-
-@router.get("/cylinders/page", response_model=CylinderPageRead)
-def get_cylinders_page(
-    search: str | None = Query(default=None),
-    state: str | None = Query(default=None),
-    active: bool | None = Query(default=True),
-    is_medical: bool | None = Query(default=None),
-    page: int = Query(default=1, ge=1),
-    per_page: int = Query(default=10, ge=1, le=200),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> CylinderPageRead:
-    items, total = list_cylinders_page(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        page=page,
-        per_page=per_page,
-        search=search,
-        state=state,
-        active=active,
-        is_medical=is_medical,
-    )
-    total_pages = max(1, (total + per_page - 1) // per_page)
-    return CylinderPageRead(
-        items=[cylinder_to_read(db, cylinder) for cylinder in items],
-        pagination=TraceabilityPagination(
-            page=page,
-            per_page=per_page,
-            total=total,
-            total_pages=total_pages,
-        ),
-    )
-
-
-@router.get("/cylinders/summary", response_model=list[CylinderSummaryItem])
-def get_cylinder_summary(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[CylinderSummaryItem]:
-    return summarize_cylinders(db, tenant_id=tenant_context.current_tenant_id)
-
-
-@router.get(
-    "/cylinders/serialized-summary",
-    response_model=list[WarehouseSerializedCylinderSummaryItem],
-)
-def get_serialized_cylinder_summary_by_warehouse(
-    warehouse_id: str = Query(...),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[WarehouseSerializedCylinderSummaryItem]:
-    try:
-        return summarize_serialized_cylinders_by_warehouse(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            warehouse_id=warehouse_id,
-        )
-    except LookupError as exc:
-        raise _not_found("Warehouse") from exc
-
-
-@router.get("/cylinders/available-with-weight", response_model=list[CylinderWeightRead])
-def get_available_cylinders_with_weight_endpoint(
-    warehouse_id: str | None = Query(default=None),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[CylinderWeightRead]:
-    return list_available_cylinders_with_weight(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        warehouse_id=warehouse_id,
-    )
-
-
-@router.get(
-    "/cylinders/allowed-transitions/{cylinder_id}", response_model=list[CylinderTransitionRead]
-)
-def get_cylinder_allowed_transitions(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> list[CylinderTransitionRead]:
-    transitions = get_allowed_transitions(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        cylinder_id=cylinder_id,
-    )
-    if transitions is None:
-        raise _not_found("Cylinder")
-    return [CylinderTransitionRead.model_validate(transition) for transition in transitions]
-
-
-@router.get("/cylinders/by-serial/{serial}", response_model=CylinderRead)
-def get_cylinder_by_serial_endpoint(
-    serial: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> CylinderRead:
-    cylinder = get_cylinder_by_serial(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        serial_or_barcode=serial,
-    )
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return cylinder_to_read(db, cylinder)
-
-
-@router.get("/cylinders/{cylinder_id}", response_model=CylinderRead)
-def get_cylinder_detail(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> CylinderRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return cylinder_to_read(db, cylinder)
-
-
-@router.patch("/cylinders/{cylinder_id}", response_model=CylinderRead)
-def update_cylinder_endpoint(
-    cylinder_id: str,
-    payload: CylinderUpdateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_UPDATE,
-) -> CylinderRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    try:
-        cylinder = update_cylinder(
-            db,
-            cylinder=cylinder,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    return cylinder_to_read(db, cylinder)
-
-
-@router.get("/cylinders/{cylinder_id}/trace", response_model=list[CylinderStateLogRead])
-def get_cylinder_trace(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_TRACE,
-) -> list[CylinderStateLogRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        CylinderStateLogRead.model_validate(item)
-        for item in list_cylinder_trace(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            cylinder_id=cylinder_id,
-        )
-    ]
-
-
-@router.get("/cylinders/{cylinder_id}/label-data", response_model=CylinderLabelDataRead)
-def get_cylinder_label_data_endpoint(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LABEL_READ,
-) -> CylinderLabelDataRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return CylinderLabelDataRead.model_validate(build_label_data(db, cylinder=cylinder))
-
-
-@router.get("/cylinders/{cylinder_id}/retimbrados", response_model=list[CylinderRetimbradoRead])
-def get_cylinder_retimbrados(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_RETIMBRADO_READ,
-) -> list[CylinderRetimbradoRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        CylinderRetimbradoRead.model_validate(item)
-        for item in list_retimbrados(db, cylinder_id=cylinder_id)
-    ]
-
-
-@router.post(
-    "/cylinders/{cylinder_id}/retimbrados",
-    response_model=CylinderRetimbradoRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_cylinder_retimbrado_endpoint(
-    cylinder_id: str,
-    payload: CylinderRetimbradoCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_RETIMBRADO_MANAGE,
-) -> CylinderRetimbradoRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    retimbrado = create_retimbrado(
-        db,
-        cylinder=cylinder,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return CylinderRetimbradoRead.model_validate(retimbrado)
-
-
-@router.get("/cylinders/{cylinder_id}/ownership", response_model=list[CylinderOwnershipRead])
-def get_cylinder_ownership_endpoint(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_OWNERSHIP_READ,
-) -> list[CylinderOwnershipRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        CylinderOwnershipRead.model_validate(item)
-        for item in list_ownership_history(db, cylinder_id=cylinder_id)
-    ]
-
-
-@router.get("/cylinders/{cylinder_id}/label-history", response_model=list[CylinderLabelHistoryRead])
-def get_cylinder_label_history_endpoint(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LABEL_READ,
-) -> list[CylinderLabelHistoryRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        CylinderLabelHistoryRead.model_validate(item)
-        for item in list_label_history(db, cylinder_id=cylinder_id)
-    ]
-
-
-@router.post(
-    "/cylinders/{cylinder_id}/print-label",
-    response_model=CylinderLabelHistoryRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def print_cylinder_label_endpoint(
-    cylinder_id: str,
-    payload: PrintLabelRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LABEL_PRINT,
-) -> CylinderLabelHistoryRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    try:
-        label_history = print_label(
-            db,
-            cylinder=cylinder,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except ValueError as exc:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return CylinderLabelHistoryRead.model_validate(label_history)
-
-
-@router.get("/cylinders/{cylinder_id}/services", response_model=list[CylinderServiceRead])
-def get_cylinder_services_endpoint(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SERVICE_READ,
-) -> list[CylinderServiceRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        CylinderServiceRead.model_validate(item)
-        for item in list_cylinder_services(db, cylinder_id=cylinder_id)
-    ]
-
-
-@router.post(
-    "/cylinders/{cylinder_id}/services",
-    response_model=CylinderServiceRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_cylinder_service_endpoint(
-    cylinder_id: str,
-    payload: CylinderServiceCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SERVICE_MANAGE,
-) -> CylinderServiceRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    service = create_cylinder_service(
-        db,
-        cylinder=cylinder,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return CylinderServiceRead.model_validate(service)
-
-
-@router.patch("/cylinders/{cylinder_id}/services/{service_id}", response_model=CylinderServiceRead)
-def update_cylinder_service_endpoint(
-    cylinder_id: str,
-    service_id: str,
-    payload: CylinderServiceUpdateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SERVICE_MANAGE,
-) -> CylinderServiceRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    service = get_cylinder_service(db, cylinder_id=cylinder_id, service_id=service_id)
-    if service is None:
-        raise _not_found("Cylinder service")
-    service = update_cylinder_service(
-        db,
-        service=service,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return CylinderServiceRead.model_validate(service)
-
-
-@router.delete(
-    "/cylinders/{cylinder_id}/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT
-)
-def delete_cylinder_service_endpoint(
-    cylinder_id: str,
-    service_id: str,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SERVICE_MANAGE,
-) -> None:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    service = get_cylinder_service(db, cylinder_id=cylinder_id, service_id=service_id)
-    if service is None:
-        raise _not_found("Cylinder service")
-    delete_cylinder_service(
-        db,
-        service=service,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-
-
-@router.get("/cylinders/{cylinder_id}/hydrotests", response_model=list[HydrostaticTestRead])
-def get_cylinder_hydrotests(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_MAINTENANCE_READ,
-) -> list[HydrostaticTestRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        HydrostaticTestRead.model_validate(item)
-        for item in list_hydrotests(db, cylinder_id=cylinder_id)
-    ]
-
-
-@router.post(
-    "/cylinders/{cylinder_id}/hydrotests",
-    response_model=HydrostaticTestRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_cylinder_hydrotest(
-    cylinder_id: str,
-    payload: HydrostaticTestCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_MAINTENANCE_MANAGE,
-) -> HydrostaticTestRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    hydrotest = create_hydrotest(
-        db,
-        cylinder=cylinder,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return HydrostaticTestRead.model_validate(hydrotest)
-
-
-@router.get("/cylinders/{cylinder_id}/warranties", response_model=list[WarrantyRead])
-def get_cylinder_warranties(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_MAINTENANCE_READ,
-) -> list[WarrantyRead]:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    return [
-        WarrantyRead.model_validate(item)
-        for item in list_warranties(
-            db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id
-        )
-    ]
-
-
-@router.post("/cylinders", response_model=CylinderRead, status_code=status.HTTP_201_CREATED)
-def create_cylinder_endpoint(
-    payload: CylinderCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_CREATE,
-) -> CylinderRead:
-    try:
-        resolved_warehouse_id = (
-            _resolve_entry_warehouse_id(db, tenant_context, payload.warehouse_id)
-            if payload.entry_mode is not None
-            else None
-        )
-        cylinder = create_cylinder(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            payload=payload,
-            warehouse_id=resolved_warehouse_id,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return cylinder_to_read(db, cylinder)
-
-
-@router.post(
-    "/cylinders/{cylinder_id}/warranties",
-    response_model=WarrantyRead,
-    status_code=status.HTTP_201_CREATED,
-)
-def create_cylinder_warranty(
-    cylinder_id: str,
-    payload: WarrantyCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_MAINTENANCE_MANAGE,
-) -> WarrantyRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    warranty = create_warranty(
-        db,
-        tenant_id=tenant_context.current_tenant_id,
-        cylinder=cylinder,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return WarrantyRead.model_validate(warranty)
-
-
-@router.post("/cylinders/{cylinder_id}/transition", response_model=CylinderRead)
-def transition_cylinder_endpoint(
-    cylinder_id: str,
-    payload: CylinderTransitionRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_TRANSITION,
-) -> CylinderRead:
-    try:
-        cylinder = transition_cylinder(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            cylinder_id=cylinder_id,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        if cylinder is None:
-            raise _not_found("Cylinder")
-        db.commit()
-    except StateTransitionError as exc:
-        db.rollback()
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return cylinder_to_read(db, cylinder)
-
-
-@router.post("/cylinders/{cylinder_id}/fill", response_model=CylinderRead)
-def fill_cylinder_endpoint(
-    cylinder_id: str,
-    payload: CylinderFillRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_UPDATE,
-) -> CylinderRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    try:
-        resolved_warehouse_id = _resolve_entry_warehouse_id(
-            db,
-            tenant_context,
-            payload.warehouse_id,
-        )
-        cylinder = fill_cylinder(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            cylinder=cylinder,
-            warehouse_id=resolved_warehouse_id,
-            content_kg=payload.content_kg,
-            volume_m3=payload.volume_m3,
-            weight_current=payload.weight_current,
-            notes=payload.notes,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return cylinder_to_read(db, cylinder)
-
-
-@router.post("/cylinders/{cylinder_id}/vacate", response_model=CylinderRead)
-def vacate_cylinder_endpoint(
-    cylinder_id: str,
-    payload: CylinderVacateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_UPDATE,
-) -> CylinderRead:
-    cylinder = get_cylinder(db, tenant_id=tenant_context.current_tenant_id, cylinder_id=cylinder_id)
-    if cylinder is None:
-        raise _not_found("Cylinder")
-    try:
-        resolved_warehouse_id = _resolve_entry_warehouse_id(
-            db,
-            tenant_context,
-            payload.warehouse_id,
-        )
-        cylinder = vacate_cylinder(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            cylinder=cylinder,
-            warehouse_id=resolved_warehouse_id,
-            weight_current=payload.weight_current,
-            notes=payload.notes,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return cylinder_to_read(db, cylinder)
 
 
 @router.get("/warehouses", response_model=list[WarehouseRead])
@@ -1311,177 +579,6 @@ def update_delivery_point_endpoint(
     )
     db.commit()
     return DeliveryPointRead.model_validate(delivery_point)
-
-
-@router.get("/orders", response_model=list[OrderRead])
-def get_orders(
-    customer: str | None = Query(default=None),
-    status_filter: str | None = Query(default=None, alias="status"),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_READ,
-) -> list[OrderRead]:
-    return [
-        OrderRead.model_validate(item)
-        for item in list_orders(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            customer=customer,
-            status=status_filter,
-        )
-    ]
-
-
-@router.get("/orders/pending", response_model=list[OrderRead])
-def get_pending_orders(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_READ,
-) -> list[OrderRead]:
-    return [
-        OrderRead.model_validate(item)
-        for item in list_orders(db, tenant_id=tenant_context.current_tenant_id, status="PENDIENTE")
-    ]
-
-
-@router.get("/orders/{order_id}", response_model=OrderRead)
-def get_order_detail(
-    order_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_READ,
-) -> OrderRead:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    return OrderRead.model_validate(order)
-
-
-@router.get("/orders/{order_id}/items", response_model=list[OrderItemRead])
-def get_order_items(
-    order_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_READ,
-) -> list[OrderItemRead]:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    return [OrderItemRead.model_validate(item) for item in list_order_items(db, order_id=order_id)]
-
-
-@router.post("/orders", response_model=OrderRead, status_code=status.HTTP_201_CREATED)
-def create_order_endpoint(
-    payload: OrderCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_CREATE,
-) -> OrderRead:
-    try:
-        order = create_order(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            created_by=tenant_context.current_user_id,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    return OrderRead.model_validate(order)
-
-
-@router.patch("/orders/{order_id}", response_model=OrderRead)
-def update_order_endpoint(
-    order_id: str,
-    payload: OrderUpdateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_MANAGE,
-) -> OrderRead:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    order = update_order(
-        db,
-        order=order,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return OrderRead.model_validate(order)
-
-
-@router.post(
-    "/orders/{order_id}/items", response_model=OrderItemRead, status_code=status.HTTP_201_CREATED
-)
-def create_order_item_endpoint(
-    order_id: str,
-    payload: OrderItemCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_MANAGE,
-) -> OrderItemRead:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    item = create_order_item(
-        db,
-        order=order,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return OrderItemRead.model_validate(item)
-
-
-@router.patch("/orders/{order_id}/items/{item_id}", response_model=OrderItemRead)
-def update_order_item_endpoint(
-    order_id: str,
-    item_id: str,
-    payload: OrderItemUpdateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_MANAGE,
-) -> OrderItemRead:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    item = get_order_item(db, order_id=order_id, item_id=item_id)
-    if item is None:
-        raise _not_found("Order item")
-    item = update_order_item(
-        db,
-        item=item,
-        payload=payload,
-        action_context=build_action_context(request, tenant_context),
-    )
-    db.commit()
-    return OrderItemRead.model_validate(item)
-
-
-@router.delete("/orders/{order_id}/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_order_item_endpoint(
-    order_id: str,
-    item_id: str,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ORDER_MANAGE,
-) -> None:
-    order = get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
-    if order is None:
-        raise _not_found("Order")
-    item = get_order_item(db, order_id=order_id, item_id=item_id)
-    if item is None:
-        raise _not_found("Order item")
-    delete_order_item(db, item=item, action_context=build_action_context(request, tenant_context))
-    db.commit()
 
 
 @router.get("/routes", response_model=list[RouteRead])
@@ -3435,23 +2532,6 @@ def patch_agenda_task_gps_endpoint(
     )
     db.commit()
     return AgendaTaskRead.model_validate(task)
-
-
-@router.get("/cylinders/{cylinder_id}/weight", response_model=CylinderWeightRead)
-def get_cylinder_weight_endpoint(
-    cylinder_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_CYLINDER_READ,
-) -> CylinderWeightRead:
-    try:
-        return get_cylinder_weight(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            cylinder_id=cylinder_id,
-        )
-    except Exception as exc:
-        _raise_service_error(exc)
 
 
 @router.get("/products/{product_id}/content", response_model=ProductContentRead)

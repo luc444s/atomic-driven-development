@@ -6,12 +6,14 @@ from plugins.logistics.backend.routers.contracts import router as contracts_rout
 from plugins.logistics.backend.routers.customer_cylinder_summary import (
     router as customer_summary_router,
 )
+from plugins.logistics.backend.routers.cylinders import router as cylinders_router
 from plugins.logistics.backend.routers.load_plans import router as load_plans_router
 from plugins.logistics.backend.routers.load_serials import router as load_serials_router
 from plugins.logistics.backend.routers.operational_summary import (
     router as operational_summary_router,
 )
 from plugins.logistics.backend.routers.operations import router as session_operations_router
+from plugins.logistics.backend.routers.orders import router as orders_router
 from plugins.logistics.backend.routers.planning_reservations import (
     router as planning_reservations_router,
 )
@@ -131,10 +133,12 @@ LOGISTICS_EVENTS = [
 def register(context: PluginContext) -> None:
     context.register_router(traceability_router)
     context.register_router(contracts_router)
+    context.register_router(cylinders_router)
     context.register_router(customer_summary_router)
     context.register_router(planning_reservations_router)
     context.register_router(sessions_router)
     context.register_router(operational_summary_router)
+    context.register_router(orders_router)
     context.register_router(route_control_router)
     context.register_router(route_operations_router)
     context.register_router(route_stop_results_router)

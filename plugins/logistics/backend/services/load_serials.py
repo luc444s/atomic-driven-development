@@ -338,6 +338,16 @@ def select_load_serial(
         raise ValueError("El cilindro no está activo")
     if not _product_matches_cylinder(cylinder, product_id=product_id):
         raise ValueError("El serial no corresponde al producto seleccionado")
+
+    active_assignment = _active_assignment_for_cylinder(db, cylinder_id=cylinder.id)
+    if active_assignment is not None:
+        if (
+            active_assignment.session_id == session.id
+            and active_assignment.product_id == product_id
+        ):
+            return _build_assignment_read(active_assignment)
+        raise ValueError("El cilindro ya está ocupado por otra jornada")
+
     compatible_states = (
         ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
         if context == SELECTION_CONTEXT_ROUTE_PICKUP
@@ -352,15 +362,6 @@ def select_load_serial(
         cylinder=cylinder,
     ):
         raise ValueError("El cilindro no pertenece al almacén origen de esta línea")
-
-    active_assignment = _active_assignment_for_cylinder(db, cylinder_id=cylinder.id)
-    if active_assignment is not None:
-        if (
-            active_assignment.session_id == session.id
-            and active_assignment.product_id == product_id
-        ):
-            return _build_assignment_read(active_assignment)
-        raise ValueError("El cilindro ya está ocupado por otra jornada")
 
     assignment = LogisticsLoadSerialAssignment(
         tenant_id=session.tenant_id,

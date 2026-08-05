@@ -43,6 +43,9 @@ export function SessionRouteTabDialogs({ controller }: Props) {
           operationOptions={controller.operationOptions}
           directionOptions={controller.directionOptions}
           correctionContext={controller.correctionContext}
+          composition={controller.composition?.product_lines ?? []}
+          fastSerialInput={controller.fastSerialInput}
+          fastSerialError={controller.fastSerialError}
           isPending={controller.isSubmittingRouteEvent}
           onOperationTypeChange={controller.setOperationType}
           onRouteStopChange={controller.handleRouteStopChange}
@@ -56,6 +59,9 @@ export function SessionRouteTabDialogs({ controller }: Props) {
           onRemoveDraftItem={controller.removeDraftItem}
           onCancelCorrection={controller.cancelCorrection}
           onSubmit={controller.submitRouteEvent}
+          onAddDeliveryProduct={controller.addDeliveryProduct}
+          onFastSerialChange={controller.setFastSerialInput}
+          onFastSerialSubmit={controller.submitFastSerial}
         />
       </Dialog>
 
@@ -148,7 +154,7 @@ export function SessionRouteTabDialogs({ controller }: Props) {
         open={Boolean(controller.serialDialogItem)}
         sessionId={controller.sessionId}
         item={controller.serialDialogItem}
-        selectionContext="ROUTE_PICKUP"
+        selectionContext={controller.operationType === "DELIVERY" ? "LOAD_PLAN" : "ROUTE_PICKUP"}
         allowCreateFallback={false}
         onClose={controller.closeSerialDialog}
         onSelectionCountChange={(_productId, selectedCount) => controller.handleSerialSelectionCountChange(selectedCount)}

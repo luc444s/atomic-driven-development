@@ -75,13 +75,7 @@ export function SessionRouteTab({
 
         <div className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Ruta</CardTitle>
-              <CardDescription>
-                Espacio operativo real de la jornada en calle.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
+           <CardContent className="flex flex-wrap items-center justify-between gap-3 text-sm text-muted-foreground">
               <span>
                 Ruta asignada:{" "}
                 {formatRouteLabel({
@@ -93,7 +87,7 @@ export function SessionRouteTab({
               </span>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="secondary" onClick={controller.openCompositionModal}>
-                  Composición vigente
+                  Mis envases
                 </Button>
                 <Button variant="secondary" onClick={controller.openStopProgressModal}>
                   Progreso de parada
@@ -108,7 +102,7 @@ export function SessionRouteTab({
                   Incidencias{controller.routeIncidents.length ? ` (${controller.routeIncidents.length})` : ""}
                 </Button>
                 <Button disabled={!controller.canRegisterOperation} onClick={controller.openEventModal}>
-                  Registrar evento de ruta
+                  Registrar movimiento
                 </Button>
               </div>
             </CardContent>

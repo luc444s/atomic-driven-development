@@ -17,6 +17,7 @@ export type LogisticsCylinder = {
   tenant_id: string;
   branch_id: string | null;
   serial: string;
+  container_type: string;
   description: string | null;
   barcode1: string | null;
   barcode2: string | null;
@@ -53,8 +54,13 @@ export type LogisticsCylinder = {
   warehouse_name: string | null;
   fill_status: string | null;
   last_fill_at: string | null;
+  last_fill_operation_id: string | null;
+  last_fill_mode: string | null;
   last_fill_warehouse_id: string | null;
   last_fill_warehouse_name: string | null;
+  last_fill_source_product_id: string | null;
+  last_fill_source_product_name: string | null;
+  last_fill_source_quantity_liters: number | null;
   is_active: boolean;
   is_medical: boolean;
   medical_notes: string | null;
@@ -302,9 +308,11 @@ export type TransitionCylinderPayload = {
 
 export type FillCylinderPayload = {
   warehouse_id?: string | null;
+  source_product_id?: string | null;
   content_kg?: number | null;
   volume_m3?: number | null;
   weight_current?: number | null;
+  fill_operation_id?: string | null;
   notes?: string | null;
 };
 
@@ -417,12 +425,14 @@ export function listCylinders(filters: {
   search?: string;
   state?: string;
   active?: boolean;
+  container_type?: string;
 }) {
   return apiRequest<LogisticsCylinder[]>(
     withQuery(`${API_PREFIX}/cylinders`, {
       search: filters.search,
       state: filters.state,
       active: filters.active,
+      container_type: filters.container_type,
     })
   );
 }

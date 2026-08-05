@@ -85,9 +85,10 @@ export function RouteContextMap({
       <LocationMap
         center={center}
         zoom={path.length > 1 ? 12 : 10}
-        height={240}
+        height={400}
         markers={markers}
         polylines={path.length > 1 ? [{ id: "route", points: path, color: "#2563eb" }] : []}
+        autoFit
       />
     </div>
   );

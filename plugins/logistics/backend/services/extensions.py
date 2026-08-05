@@ -51,7 +51,7 @@ from plugins.logistics.backend.services.cylinder_location import (
 )
 from plugins.logistics.backend.services.cylinders import (
     EMPTY_FILL_STATUS,
-    FILL_REASON_CODE,
+    FILL_REASON_CODES,
     LOADED_FILL_STATUS,
 )
 from plugins.logistics.backend.services.product_bridge import (
@@ -518,7 +518,7 @@ def enrich_cylinder_with_fill_status(
         select(LogisticsCylinderStateLog)
         .where(
             LogisticsCylinderStateLog.cylinder_id == cylinder.id,
-            LogisticsCylinderStateLog.reason_code == FILL_REASON_CODE,
+            LogisticsCylinderStateLog.reason_code.in_(FILL_REASON_CODES),
         )
         .order_by(
             LogisticsCylinderStateLog.created_at.desc(),
@@ -530,13 +530,33 @@ def enrich_cylinder_with_fill_status(
         return
     cylinder_read.last_fill_at = last_fill.created_at
     metadata = last_fill.metadata_json or {}
+    fill_operation_id = metadata.get("fill_operation_id")
+    fill_mode = metadata.get("fill_mode")
     warehouse_id = metadata.get("warehouse_id")
     warehouse_name = metadata.get("warehouse_name")
+    source_product_id = metadata.get("source_product_id")
+    source_product_name = metadata.get("source_product_name")
+    source_quantity_liters = metadata.get("source_quantity_liters")
+    cylinder_read.last_fill_operation_id = (
+        fill_operation_id if isinstance(fill_operation_id, str) else None
+    )
+    cylinder_read.last_fill_mode = fill_mode if isinstance(fill_mode, str) else None
     cylinder_read.last_fill_warehouse_id = (
         warehouse_id if isinstance(warehouse_id, str) else None
     )
     cylinder_read.last_fill_warehouse_name = (
         warehouse_name if isinstance(warehouse_name, str) else None
+    )
+    cylinder_read.last_fill_source_product_id = (
+        source_product_id if isinstance(source_product_id, str) else None
+    )
+    cylinder_read.last_fill_source_product_name = (
+        source_product_name if isinstance(source_product_name, str) else None
+    )
+    cylinder_read.last_fill_source_quantity_liters = (
+        float(source_quantity_liters)
+        if isinstance(source_quantity_liters, (int, float))
+        else None
     )
 
 

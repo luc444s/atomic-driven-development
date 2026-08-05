@@ -13,6 +13,11 @@ CYLINDER_ENTRY_MODES = (
     "FULL_FROM_SUPPLIER",
 )
 
+CYLINDER_CONTAINER_TYPES = (
+    "CYLINDER",
+    "CRYOGENIC_TANK",
+)
+
 
 class CylinderStateRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -51,6 +56,7 @@ class CylinderRead(BaseModel):
     tenant_id: str
     branch_id: str | None
     serial: str
+    container_type: str
     description: str | None
     barcode1: str | None
     barcode2: str | None
@@ -91,8 +97,13 @@ class CylinderRead(BaseModel):
     warehouse_name: str | None = None
     fill_status: str | None = None
     last_fill_at: datetime | None = None
+    last_fill_operation_id: str | None = None
+    last_fill_mode: str | None = None
     last_fill_warehouse_id: str | None = None
     last_fill_warehouse_name: str | None = None
+    last_fill_source_product_id: str | None = None
+    last_fill_source_product_name: str | None = None
+    last_fill_source_quantity_liters: float | None = None
     is_active: bool
     is_medical: bool
     medical_notes: str | None
@@ -102,6 +113,7 @@ class CylinderRead(BaseModel):
 
 class CylinderCreateRequest(BaseModel):
     serial: str = Field(min_length=1, max_length=50)
+    container_type: str = Field(default="CYLINDER", max_length=20)
     branch_id: str | None = None
     warehouse_id: str | None = None
     entry_mode: str | None = Field(default=None, max_length=50)
@@ -144,6 +156,11 @@ class CylinderCreateRequest(BaseModel):
             raise ValueError("entry_mode invalido")
         return normalized
 
+    @field_validator("container_type")
+    @classmethod
+    def normalize_container_type_field(cls, value: str) -> str:
+        return normalize_container_type(value)
+
     @field_validator("document_type")
     @classmethod
     def normalize_document_type(cls, value: str | None) -> str | None:
@@ -161,8 +178,17 @@ class CylinderCreateRequest(BaseModel):
         return normalized or None
 
 
+def normalize_container_type(value: str) -> str:
+    normalized = value.strip().upper()
+    if normalized not in CYLINDER_CONTAINER_TYPES:
+        allowed = " o ".join(CYLINDER_CONTAINER_TYPES)
+        raise ValueError(f"container_type invalido: debe ser {allowed}")
+    return normalized
+
+
 class CylinderUpdateRequest(BaseModel):
     serial: str | None = Field(default=None, min_length=1, max_length=50)
+    container_type: str | None = Field(default=None, max_length=20)
     branch_id: str | None = None
     description: str | None = Field(default=None, max_length=200)
     barcode1: str | None = Field(default=None, max_length=150)
@@ -189,6 +215,13 @@ class CylinderUpdateRequest(BaseModel):
     next_hydrotest_date: date | None = None
     location: str | None = Field(default=None, max_length=100)
     is_active: bool | None = None
+
+    @field_validator("container_type")
+    @classmethod
+    def normalize_container_type_field(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        return normalize_container_type(value)
 
 
 class TraceabilityEventRead(BaseModel):
@@ -258,9 +291,11 @@ class CylinderTransitionRequest(BaseModel):
 
 class CylinderFillRequest(BaseModel):
     warehouse_id: str | None = None
+    source_product_id: str | None = None
     content_kg: float | None = None
     volume_m3: float | None = None
     weight_current: float | None = None
+    fill_operation_id: str | None = None
     notes: str | None = Field(default=None, max_length=500)
 
 

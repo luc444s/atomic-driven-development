@@ -42,6 +42,11 @@ const ENTRY_MODE_OPTIONS = [
   { value: "FULL_FROM_SUPPLIER", label: "Lleno desde proveedor" },
 ];
 
+const CONTAINER_TYPE_OPTIONS = [
+  { value: "CYLINDER", label: "Estandar" },
+  { value: "CRYOGENIC_TANK", label: "Criogenico (tanque)" },
+];
+
 function parseSerials(raw: string): string[] {
   return raw
     .split(/[,;\n]+/)
@@ -264,39 +269,55 @@ export function CreateCylinderDialog({
                 <CardTitle>Datos del envase</CardTitle>
                 <CardDescription>Registra los datos minimos del envase. Separa seriales con coma para crear varios a la vez.</CardDescription>
               </CardHeader>
-              <CardContent className="grid gap-3 md:grid-cols-3">
-                <Field label="Serial">
-                  <div className="relative">
-                    <Input
-                      ref={serialInputRef}
-                      value={cylinderForm.serial}
-                      onChange={(event) => onCylinderFormChange({ ...cylinderForm, serial: event.target.value })}
-                      placeholder={hasBatch ? "" : "Nro. de serie del cilindro"}
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Field label="Serial">
+                    <div className="relative">
+                      <Input
+                        ref={serialInputRef}
+                        value={cylinderForm.serial}
+                        onChange={(event) => onCylinderFormChange({ ...cylinderForm, serial: event.target.value })}
+                        placeholder={hasBatch ? "" : "Nro. de serie del cilindro"}
+                      />
+                      {hasBatch ? (
+                        <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+                          {batchCount} envases
+                        </span>
+                      ) : null}
+                    </div>
+                  </Field>
+                  <Field label="Producto / Gas">
+                    <Combobox
+                      value={cylinderForm.gas_group_id}
+                      onChange={(value) => onCylinderFormChange({ ...cylinderForm, gas_group_id: value })}
+                      options={gasOptions.map((item) => ({ value: item.id, label: item.name }))}
+                      placeholder="Seleccionar producto"
+                      searchPlaceholder="Buscar producto..."
+                      emptyMessage="Sin productos disponibles."
                     />
-                    {hasBatch ? (
-                      <span className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-                        {batchCount} envases
-                      </span>
-                    ) : null}
-                  </div>
-                </Field>
-                <Field label="Producto / Gas">
-                  <Combobox
-                    value={cylinderForm.gas_group_id}
-                    onChange={(value) => onCylinderFormChange({ ...cylinderForm, gas_group_id: value })}
-                    options={gasOptions.map((item) => ({ value: item.id, label: item.name }))}
-                    placeholder="Seleccionar producto"
-                    searchPlaceholder="Buscar producto..."
-                    emptyMessage="Sin productos disponibles."
-                  />
-                </Field>
-                <Field label="Matrícula">
-                  <Input
-                    value={cylinderForm.barcode2}
-                    onChange={(event) => onCylinderFormChange({ ...cylinderForm, barcode2: event.target.value })}
-                    placeholder="Codigo de etiqueta fisica"
-                  />
-                </Field>
+                  </Field>
+                  <Field label="Matrícula">
+                    <Input
+                      value={cylinderForm.barcode2}
+                      onChange={(event) => onCylinderFormChange({ ...cylinderForm, barcode2: event.target.value })}
+                      placeholder="Codigo de etiqueta fisica"
+                    />
+                  </Field>
+                  <Field label="Tipo de envase">
+                    <Select
+                      value={cylinderForm.container_type}
+                      onChange={(value) =>
+                        onCylinderFormChange({ ...cylinderForm, container_type: value })
+                      }
+                      options={CONTAINER_TYPE_OPTIONS}
+                    />
+                  </Field>
+                </div>
+                {cylinderForm.container_type === "CRYOGENIC_TANK" ? (
+                  <Alert title="Envase criogenico (tanque)">
+                    El producto seleccionado es el gas liquido del tanque y debe ser fuente de al menos una receta criogenica. La capacidad nominal se registra en el campo volumen (m3).
+                  </Alert>
+                ) : null}
               </CardContent>
             </Card>
             <Card>

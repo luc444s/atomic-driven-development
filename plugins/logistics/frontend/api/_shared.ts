@@ -4,6 +4,7 @@ import { apiRequest } from "../../../../apps/web/src/shared/api/client";
 
 export type BaseCylinderPayload = {
   serial: string;
+  container_type?: string | null;
   warehouse_id?: string | null;
   description?: string | null;
   barcode1?: string | null;

@@ -1,0 +1,100 @@
+	MATRICULA SEMIRREMOL	XXXXXXXXXX																			
+																											
+	DESTINATARIO																			
+	REPARTO EN RUTA																			
+	VER ALBARANES ADJUNTOS																			
+																				
+																											
+CATEG.	TIPO DE	Nº	CANTIDAD	CANTIDAD
+TOTAL 	CANTIDAD																			
+TRANS.	BULTO	BULTOS	NETA	ADR																			
+																											
+3	BOTELLAS	11	2,00	Litros	22,00	Litros	22,00		                 BOTELLAS, BLOQUES DE BOTELLAS Y RECIPIENTE CRIOGENICO VACIO: 		
+3	BOTELLAS	5	5,00	Litros	25,00	Litros	25,00		                                  RECIPIENTES VACIOS 2, CATEGORIA DE TRASPORTE 4		
+3	BOTELLA	1	7,00	Litros	7,00	Litros	7,00																			
+3	BOTELLA		10,00	Litros	0,00	Litros	0,00																			
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00		                             BOTELLAS VACIAS		
+3	BOTELLA		20,00	Litros	0,00	Litros	0,00																			
+3	BOTELLA		40,00	Litros	0,00	Litros	0,00								1	2	3	4	5	6	7	8	9	10		
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00								11	12	13	14	15	16	17	18	19	20		
+3	BLOQUE DE BOTELLAS		600,00	Litros	0,00	Litros	0,00								21	22	23	24	25	26	27	28	29	30		
+3	BOTELLA		5,00	Litros	0,00	Litros	0,00								31	32	33	34	35	36	37	38	39	40		
+3	BOTELLA		10,00	Litros	0,00	Litros	0,00								41	42	43	44	45	46	47	48	49	50		
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00								51	52	53	54	55	56	57	58	59	60		
+3	BOTELLA		20,00	Litros	0,00	Litros	0,00								61	62	63	64	65	66	67	68	69	70		
+3	BOTELLA		40,00	Litros	0,00	Litros	0,00								71	72	73	74	75	76	77	78	79	80		
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00								81	82	83	84	85	86	87	88	89	90		
+3	BLOQUE DE BOTELLAS		600,00	Litros	0,00	Litros	0,00								91	92	93	94	95	96	97	98	99	100		
+3	BOTELLA		5,00	Litros	0,00	Litros	0,00								101	102	103	104	105	106	107	108	109	110		
+3	BOTELLA		7,00	Litros	0,00	Litros	0,00								111	112	113	114	115	116	117	118	119	120		
+3	BOTELLA		10,00	Litros	0,00	Litros	0,00								121	122	123	124	125	126	127	128	129	130		
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00								131	132	133	134	135	136	137	138	139	140		
+3	BOTELLA		20,00	Litros	0,00	Litros	0,00								141	142	143	144	145	146	147	148	149	150		
+3	BOTELLA		40,00	Litros	0,00	Litros	0,00								151	152	153	154	155	156	157	158	159	160		
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00								161	162	163	164	165	166	167	168	169	170		
+3	BLOQUE		600,00	Litros	0,00	Litros	0,00								171	172	173	174	175	176	177	178	179	180		
+3	BOTELLAS	2	5,00	Litros	10,00	Litros	10,00								181	182	183	184	185	186	187	188	189	190		
+3	BOTELLAS	2	7,00	Litros	14,00	Litros	14,00								191	192	193	194	195	196	197	198	199	200		
+3	BOTELLA	1	10,00	Litros	10,00	Litros	10,00																			
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00																			
+3	BOTELLA	1	20,00	Litros	20,00	Litros	20,00		                                         BLOQUES DE BOTELLAS VACIAS		
+3	BOTELLA		40,00	Litros	0,00	Litros	0,00																			
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00								1	2	3	4	5	6	7	8	9	10		
+3	BLOQUE DE BOTELLAS		1000,00	Litros	0,00	Litros	0,00																			
+2	BOTELLA		0,54	Kilo	0,00	Kilos	0,00																			
+2	BOTELLA		0,90	Kilo	0,00	Kilos	0,00																			
+2	BOTELLA		1,30	Kilos	0,00	Kilos	0,00																			
+2	BOTELLA		1,80	Kilos	0,00	Kilos	0,00																			
+2	BOTELLA		2,50	Kilos	0,00	Kilos	0,00		                                         RECIPIENTES CRIOGENICOS VACIOS		
+2	BOTELLA		3,60	Kilos	0,00	Kilos	0,00																			
+2	BOTELLA		6,00	Kilos	0,00	Kilos	0,00								1	2	3	4	5	6	7	8	9	10		
+2	BOTELLA		7,00	Kilos	0,00	Kilos	0,00																			
+2	BOTELLA		9,00	Kilos	0,00	Kilos	0,00																			
+3	BOTELLA		4,00	Kilos	0,00	Kilos	0,00																			
+3	BOTELLA		6,00	Kilos	0,00	Kilos	0,00			EXTINTORES VACIO: TRANSPORTE NO SOMETIDO AL ADR, SEGÚN LA SUBSECCION 1.1.3.2c																
+3	BOTELLA		8,00	Kilos	0,00	Kilos	0,00																			
+3	BOTELLA		10,00	Kilos	0,00	Kilos	0,00												VACIO							
+3	BOTELLA		12,00	Kilos	0,00	Kilos	0,00								1	2	3	4	5	6	7	8	9	10		
+3	BOTELLA		20,00	Kilos	0,00	Kilos	0,00								11	12	13	14	15	16	17	18	19	20		
+3	BOTELLA		25,00	Kilos	0,00	Kilos	0,00								21	22	23	24	25	26	27	28	29	30		
+3	BOTELLA		30,00	Kilos	0,00	Kilos	0,00																			
+3	BOTELLA		35,00	Kilos	0,00	Kilos	0,00																			
+3	BLOQUE DE BOTELLAS		540,00	Kilos	0,00	Kilos	0,00																			
+3	BLOQUE DE BOTELLAS		480,00	Kilos	0,00	Kilos	0,00																			
+3	RECIPIENTE CRIOGENICO		211,00	Kilos	0,00	Kilos	0,00																			
+3	RECIPIENTE CRIOGENICO		258,00	Kilos	0,00	Kilos	0,00												COMPROVACIONES							
+3	BOTELLA		5,00	Litros	0,00	Litros	0,00																			
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00		Nº	         OPERACIÓN DE CONTROL									   X	                                         ESPLICACIONES						
+3	BOTELLA		20,00	Litros	0,00	Litros	0,00		1	FICHA TÉCNICA E ITV EN VIGOR			PEGATINA E ITV PASADA SIN FALLO						
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00		2	TARJETA DE TRANSPORTE EN VIGOR									
+3	BOTELLA		5,00	Litros	0,00	Litros	0,00		3	EXTINTORES			INSPECION PERIODICA Y PRECINTADO						
+3	BOTELLA		10,00	Litros	0,00	Litros	0,00		4	MALETIN ADR			LINTERNA, GAFAS, GUANTES,CHALECO.  LLEVARLO EN LA GABINA CONDUCCION						
+3	BOTELLA		14,00	Litros	0,00	Litros	0,00		5	INSTRUCCIONES ESCRITAS										LLEVARLA EN LA GABINA DE CONDUCCION CON MALETIN ADR						
+3	BOTELLA		20,00	Litros	0,00	Litros	0,00		6	DOCUMENTACION TRIPULANTE										DNI,CARNET CONDUCIR (SI NECESARIO CARNET ADR)						
+3	BOTELLA		15,00	KG	0,00	Litros	0,00		7	PLACAS										SI LA NECESITA.   EN ALGUN CASO TIENE QUE IR CON Nº UN						
+2	BOTELLA		50,00	Litros	0,00	Litros	0,00		8	NUMERO Y TIPO DE BULTOS										CONTAR BULTOS Y LITROS 						
+3	BOTELLA		40,00	Litros	0,00	Litros	0,00		9	ETIQUETADO BULTO										PONER BIEN LA ETIQUETAS EN TODOS LOS BOMBONAS						
+3	BOTELLA		50,00	Litros	0,00	Litros	0,00		10	CADUCIDAD BULTO										PROHIBIDO LLEVAR BOMBONAS CADUCADAS LLENAS						
+3	BOTELLA		2,00	kilos	0,00	kilos	0,00		11	AMARAR BULTO Y CESTAS										QUE LA BOMBONAS NO BAILEN Y LAS CESTAS ESTEN BIEN AMARRADAS						
+594	EXTINTOR		2,00	KG	0,00	KG	0,00		12	NO PASARSE DE LA CANTIDAD ADR										SI PASA LA CANTIDA ADR, PONER PLACAS						
+594	EXTINTOR		3,50	KG	0,00	KG	0,00		13	CARTA DE PORTE 										COMPILAR CORRECTAMENTE LA CARTA DE PORTE						
+594	EXTINTOR		5,00	KG	0,00	KG	0,00																			
+594	EXTINTOR		10,00	KG	0,00	KG	0,00																			
+																										
+																										
+0		CESTAS	1	120,00	KG																						
+		TOTAL	23			108,00	108,00																			
+	       PARA DETERMINAR LA CANTIDAD DE MERCANCIA TRASPORTADA,																										
+	       VERIFICAR ALBARANES DE REPARTO.																										
+																											
+																			
+D.	GIANFRANCO MIGNOLLI	CON		DNI: X3435050T																			
+conductor del vehículo arriba indicado, en rapresentacion de la Compañía del Transporte  DECLARA :																											
+ Que ha recibido la Carta de Porte y dispone de las instrucciones escritas para el conductor.																											
+ Que no sobrepasará la masa máxima autorizada (MMA) del vehículo.																											
+ Que conoce y cumple las disposiciones generales y particulares sobre vehículos, carga, descarga, manipulación y																											
+ circulación que para estas materias establece el ADR																											
+				FIRMA DEL CONDUCTOR																							
+																											
+																											
+																											

@@ -78,6 +78,9 @@ class LogisticsCylinder(Base):
         ForeignKey("branches.id"), nullable=True, index=True
     )
     serial: Mapped[str] = mapped_column(String(50), nullable=False)
+    container_type: Mapped[str] = mapped_column(
+        String(20), nullable=False, default="CYLINDER", index=True
+    )
     description: Mapped[str | None] = mapped_column(String(200), nullable=True)
     barcode1: Mapped[str | None] = mapped_column(String(150), nullable=True)
     barcode2: Mapped[str | None] = mapped_column(String(50), nullable=True)

@@ -52,7 +52,7 @@ from plugins.productos.backend.models import Product, ProductAdr
 VALID_OPERATION_TYPES = {"DELIVERY", "PICKUP", "EXCHANGE"}
 VALID_DIRECTIONS = {"OUT", "IN"}
 ROUTE_MUTABLE_STATUSES = {"OUTBOUND", "RETURNING"}
-VALID_CONTEXT_TYPES = {"STOP", "CUSTOMER_EMERGENCY", "WAREHOUSE_EMERGENCY"}
+VALID_CONTEXT_TYPES = {"STOP", "CUSTOMER", "WAREHOUSE"}
 VALID_INCIDENT_MODES = {"NONE", "CREATE", "CORRECT_EXISTING"}
 VALID_INCIDENT_TYPES = {
     "QUANTITY_MISMATCH",
@@ -170,8 +170,31 @@ def _resolve_operation_context(
         if route_stop is None:
             raise LookupError("Parada no encontrada")
         delivery_point = _get_delivery_point(db, route_stop=route_stop)
-        if delivery_point is None:
+        if delivery_point is None and route_stop.customer_id is None:
             raise LookupError("Punto de entrega no encontrado para la parada")
+
+        if delivery_point is not None and delivery_point.warehouse_id is not None:
+            warehouse = _get_warehouse(
+                db, tenant_id=session.tenant_id, warehouse_id=delivery_point.warehouse_id
+            )
+            return {
+                "route_stop": route_stop,
+                "delivery_point": delivery_point,
+                "context_type": "WAREHOUSE",
+                "customer_id": None,
+                "customer_name_snapshot": None,
+                "warehouse_id": delivery_point.warehouse_id,
+                "warehouse_name_snapshot": warehouse.name,
+            }
+
+        resolved_customer_id = (
+            delivery_point.customer_id if delivery_point is not None
+            else route_stop.customer_id
+        )
+        resolved_customer_name = (
+            delivery_point.customer_name if delivery_point is not None
+            else route_stop.customer_name_snapshot
+        )
         warehouse_name_snapshot = None
         if warehouse_id is not None:
             warehouse = _get_warehouse(db, tenant_id=session.tenant_id, warehouse_id=warehouse_id)
@@ -180,8 +203,8 @@ def _resolve_operation_context(
             "route_stop": route_stop,
             "delivery_point": delivery_point,
             "context_type": resolved_context_type,
-            "customer_id": delivery_point.customer_id,
-            "customer_name_snapshot": delivery_point.customer_name,
+            "customer_id": resolved_customer_id,
+            "customer_name_snapshot": resolved_customer_name,
             "warehouse_id": warehouse_id,
             "warehouse_name_snapshot": warehouse_name_snapshot,
         }
@@ -189,9 +212,9 @@ def _resolve_operation_context(
     if route_stop_id is not None:
         raise ValueError("El contexto manual no permite route_stop_id")
 
-    if resolved_context_type == "CUSTOMER_EMERGENCY":
+    if resolved_context_type == "CUSTOMER":
         if customer_id is None:
-            raise ValueError("context_type CUSTOMER_EMERGENCY requiere customer_id")
+            raise ValueError("context_type CUSTOMER requiere customer_id")
         customer = _get_customer(db, tenant_id=session.tenant_id, customer_id=customer_id)
         customer_name_snapshot = _customer_snapshot_name(customer)
         return {
@@ -209,7 +232,7 @@ def _resolve_operation_context(
         }
 
     if warehouse_id is None:
-        raise ValueError("context_type WAREHOUSE_EMERGENCY requiere warehouse_id")
+        raise ValueError("context_type WAREHOUSE requiere warehouse_id")
     warehouse = _get_warehouse(db, tenant_id=session.tenant_id, warehouse_id=warehouse_id)
     return {
         "route_stop": None,
@@ -538,7 +561,9 @@ def _delivery_point_for_operation(
 ) -> LogisticsDeliveryPoint | SimpleNamespace | None:
     route_stop = _get_route_stop(db, route_stop_id=operation.route_stop_id)
     if route_stop is not None:
-        return _get_delivery_point(db, route_stop=route_stop)
+        dp = _get_delivery_point(db, route_stop=route_stop)
+        if dp is not None:
+            return dp
     if operation.customer_id is not None:
         return SimpleNamespace(
             customer_id=operation.customer_id,

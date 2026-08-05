@@ -28,7 +28,8 @@ export function RouteModal({
       onClose={onClose}
       title="Contexto de ruta"
       description="Superficie base para operar la ruta sin salir del ciclo principal."
-      maxWidthClassName="max-w-4xl"
+      maxWidthClassName="max-w-[1800px]"
+      maxHeightClassName="max-h-[92vh]"
     >
       <SessionRouteTab
         routeId={routeId}

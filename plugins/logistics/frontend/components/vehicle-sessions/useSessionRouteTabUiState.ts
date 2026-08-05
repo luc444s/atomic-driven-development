@@ -17,7 +17,7 @@ type ProductSelection = {
 export function useSessionRouteTabUiState() {
   const [operationType, setOperationType] = useState("DELIVERY");
   const [routeStopId, setRouteStopId] = useState("");
-  const [contextType, setContextType] = useState<RouteContextType>("CUSTOMER_EMERGENCY");
+  const [contextType, setContextType] = useState<RouteContextType>("CUSTOMER");
   const [contextCustomerId, setContextCustomerId] = useState("");
   const [contextWarehouseId, setContextWarehouseId] = useState("");
   const [operationNotes, setOperationNotes] = useState("");
@@ -25,6 +25,7 @@ export function useSessionRouteTabUiState() {
   const [nextDirection, setNextDirection] = useState<"OUT" | "IN">("OUT");
   const [draftItems, setDraftItems] = useState<RouteDraftItem[]>([]);
   const [serialItemIndex, setSerialItemIndex] = useState<number | null>(null);
+  const [fastSerialInput, setFastSerialInput] = useState("");
   const [eventModalOpen, setEventModalOpen] = useState(false);
   const [incidentsModalOpen, setIncidentsModalOpen] = useState(false);
   const [stopResultsModalOpen, setStopResultsModalOpen] = useState(false);
@@ -62,6 +63,33 @@ export function useSessionRouteTabUiState() {
     ]);
   }
 
+  function addDeliveryProduct(product: { product_id: string; product_name: string; available: number; serial?: string }) {
+    setDraftItems((current) => {
+      const existingIndex = current.findIndex((item) => item.product_id === product.product_id && item.direction === "OUT");
+      if (existingIndex !== -1) {
+        return current.map((item, index) =>
+          index === existingIndex
+            ? {
+                ...item,
+                quantity: String(Math.min(Number(item.quantity) + 1, product.available)),
+                selected_serials_count: product.serial ? item.selected_serials_count + 1 : item.selected_serials_count,
+              }
+            : item
+        );
+      }
+      return [
+        ...current,
+        {
+          product_id: product.product_id,
+          product_name: product.product_name,
+          quantity: "1",
+          direction: "OUT",
+          selected_serials_count: product.serial ? 1 : 0,
+        },
+      ];
+    });
+  }
+
   function updateDraftItem(index: number, patch: Partial<RouteDraftItem>) {
     setDraftItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
   }
@@ -79,16 +107,16 @@ export function useSessionRouteTabUiState() {
       return;
     }
     if (contextType === "STOP") {
-      setContextType("CUSTOMER_EMERGENCY");
+      setContextType("CUSTOMER");
     }
   }
 
   function handleContextTypeChange(value: RouteContextType) {
     setContextType(value);
-    if (value !== "CUSTOMER_EMERGENCY") {
+    if (value !== "CUSTOMER") {
       setContextCustomerId("");
     }
-    if (value !== "WAREHOUSE_EMERGENCY") {
+    if (value !== "WAREHOUSE") {
       setContextWarehouseId("");
     }
   }
@@ -100,9 +128,15 @@ export function useSessionRouteTabUiState() {
     setShowProductSearch(true);
   }
 
-  function openEventModal() {
+  function openEventModal(defaultStopId?: string) {
     setCorrectionIncidentId(null);
     setEventModalOpen(true);
+    if (defaultStopId) {
+      setRouteStopId(defaultStopId);
+      setContextType("STOP");
+      setContextCustomerId("");
+      setContextWarehouseId("");
+    }
   }
 
   function closeEventModal() {
@@ -172,7 +206,7 @@ export function useSessionRouteTabUiState() {
     setCorrectionIncidentId(incident.id);
     setOperationType(suggestCorrectionOperationType(incident));
     setRouteStopId(incident.route_stop_id ?? "");
-    setContextType(incident.route_stop_id ? "STOP" : "CUSTOMER_EMERGENCY");
+    setContextType(incident.route_stop_id ? "STOP" : "CUSTOMER");
     setOperationNotes(`Reconciliación de incidencia ${incident.id}`);
     setDraftItems([]);
     setIncidentsModalOpen(false);
@@ -193,6 +227,10 @@ export function useSessionRouteTabUiState() {
 
   function closeSerialDialog() {
     setSerialItemIndex(null);
+  }
+
+  function resetFastSerialInput() {
+    setFastSerialInput("");
   }
 
   function handleSerialSelectionCountChange(selectedCount: number) {
@@ -241,6 +279,7 @@ export function useSessionRouteTabUiState() {
     showProductSearch,
     draftItems,
     serialDialogItem,
+    fastSerialInput,
     eventModalOpen,
     incidentsModalOpen,
     stopResultsModalOpen,
@@ -265,6 +304,7 @@ export function useSessionRouteTabUiState() {
     setIncidentNotes,
     setResolveNotes,
     setShowProductSearch,
+    setFastSerialInput,
     updateDraftItem,
     removeDraftItem,
     handleRouteStopChange,
@@ -287,7 +327,9 @@ export function useSessionRouteTabUiState() {
     startCorrection,
     cancelCorrection,
     handleProductSelected,
+    addDeliveryProduct,
     closeSerialDialog,
+    resetFastSerialInput,
     handleSerialSelectionCountChange,
     resetAfterRouteEventSuccess,
     resetAfterIncidentResolved,

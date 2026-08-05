@@ -162,8 +162,11 @@ export function LoadSerialsDialog({
     if (!item) {
       return;
     }
+    if (selectedAssignments.length === 0 && selectedQuery.isFetching) {
+      return;
+    }
     onSelectionCountChange(item.product_id, selectedAssignments.length);
-  }, [item, onSelectionCountChange, selectedAssignments.length]);
+  }, [item, onSelectionCountChange, selectedAssignments.length, selectedQuery.isFetching]);
 
   useEffect(() => {
     if (!open) {

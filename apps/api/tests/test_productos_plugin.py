@@ -293,3 +293,74 @@ def test_productos_plugin_full_flow(app) -> None:
         )
         assert list_response.status_code == 200, list_response.text
         assert list_response.json()["total"] >= 1
+
+
+def test_productos_list_search_uses_or_between_sku_and_name(app) -> None:
+    with app.state.session_factory() as db:
+        seeded_demo = seed_demo_data(
+            db, app.state.settings, app.state.plugin_runtime.list_results()
+        )
+    enable_productos_plugin(app, seeded_demo)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+
+        category = client.post(
+            "/api/v1/plugins/productos/catalog/categories",
+            headers=headers,
+            json={"code": "CAT-SEARCH", "name": "Categoria Search", "description": "Test"},
+        ).json()
+        line = client.post(
+            "/api/v1/plugins/productos/catalog/lines",
+            headers=headers,
+            json={
+                "code": "LIN-SEARCH",
+                "name": "Linea Search",
+                "category_id": category["id"],
+                "description": "Test",
+            },
+        ).json()
+        subline = client.post(
+            "/api/v1/plugins/productos/catalog/subline",
+            headers=headers,
+            json={"code": "SUB-SEARCH", "name": "Sublinea Search", "line_id": line["id"]},
+        ).json()
+        unit = client.post(
+            "/api/v1/plugins/productos/catalog/units",
+            headers=headers,
+            json={
+                "code": "U-SEARCH",
+                "name": "Unidad Search",
+                "equivalencia": 1,
+                "m3_factor": 0,
+                "liter_factor": 0,
+                "kg_factor": 1,
+            },
+        ).json()
+        product = client.post(
+            "/api/v1/plugins/productos/products",
+            headers=headers,
+            json={
+                "sku": "SKU-NUMERICO-1",
+                "name": "Gas Especial B10 / 200BAR",
+                "description": "Nombre distinto del sku",
+                "line_id": line["id"],
+                "subline_id": subline["id"],
+                "unit_id": unit["id"],
+                "status_code": "ACTIVO",
+                "condition_code": "GAS",
+            },
+        )
+        assert product.status_code == 201, product.text
+        product_data = product.json()
+
+        listed = client.get(
+            "/api/v1/plugins/productos/products?limit=20&offset=0"
+            "&sku=Gas%20Especial&name=Gas%20Especial",
+            headers=headers,
+        )
+        assert listed.status_code == 200, listed.text
+        assert listed.json()["total"] >= 1
+        assert any(
+            item["id"] == product_data["id"] for item in listed.json()["items"]
+        )

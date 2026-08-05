@@ -360,6 +360,8 @@ class ProductAdr(Base):
     product_id: Mapped[str] = mapped_column(
         ForeignKey("prod_products.id"), nullable=False, index=True
     )
+    source_product_id: Mapped[str | None] = mapped_column(String(36), nullable=True, index=True)
+    source_quantity_liters: Mapped[float | None] = mapped_column(Numeric(10, 3), nullable=True)
     category: Mapped[str | None] = mapped_column(String(50), nullable=True)
     packaging_type: Mapped[str | None] = mapped_column(String(50), nullable=True)
     net_weight_kg: Mapped[float | None] = mapped_column(Numeric(10, 2), nullable=True)

@@ -2,6 +2,7 @@ import type { CylinderEntryMode } from "../../api";
 
 export type CylinderFormState = {
   serial: string;
+  container_type: string;
   description: string;
   barcode2: string;
   gas_group_id: string;
@@ -102,6 +103,7 @@ export type CylinderCreateMetaState = {
 
 export const EMPTY_CYLINDER_FORM: CylinderFormState = {
   serial: "",
+  container_type: "CYLINDER",
   description: "",
   barcode2: "",
   gas_group_id: "",

@@ -1,7 +1,9 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
+from typing import NamedTuple
+from uuid import uuid4
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
@@ -43,7 +45,7 @@ from plugins.logistics.backend.services.state_machine import (
     list_allowed_transitions,
 )
 from plugins.logistics.backend.services.stock_bridge import adjust_required_product_stock
-from plugins.productos.backend.models import Product
+from plugins.productos.backend.models import Product, ProductAdr
 
 ENTRY_MODE_EMPTY_FROM_CUSTOMER = "EMPTY_FROM_CUSTOMER"
 ENTRY_MODE_FULL_FROM_SUPPLIER = "FULL_FROM_SUPPLIER"
@@ -80,8 +82,11 @@ SERIALIZED_WAREHOUSE_AVAILABILITY_STATES = ("EN_ALMACEN_VACIO", "LLENADO_OK")
 EMPTY_FILL_STATUS = "VACIO"
 LOADED_FILL_STATUS = "CARGADO"
 FILL_OPERATION_ORIGIN = "LLENADO CILINDRO"
+CRYOGENIC_FILL_OPERATION_ORIGIN = "LLENADO CRIOGENICO"
 VACATE_OPERATION_ORIGIN = "VACIADO CILINDRO"
 FILL_REASON_CODE = "FILL"
+CRYOGENIC_FILL_REASON_CODE = "FILL_CRYO"
+FILL_REASON_CODES = (FILL_REASON_CODE, CRYOGENIC_FILL_REASON_CODE)
 VACATE_REASON_CODE = "VACATE"
 FILLABLE_EMPTY_STATES = {"CREADO_VACIO", "EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN"}
 NON_WAREHOUSE_STATES = {
@@ -92,6 +97,17 @@ NON_WAREHOUSE_STATES = {
     "PARA_TRASLADO",
 }
 
+SIMPLE_FILL_MODE = "SIMPLE"
+CRYOGENIC_FILL_MODE = "CRYOGENIC"
+
+
+class CryogenicFillRecipe(NamedTuple):
+    result_product: Product
+    source_product: Product
+    source_quantity_liters: float
+    result_m3_gas: float
+    result_net_weight_kg: float
+
 
 def list_cylinders(
     db: Session,
@@ -101,6 +117,7 @@ def list_cylinders(
     state: str | None = None,
     active: bool | None = None,
     is_medical: bool | None = None,
+    container_type: str | None = None,
 ) -> list[LogisticsCylinder]:
     stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
     if search:
@@ -120,6 +137,8 @@ def list_cylinders(
         stmt = stmt.where(LogisticsCylinder.is_active == active)
     if is_medical is not None:
         stmt = stmt.where(LogisticsCylinder.is_medical == is_medical)
+    if container_type:
+        stmt = stmt.where(LogisticsCylinder.container_type == container_type)
     stmt = stmt.order_by(LogisticsCylinder.created_at.desc(), LogisticsCylinder.serial.asc())
     return list(db.scalars(stmt).all())
 
@@ -134,6 +153,7 @@ def list_cylinders_page(
     state: str | None = None,
     active: bool | None = None,
     is_medical: bool | None = None,
+    container_type: str | None = None,
 ) -> tuple[list[LogisticsCylinder], int]:
     stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
     if search:
@@ -153,6 +173,8 @@ def list_cylinders_page(
         stmt = stmt.where(LogisticsCylinder.is_active == active)
     if is_medical is not None:
         stmt = stmt.where(LogisticsCylinder.is_medical == is_medical)
+    if container_type:
+        stmt = stmt.where(LogisticsCylinder.container_type == container_type)
 
     total = int(db.scalar(select(func.count()).select_from(stmt.order_by(None).subquery())) or 0)
     offset = (page - 1) * per_page
@@ -321,6 +343,7 @@ def create_cylinder(
         is_active=True,
     )
     _apply_cylinder_payload(cylinder, payload)
+    _validate_container_type_coherence(db, tenant_id=tenant_id, cylinder=cylinder)
     if payload.entry_mode is not None:
         cylinder.current_state = ENTRY_MODE_TARGET_STATE[payload.entry_mode]
     db.add(cylinder)
@@ -361,6 +384,13 @@ def create_cylinder(
             document_reference=document_reference,
             action_context=action_context,
         )
+
+    if (
+        cylinder.container_type == "CRYOGENIC_TANK"
+        and warehouse_id is not None
+    ):
+        cylinder.location = f"TANK_WH:{warehouse_id}"
+        db.add(cylinder)
 
     audit_logistics_action(
         db,
@@ -404,6 +434,7 @@ def update_cylinder(
     previous_is_medical = cylinder.is_medical
     previous_medical_notes = cylinder.medical_notes
     _apply_cylinder_payload(cylinder, payload, partial=True)
+    _validate_container_type_coherence(db, tenant_id=cylinder.tenant_id, cylinder=cylinder)
     db.add(cylinder)
     db.flush()
     audit_details: dict[str, object] = {
@@ -541,39 +572,98 @@ def fill_cylinder(
     tenant_id: str,
     cylinder: LogisticsCylinder,
     warehouse_id: str,
+    source_product_id: str | None,
     content_kg: float | None,
     volume_m3: float | None,
     weight_current: float | None,
+    fill_operation_id: str | None,
     notes: str | None,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinder:
-    _validate_fill_payload(content_kg=content_kg, volume_m3=volume_m3)
     _ensure_fillable_cylinder(db, tenant_id=tenant_id, cylinder=cylinder, warehouse_id=warehouse_id)
-
-    product = _resolve_stock_product_for_gas(
+    recipe = _resolve_active_cryogenic_fill_recipe(
         db,
         tenant_id=tenant_id,
-        product_id=cylinder.product_id,
-        gas_group_id=cylinder.gas_group_id or "",
+        cylinder=cylinder,
+        source_product_id=source_product_id,
     )
+
+    fill_operation_id = fill_operation_id or str(uuid4())
     previous_state = cylinder.current_state
+
+    if recipe is None:
+        _validate_fill_payload(content_kg=content_kg, volume_m3=volume_m3)
+        product = _resolve_stock_product_for_gas(
+            db,
+            tenant_id=tenant_id,
+            product_id=cylinder.product_id,
+            gas_group_id=cylinder.gas_group_id or "",
+        )
+        resolved_content_kg = content_kg
+        resolved_volume_m3 = volume_m3
+        stock_product = product
+        stock_quantity = _resolve_fill_stock_quantity(
+            content_kg=resolved_content_kg,
+            volume_m3=resolved_volume_m3,
+        )
+        origin = FILL_OPERATION_ORIGIN
+        reason_code = FILL_REASON_CODE
+        action_name = "cylinder.fill"
+        fill_mode = SIMPLE_FILL_MODE
+        metadata_details: dict[str, object] = {
+            "product_id": product.id,
+            "product_name": product.name,
+        }
+        event_details: dict[str, object] = {
+            "product_id": product.id,
+            "product_name": product.name,
+        }
+    else:
+        resolved_content_kg, resolved_volume_m3 = _resolve_cryogenic_fill_payload(
+            recipe=recipe,
+            content_kg=content_kg,
+            volume_m3=volume_m3,
+        )
+        stock_product = recipe.source_product
+        stock_quantity = recipe.source_quantity_liters
+        origin = CRYOGENIC_FILL_OPERATION_ORIGIN
+        reason_code = CRYOGENIC_FILL_REASON_CODE
+        action_name = "cylinder.fill_cryogenic"
+        fill_mode = CRYOGENIC_FILL_MODE
+        metadata_details = {
+            "source_product_id": recipe.source_product.id,
+            "source_product_name": recipe.source_product.name,
+            "source_quantity_liters": recipe.source_quantity_liters,
+            "result_product_id": recipe.result_product.id,
+            "result_product_name": recipe.result_product.name,
+            "result_m3_gas": recipe.result_m3_gas,
+            "result_net_weight_kg": recipe.result_net_weight_kg,
+        }
+        event_details = dict(metadata_details)
 
     adjust_required_product_stock(
         db,
         tenant_id=tenant_id,
         warehouse_id=warehouse_id,
-        product_id=product.id,
-        quantity=-_resolve_fill_stock_quantity(content_kg=content_kg, volume_m3=volume_m3),
-        reason=f"Llenado cilindro {cylinder.serial}",
-        idempotency_key=f"cylinder-fill:{cylinder.id}:{warehouse_id}:{content_kg}:{volume_m3}",
+        product_id=stock_product.id,
+        quantity=-stock_quantity,
+        reason=f"{origin.title()} cilindro {cylinder.serial}",
+        idempotency_key=_build_fill_idempotency_key(
+            cylinder_id=cylinder.id,
+            warehouse_id=warehouse_id,
+            source_product_id=stock_product.id,
+            content_kg=resolved_content_kg,
+            volume_m3=resolved_volume_m3,
+            fill_operation_id=fill_operation_id,
+        ),
         action_context=action_context,
     )
 
-    cylinder.content_kg = content_kg if content_kg is not None else None
-    cylinder.volume_m3 = volume_m3 if volume_m3 is not None else None
+    cylinder.content_kg = resolved_content_kg if resolved_content_kg is not None else None
+    cylinder.volume_m3 = resolved_volume_m3 if resolved_volume_m3 is not None else None
     cylinder.weight_current = _resolve_filled_weight_current(
         cylinder,
-        content_kg=content_kg,
+        content_kg=resolved_content_kg,
         weight_current=weight_current,
     )
     cylinder.current_state = "LLENADO_OK"
@@ -588,18 +678,19 @@ def fill_cylinder(
             from_state=previous_state,
             to_state=cylinder.current_state,
             changed_by=action_context.actor_user_id,
-            origin=FILL_OPERATION_ORIGIN,
-            reason_code=FILL_REASON_CODE,
+            origin=origin,
+            reason_code=reason_code,
             notes=notes,
             metadata_json={
                 "operation": "fill",
+                "fill_mode": fill_mode,
+                "fill_operation_id": fill_operation_id,
                 "warehouse_id": warehouse.id,
                 "warehouse_name": warehouse.name,
-                "product_id": product.id,
-                "product_name": product.name,
-                "content_kg": content_kg,
-                "volume_m3": volume_m3,
+                "content_kg": resolved_content_kg,
+                "volume_m3": resolved_volume_m3,
                 "weight_current": cylinder.weight_current,
+                **metadata_details,
             },
         )
     )
@@ -607,19 +698,22 @@ def fill_cylinder(
     audit_logistics_action(
         db,
         context=action_context,
-        action="cylinder.fill",
+        action=action_name,
         entity_type="cylinder",
         entity_id=cylinder.id,
         details={
             "serial": cylinder.serial,
+            "fill_mode": fill_mode,
+            "fill_operation_id": fill_operation_id,
             "warehouse_id": warehouse.id,
             "warehouse_name": warehouse.name,
-            "product_id": product.id,
-            "product_name": product.name,
-            "content_kg": content_kg,
-            "volume_m3": volume_m3,
+            "product_id": stock_product.id,
+            "product_name": stock_product.name,
+            "content_kg": resolved_content_kg,
+            "volume_m3": resolved_volume_m3,
             "from_state": previous_state,
             "to_state": cylinder.current_state,
+            **metadata_details,
         },
     )
     emit_logistics_event(
@@ -632,11 +726,14 @@ def fill_cylinder(
             "serial": cylinder.serial,
             "from_state": previous_state,
             "to_state": cylinder.current_state,
-            "origin": FILL_OPERATION_ORIGIN,
-            "reason_code": FILL_REASON_CODE,
+            "origin": origin,
+            "reason_code": reason_code,
+            "fill_mode": fill_mode,
+            "fill_operation_id": fill_operation_id,
             "warehouse_id": warehouse.id,
-            "content_kg": content_kg,
-            "volume_m3": volume_m3,
+            "content_kg": resolved_content_kg,
+            "volume_m3": resolved_volume_m3,
+            **event_details,
         },
     )
     return cylinder
@@ -743,6 +840,97 @@ def _resolve_fill_stock_quantity(*, content_kg: float | None, volume_m3: float |
         return content_kg
     assert volume_m3 is not None
     return volume_m3
+
+
+def _resolve_active_cryogenic_fill_recipe(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+    source_product_id: str | None,
+) -> CryogenicFillRecipe | None:
+    if cylinder.product_id is None:
+        if source_product_id is not None:
+            raise ValueError("El cilindro no tiene result_product_id para llenado criogenico")
+        return None
+
+    today = date.today()
+    adr = db.scalar(
+        select(ProductAdr)
+        .where(
+            ProductAdr.product_id == cylinder.product_id,
+            ProductAdr.tenant_id == tenant_id,
+            ProductAdr.valid_from <= today,
+            or_(ProductAdr.valid_to.is_(None), ProductAdr.valid_to >= today),
+        )
+        .order_by(ProductAdr.valid_from.desc(), ProductAdr.created_at.desc())
+        .limit(1)
+    )
+    if adr is None or adr.source_product_id is None:
+        if source_product_id is not None:
+            raise ValueError("El producto resultado no tiene receta criogenica activa")
+        return None
+    if source_product_id is not None and adr.source_product_id != source_product_id:
+        raise ValueError("source_product_id no coincide con la receta criogenica activa del producto resultado")
+    if (
+        adr.source_quantity_liters is None
+        or adr.net_volume_m3 is None
+        or adr.net_weight_kg is None
+    ):
+        raise ValueError(
+            "La receta criogenica activa esta incompleta: requiere source_quantity_liters, net_volume_m3 y net_weight_kg"
+        )
+
+    result_product = _require_product(db, tenant_id=tenant_id, product_id=cylinder.product_id)
+    source_product = _require_product(db, tenant_id=tenant_id, product_id=adr.source_product_id)
+    return CryogenicFillRecipe(
+        result_product=result_product,
+        source_product=source_product,
+        source_quantity_liters=float(adr.source_quantity_liters),
+        result_m3_gas=float(adr.net_volume_m3),
+        result_net_weight_kg=float(adr.net_weight_kg),
+    )
+
+
+def _resolve_cryogenic_fill_payload(
+    *,
+    recipe: CryogenicFillRecipe,
+    content_kg: float | None,
+    volume_m3: float | None,
+) -> tuple[float, float]:
+    if content_kg is not None and abs(content_kg - recipe.result_net_weight_kg) > 1e-9:
+        raise ValueError(
+            "content_kg no coincide con la receta criogenica activa del producto resultado"
+        )
+    if volume_m3 is not None and abs(volume_m3 - recipe.result_m3_gas) > 1e-9:
+        raise ValueError(
+            "volume_m3 no coincide con la receta criogenica activa del producto resultado"
+        )
+    return recipe.result_net_weight_kg, recipe.result_m3_gas
+
+
+def _build_fill_idempotency_key(
+    *,
+    cylinder_id: str,
+    warehouse_id: str,
+    source_product_id: str,
+    content_kg: float | None,
+    volume_m3: float | None,
+    fill_operation_id: str,
+) -> str:
+    return (
+        f"cylinder-fill:{cylinder_id}:{warehouse_id}:{source_product_id}:"
+        f"{content_kg}:{volume_m3}:{fill_operation_id}"
+    )
+
+
+def _require_product(db: Session, *, tenant_id: str, product_id: str) -> Product:
+    product = db.scalar(
+        select(Product).where(Product.id == product_id, Product.tenant_id == tenant_id)
+    )
+    if product is None:
+        raise LookupError("Product not found")
+    return product
 
 
 def _has_positive_load(cylinder: LogisticsCylinder) -> bool:
@@ -942,6 +1130,7 @@ def _apply_cylinder_payload(
 
     for field_name in [
         "branch_id",
+        "container_type",
         "gas_group_id",
         "product_id",
         "content_kg",
@@ -967,6 +1156,34 @@ def _apply_cylinder_payload(
     is_active = getattr(payload, "is_active", None)
     if should_apply("is_active") and is_active is not None:
         cylinder.is_active = is_active
+
+
+def _validate_container_type_coherence(
+    db: Session,
+    *,
+    tenant_id: str,
+    cylinder: LogisticsCylinder,
+) -> None:
+    if cylinder.container_type != "CRYOGENIC_TANK":
+        return
+    if cylinder.product_id is None:
+        raise ValueError(
+            "Un envase criogenico (CRYOGENIC_TANK) requiere product_id del gas liquido"
+        )
+    is_cryogenic_source = db.scalar(
+        select(ProductAdr.id)
+        .where(
+            ProductAdr.tenant_id == tenant_id,
+            ProductAdr.source_product_id == cylinder.product_id,
+            ProductAdr.source_quantity_liters.is_not(None),
+            ProductAdr.source_quantity_liters > 0,
+        )
+        .limit(1)
+    )
+    if is_cryogenic_source is None:
+        raise ValueError(
+            "El gas liquido del tanque criogenico debe ser producto fuente de al menos una receta criogenica"
+        )
 
 
 def _validate_initial_entry_payload(

@@ -148,7 +148,9 @@ def update_product(
         ),
         weight_kg=payload.weight_kg if payload.weight_kg is not None else product.weight_kg,
         default_weight_kg=(
-            payload.default_weight_kg if payload.default_weight_kg is not None else product.default_weight_kg
+            payload.default_weight_kg
+            if payload.default_weight_kg is not None
+            else product.default_weight_kg
         ),
         content_m3=payload.content_m3 if payload.content_m3 is not None else product.content_m3,
         country_code=payload.country_code
@@ -267,12 +269,17 @@ def list_products(
     count_stmt: Select[Any] = (
         select(func.count()).select_from(Product).where(Product.tenant_id == tenant_id)
     )
-    if sku:
-        stmt = stmt.where(Product.sku.ilike(f"%{sku.strip()}%"))
-        count_stmt = count_stmt.where(Product.sku.ilike(f"%{sku.strip()}%"))
-    if name:
-        stmt = stmt.where(Product.name.ilike(f"%{name.strip()}%"))
-        count_stmt = count_stmt.where(Product.name.ilike(f"%{name.strip()}%"))
+    if sku or name:
+        search_conditions = []
+        if sku:
+            sku_pattern = f"%{sku.strip()}%"
+            search_conditions.append(Product.sku.ilike(sku_pattern))
+        if name:
+            name_pattern = f"%{name.strip()}%"
+            search_conditions.append(Product.name.ilike(name_pattern))
+        search_filter = or_(*search_conditions)
+        stmt = stmt.where(search_filter)
+        count_stmt = count_stmt.where(search_filter)
     if line_id:
         stmt = stmt.where(Product.line_id == line_id)
         count_stmt = count_stmt.where(Product.line_id == line_id)

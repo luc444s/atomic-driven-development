@@ -9,6 +9,7 @@ export function buildCylinderFormState(cylinder?: LogisticsCylinder | null): Cyl
   }
   return {
     serial: cylinder.serial,
+    container_type: cylinder.container_type ?? "CYLINDER",
     description: cylinder.description ?? "",
     barcode2: cylinder.barcode2 ?? "",
     gas_group_id: cylinder.product_id ?? cylinder.gas_group_id ?? "",
@@ -38,6 +39,7 @@ export function buildCylinderFormState(cylinder?: LogisticsCylinder | null): Cyl
 export function buildCylinderPayload(form: CylinderFormState) {
   return {
     serial: form.serial,
+    container_type: form.container_type,
     description: toNullable(form.description),
     barcode2: toNullable(form.barcode2) ?? toNullable(form.serial),
     product_id: toNullable(form.gas_group_id),

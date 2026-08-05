@@ -18,6 +18,22 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 - Los cinco parciales operativos de planificacion quedan desglosados en `docs/specs/core/0020-logistics-planificacion-parciales.md`.
 - `almacen movil` / `flota` quedaron retirados del runtime por inconsistencia operativa y tecnica; `SPEC 0023E` se conserva solo como baseline historica/deprecada para una reconstruccion futura.
 
+## Actualización 2026-08-04
+
+- Se aplicó el slice backend mínimo de `SPEC 0040.1` para llenado criogénico a cilindros resultado.
+- `productos` ahora puede guardar receta criogénica por `result_product_id` en ADR activo con `source_product_id` y `source_quantity_liters`, reutilizando `net_volume_m3` y `net_weight_kg` como métricas resultado.
+- `logistics` ahora detecta esa receta al llenar un cilindro vacío preexistente, descuenta stock del producto fuente, guarda `fill_operation_id` y diferencia la traza `FILL_CRYO` del llenado simple `0040`.
+- `vacate` se mantiene unidireccional: vaciar el cilindro no repone stock al producto criogénico fuente.
+- Se aplicó el slice frontend de `SPEC 0040.2` dentro de `Envases`: botón visible `Llenado`, diálogo/workspace de planta con cards de fuentes criogénicas, selección de tipo resultado, selección de seriales vacíos, preview total/parcial y confirmación mostrando `fill_operation_id`.
+- El frontend ejecuta la corrida reutilizando el endpoint actual por serial bajo una correlación común `fill_operation_id`, dejando resultado visible de seriales llenados y no llenados.
+
+## Regla vigente sobre endpoints nuevos (2026-08-04)
+
+- **No agregar endpoints nuevos a `plugins/logistics/backend/router.py`.**
+- Los endpoints nuevos se agregan en el subrouter del dominio correspondiente (`plugins/logistics/backend/routers/<dominio>.py`), o se crea un subrouter nuevo si el dominio no existe.
+- El `router.py` principal queda congelado en tamaño y solo retiene lo ya existente; su migración completa a subrouters es opcional y no urgente.
+- Registrar siempre el subrouter nuevo en `plugins/logistics/backend/plugin.py` (`register_router`).
+
 ## Matriz 0014
 
 | Bloque | Estado | Evidencia | Falta |

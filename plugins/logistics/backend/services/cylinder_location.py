@@ -28,6 +28,18 @@ def _match_location_text_to_warehouse(
     if not normalized_location:
         return CylinderCurrentWarehouse(None, None, None, "none")
 
+    if normalized_location.startswith(prefix := "TANK_WH:"):
+        warehouse_id = (location_text or "").strip()[len(prefix):]
+        warehouse = db.get(LogisticsWarehouse, warehouse_id)
+        if warehouse is not None:
+            return CylinderCurrentWarehouse(
+                warehouse.id,
+                warehouse.code,
+                warehouse.name,
+                "location",
+            )
+        return CylinderCurrentWarehouse(None, None, None, "none")
+
     warehouses = db.scalars(
         select(LogisticsWarehouse).where(LogisticsWarehouse.tenant_id == tenant_id)
     ).all()

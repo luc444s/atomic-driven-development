@@ -101,6 +101,7 @@ export function DetailMenuDialog({
             </CardHeader>
             <CardContent className="grid gap-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6 text-sm text-foreground">
               <div><span className="text-muted-foreground">Serial:</span> {selectedCylinder.serial}</div>
+              <div><span className="text-muted-foreground">Tipo:</span> {selectedCylinder.container_type === "CRYOGENIC_TANK" ? "Criogénico (tanque)" : "Estándar"}</div>
               <div><span className="text-muted-foreground">Estado:</span> <CylinderStateBadge state={selectedCylinder.current_state} /></div>
               <div><span className="text-muted-foreground">Gas:</span> {productById.get(selectedCylinder.product_id ?? "") || gasById.get(selectedCylinder.gas_group_id ?? "") || "-"}</div>
               <div><span className="text-muted-foreground">Marca:</span> {brandById.get(selectedCylinder.brand_id ?? "") || "-"}</div>

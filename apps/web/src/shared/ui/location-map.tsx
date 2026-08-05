@@ -21,8 +21,8 @@ export type LocationMapMarker = {
   label?: string;
   /** Muestra el rótulo siempre visible (sin necesidad de clic). */
   labelVisible?: boolean;
-  /** Color del marker: "origin" (verde), "assigned" (naranja) o default (azul). */
-  color?: "origin" | "assigned" | "default";
+  /** Color del marker: "origin" (verde), "assigned" (naranja), "completed" (verde oscuro) o default (azul). */
+  color?: "origin" | "assigned" | "completed" | "default";
 };
 
 export type LocationMapPolyline = {
@@ -80,21 +80,23 @@ function StatefulMarker({
 }) {
   const isOrigin = marker.color === "origin";
   const isAssigned = marker.color === "assigned";
-  const pinColor = isOrigin ? "#16a34a" : isAssigned ? "#f59e0b" : "#2563eb";
+  const isCompleted = marker.color === "completed";
+  const pinColor = isOrigin ? "#16a34a" : isAssigned ? "#f59e0b" : isCompleted ? "#15803d" : "#2563eb";
+  const iconLabel = isOrigin ? "A" : isCompleted ? "\u2713" : "\u2022";
   const icon = useMemo(
     () =>
       L.divIcon({
         className: "systutor-marker",
         html: `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
           <div style="width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:${pinColor};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center">
-            <span style="transform:rotate(45deg);font-size:11px;color:#fff">${isOrigin ? "A" : "\u2022"}</span>
+            <span style="transform:rotate(45deg);font-size:11px;color:#fff">${iconLabel}</span>
           </div>
           ${marker.labelVisible && marker.label ? `<span style="background:${pinColor};color:#fff;padding:1px 6px;border-radius:4px;font-size:10px;white-space:nowrap;transform:rotate(0)">${marker.label}</span>` : ""}
         </div>`,
         iconSize: [22, 22],
         iconAnchor: [11, 22],
       }),
-    [pinColor, marker.labelVisible, marker.label, isOrigin],
+    [pinColor, marker.labelVisible, marker.label, isOrigin, iconLabel],
   );
   const markerRef = useRef<L.Marker | null>(null);
 

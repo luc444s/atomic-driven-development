@@ -11,6 +11,7 @@ from plugins.logistics.backend.common import (
     emit_logistics_event,
 )
 from plugins.logistics.backend.models import (
+    LogisticsCylinder,
     LogisticsMovement,
     LogisticsMovementItem,
     LogisticsMovementStatusHistory,
@@ -284,6 +285,10 @@ def _apply_target_state_custody(
         )
 
 
+def _cylinder_is_empty(cylinder: LogisticsCylinder) -> bool:
+    return not cylinder.content_kg or cylinder.content_kg <= 0
+
+
 def apply_cylinder_effects_for_movement(
     db: Session,
     *,
@@ -302,6 +307,8 @@ def apply_cylinder_effects_for_movement(
         if cylinder is None:
             continue
         target_state = movement_type.target_state
+        if movement.movement_type == "SC" and _cylinder_is_empty(cylinder):
+            target_state = "EN_CLIENTE_VACIO"
         if cylinder.current_state != target_state:
             transitioned = transition_cylinder(
                 db,

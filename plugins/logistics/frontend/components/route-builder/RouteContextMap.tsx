@@ -8,6 +8,7 @@ type Props = {
   activeStopId: string | null;
   completedStops: number;
   totalStops: number;
+  completedStopIds?: Set<string>;
 };
 
 export function RouteContextMap({
@@ -16,6 +17,7 @@ export function RouteContextMap({
   activeStopId,
   completedStops,
   totalStops,
+  completedStopIds,
 }: Props) {
   if (!stops.length && !startPoint) {
     return (
@@ -59,6 +61,7 @@ export function RouteContextMap({
       id: s.id,
       position: s.position,
       label: s.label,
+      color: (completedStopIds?.has(s.id) ? "completed" : "default") as "completed" | "default",
     })),
   ];
   const path = [

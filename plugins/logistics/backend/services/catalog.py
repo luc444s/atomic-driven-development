@@ -52,6 +52,7 @@ TRANSITION_DEFINITIONS: tuple[tuple[str, str, bool, bool, str], ...] = (
     ("LLENADO_OK", "EN_CLIENTE_LLENO", False, False, "Despacho directo"),
     ("CARGA_EN_VEHICULO", "EN_RUTA", False, False, "Salida de ruta"),
     ("EN_RUTA", "EN_CLIENTE_LLENO", False, False, "Entrega completa"),
+    ("EN_RUTA", "EN_CLIENTE_VACIO", False, False, "Entrega de envase vacio"),
     ("EN_RUTA", "DESCARGADO_POR_RECEPCIONAR", False, False, "Descargado en destino"),
     ("DESCARGADO_POR_RECEPCIONAR", "RECEPCIONADO", False, False, "Recepcion conforme"),
     ("RECEPCIONADO", "EN_ALMACEN_VACIO", False, False, "Ingreso formal a almacen"),

@@ -6,6 +6,14 @@ const STOP_STATUS_LABELS: Record<string, string> = {
   FAILED: "Fallida",
 };
 
+export const STOP_STATUS_BORDER_COLORS: Record<string, string> = {
+  PENDING: "border-l-gray-400",
+  IN_PROGRESS: "border-l-blue-500",
+  PARTIAL: "border-l-amber-500",
+  COMPLETED: "border-l-green-500",
+  FAILED: "border-l-red-500",
+};
+
 const STOP_OUTCOME_LABELS: Record<string, string> = {
   NORMAL: "Normal",
   CUSTOMER_ABSENT: "Cliente ausente",

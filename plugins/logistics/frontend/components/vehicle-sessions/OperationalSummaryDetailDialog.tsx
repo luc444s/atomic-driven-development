@@ -7,6 +7,7 @@ import {
   formatStopOutcomeType,
   formatStopStatus,
   formatWaybillSyncStatus,
+  STOP_STATUS_BORDER_COLORS,
 } from "./jornada-labels";
 
 const BLOCKING_REASON_LABELS: Record<string, string> = {
@@ -83,7 +84,7 @@ export function OperationalSummaryDetailDialog({ open, summary, onClose }: Props
             {summary.problematic_stops.length ? (
               <div className="space-y-2">
                 {summary.problematic_stops.map((stop) => (
-                  <div key={stop.route_stop_id} className="rounded-lg border border-border px-3 py-3 text-sm text-foreground">
+                  <div key={stop.route_stop_id} className={`rounded-lg border-r border-t border-b border-l-4 border-border ${STOP_STATUS_BORDER_COLORS[stop.progress_status] ?? "border-l-gray-400"} px-3 py-3 text-sm text-foreground`}>
                     <div className="font-medium">{stop.label}</div>
                     <div className="text-muted-foreground">
                       {formatStopStatus(stop.progress_status)} · Incidencias abiertas: {stop.open_incidents}

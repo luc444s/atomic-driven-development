@@ -11,7 +11,7 @@ import {
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
 import type { RouteStopResult } from "../../api";
-import { formatStopOutcomeType, formatStopStatus } from "./jornada-labels";
+import { formatStopOutcomeType, formatStopStatus, STOP_STATUS_BORDER_COLORS } from "./jornada-labels";
 import type { RouteSelectOption } from "./RouteOperationForm";
 
 const STATUS_OPTIONS: RouteSelectOption[] = [
@@ -47,7 +47,6 @@ type Props = {
 export function RouteStopResultsPanel({ canManage, stopOptions, results, isPending, onSave }: Props) {
   const [routeStopId, setRouteStopId] = useState("");
   const [status, setStatus] = useState("PENDING");
-  const [completionPercent, setCompletionPercent] = useState("0");
   const [outcomeType, setOutcomeType] = useState("NORMAL");
   const [driverNote, setDriverNote] = useState("");
 
@@ -61,13 +60,11 @@ export function RouteStopResultsPanel({ canManage, stopOptions, results, isPendi
     const current = results.find((result) => result.route_stop_id === routeStopId);
     if (!current) {
       setStatus("PENDING");
-      setCompletionPercent("0");
       setOutcomeType("NORMAL");
       setDriverNote("");
       return;
     }
     setStatus(current.status);
-    setCompletionPercent(String(current.completion_percent));
     setOutcomeType(current.outcome_type);
     setDriverNote(current.driver_note ?? "");
   }, [routeStopId, results]);
@@ -87,7 +84,7 @@ export function RouteStopResultsPanel({ canManage, stopOptions, results, isPendi
       <CardHeader>
         <CardTitle>Resultado de parada</CardTitle>
         <CardDescription>
-          Cierra semánticamente la parada con porcentaje de cumplimiento y nota operativa del conductor.
+          Cierra la parada con estado definitivo y nota operativa del conductor.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -105,17 +102,6 @@ export function RouteStopResultsPanel({ canManage, stopOptions, results, isPendi
               <label className="space-y-2 text-sm text-foreground">
                 <span>Estado</span>
                 <Select value={status} onChange={setStatus} options={STATUS_OPTIONS} />
-              </label>
-              <label className="space-y-2 text-sm text-foreground">
-                <span>Porcentaje</span>
-                <Input
-                  type="number"
-                  min="0"
-                  max="100"
-                  step="1"
-                  value={completionPercent}
-                  onChange={(event) => setCompletionPercent(event.target.value)}
-                />
               </label>
               <label className="space-y-2 text-sm text-foreground">
                 <span>Desenlace</span>
@@ -138,7 +124,7 @@ export function RouteStopResultsPanel({ canManage, stopOptions, results, isPendi
                 onClick={() =>
                   onSave(routeStopId, {
                     status,
-                    completion_percent: Number(completionPercent || "0"),
+                    completion_percent: status === "COMPLETED" ? 100 : status === "FAILED" ? 0 : 0,
                     outcome_type: outcomeType,
                     driver_note: driverNote || null,
                   })
@@ -155,10 +141,10 @@ export function RouteStopResultsPanel({ canManage, stopOptions, results, isPendi
           {existingSummary.length ? (
             <div className="space-y-2">
               {existingSummary.map((result) => (
-                <div key={result.id} className="rounded-lg border border-border px-3 py-3 text-sm text-foreground">
+                <div key={result.id} className={`rounded-lg border-r border-t border-b border-l-4 border-border ${STOP_STATUS_BORDER_COLORS[result.status] ?? "border-l-gray-400"} px-3 py-3 text-sm text-foreground`}>
                   <div className="font-medium">{result.stopLabel}</div>
                   <div className="text-muted-foreground">
-                    {formatStopStatus(result.status)} · {result.completion_percent}% · {formatStopOutcomeType(result.outcome_type)}
+                    {formatStopStatus(result.status)} · {formatStopOutcomeType(result.outcome_type)}
                   </div>
                   {result.driver_note ? <div className="mt-1 text-muted-foreground">{result.driver_note}</div> : null}
                 </div>

@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { getRoute, listRouteStops, logisticsKeys } from "../../api";
+import { getRoute, getRouteStopProgress, listRouteStops, logisticsKeys } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 import { RouteContextMap } from "../route-builder/RouteContextMap";
 import { SessionWaybillCard } from "./SessionWaybillCard";
@@ -46,8 +46,17 @@ export function SessionRouteTab({
     queryFn: () => getRoute(routeId!),
     enabled: open && Boolean(routeId),
   });
+  const stopProgressQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId),
+    queryFn: () => getRouteStopProgress(sessionId),
+    enabled: open,
+  });
 
   const stops = stopsQuery.data ?? [];
+  const stopProgress = stopProgressQuery.data ?? [];
+  const completedStopIds = new Set(
+    stopProgress.filter((p) => p.progress_status === "COMPLETED").map((p) => p.route_stop_id)
+  );
   const routeStart = routeQuery.data?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
   const startPoint =
     routeStart?.lat != null && routeStart?.lng != null
@@ -113,8 +122,9 @@ export function SessionRouteTab({
               stops={stops}
               startPoint={startPoint}
               activeStopId={null}
-              completedStops={0}
+              completedStops={completedStopIds.size}
               totalStops={stops.length}
+              completedStopIds={completedStopIds}
             />
           ) : null}
         </div>

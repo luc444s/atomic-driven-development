@@ -6,7 +6,7 @@ import {
   CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
 import type { RouteStopProgress } from "../../api";
-import { formatStopOutcomeType, formatStopStatus } from "./jornada-labels";
+import { formatStopOutcomeType, formatStopStatus, STOP_STATUS_BORDER_COLORS } from "./jornada-labels";
 import type { RouteSelectOption } from "./RouteOperationForm";
 
 type Props = {
@@ -28,7 +28,7 @@ export function RouteStopProgressCard({ stopOptions, progress }: Props) {
           progress.map((entry) => {
             const stopLabel = stopOptions.find((option) => option.value === entry.route_stop_id)?.label ?? entry.route_stop_id;
             return (
-              <div key={entry.route_stop_id} className="rounded-lg border border-border px-3 py-2 text-sm text-foreground">
+              <div key={entry.route_stop_id} className={`rounded-lg border-r border-t border-b border-l-4 border-border ${STOP_STATUS_BORDER_COLORS[entry.progress_status] ?? "border-l-gray-400"} px-3 py-2 text-sm text-foreground`}>
                 <div className="font-medium">{stopLabel}</div>
                 <div className="text-muted-foreground">
                   {formatStopStatus(entry.progress_status)} · Incidencias abiertas: {entry.open_incidents}

@@ -15,15 +15,19 @@ from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsInventoryDiscrepancy,
+    LogisticsLoadSerialAssignment,
     LogisticsOperation,
     LogisticsOperationItem,
     LogisticsSessionReconciliation,
     LogisticsVehicleSession,
 )
+from plugins.logistics.backend.schemas import CylinderTransitionRequest
+from plugins.logistics.backend.services.cylinders import transition_cylinder
 from plugins.logistics.backend.services.rules import (
     ensure_session_can_close,
     has_open_discrepancies,
 )
+from plugins.productos.backend.models import Product
 
 
 def _get_reconciliation(db: Session, *, session_id: str) -> LogisticsSessionReconciliation | None:
@@ -75,6 +79,43 @@ def _list_transfer_in_items(
     )
 
 
+def _product_name(db: Session, *, product_id: str) -> str:
+    product = db.scalar(select(Product).where(Product.id == product_id))
+    return product.name if product is not None else product_id
+
+
+_VEHICLE_PHYSICAL_STATES = ("CARGA_EN_VEHICULO", "EN_RUTA")
+
+
+def _count_physical_vehicle_cylinders(
+    db: Session, *, session_id: str
+) -> dict[str, float]:
+    """Cuenta cilindros físicamente en el vehículo por producto.
+
+    Usa assignments CONFIRMED/DELIVERY_SELECTED en estados de vehículo para
+    reflejar lo que el chofer tiene físicamente al momento de la conciliación.
+    """
+    rows = db.execute(
+        select(
+            LogisticsLoadSerialAssignment.product_id,
+            func.count(LogisticsLoadSerialAssignment.cylinder_id),
+        )
+        .join(
+            LogisticsCylinder,
+            LogisticsCylinder.id == LogisticsLoadSerialAssignment.cylinder_id,
+        )
+        .where(
+            LogisticsLoadSerialAssignment.session_id == session_id,
+            LogisticsLoadSerialAssignment.assignment_status.in_(
+                {"CONFIRMED", "DELIVERY_SELECTED"}
+            ),
+            LogisticsCylinder.current_state.in_(_VEHICLE_PHYSICAL_STATES),
+        )
+        .group_by(LogisticsLoadSerialAssignment.product_id)
+    ).all()
+    return {product_id: float(count or 0) for product_id, count in rows}
+
+
 def get_reconciliation_view(
     db: Session, *, session: LogisticsVehicleSession
 ) -> SessionReconciliationRead:
@@ -94,14 +135,32 @@ def get_reconciliation_view(
             tenant_id=session.tenant_id,
             warehouse_id=session.mobile_warehouse_id,
         ).items
-        expected_lines = [
-            ReconciliationLineRead(
-                product_id=balance.product_id,
-                product_name=balance.product_name,
-                expected_quantity=float(balance.quantity),
+        balance_map = {
+            balance.product_id: balance for balance in balances
+        }
+        # Conteo físico de cilindros en el vehículo (CARGA_EN_VEHICULO / EN_RUTA).
+        # Complementa los balances del almacén: los cilindros recogidos en ruta
+        # que aún no impactaron stock o que están físicamente en el camión deben
+        # aparecer en la conciliación para que el chofer los cuente.
+        physical_counts = _count_physical_vehicle_cylinders(db, session_id=session.id)
+        all_product_ids = set(balance_map) | set(physical_counts)
+        expected_lines = []
+        for pid in sorted(all_product_ids):
+            balance = balance_map.get(pid)
+            qty = float(balance.quantity) if balance is not None else 0.0
+            qty += physical_counts.get(pid, 0.0)
+            if qty <= 0:
+                continue
+            name = balance.product_name if balance is not None else (
+                _product_name(db, product_id=pid)
             )
-            for balance in balances
-        ]
+            expected_lines.append(
+                ReconciliationLineRead(
+                    product_id=pid,
+                    product_name=name,
+                    expected_quantity=qty,
+                )
+            )
     reconciliation = _get_reconciliation(db, session_id=session.id)
     discrepancy_map: dict[str, LogisticsInventoryDiscrepancy] = {}
     discrepancies: list[InventoryDiscrepancyRead] = []
@@ -258,6 +317,32 @@ def close_vehicle_session(
     )
 
     sync_reservation_from_session(db, session=session)
+
+    # Transicionar cilindros restantes en el vehículo a EN_ALMACEN_VACIO.
+    # Durante AWAITING_RECONCILIATION los cilindros siguen en el vehículo para
+    # que la conciliación los cuente. Al cerrar se devuelven al almacén.
+    cylinders_to_return = list(db.scalars(
+        select(LogisticsCylinder).where(
+            LogisticsCylinder.tenant_id == session.tenant_id,
+            LogisticsCylinder.session_id == session.id,
+            LogisticsCylinder.current_state.in_(
+                ("CARGA_EN_VEHICULO", "EN_RUTA",
+                 "EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO")
+            ),
+        )
+    ).all())
+    for cylinder in cylinders_to_return:
+        transition_cylinder(
+            db, tenant_id=session.tenant_id,
+            cylinder_id=cylinder.id,
+            payload=CylinderTransitionRequest(
+                to_state="EN_ALMACEN_VACIO",
+                session_id=session.id,
+                origin="SESSION_CLOSE",
+                notes=f"Cierre sesión {session.id}",
+            ),
+            action_context=action_context,
+        )
 
     transit_remaining = db.scalar(
         select(func.count(LogisticsCylinder.id)).where(

@@ -579,7 +579,7 @@ class SerialResolutionError(ValueError):
 
 _STATE_BY_MOVEMENT_TYPE: dict[str, tuple[str, ...]] = {
     "SC": ("CARGA_EN_VEHICULO", "EN_RUTA"),
-    "IC": ("EN_CLIENTE_VACIO",),
+    "IC": ("EN_CLIENTE_VACIO", "EN_CLIENTE_LLENO"),
     "SP": (
         "EN_ALMACEN_VACIO", "EN_ALMACEN_LLENO",
         "OBSERVADO", "PARA_REPARACION",

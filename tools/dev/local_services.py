@@ -143,28 +143,31 @@ def capture_command(command: list[str]) -> str:
     return result.stdout
 
 
-def start_backend(env: dict[str, str]) -> None:
+def start_backend(env: dict[str, str], *, reload: bool = True) -> None:
     python_bin = PROJECT_ROOT / ".venv" / "bin" / "python"
     if not python_bin.exists():
         raise SystemExit(
             "No se encontro .venv/bin/python. Ejecuta primero: python3 -m pip install -e \".[dev]\""
         )
 
-    os.execve(
+    cmd = [
         str(python_bin),
-        [
-            str(python_bin),
-            "-m",
-            "uvicorn",
-            "apps.api.app.main:app",
-            "--host",
-            "0.0.0.0",
-            "--port",
-            "8000",
-            "--reload",
-        ],
-        env,
-    )
+        "-m",
+        "uvicorn",
+        "apps.api.app.main:app",
+        "--host",
+        "0.0.0.0",
+        "--port",
+        "8000",
+        "--workers",
+        "8",
+    ]
+    if reload:
+        cmd.remove("--workers")
+        cmd.remove("8")
+        cmd.append("--reload")
+
+    os.execve(str(python_bin), cmd, env)
 
 
 def open_psql(env: dict[str, str]) -> None:
@@ -238,7 +241,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Local services helper for SYSTUTOR OSS")
     parser.add_argument(
         "command",
-        choices=["postgres", "backend", "services", "stop", "psql", "status"],
+        choices=["postgres", "backend", "backend-no-reload", "services", "stop", "psql", "status"],
         help="Command to execute",
     )
     args = parser.parse_args()
@@ -246,11 +249,11 @@ def main() -> None:
     env = build_runtime_env()
     database_url = get_database_url(env)
 
-    if args.command in {"postgres", "backend", "services", "psql"}:
+    if args.command in {"postgres", "backend", "backend-no-reload", "services", "psql"}:
         ensure_postgres_started()
         ensure_role_and_database(database_url)
 
-    if args.command in {"backend", "services"}:
+    if args.command in {"backend", "backend-no-reload", "services"}:
         ensure_redis_started()
 
     if args.command == "postgres":
@@ -259,6 +262,9 @@ def main() -> None:
 
     if args.command == "backend":
         start_backend(env)
+
+    if args.command == "backend-no-reload":
+        start_backend(env, reload=False)
 
     if args.command == "services":
         start_backend(env)

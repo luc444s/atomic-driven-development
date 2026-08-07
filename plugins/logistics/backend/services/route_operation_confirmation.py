@@ -44,7 +44,7 @@ class SerialResolutionError(ValueError):
 
 _STATE_BY_MOVEMENT_TYPE: dict[str, tuple[str, ...]] = {
     "SC": ("CARGA_EN_VEHICULO", "EN_RUTA"),
-    "IC": ("EN_CLIENTE_VACIO",),
+    "IC": ("EN_CLIENTE_VACIO", "EN_CLIENTE_LLENO"),
     "SP": (
         "EN_ALMACEN_VACIO",
         "EN_ALMACEN_LLENO",
@@ -390,7 +390,7 @@ def _record_pickup_cylinder_events(
             occurred_at=now,
             action_context=action_context,
         )
-        transition_cylinder(
+        transitioned = transition_cylinder(
             db,
             tenant_id=tenant_id,
             cylinder_id=mitem.cylinder_id,
@@ -403,6 +403,12 @@ def _record_pickup_cylinder_events(
             ),
             action_context=action_context,
         )
+        # Recojo desde cliente: el envase vuelve vacío al camión.
+        if transitioned is not None:
+            transitioned.content_kg = 0
+            transitioned.volume_m3 = 0
+            db.add(transitioned)
+            db.flush()
 
 
 def _record_physical_pickup_events(
@@ -477,7 +483,7 @@ def _resolve_serial_ids_nocheck(
                 LogisticsLoadSerialAssignment.session_id == session_id,
                 LogisticsLoadSerialAssignment.product_id == product_id,
                 LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
-                LogisticsCylinder.current_state == "EN_CLIENTE_VACIO",
+                LogisticsCylinder.current_state.in_(("EN_CLIENTE_VACIO", "EN_CLIENTE_LLENO")),
             )
             .order_by(LogisticsLoadSerialAssignment.selected_at.asc())
             .limit(quantity)
@@ -601,7 +607,7 @@ def _promote_route_pickup_assignments(
                 LogisticsLoadSerialAssignment.session_id == session_id,
                 LogisticsLoadSerialAssignment.product_id == product_id,
                 LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
-                LogisticsCylinder.current_state == "EN_CLIENTE_VACIO",
+                LogisticsCylinder.current_state.in_(("EN_CLIENTE_VACIO", "EN_CLIENTE_LLENO")),
             )
             .with_for_update()
         ).all()

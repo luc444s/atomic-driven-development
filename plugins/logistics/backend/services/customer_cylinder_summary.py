@@ -202,8 +202,24 @@ def _customer_related_cylinder_ids(
     customer_id: str,
     as_of: datetime | None,
 ) -> set[str]:
-    ownership_stmt = select(distinct(LogisticsCylinderOwnership.cylinder_id)).where(
-        LogisticsCylinderOwnership.customer_id == customer_id
+    # Solo incluir cilindros cuya posesión MÁS RECIENTE pertenece al cliente.
+    # Evita contar cilindros que ya fueron devueltos al almacén pero que tienen
+    # registros históricos de ownership con este cliente.
+    latest_ownership_subq = (
+        select(
+            LogisticsCylinderOwnership.cylinder_id,
+            func.max(LogisticsCylinderOwnership.change_date).label("max_date"),
+        )
+        .group_by(LogisticsCylinderOwnership.cylinder_id)
+    ).subquery()
+    ownership_stmt = (
+        select(LogisticsCylinderOwnership.cylinder_id)
+        .join(
+            latest_ownership_subq,
+            (LogisticsCylinderOwnership.cylinder_id == latest_ownership_subq.c.cylinder_id)
+            & (LogisticsCylinderOwnership.change_date == latest_ownership_subq.c.max_date),
+        )
+        .where(LogisticsCylinderOwnership.customer_id == customer_id)
     )
     if as_of is not None:
         ownership_stmt = ownership_stmt.where(LogisticsCylinderOwnership.change_date <= as_of)
@@ -328,7 +344,12 @@ def _apply_customer_possession_ledger(
 def _cylinder_events_at_customer(
     db: Session, *, tenant_id: str, customer_id: str
 ) -> set[str]:
-    """Cilindros actualmente en cliente según lg_cylinder_events."""
+    """Cilindros actualmente en cliente según lg_cylinder_events.
+
+    Verifica que el último evento sea CUSTOMER y que el estado actual del
+    cilindro siga en EN_CLIENTE_* para no contar envases que ya fueron
+    devueltos al almacén pero cuyo evento quedó como CUSTOMER_DELIVERY.
+    """
     from sqlalchemy import and_
 
     sub = (
@@ -356,7 +377,14 @@ def _cylinder_events_at_customer(
                 LogisticsCylinderEvent.occurred_at == sub.c.max_occurred,
             ),
         )
-        .where(LogisticsCylinderEvent.location_type == "CUSTOMER")
+        .join(
+            LogisticsCylinder,
+            LogisticsCylinder.id == LogisticsCylinderEvent.cylinder_id,
+        )
+        .where(
+            LogisticsCylinderEvent.location_type == "CUSTOMER",
+            LogisticsCylinder.current_state.in_(AT_CUSTOMER_STATES),
+        )
     ).all()
 
     return {row.cylinder_id for row in rows}

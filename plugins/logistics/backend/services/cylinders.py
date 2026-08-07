@@ -1113,6 +1113,21 @@ def _sync_cylinder_ownership_for_transition(
         return
 
     if previous_state not in CUSTOMER_POSSESSION_STATES:
+        # Transición desde un estado no-cliente (EN_RUTA, CARGA_EN_VEHICULO, etc.)
+        # hacia un estado de almacén: si la última posesión sigue asignada a un
+        # cliente, liberarla para que el envase quede sin cliente en almacén.
+        if target_state in {"EN_ALMACEN_VACIO", "VACIO_EN_ALMACEN", "LLENADO_OK"}:
+            latest_ownership = get_latest_ownership(db, cylinder_id=cylinder.id)
+            if latest_ownership is not None and latest_ownership.customer_id is not None:
+                register_ownership_change(
+                    db,
+                    cylinder=cylinder,
+                    movement_id=payload.movement_id,
+                    customer_id=None,
+                    customer_name="ALMACEN",
+                    notes=payload.notes,
+                    action_context=action_context,
+                )
         return
 
     latest_ownership = get_latest_ownership(db, cylinder_id=cylinder.id)

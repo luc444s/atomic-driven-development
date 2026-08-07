@@ -25,7 +25,16 @@ from plugins.logistics.backend.services.state_machine import StateTransitionErro
 
 ACTIVE_ASSIGNMENT_STATUSES = {"SELECTED", "CONFIRMED"}
 COMPATIBLE_CYLINDER_STATES = {"LLENADO_OK", "EN_ALMACEN_VACIO"}
-ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES = {"EN_CLIENTE_VACIO"}
+# Cilindros que estan en posesion del cliente (lleno o vacio). En una jornada de
+# recojo/carga operativa, el camion va al cliente a recogerlos, asi que se permiten
+# como candidatos a cargar y se salta el chequeo de almacen origen para estos.
+AT_CUSTOMER_CYLINDER_STATES = {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}
+# Carga operativa (LOAD_PLAN): acepta stock listo en almacen Y envases en cliente
+# que van a ser recogidos en la jornada.
+LOAD_PLAN_COMPATIBLE_CYLINDER_STATES = COMPATIBLE_CYLINDER_STATES | AT_CUSTOMER_CYLINDER_STATES
+# Recojo en ruta: el camion puede recoger envases llenos o vacios del cliente.
+# Ambos estados tienen transicion valida a EN_RUTA (catalogo de estados).
+ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES = AT_CUSTOMER_CYLINDER_STATES
 ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES = {"CARGA_EN_VEHICULO", "EN_RUTA"}
 VALID_RELEASE_REASONS = {"MANUAL", "TIMEOUT", "OPERATION_CANCELLED", "SESSION_CLOSED"}
 SELECTION_CONTEXT_LOAD_PLAN = "LOAD_PLAN"
@@ -90,6 +99,13 @@ def _warehouse_matches_cylinder(
         warehouse_id=warehouse_id,
         cylinder=cylinder,
     )
+
+
+def _cylinder_is_at_customer(cylinder: LogisticsCylinder) -> bool:
+    # Un cilindro en posesion del cliente (EN_CLIENTE_LLENO / EN_CLIENTE_VACIO) no esta
+    # fisicamente en ningun almacen de origen: esta donde el cliente. En jornadas de
+    # recojo/carga operativa se lo selecciona para que el camion vaya a recogerlo.
+    return cylinder.current_state in AT_CUSTOMER_CYLINDER_STATES
 
 
 def _active_assignment_for_cylinder(
@@ -301,15 +317,19 @@ def search_load_serial_candidates(
         elif cylinder.current_state not in (
             ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
             if context == SELECTION_CONTEXT_ROUTE_PICKUP
-            else COMPATIBLE_CYLINDER_STATES
+            else LOAD_PLAN_COMPATIBLE_CYLINDER_STATES
         ):
             availability_status = "UNAVAILABLE"
             context_label = cylinder.current_state
-        elif context != SELECTION_CONTEXT_ROUTE_PICKUP and not _warehouse_matches_cylinder(
-            db,
-            tenant_id=session.tenant_id,
-            warehouse_id=source_warehouse_id,
-            cylinder=cylinder,
+        elif (
+            context != SELECTION_CONTEXT_ROUTE_PICKUP
+            and not _cylinder_is_at_customer(cylinder)
+            and not _warehouse_matches_cylinder(
+                db,
+                tenant_id=session.tenant_id,
+                warehouse_id=source_warehouse_id,
+                cylinder=cylinder,
+            )
         ):
             availability_status = "UNAVAILABLE"
             context_label = "Fuera de almacén origen"
@@ -362,7 +382,7 @@ def product_requires_serial_capture(
             .where(
                 LogisticsCylinder.tenant_id == tenant_id,
                 LogisticsCylinder.is_active.is_(True),
-                LogisticsCylinder.current_state.in_(COMPATIBLE_CYLINDER_STATES),
+                LogisticsCylinder.current_state.in_(LOAD_PLAN_COMPATIBLE_CYLINDER_STATES),
                 or_(
                     LogisticsCylinder.product_id == product_id,
                     LogisticsCylinder.gas_group_id == product_id,
@@ -375,7 +395,10 @@ def product_requires_serial_capture(
     if source_warehouse_id is None:
         return bool(cylinders)
     return any(
-        _warehouse_matches_cylinder(
+        # Un cilindro en posesion del cliente no pertenece a ningun almacen de origen;
+        # se cuenta como disponible para carga operativa igual que el stock del almacen.
+        _cylinder_is_at_customer(cylinder)
+        or _warehouse_matches_cylinder(
             db,
             tenant_id=tenant_id,
             warehouse_id=source_warehouse_id,
@@ -411,12 +434,12 @@ def select_load_serial(
     active_assignment = _active_assignment_for_cylinder(db, cylinder_id=cylinder.id)
     if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
         compatible_states = ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES
+    elif context == SELECTION_CONTEXT_ROUTE_PICKUP:
+        compatible_states = ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
     else:
-        compatible_states = (
-            ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
-            if context == SELECTION_CONTEXT_ROUTE_PICKUP
-            else COMPATIBLE_CYLINDER_STATES
-        )
+        # Carga operativa (LOAD_PLAN): permite tanto stock listo en almacen como
+        # envases en posesion del cliente que seran recogidos en la jornada.
+        compatible_states = LOAD_PLAN_COMPATIBLE_CYLINDER_STATES
 
     if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
         # ROUTE_DELIVERY: en vez de crear un assignment nuevo, se reutiliza el CONFIRMED
@@ -481,11 +504,17 @@ def select_load_serial(
         raise ValueError("El cilindro ya está ocupado por otra jornada")
     if cylinder.current_state not in compatible_states:
         raise ValueError("El cilindro no está disponible para carga operativa")
-    if context != SELECTION_CONTEXT_ROUTE_PICKUP and not _warehouse_matches_cylinder(
-        db,
-        tenant_id=session.tenant_id,
-        warehouse_id=source_warehouse_id,
-        cylinder=cylinder,
+    # Un envase en posesion del cliente no pertenece a ningun almacen de origen: el camion
+    # va a recogerlo desde el cliente, asi que se salta el chequeo de almacen para esos.
+    if (
+        context != SELECTION_CONTEXT_ROUTE_PICKUP
+        and not _cylinder_is_at_customer(cylinder)
+        and not _warehouse_matches_cylinder(
+            db,
+            tenant_id=session.tenant_id,
+            warehouse_id=source_warehouse_id,
+            cylinder=cylinder,
+        )
     ):
         raise ValueError("El cilindro no pertenece al almacén origen de esta línea")
 

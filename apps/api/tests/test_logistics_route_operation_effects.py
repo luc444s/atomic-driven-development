@@ -549,3 +549,112 @@ def test_confirm_route_event_rejects_invalid_context_and_missing_correction_targ
     )
     assert missing_target.status_code == 400, missing_target.text
     assert "target_incident_id" in missing_target.text
+
+
+def test_reconfirm_load_skips_cylinder_already_in_vehicle(
+    client: TestClient, app, db_session, seeded_demo: dict[str, str]
+) -> None:
+    ctx = _create_outbound_session_context(
+        client,
+        app,
+        seeded_demo,
+        sku="RELOAD-GLP10",
+        name="Bombona 10kg Recarga",
+    )
+    headers = ctx["headers"]
+    warehouse = ctx["warehouse"]
+    stop = ctx["stop"]
+    product = ctx["product"]
+    session = ctx["session"]
+
+    pickup_cylinder = client.post(
+        "/api/v1/plugins/logistics/cylinders",
+        headers=headers,
+        json={
+            "serial": "RELOAD-PICKUP-001",
+            "warehouse_id": warehouse["id"],
+            "condition": "CILPRO",
+            "product_id": product["id"],
+            "entry_mode": "FULL_FROM_SUPPLIER",
+            "minimal_route_create": True,
+        },
+    )
+    assert pickup_cylinder.status_code == 201, pickup_cylinder.text
+    pickup_cylinder_id = pickup_cylinder.json()["id"]
+
+    for to_state in ("EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"):
+        move = client.post(
+            f"/api/v1/plugins/logistics/cylinders/{pickup_cylinder_id}/transition",
+            headers=headers,
+            json={
+                "to_state": to_state,
+                "customer_id": ctx["customer"]["id"],
+                "origin": "TEST_ROUTE_PICKUP",
+            },
+        )
+        assert move.status_code == 200, move.text
+
+    select_pickup = client.put(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-serials/select",
+        headers=headers,
+        json={
+            "product_id": product["id"],
+            "selection_context": "ROUTE_PICKUP",
+            "serial": "RELOAD-PICKUP-001",
+        },
+    )
+    assert select_pickup.status_code == 200, select_pickup.text
+
+    route_operation = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations",
+        headers=headers,
+        json={
+            "route_stop_id": stop["id"],
+            "operation_type": "PICKUP",
+            "notes": "Recojo que deja envase en el vehículo",
+            "items": [
+                {
+                    "product_id": product["id"],
+                    "quantity": 1,
+                    "direction": "IN",
+                }
+            ],
+        },
+    )
+    assert route_operation.status_code == 200, route_operation.text
+    confirm = client.post(
+        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/route-operations/{route_operation.json()['id']}/confirm",
+        headers=headers,
+    )
+    assert confirm.status_code == 200, confirm.text
+
+    # Tras el pickup el cilindro queda localizado en VEHICLE (misma session).
+    from plugins.logistics.backend.common import LogisticsActionContext
+    from plugins.logistics.backend.models import LogisticsVehicleSession
+    from plugins.logistics.backend.services.cylinders import (
+        get_cylinder_current_location,
+    )
+    from plugins.logistics.backend.services.load_plans import (
+        _record_vehicle_load_cylinder_events,
+    )
+
+    assert get_cylinder_current_location(
+        db_session, cylinder_id=pickup_cylinder_id
+    ) == ("VEHICLE", session["id"])
+
+    # Re-confirmar la carga de seriales del plan NO debe crashear con
+    # "Transición inválida: VEHICLE → VEHICLE_LOAD" para el cilindro recogido.
+    session_model = db_session.get(LogisticsVehicleSession, session["id"])
+    assert session_model is not None
+    _record_vehicle_load_cylinder_events(
+        db_session,
+        tenant_id=seeded_demo["tenant_id"],
+        session=session_model,
+        action_context=LogisticsActionContext(
+            tenant_id=seeded_demo["tenant_id"],
+            branch_id=None,
+            actor_user_id=seeded_demo["user_id"],
+            correlation_id=None,
+            request_id=None,
+        ),
+    )

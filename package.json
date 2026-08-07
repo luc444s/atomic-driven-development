@@ -5,7 +5,9 @@
   "scripts": {
     "postgres": "python3 tools/dev/local_services.py postgres",
     "backend": "python3 tools/dev/local_services.py backend",
+    "backend:no-reload": "python3 tools/dev/local_services.py backend-no-reload",
     "services": "python3 tools/dev/local_services.py services",
+    "services:no-reload": "python3 tools/dev/local_services.py backend-no-reload",
     "psql": "python3 tools/dev/local_services.py psql",
     "services:stop": "python3 tools/dev/local_services.py stop",
     "status:services": "python3 tools/dev/local_services.py status",

@@ -222,7 +222,10 @@ export function LoadSerialsDialog({
 
     autoSubmittedQueryRef.current = normalizedQuery;
     setManualSearchSelected(matches[0].serial);
-    void selectMutation.mutateAsync(normalizedQuery);
+    // Enviar el serial COMPLETO (no el query parcial): el resolver backend resuelve
+    // seriales que terminan en el texto enviado, y un query numerico parcial (ej. "2945"
+    // para "2945PRUE") no matchearia como serial exacto.
+    void selectMutation.mutateAsync(matches[0].serial);
   }, [manualSearchQuery.data, manualSearchQuery.isFetching, manualSearchValue, selectMutation]);
 
   function openRegisterFallback() {

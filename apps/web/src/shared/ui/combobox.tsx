@@ -114,7 +114,7 @@ export function Combobox({
     if (highlightedIndex >= filteredOptions.length) {
       setHighlightedIndex(filteredOptions.length > 0 ? filteredOptions.length - 1 : 0);
     }
-  }, [filteredOptions, highlightedIndex]);
+  }, [filteredOptions.length, highlightedIndex]);
 
   useEffect(() => {
     if (variant === "input") {

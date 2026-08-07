@@ -577,6 +577,7 @@ def fill_cylinder(
     volume_m3: float | None,
     weight_current: float | None,
     fill_operation_id: str | None,
+    source_cylinder_id: str | None,
     notes: str | None,
     action_context: LogisticsActionContext,
 ) -> LogisticsCylinder:
@@ -658,6 +659,24 @@ def fill_cylinder(
         ),
         action_context=action_context,
     )
+
+    # Si se especifico un tanque criogenico fuente, descontar el gas
+    # consumido de su content_kg. El stock ya fue ajustado por
+    # adjust_required_product_stock, pero el content_kg del tanque
+    # fuente debe reflejar la nueva realidad fisica.
+    # La densidad del producto criogenico se obtiene del default_weight_kg
+    # del producto fuente (ej. LOX: 1141 kg/m3 = 1.141 kg/L).
+    if source_cylinder_id is not None and stock_quantity is not None and stock_quantity > 0:
+        source_tank = get_cylinder(db, tenant_id=tenant_id, cylinder_id=source_cylinder_id)
+        if source_tank is not None and (source_tank.content_kg or 0) > 0:
+            product_density_kg_per_l = _get_product_density_kg_per_l(
+                db, product_id=stock_product.id
+            )
+            source_tank.content_kg = max(
+                0.0,
+                float(source_tank.content_kg or 0) - float(stock_quantity) * product_density_kg_per_l,
+            )
+            db.add(source_tank)
 
     cylinder.content_kg = resolved_content_kg if resolved_content_kg is not None else None
     cylinder.volume_m3 = resolved_volume_m3 if resolved_volume_m3 is not None else None
@@ -907,6 +926,20 @@ def _resolve_cryogenic_fill_payload(
             "volume_m3 no coincide con la receta criogenica activa del producto resultado"
         )
     return recipe.result_net_weight_kg, recipe.result_m3_gas
+
+
+def _get_product_density_kg_per_l(db: Session, *, product_id: str) -> float:
+    # Devuelve la densidad en kg/L del producto criogenico.
+    # Usa default_weight_kg (kg/m3) / 1000 para convertir a kg/L.
+    # Si no hay dato, asume 1.141 (LOX) como fallback seguro.
+    from plugins.productos.backend.models import Product
+
+    product = db.get(Product, product_id)
+    if product is not None:
+        weight_per_m3 = product.default_weight_kg or product.weight_kg
+        if weight_per_m3 is not None and weight_per_m3 > 0:
+            return float(weight_per_m3) / 1000.0
+    return 1.141
 
 
 def _build_fill_idempotency_key(

@@ -65,7 +65,8 @@ def _resolve_serial_ids(
     if states is None:
         return []
 
-    return list(
+    # Priorizar seriales marcados explícitamente para esta entrega (DELIVERY_SELECTED)
+    delivery_selected = list(
         db.scalars(
             select(LogisticsLoadSerialAssignment.cylinder_id)
             .join(
@@ -75,7 +76,7 @@ def _resolve_serial_ids(
             .where(
                 LogisticsLoadSerialAssignment.session_id == session_id,
                 LogisticsLoadSerialAssignment.product_id == product_id,
-                LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+                LogisticsLoadSerialAssignment.assignment_status == "DELIVERY_SELECTED",
                 LogisticsCylinder.current_state.in_(states),
             )
             .order_by(
@@ -83,9 +84,35 @@ def _resolve_serial_ids(
                 LogisticsLoadSerialAssignment.cylinder_id.asc(),
             )
             .with_for_update(skip_locked=True)
-            .limit(quantity)
         ).all()
     )
+
+    remaining = quantity - len(delivery_selected)
+    if remaining > 0:
+        confirmed = list(
+            db.scalars(
+                select(LogisticsLoadSerialAssignment.cylinder_id)
+                .join(
+                    LogisticsCylinder,
+                    LogisticsCylinder.id == LogisticsLoadSerialAssignment.cylinder_id,
+                )
+                .where(
+                    LogisticsLoadSerialAssignment.session_id == session_id,
+                    LogisticsLoadSerialAssignment.product_id == product_id,
+                    LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+                    LogisticsCylinder.current_state.in_(states),
+                )
+                .order_by(
+                    LogisticsLoadSerialAssignment.selected_at.asc(),
+                    LogisticsLoadSerialAssignment.cylinder_id.asc(),
+                )
+                .with_for_update(skip_locked=True)
+                .limit(remaining)
+            ).all()
+        )
+        return delivery_selected + confirmed
+
+    return delivery_selected[:quantity]
 
 
 def _build_item_dict(
@@ -94,14 +121,17 @@ def _build_item_dict(
     cylinder_id: str | None = None,
     quantity: int | None = None,
 ) -> dict[str, object]:
+    # qty es la cantidad POR SERIAL (1 cuando viene de _build_items_for_operation),
+    # NO la cantidad total de la operación. Usar item.quantity acá causaba que
+    # cada serial intentara deducir el total (ej. 2 seriales × 2 = 4 del stock).
     qty = quantity if quantity is not None else max(1, int(float(item.quantity)))
     return {
         "product_id": item.product_id,
         "product_name": item.product_name,
         "cylinder_id": cylinder_id,
         "quantity": qty,
-        "quantity_in": float(item.quantity) if movement_type == "IC" else 0,
-        "quantity_out": float(item.quantity) if movement_type == "SC" else 0,
+        "quantity_in": float(qty) if movement_type == "IC" else 0,
+        "quantity_out": float(qty) if movement_type == "SC" else 0,
     }
 
 
@@ -300,6 +330,28 @@ def _record_delivery_cylinder_events(
             occurred_at=datetime.now(UTC),
             action_context=action_context,
         )
+        cylinder = db.scalar(
+            select(LogisticsCylinder).where(LogisticsCylinder.id == mitem.cylinder_id)
+        )
+        if cylinder is not None:
+            cylinder.session_id = None
+            db.add(cylinder)
+
+        # Marcar el assignment como entregado
+        assignment = db.scalar(
+            select(LogisticsLoadSerialAssignment)
+            .where(
+                LogisticsLoadSerialAssignment.cylinder_id == mitem.cylinder_id,
+                LogisticsLoadSerialAssignment.session_id == session.id,
+                LogisticsLoadSerialAssignment.assignment_status.in_(
+                    {"CONFIRMED", "DELIVERY_SELECTED"}
+                ),
+            )
+            .with_for_update()
+        )
+        if assignment is not None:
+            assignment.assignment_status = "DELIVERED"
+            db.add(assignment)
 
 
 def _record_pickup_cylinder_events(
@@ -610,7 +662,7 @@ def confirm_route_operation_effects(
             action_context=action_context,
         )
 
-    if in_items and out_movement is not None:
+    if in_items:
         for item in in_items:
             _promote_route_pickup_assignments(
                 db,
@@ -632,9 +684,10 @@ def confirm_route_operation_effects(
             payload=in_payload,
             action_context=action_context,
         )
-        in_movement.origin_movement_id = out_movement.id
-        db.add(in_movement)
-        db.flush()
+        if out_movement is not None:
+            in_movement.origin_movement_id = out_movement.id
+            db.add(in_movement)
+            db.flush()
         in_movement = _confirm_and_apply_movement(
             db,
             tenant_id=session.tenant_id,
@@ -659,15 +712,6 @@ def confirm_route_operation_effects(
             session=session,
             movement=in_movement,
             customer_id=delivery_point.customer_id if delivery_point is not None else None,
-            action_context=action_context,
-        )
-    elif in_items:
-        _apply_physical_only_pickup(
-            db,
-            session=session,
-            operation=operation,
-            delivery_point=delivery_point,
-            items=in_items,
             action_context=action_context,
         )
 

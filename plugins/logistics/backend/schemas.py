@@ -296,6 +296,7 @@ class CylinderFillRequest(BaseModel):
     volume_m3: float | None = None
     weight_current: float | None = None
     fill_operation_id: str | None = None
+    source_cylinder_id: str | None = None
     notes: str | None = Field(default=None, max_length=500)
 
 

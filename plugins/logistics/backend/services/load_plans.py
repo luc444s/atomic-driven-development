@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import date
+
 from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
@@ -25,7 +27,7 @@ from plugins.logistics.backend.services.rules import (
     ensure_capacity_not_exceeded,
     ensure_session_editable,
 )
-from plugins.productos.backend.models import Product
+from plugins.productos.backend.models import Product, ProductAdr
 
 
 def _require_product(db: Session, *, product_id: str) -> Product:
@@ -61,6 +63,27 @@ def _ensure_positive_quantity_for_origin_line(
     raise ValueError(
         "La cantidad debe ser mayor que cero para una línea que sale desde almacén"
     )
+
+
+def _resolve_product_filled_weight_kg(db: Session, *, product: Product) -> float:
+    # Si el producto tiene receta ADR activa con net_weight_kg, el peso real
+    # lleno es la tara del envase + el peso del gas. Sin receta, usa la tara sola.
+    today = date.today()
+    active_adr = db.scalar(
+        select(ProductAdr)
+        .where(
+            ProductAdr.product_id == product.id,
+            ProductAdr.net_weight_kg.is_not(None),
+            ProductAdr.net_weight_kg > 0,
+            ProductAdr.valid_from <= today,
+            (ProductAdr.valid_to.is_(None) | (ProductAdr.valid_to >= today)),
+        )
+        .order_by(ProductAdr.valid_from.desc())
+    )
+    tara = float(product.weight_kg or 0)
+    if active_adr is not None:
+        return tara + float(active_adr.net_weight_kg)
+    return tara
 
 
 def list_load_plan_items(db: Session, *, load_plan_id: str) -> list[LogisticsLoadPlanItem]:
@@ -127,7 +150,11 @@ def upsert_load_plan(
             source_warehouse_id=resolved_source_warehouse_id,
         )
         product = _require_product(db, product_id=item.product_id)
-        planned_weight = float(product.weight_kg or 0) * float(item.planned_quantity)
+        # El peso del producto base es la tara (envase vacio). Si hay receta ADR
+        # activa, el peso real lleno es tara + gas. Ej: B10 vacio = 10 kg,
+        # B10 lleno = 10 + 1.90 = 11.90 kg.
+        filled_weight_kg = _resolve_product_filled_weight_kg(db, product=product)
+        planned_weight = filled_weight_kg * float(item.planned_quantity)
         plan_item = LogisticsLoadPlanItem(
             load_plan_id=load_plan.id,
             product_id=product.id,
@@ -166,7 +193,10 @@ def confirm_load_plan(
         raise ValueError("La jornada no tiene un plan de carga")
     items = list_load_plan_items(db, load_plan_id=load_plan.id)
     if not items:
-        raise ValueError("El plan de carga no tiene items")
+        session.loaded_weight_kg = 0
+        session.updated_by = action_context.actor_user_id
+        db.add(session)
+        return session
     for item in items:
         _ensure_positive_quantity_for_origin_line(
             product_name=item.product_name,

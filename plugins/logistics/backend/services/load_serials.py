@@ -26,16 +26,24 @@ from plugins.logistics.backend.services.state_machine import StateTransitionErro
 ACTIVE_ASSIGNMENT_STATUSES = {"SELECTED", "CONFIRMED"}
 COMPATIBLE_CYLINDER_STATES = {"LLENADO_OK", "EN_ALMACEN_VACIO"}
 ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES = {"EN_CLIENTE_VACIO"}
-VALID_RELEASE_REASONS = {"MANUAL", "TIMEOUT", "OPERATION_CANCELLED"}
+ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES = {"CARGA_EN_VEHICULO", "EN_RUTA"}
+VALID_RELEASE_REASONS = {"MANUAL", "TIMEOUT", "OPERATION_CANCELLED", "SESSION_CLOSED"}
 SELECTION_CONTEXT_LOAD_PLAN = "LOAD_PLAN"
 SELECTION_CONTEXT_ROUTE_PICKUP = "ROUTE_PICKUP"
+SELECTION_CONTEXT_ROUTE_DELIVERY = "ROUTE_DELIVERY"
+DELIVERY_SELECTED_STATUS = "DELIVERY_SELECTED"
+DELIVERED_STATUS = "DELIVERED"
 
 
 def _normalize_selection_context(value: str | None) -> str:
     if not value:
         return SELECTION_CONTEXT_LOAD_PLAN
     normalized = value.strip().upper()
-    if normalized not in {SELECTION_CONTEXT_LOAD_PLAN, SELECTION_CONTEXT_ROUTE_PICKUP}:
+    if normalized not in {
+        SELECTION_CONTEXT_LOAD_PLAN,
+        SELECTION_CONTEXT_ROUTE_PICKUP,
+        SELECTION_CONTEXT_ROUTE_DELIVERY,
+    }:
         raise ValueError("Contexto de selección serial no soportado")
     return normalized
 
@@ -152,6 +160,31 @@ def list_selected_load_serial_assignments(
     selection_context: str | None = None,
 ) -> list[LoadSerialAssignmentRead]:
     context = _normalize_selection_context(selection_context)
+    if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
+        # ROUTE_DELIVERY: solo devuelve seriales que el chofer escaneó explícitamente
+        # para esta entrega. Filtra por estado del cilindro además del status para
+        # no mostrar cilindros que ya fueron entregados y quedaron con assignment stale.
+        stmt = select(LogisticsLoadSerialAssignment).where(
+            LogisticsLoadSerialAssignment.session_id == session_id,
+            LogisticsLoadSerialAssignment.assignment_status == DELIVERY_SELECTED_STATUS,
+        )
+        if product_id is not None:
+            stmt = stmt.where(LogisticsLoadSerialAssignment.product_id == product_id)
+        assignments = list(
+            db.scalars(stmt.order_by(LogisticsLoadSerialAssignment.selected_at.asc())).all()
+        )
+        filtered: list[LogisticsLoadSerialAssignment] = []
+        for assignment in assignments:
+            cylinder = db.scalar(
+                select(LogisticsCylinder).where(LogisticsCylinder.id == assignment.cylinder_id)
+            )
+            if (
+                cylinder is not None
+                and cylinder.current_state in ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES
+            ):
+                filtered.append(assignment)
+        return [_build_assignment_read(item) for item in filtered]
+
     stmt = select(LogisticsLoadSerialAssignment).where(
         LogisticsLoadSerialAssignment.session_id == session_id,
         LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
@@ -212,6 +245,20 @@ def search_load_serial_candidates(
 
     results: list[LoadSerialSearchResultRead] = []
     for cylinder in cylinders:
+        # ROUTE_DELIVERY: buscar assignments en cualquier estado activo de entrega
+        if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
+            delivery_assignment = db.scalar(
+                select(LogisticsLoadSerialAssignment)
+                .where(
+                    LogisticsLoadSerialAssignment.cylinder_id == cylinder.id,
+                    LogisticsLoadSerialAssignment.assignment_status.in_(
+                        {"CONFIRMED", DELIVERY_SELECTED_STATUS}
+                    ),
+                )
+            )
+        else:
+            delivery_assignment = None
+
         active_assignment = db.scalar(
             select(LogisticsLoadSerialAssignment)
             .where(
@@ -222,6 +269,28 @@ def search_load_serial_candidates(
         if not _product_matches_cylinder(cylinder, product_id=product_id):
             availability_status = "UNAVAILABLE"
             context_label = "Corresponde a otro producto"
+        elif context == SELECTION_CONTEXT_ROUTE_DELIVERY:
+            # En ruta de entrega: primero verificar que el cilindro esté físicamente en el vehículo
+            if cylinder.current_state not in ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES:
+                availability_status = "UNAVAILABLE"
+                context_label = cylinder.current_state
+            elif delivery_assignment is not None and delivery_assignment.session_id == session.id:
+                if delivery_assignment.assignment_status == DELIVERY_SELECTED_STATUS:
+                    availability_status = "OCCUPIED"
+                    context_label = "Seleccionado para esta entrega"
+                else:
+                    availability_status = "AVAILABLE"
+                    context_label = "En el vehículo"
+            elif active_assignment is not None:
+                availability_status = "OCCUPIED"
+                context_label = (
+                    "Seleccionado en esta jornada"
+                    if active_assignment.session_id == session.id
+                    else "Ocupado en otra jornada"
+                )
+            else:
+                availability_status = "UNAVAILABLE"
+                context_label = "No está asignado a esta jornada"
         elif active_assignment is not None:
             availability_status = "OCCUPIED"
             context_label = (
@@ -340,6 +409,69 @@ def select_load_serial(
         raise ValueError("El serial no corresponde al producto seleccionado")
 
     active_assignment = _active_assignment_for_cylinder(db, cylinder_id=cylinder.id)
+    if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
+        compatible_states = ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES
+    else:
+        compatible_states = (
+            ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
+            if context == SELECTION_CONTEXT_ROUTE_PICKUP
+            else COMPATIBLE_CYLINDER_STATES
+        )
+
+    if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
+        # ROUTE_DELIVERY: en vez de crear un assignment nuevo, se reutiliza el CONFIRMED
+        # que ya existe del LOAD. Se cambia su status a DELIVERY_SELECTED para marcar
+        # que el chofer eligió este serial para esta entrega en particular.
+        # Se verifica que el cilindro siga físicamente en el vehículo (CARGA_EN_VEHICULO/EN_RUTA);
+        # si ya fue entregado (EN_CLIENTE_LLENO), se rechaza.
+        delivery_assignments = db.scalars(
+            select(LogisticsLoadSerialAssignment)
+            .where(
+                LogisticsLoadSerialAssignment.cylinder_id == cylinder.id,
+                LogisticsLoadSerialAssignment.session_id == session.id,
+                LogisticsLoadSerialAssignment.product_id == product_id,
+                LogisticsLoadSerialAssignment.assignment_status.in_(
+                    {"CONFIRMED", DELIVERY_SELECTED_STATUS}
+                ),
+            )
+            .with_for_update()
+        ).all()
+
+        if delivery_assignments:
+            existing = delivery_assignments[0]
+            # Verificar que el cilindro siga en el vehículo antes de permitir la selección
+            if cylinder.current_state not in ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES:
+                raise ValueError(
+                    "El cilindro ya no está en el vehículo"
+                    f" (estado actual: {cylinder.current_state})"
+                )
+            if existing.assignment_status == DELIVERY_SELECTED_STATUS:
+                return _build_assignment_read(existing)
+            existing.assignment_status = DELIVERY_SELECTED_STATUS
+            db.add(existing)
+            db.flush()
+            audit_logistics_action(
+                db,
+                context=action_context,
+                action="vehicle_session.load_serial.delivery_select",
+                entity_type="vehicle_session",
+                entity_id=session.id,
+                details={
+                    "product_id": product_id,
+                    "cylinder_id": cylinder.id,
+                    "serial": cylinder.serial,
+                    "previous_status": "CONFIRMED",
+                    "new_status": DELIVERY_SELECTED_STATUS,
+                },
+            )
+            return _build_assignment_read(existing)
+
+        if active_assignment is not None and active_assignment.session_id != session.id:
+            raise ValueError("El cilindro ya está ocupado por otra jornada")
+        if cylinder.current_state not in compatible_states:
+            raise ValueError("El cilindro no está en el vehículo")
+        raise ValueError("El cilindro no está asignado a esta jornada")
+
     if active_assignment is not None:
         if (
             active_assignment.session_id == session.id
@@ -347,12 +479,6 @@ def select_load_serial(
         ):
             return _build_assignment_read(active_assignment)
         raise ValueError("El cilindro ya está ocupado por otra jornada")
-
-    compatible_states = (
-        ROUTE_PICKUP_COMPATIBLE_CYLINDER_STATES
-        if context == SELECTION_CONTEXT_ROUTE_PICKUP
-        else COMPATIBLE_CYLINDER_STATES
-    )
     if cylinder.current_state not in compatible_states:
         raise ValueError("El cilindro no está disponible para carga operativa")
     if context != SELECTION_CONTEXT_ROUTE_PICKUP and not _warehouse_matches_cylinder(
@@ -430,6 +556,53 @@ def release_load_serial(
             "assignment_id": assignment.id,
             "serial": assignment.cylinder_serial,
             "release_reason": release_reason,
+        },
+    )
+    return _build_assignment_read(assignment)
+
+
+def toggle_delivery_selection(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    assignment_id: str,
+    action_context: LogisticsActionContext,
+) -> LoadSerialAssignmentRead:
+    # Alterna entre CONFIRMED y DELIVERY_SELECTED. Solo aplica en contexto de ruta.
+    # "Quitar" en el diálogo de entrega no libera el assignment (el cilindro sigue en el
+    # vehículo), solo lo devuelve a CONFIRMED para que quede disponible en otra parada.
+    assignment = db.scalar(
+        select(LogisticsLoadSerialAssignment)
+        .where(
+            LogisticsLoadSerialAssignment.id == assignment_id,
+            LogisticsLoadSerialAssignment.session_id == session.id,
+        )
+        .with_for_update()
+    )
+    if assignment is None:
+        raise LookupError("Asignación serial no encontrada")
+    if assignment.assignment_status not in {DELIVERY_SELECTED_STATUS, "CONFIRMED"}:
+        raise ValueError("Solo se puede alterar la selección de entrega en seriales del vehículo")
+
+    if assignment.assignment_status == DELIVERY_SELECTED_STATUS:
+        assignment.assignment_status = "CONFIRMED"
+        detail_action = "delivery_deselect"
+    else:
+        assignment.assignment_status = DELIVERY_SELECTED_STATUS
+        detail_action = "delivery_select"
+
+    db.add(assignment)
+    db.flush()
+    audit_logistics_action(
+        db,
+        context=action_context,
+        action=f"vehicle_session.load_serial.{detail_action}",
+        entity_type="vehicle_session",
+        entity_id=session.id,
+        details={
+            "assignment_id": assignment.id,
+            "serial": assignment.cylinder_serial,
+            "new_status": assignment.assignment_status,
         },
     )
     return _build_assignment_read(assignment)
@@ -569,11 +742,12 @@ def release_active_serial_assignments(
 ) -> None:
     if release_reason not in VALID_RELEASE_REASONS:
         raise ValueError("Motivo de liberación no soportado")
+    statuses_to_release = ACTIVE_ASSIGNMENT_STATUSES | {DELIVERY_SELECTED_STATUS}
     stmt = (
         select(LogisticsLoadSerialAssignment)
         .where(
             LogisticsLoadSerialAssignment.session_id == session_id,
-            LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
+            LogisticsLoadSerialAssignment.assignment_status.in_(statuses_to_release),
         )
         .with_for_update()
     )

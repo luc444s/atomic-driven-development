@@ -322,9 +322,7 @@ def _apply_customer_possession_ledger(
             continue
         product_id, product_name, condition_code = meta[key]
         product = get_product(product_id, product_name)
-        product.at_customer += quantity
         product.ledger_at_customer += quantity
-        product.condition_bucket(condition_code).at_customer += quantity
 
 
 def _cylinder_events_at_customer(

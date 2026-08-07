@@ -19,6 +19,7 @@ from plugins.logistics.backend.services.load_serials import (
     release_load_serial,
     search_load_serial_candidates,
     select_load_serial,
+    toggle_delivery_selection,
 )
 from plugins.logistics.backend.services.sessions import get_vehicle_session
 
@@ -107,6 +108,34 @@ def put_select_load_serial(
             source_warehouse_id=payload.source_warehouse_id,
             selection_context=payload.selection_context,
             serial=payload.serial,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+        return result
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+        raise AssertionError("unreachable") from exc
+
+
+@router.put(
+    "/{session_id}/load-serials/{assignment_id}/delivery-toggle",
+    response_model=LoadSerialAssignmentRead,
+)
+def put_toggle_delivery_selection(
+    session_id: str,
+    assignment_id: str,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> LoadSerialAssignmentRead:
+    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
+    try:
+        result = toggle_delivery_selection(
+            db,
+            session=session,
+            assignment_id=assignment_id,
             action_context=build_action_context(request, tenant_context),
         )
         db.commit()

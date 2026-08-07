@@ -6,6 +6,7 @@ import {
   confirmRouteEvent,
   createRouteIncident,
   getCurrentComposition,
+  getCustomerCylinderSummary,
   getRealWarehouses,
   getRouteStopProgress,
   getSessionWaybill,
@@ -88,6 +89,16 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
   });
 
   const uiState = useSessionRouteTabUiState();
+
+  const stops = stopsQuery.data ?? [];
+  const resolvedCustomerId = uiState.routeStopId
+    ? stops.find((s) => s.id === uiState.routeStopId)?.customer_id ?? null
+    : uiState.contextType === "CUSTOMER" ? uiState.contextCustomerId || null : null;
+  const customerCylindersQuery = useQuery({
+    queryKey: logisticsKeys.customerCylinderSummary(resolvedCustomerId ?? "none"),
+    queryFn: () => getCustomerCylinderSummary(resolvedCustomerId!),
+    enabled: open && Boolean(resolvedCustomerId) && uiState.operationType === "PICKUP",
+  });
 
   const regenerateMutation = useMutation({
     mutationFn: () =>
@@ -312,26 +323,39 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     const serial = uiState.fastSerialInput.trim();
     if (!serial) return;
 
-    const compLines = compositionQuery.data?.product_lines ?? [];
-    const contextProductId = compLines[0]?.product_id ?? "";
+    const isPickup = uiState.operationType === "PICKUP";
+    const productLines = isPickup
+      ? (customerCylindersQuery.data?.by_product ?? []).map((p) => ({ product_id: p.product_id, product_name: p.product_name, quantity: p.at_customer }))
+      : compositionQuery.data?.product_lines ?? [];
+    const contextProductId = productLines[0]?.product_id ?? "";
+    const selectionContext = isPickup ? "ROUTE_PICKUP" : "ROUTE_DELIVERY";
 
     setFastSerialError(null);
     try {
       const result = await selectLoadSerial(sessionId, {
         product_id: contextProductId,
         source_warehouse_id: null,
-        selection_context: "LOAD_PLAN",
+        selection_context: selectionContext,
         serial,
       });
       if (result) {
         uiState.resetFastSerialInput();
-        const matchingLine = compLines.find((l) => l.product_id === result.product_id);
-        uiState.addDeliveryProduct({
-          product_id: result.product_id,
-          product_name: matchingLine?.product_name ?? result.cylinder_serial,
-          available: matchingLine?.quantity ?? 99,
-          serial: result.cylinder_serial,
-        });
+        const matchingLine = productLines.find((l) => l.product_id === result.product_id);
+        if (isPickup) {
+          uiState.addPickupProduct({
+            product_id: result.product_id,
+            product_name: matchingLine?.product_name ?? result.cylinder_serial,
+            available: (matchingLine as any)?.quantity ?? 99,
+            serial: result.cylinder_serial,
+          });
+        } else {
+          uiState.addDeliveryProduct({
+            product_id: result.product_id,
+            product_name: matchingLine?.product_name ?? result.cylinder_serial,
+            available: matchingLine?.quantity ?? 99,
+            serial: result.cylinder_serial,
+          });
+        }
       }
     } catch (cause) {
       setFastSerialError(cause instanceof Error ? cause.message : "No se pudo agregar el serial");
@@ -352,6 +376,13 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     routeStopResults,
     routeStopProgress,
     composition: compositionQuery.data,
+    customerCylinders: (customerCylindersQuery.data?.by_product ?? [])
+      .filter((p) => p.at_customer > 0)
+      .map((p) => ({
+        product_id: p.product_id ?? "",
+        product_name: p.product_name,
+        quantity: p.at_customer,
+      })),
     correctionContext,
     stopOptions,
     customerOptions,

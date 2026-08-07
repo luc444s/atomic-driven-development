@@ -100,7 +100,12 @@ def _load_serialized_composition(
         )
         .where(
             LogisticsLoadSerialAssignment.session_id == session_id,
-            LogisticsLoadSerialAssignment.assignment_status == "CONFIRMED",
+            # Incluye DELIVERY_SELECTED además de CONFIRMED: los seriales que el chofer
+            # seleccionó para entrega temporalmente siguen físicamente en el vehículo
+            # y deben reflejarse en la composición vigente.
+            LogisticsLoadSerialAssignment.assignment_status.in_(
+                {"CONFIRMED", "DELIVERY_SELECTED"}
+            ),
             LogisticsCylinder.current_state.in_(ACTIVE_SESSION_COMPOSITION_STATES),
         )
         .group_by(LogisticsLoadSerialAssignment.product_id)

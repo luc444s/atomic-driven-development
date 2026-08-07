@@ -87,12 +87,21 @@ export function PlanningWorkspace() {
 
   async function resolvePlanningProduct(productId: string) {
     const product = await getProduct(productId);
+    // El peso del producto base es la tara (envase vacio). Si hay receta ADR
+    // activa, el peso real lleno es tara + gas. Ej: B10 vacio = 10 kg,
+    // B10 lleno = 10 + 1.90 (net_weight_kg del ADR) = 11.90 kg.
+    const activeAdr = (product.adr_configs ?? []).find(
+      (adr) => adr.net_weight_kg != null && adr.net_weight_kg > 0,
+    );
+    const filledWeight = activeAdr
+      ? (product.weight_kg ?? 0) + activeAdr.net_weight_kg
+      : product.weight_kg;
     return {
       product_id: product.id,
       product_name: product.name,
       sku: product.sku,
-      adr_required: product.adr_configs.length > 0,
-      unit_weight_kg: product.weight_kg,
+      adr_required: (product.adr_configs ?? []).length > 0,
+      unit_weight_kg: filledWeight,
     };
   }
 

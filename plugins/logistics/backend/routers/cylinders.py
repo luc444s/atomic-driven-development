@@ -729,6 +729,7 @@ def fill_cylinder_endpoint(
             volume_m3=payload.volume_m3,
             weight_current=payload.weight_current,
             fill_operation_id=payload.fill_operation_id,
+            source_cylinder_id=payload.source_cylinder_id,
             notes=payload.notes,
             action_context=build_action_context(request, tenant_context),
         )

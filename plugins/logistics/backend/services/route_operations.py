@@ -631,8 +631,8 @@ def _build_item_dict(
         "product_name": item.product_name,
         "cylinder_id": cylinder_id,
         "quantity": qty,
-        "quantity_in": float(item.quantity) if movement_type == "IC" else 0,
-        "quantity_out": float(item.quantity) if movement_type == "SC" else 0,
+        "quantity_in": float(qty) if movement_type == "IC" else 0,
+        "quantity_out": float(qty) if movement_type == "SC" else 0,
     }
 
 

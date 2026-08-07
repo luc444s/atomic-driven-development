@@ -405,6 +405,7 @@ export function CryogenicFillingDialog({
         await fillCylinder(cylinder.id, {
           warehouse_id: selectedSource.warehouseId,
           source_product_id: selectedSource.sourceProductId,
+          source_cylinder_id: selectedSource.tankId,
           fill_operation_id: fillOperationId,
           notes: notes.trim() || null,
         });

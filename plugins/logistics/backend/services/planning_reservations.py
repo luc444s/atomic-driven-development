@@ -533,6 +533,34 @@ def activate_reservation(
     reservation.updated_by = action_context.actor_user_id
     db.add(reservation)
     db.flush()
+
+    # Crear plan de carga automatico desde los productos de la reserva.
+    # El operador puede ajustar cantidades y agregar seriales despues.
+    expected_load = (reservation.expected_load_summary or {})
+    reservation_items = expected_load.get("items", [])
+    if reservation_items:
+        from plugins.logistics.backend.services.load_plans import upsert_load_plan
+
+        synthetic_payload = SimpleNamespace(
+            items=[
+                SimpleNamespace(
+                    product_id=item.get("product_id"),
+                    planned_quantity=item.get("quantity", 1),
+                    source_warehouse_id=reservation.origin_warehouse_id,
+                )
+                for item in reservation_items
+                if item.get("product_id")
+            ],
+            notes="Carga automatica desde planificacion",
+        )
+        upsert_load_plan(
+            db,
+            session=session,
+            payload=synthetic_payload,
+            action_context=action_context,
+        )
+    db.flush()
+
     audit_logistics_action(
         db,
         context=action_context,

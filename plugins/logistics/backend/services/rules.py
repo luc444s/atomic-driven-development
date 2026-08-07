@@ -98,8 +98,6 @@ def ensure_session_can_be_ready(session: LogisticsVehicleSession) -> None:
     ensure_session_editable(session)
     if session.status != "LOADING":
         raise ValueError("Solo una jornada en LOADING puede pasar a READY_TO_DEPART")
-    if not session.loaded_weight_kg or session.loaded_weight_kg <= 0:
-        raise ValueError("La jornada necesita carga confirmada antes de quedar lista")
 
 
 def ensure_session_can_depart(session: LogisticsVehicleSession) -> None:

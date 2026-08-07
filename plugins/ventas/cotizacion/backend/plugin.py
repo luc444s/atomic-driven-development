@@ -1,3 +1,12 @@
+# ═══════════════════════════════════════════════════════════════════
+# MODULO DESHABILITADO — La cotización queda fuera de servicio hasta
+# que exista un módulo de ventas completo (facturación, pedidos,
+# despacho). El router y los permisos se mantienen registrados para
+# que los endpoints sigan accesibles durante desarrollo, pero el
+# módulo no debe usarse en producción ni mostrarse en el sidebar.
+# Fecha: 2026-08-06 — ver AGENTS.md memoria de sesión.
+# ═══════════════════════════════════════════════════════════════════
+
 from packages.sdk import PluginContext
 from plugins.ventas.cotizacion.backend.router import router
 

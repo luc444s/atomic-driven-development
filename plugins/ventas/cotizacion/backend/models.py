@@ -1,3 +1,6 @@
+# ═══════════════════════════════════════════════════════════════════
+# MODULO DESHABILITADO — Ver plugin.py para contexto completo.
+# ═══════════════════════════════════════════════════════════════════
 from __future__ import annotations
 
 from datetime import UTC, datetime

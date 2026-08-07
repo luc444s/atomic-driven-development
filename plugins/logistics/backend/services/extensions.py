@@ -506,14 +506,16 @@ def cylinder_to_read(db: Session, cylinder: LogisticsCylinder) -> Any:
 def enrich_cylinder_with_fill_status(
     db: Session, cylinder_read: Any, cylinder: LogisticsCylinder
 ) -> None:
-    cylinder_read.fill_status = (
-        LOADED_FILL_STATUS
-        if any(
+    # Para tanques criogenicos, el volume_m3 es la capacidad nominal del tanque,
+    # no el contenido actual. Solo content_kg indica si esta cargado o vacio.
+    if cylinder.container_type == "CRYOGENIC_TANK":
+        has_content = cylinder.content_kg is not None and float(cylinder.content_kg) > 0
+    else:
+        has_content = any(
             value is not None and float(value) > 0
             for value in (cylinder.content_kg, cylinder.volume_m3)
         )
-        else EMPTY_FILL_STATUS
-    )
+    cylinder_read.fill_status = LOADED_FILL_STATUS if has_content else EMPTY_FILL_STATUS
     last_fill = db.scalar(
         select(LogisticsCylinderStateLog)
         .where(

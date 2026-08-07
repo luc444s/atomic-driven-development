@@ -16,6 +16,7 @@ import {
   releaseLoadSerial,
   searchLoadSerials,
   selectLoadSerial,
+  toggleDeliverySelection,
   type LoadSerialAssignment,
 } from "../../api";
 import { CreateCylinderDialog } from "../../cylinders/dialogs/create-cylinder-dialog";
@@ -150,6 +151,19 @@ export function LoadSerialsDialog({
     },
   });
 
+  const toggleMutation = useMutation({
+    mutationFn: (assignmentId: string) => toggleDeliverySelection(sessionId, assignmentId),
+    onSuccess: async () => {
+      setError(null);
+      await queryClient.invalidateQueries({
+        queryKey: logisticsKeys.loadSerials.selected(sessionId, item!.product_id, selectionContext),
+      });
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo cambiar la selección");
+    },
+  });
+
   const selectedAssignments = selectedQuery.data ?? [];
   const targetCount = item ? Number(item.planned_quantity || "0") : 0;
   const manualOptions: ComboboxOption[] = (manualSearchQuery.data ?? []).map((result) => ({
@@ -166,7 +180,8 @@ export function LoadSerialsDialog({
       return;
     }
     onSelectionCountChange(item.product_id, selectedAssignments.length);
-  }, [item, onSelectionCountChange, selectedAssignments.length, selectedQuery.isFetching]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [item?.product_id, selectedAssignments.length, selectedQuery.isFetching]);
 
   useEffect(() => {
     if (!open) {
@@ -239,7 +254,9 @@ export function LoadSerialsDialog({
         item
           ? selectionContext === "ROUTE_PICKUP"
             ? `Escanea o escribe seriales recogidos en ruta. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
-            : `Escanea o escribe seriales. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
+            : selectionContext === "ROUTE_DELIVERY"
+              ? `Escanea los seriales del vehículo a entregar en esta parada. Seleccionados ${selectedAssignments.length}.`
+              : `Escanea o escribe seriales. Seleccionados ${selectedAssignments.length} / ${targetCount}.`
           : "Escanea o escribe seriales de envases."
       }
       maxWidthClassName="max-w-3xl"
@@ -289,7 +306,9 @@ export function LoadSerialsDialog({
           ) : null}
 
           <div className="rounded-xl bg-muted/35 px-4 py-3 text-sm text-foreground">
-            Objetivo: {targetCount} · Seleccionados: {selectedAssignments.length}
+            {selectionContext === "ROUTE_DELIVERY"
+              ? `Seleccionados para entrega: ${selectedAssignments.length}`
+              : `Objetivo: ${targetCount} · Seleccionados: ${selectedAssignments.length}`}
           </div>
 
           <div className="space-y-2">
@@ -307,8 +326,19 @@ export function LoadSerialsDialog({
                     <Button
                       type="button"
                       variant="secondary"
-                      disabled={releaseMutation.isPending || assignment.assignment_status !== "SELECTED"}
-                      onClick={() => releaseMutation.mutate(assignment.id)}
+                      disabled={
+                        selectionContext === "ROUTE_DELIVERY"
+                          ? toggleMutation.isPending
+                          : releaseMutation.isPending || assignment.assignment_status !== "SELECTED"
+                      }
+                      onClick={() =>
+                        // ROUTE_DELIVERY: "Quitar" hace toggle a CONFIRMED (no libera).
+                        // El cilindro sigue en el vehículo, disponible para otra parada.
+                        // LOAD_PLAN / ROUTE_PICKUP: "Quitar" libera el assignment.
+                        selectionContext === "ROUTE_DELIVERY"
+                          ? toggleMutation.mutate(assignment.id)
+                          : releaseMutation.mutate(assignment.id)
+                      }
                     >
                       Quitar
                     </Button>

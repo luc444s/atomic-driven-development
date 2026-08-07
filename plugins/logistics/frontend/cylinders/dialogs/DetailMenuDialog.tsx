@@ -110,6 +110,9 @@ export function DetailMenuDialog({
               <div><span className="text-muted-foreground">Ubicación:</span> {selectedCylinder.location_context || selectedCylinder.warehouse_name || selectedCylinder.location || "-"}</div>
               <div><span className="text-muted-foreground">Lectura material:</span> {selectedCylinder.fill_status || "-"}</div>
               <div><span className="text-muted-foreground">Contenido kg:</span> {selectedCylinder.content_kg?.toString() || "-"}</div>
+              {selectedCylinder.container_type === "CRYOGENIC_TANK" && selectedCylinder.content_kg != null && selectedCylinder.content_kg > 0 ? (
+                <div><span className="text-muted-foreground">Contenido L:</span> {(selectedCylinder.content_kg / ((selectedCylinder.average_weight_source?.weight_kg ?? 1141) / 1000)).toFixed(0)} L</div>
+              ) : null}
               <div><span className="text-muted-foreground">Peso:</span> {selectedCylinder.weight_current?.toString() || selectedCylinder.weight_origin?.toString() || (selectedCylinder.average_weight_source?.weight_kg?.toString() ?? "-")}{!selectedCylinder.weight_current && !selectedCylinder.weight_origin && selectedCylinder.average_weight_source ? <span className="ml-1 text-xs italic text-muted-foreground">(peso por defecto de producto)</span> : !selectedCylinder.weight_current && !selectedCylinder.weight_origin ? <span className="ml-1 text-xs italic text-muted-foreground">(sin peso real)</span> : null}</div>
               <div><span className="text-muted-foreground">Volumen m3:</span> {selectedCylinder.volume_m3?.toString() || "-"}</div>
               <div><span className="text-muted-foreground">Último llenado:</span> {formatDateTime(selectedCylinder.last_fill_at)}{selectedCylinder.last_fill_warehouse_name ? ` · ${selectedCylinder.last_fill_warehouse_name}` : ""}</div>

@@ -242,6 +242,17 @@ def close_vehicle_session(
     session.closing_notes = notes or session.closing_notes
     session.updated_by = action_context.actor_user_id
     db.add(session)
+
+    from plugins.logistics.backend.services.load_serials import (
+        release_active_serial_assignments,
+    )
+
+    release_active_serial_assignments(
+        db,
+        session_id=session.id,
+        release_reason="SESSION_CLOSED",
+    )
+
     from plugins.logistics.backend.services.planning_reservations import (
         sync_reservation_from_session,
     )

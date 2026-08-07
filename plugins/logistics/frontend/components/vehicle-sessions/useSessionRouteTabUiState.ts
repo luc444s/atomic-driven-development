@@ -90,6 +90,33 @@ export function useSessionRouteTabUiState() {
     });
   }
 
+  function addPickupProduct(product: { product_id: string; product_name: string; available: number; serial?: string }) {
+    setDraftItems((current) => {
+      const existingIndex = current.findIndex((item) => item.product_id === product.product_id && item.direction === "IN");
+      if (existingIndex !== -1) {
+        return current.map((item, index) =>
+          index === existingIndex
+            ? {
+                ...item,
+                quantity: String(Math.min(Number(item.quantity) + 1, product.available)),
+                selected_serials_count: product.serial ? item.selected_serials_count + 1 : item.selected_serials_count,
+              }
+            : item
+        );
+      }
+      return [
+        ...current,
+        {
+          product_id: product.product_id,
+          product_name: product.product_name,
+          quantity: "1",
+          direction: "IN",
+          selected_serials_count: product.serial ? 1 : 0,
+        },
+      ];
+    });
+  }
+
   function updateDraftItem(index: number, patch: Partial<RouteDraftItem>) {
     setDraftItems((current) => current.map((item, itemIndex) => (itemIndex === index ? { ...item, ...patch } : item)));
   }
@@ -233,7 +260,7 @@ export function useSessionRouteTabUiState() {
     setFastSerialInput("");
   }
 
-  function handleSerialSelectionCountChange(selectedCount: number) {
+  function handleSerialSelectionCountChange(_productId: string, selectedCount: number) {
     if (serialItemIndex === null) {
       return;
     }
@@ -242,7 +269,7 @@ export function useSessionRouteTabUiState() {
         index === serialItemIndex
           ? {
               ...item,
-              quantity: String(selectedCount || 0),
+              quantity: String(Math.max(Number(item.quantity || "0"), selectedCount)),
               selected_serials_count: selectedCount,
             }
           : item
@@ -328,6 +355,7 @@ export function useSessionRouteTabUiState() {
     cancelCorrection,
     handleProductSelected,
     addDeliveryProduct,
+    addPickupProduct,
     closeSerialDialog,
     resetFastSerialInput,
     handleSerialSelectionCountChange,

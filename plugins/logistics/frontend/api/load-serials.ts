@@ -25,7 +25,7 @@ export type LoadSerialSearchResult = {
   context_label: string | null;
 };
 
-export type LoadSerialSelectionContext = "LOAD_PLAN" | "ROUTE_PICKUP";
+export type LoadSerialSelectionContext = "LOAD_PLAN" | "ROUTE_PICKUP" | "ROUTE_DELIVERY";
 
 export function listSelectedLoadSerials(
   sessionId: string,
@@ -86,5 +86,12 @@ export function releaseLoadSerial(
       method: "PUT",
       body: JSON.stringify(payload),
     }
+  );
+}
+
+export function toggleDeliverySelection(sessionId: string, assignmentId: string) {
+  return apiRequest<LoadSerialAssignment>(
+    `${API_PREFIX}/vehicle-sessions/${sessionId}/load-serials/${assignmentId}/delivery-toggle`,
+    { method: "PUT" }
   );
 }

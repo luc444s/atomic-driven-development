@@ -313,6 +313,7 @@ export type FillCylinderPayload = {
   volume_m3?: number | null;
   weight_current?: number | null;
   fill_operation_id?: string | null;
+  source_cylinder_id?: string | null;
   notes?: string | null;
 };
 

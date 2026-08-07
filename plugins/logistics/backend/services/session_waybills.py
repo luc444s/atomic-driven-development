@@ -150,8 +150,6 @@ def build_current_session_waybill(
     db: Session, *, session: LogisticsVehicleSession
 ) -> CurrentSessionWaybill:
     operation = _get_confirmed_transfer_out_operation(db, session_id=session.id)
-    if operation is None:
-        raise ValueError("La jornada todavía no tiene una carga confirmada para carta porte")
     vehicle = db.scalar(select(LogisticsVehicle).where(LogisticsVehicle.id == session.vehicle_id))
     if vehicle is None:
         raise LookupError("Vehiculo no encontrado")
@@ -194,9 +192,10 @@ def build_current_session_waybill(
         )
     ).all():
         route_operation_movement_ids.extend(json.loads(row))
-    movement_ids = _normalize_movement_ids(
-        [operation.external_movement_id or operation.id, *route_operation_movement_ids]
-    )
+    movement_ids = _normalize_movement_ids([
+        *([operation.external_movement_id or operation.id] if operation else []),
+        *route_operation_movement_ids,
+    ])
     hash_payload = {
         "vehicle_session_id": session.id,
         "movement_ids": movement_ids,

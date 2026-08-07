@@ -11,6 +11,7 @@ from plugins.logistics.backend.models import (
     LogisticsDeliveryPoint,
     LogisticsLoadSerialAssignment,
     LogisticsMovement,
+    LogisticsMovementItem,
     LogisticsRouteOperation,
     LogisticsRouteOperationItem,
     LogisticsVehicleSession,
@@ -603,6 +604,53 @@ def _promote_route_pickup_assignments(
     db.flush()
 
 
+def _resolve_pickup_origin_movement(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    delivery_point: LogisticsDeliveryPoint | None,
+    in_movement: LogisticsMovement,
+) -> LogisticsMovement | None:
+    """Resuelve el SC histórico que llevó al cliente los cilindros recogidos.
+
+    Cuando el recojo es puro (sin salida en la misma parada), `out_movement`
+    es None y el IC quedaría con `origin_movement_id=None`. El stock bridge
+    exige que el IC referencie el sale_out original para liquidar el ledger.
+    Aquí se busca el último SC realizado para los mismos cilindros de la misma
+    jornada/parada que dejó esos envases en el cliente.
+    """
+    if delivery_point is None:
+        return None
+    customer_id = delivery_point.customer_id
+
+    cylinder_ids = {
+        item.cylinder_id
+        for item in list_movement_items(db, movement_id=in_movement.id)
+        if item.cylinder_id is not None
+    }
+    if not cylinder_ids:
+        return None
+
+    # El SC de origen debió salir desde el mismo storage móvil/vehículo hacia este cliente.
+    origin = db.scalar(
+        select(LogisticsMovement)
+        .join(
+            LogisticsMovementItem,
+            LogisticsMovementItem.movement_id == LogisticsMovement.id,
+        )
+        .where(
+            LogisticsMovement.tenant_id == session.tenant_id,
+            LogisticsMovement.movement_type == "SC",
+            LogisticsMovement.customer_id == customer_id,
+            LogisticsMovement.status == "COMPLETADO",
+            LogisticsMovementItem.cylinder_id.in_(cylinder_ids),
+        )
+        .order_by(LogisticsMovement.created_at.desc())
+        .limit(1)
+    )
+    return origin
+
+
 def confirm_route_operation_effects(
     db: Session,
     *,
@@ -686,8 +734,19 @@ def confirm_route_operation_effects(
         )
         if out_movement is not None:
             in_movement.origin_movement_id = out_movement.id
-            db.add(in_movement)
-            db.flush()
+        else:
+            # Recojo puro: el SC de origen histórico debe resolver la trazabilidad
+            # del ledger (el IC referencia el sale_out original del cilindro).
+            origin = _resolve_pickup_origin_movement(
+                db,
+                session=session,
+                delivery_point=delivery_point,
+                in_movement=in_movement,
+            )
+            if origin is not None:
+                in_movement.origin_movement_id = origin.id
+        db.add(in_movement)
+        db.flush()
         in_movement = _confirm_and_apply_movement(
             db,
             tenant_id=session.tenant_id,

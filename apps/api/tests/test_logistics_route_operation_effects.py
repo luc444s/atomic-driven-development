@@ -14,6 +14,7 @@ from apps.api.tests.test_logistics_plugin import (
     enable_productos_plugin,
     enable_stock_plugin,
 )
+from apps.api.tests.test_stock_plugin import create_active_base_cost
 
 
 def _create_outbound_session_context(
@@ -36,11 +37,6 @@ def _create_outbound_session_context(
         headers=headers,
         json={"name": f"Almacen {sku}", "code": f"ALM-{sku}", "address": None, "phone": None},
     ).json()
-    zone = client.post(
-        "/api/v1/plugins/logistics/zones",
-        headers=headers,
-        json={"name": f"Zona {sku}", "code": f"ZN-{sku}"},
-    ).json()
     vehicle = client.post(
         "/api/v1/plugins/logistics/vehicles",
         headers=headers,
@@ -61,7 +57,6 @@ def _create_outbound_session_context(
             "customer_id": customer["id"],
             "contact_name": "Operador Ruta",
             "address": "Calle Ruta 123",
-            "zone_id": zone["id"],
             "warehouse_id": warehouse["id"],
             "is_primary": True,
         },
@@ -80,6 +75,7 @@ def _create_outbound_session_context(
         json={"delivery_point_id": delivery_point["id"], "stop_order": 1},
     ).json()
     product = create_product(client, headers, sku=sku, name=name)
+    create_active_base_cost(client, headers, product_id=product["id"], amount=5.0)
 
     stock_seed = client.post(
         "/api/v1/plugins/stock/adjust",
@@ -110,10 +106,13 @@ def _create_outbound_session_context(
         },
     ).json()
 
-    assert client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
-        headers=headers,
-    ).status_code == 200
+    assert (
+        client.post(
+            f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/start-loading",
+            headers=headers,
+        ).status_code
+        == 200
+    )
     load_plan = client.put(
         f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/load-plan",
         headers=headers,
@@ -128,15 +127,21 @@ def _create_outbound_session_context(
         },
     )
     assert load_plan.status_code == 200, load_plan.text
-    assert client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
-        headers=headers,
-        json={},
-    ).status_code == 200
-    assert client.post(
-        f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
-        headers=headers,
-    ).status_code == 200
+    assert (
+        client.post(
+            f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/confirm-and-ready",
+            headers=headers,
+            json={},
+        ).status_code
+        == 200
+    )
+    assert (
+        client.post(
+            f"/api/v1/plugins/logistics/vehicle-sessions/{session['id']}/depart",
+            headers=headers,
+        ).status_code
+        == 200
+    )
 
     return {
         "customer": customer,

@@ -73,40 +73,56 @@ def _ensure_catalog_balances(
     Al listar stock, los productos que el sistema detecta y no tienen balance
     (en los almacenes consultados) se materializan automáticamente con 0.
     """
-    from sqlalchemy import text
+    from datetime import UTC, datetime
+    from uuid import uuid4
 
+    from sqlalchemy import and_
 
-    if warehouse_id is not None:
-        warehouse_clause = "w.id = :wid"
-        params: dict = {"tid": tenant_id, "wid": warehouse_id}
-    elif allowed_warehouse_ids:
-        warehouse_clause = "w.id = ANY(:wids)"
-        params = {"tid": tenant_id, "wids": list(allowed_warehouse_ids)}
-    else:
-        warehouse_clause = "w.is_active = TRUE"
-        params = {"tid": tenant_id}
-    db.execute(
-        text(
-            f"""
-            INSERT INTO stk_balance
-                (id, tenant_id, product_id, warehouse_id, quantity,
-                 reserved_quantity, total_cost, updated_at, updated_by)
-            SELECT md5(random()::text || p.id || w.id)::uuid::text,
-                   p.tenant_id, p.id, w.id, 0, 0, 0, now(),
-                   (SELECT id FROM users ORDER BY created_at LIMIT 1)
-            FROM prod_products p
-            CROSS JOIN lg_warehouses w
-            WHERE p.tenant_id = :tid
-              AND p.is_active = TRUE
-              AND {warehouse_clause}
-              AND NOT EXISTS (
-                  SELECT 1 FROM stk_balance s
-                  WHERE s.product_id = p.id AND s.warehouse_id = w.id
-              )
-            """
-        ),
-        params,
+    from apps.api.app.kernel.auth.models import User
+
+    products = list(db.scalars(select(Product).where(Product.tenant_id == tenant_id)))
+    warehouses_q = select(LogisticsWarehouse).where(
+        and_(
+            LogisticsWarehouse.tenant_id == tenant_id,
+            LogisticsWarehouse.is_active.is_(True),
+        )
     )
+    if warehouse_id is not None:
+        warehouses_q = warehouses_q.where(LogisticsWarehouse.id == warehouse_id)
+    elif allowed_warehouse_ids:
+        warehouses_q = warehouses_q.where(LogisticsWarehouse.id.in_(list(allowed_warehouse_ids)))
+    warehouses = list(db.scalars(warehouses_q))
+    if not products or not warehouses:
+        return
+
+    existing_balance_pairs: set[tuple[str, str]] = {
+        (product_id, warehouse_id)
+        for product_id, warehouse_id in db.execute(
+            select(StockBalance.product_id, StockBalance.warehouse_id).where(
+                StockBalance.tenant_id == tenant_id
+            )
+        ).all()
+    }
+    updated_by = db.scalar(select(User.id).order_by(User.created_at).limit(1))
+    now = datetime.now(UTC)
+    for product in products:
+        for warehouse in warehouses:
+            key = (product.id, warehouse.id)
+            if key in existing_balance_pairs:
+                continue
+            db.add(
+                StockBalance(
+                    id=str(uuid4()),
+                    tenant_id=tenant_id,
+                    product_id=product.id,
+                    warehouse_id=warehouse.id,
+                    quantity=0,
+                    reserved_quantity=0,
+                    total_cost=0,
+                    updated_at=now,
+                    updated_by=updated_by,
+                )
+            )
     db.commit()
 
 
@@ -430,26 +446,53 @@ def ensure_balances_for_product(
     Regla de negocio: todo producto del sistema tiene su balance en cada
     almacén (0 si no hay stock), sin excepción.
     """
-    from sqlalchemy import text
+    from datetime import UTC, datetime
+    from uuid import uuid4
 
-    result = db.execute(
-        text(
-            """
-            INSERT INTO stk_balance
-                (id, tenant_id, product_id, warehouse_id, quantity,
-                 reserved_quantity, total_cost, updated_at, updated_by)
-            SELECT md5(random()::text || :pid || w.id)::uuid::text,
-                   :tid, :pid, w.id, 0, 0, 0, now(),
-                   (SELECT id FROM users ORDER BY created_at LIMIT 1)
-            FROM lg_warehouses w
-            WHERE w.is_active = TRUE
-              AND NOT EXISTS (
-                  SELECT 1 FROM stk_balance s
-                  WHERE s.product_id = :pid AND s.warehouse_id = w.id
-              )
-            """
-        ),
-        {"tid": tenant_id, "pid": product_id},
+    from sqlalchemy import and_
+
+    from apps.api.app.kernel.auth.models import User
+
+    warehouses = list(
+        db.scalars(
+            select(LogisticsWarehouse).where(
+                and_(
+                    LogisticsWarehouse.tenant_id == tenant_id,
+                    LogisticsWarehouse.is_active.is_(True),
+                )
+            )
+        )
     )
+    if not warehouses:
+        return 0
+    existing: set[str] = set(
+        db.scalars(
+            select(StockBalance.warehouse_id).where(
+                StockBalance.tenant_id == tenant_id,
+                StockBalance.product_id == product_id,
+            )
+        ).all()
+    )
+    updated_by = db.scalar(select(User.id).order_by(User.created_at).limit(1))
+    now = datetime.now(UTC)
+    created = 0
+    for warehouse in warehouses:
+        if warehouse.id in existing:
+            continue
+        existing.add(warehouse.id)
+        db.add(
+            StockBalance(
+                id=str(uuid4()),
+                tenant_id=tenant_id,
+                product_id=product_id,
+                warehouse_id=warehouse.id,
+                quantity=0,
+                reserved_quantity=0,
+                total_cost=0,
+                updated_at=now,
+                updated_by=updated_by,
+            )
+        )
+        created += 1
     db.flush()
-    return int(result.rowcount or 0)  # type: ignore[union-attr]
+    return created

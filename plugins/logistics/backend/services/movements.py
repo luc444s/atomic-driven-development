@@ -295,7 +295,10 @@ def apply_cylinder_effects_for_movement(
     tenant_id: str,
     movement: LogisticsMovement,
     action_context: LogisticsActionContext,
+    apply_cylinder_state: bool = True,
 ) -> None:
+    if not apply_cylinder_state:
+        return
     movement_type = get_movement_type(db, code=movement.movement_type)
     if movement_type is None or not movement_type.moves_cylinders or not movement_type.target_state:
         return
@@ -352,6 +355,7 @@ def confirm_movement(
     tenant_id: str,
     movement: LogisticsMovement,
     action_context: LogisticsActionContext,
+    apply_cylinder_state: bool = True,
 ) -> LogisticsMovement:
     previous_status = movement.status
     movement.status = "COMPLETADO"
@@ -361,6 +365,7 @@ def confirm_movement(
         tenant_id=tenant_id,
         movement=movement,
         action_context=action_context,
+        apply_cylinder_state=apply_cylinder_state,
     )
     record_movement_status_change(
         db,

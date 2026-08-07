@@ -238,6 +238,7 @@ def _confirm_and_apply_movement(
     tenant_id: str,
     movement: LogisticsMovement,
     action_context: LogisticsActionContext,
+    apply_cylinder_state: bool = True,
 ) -> LogisticsMovement:
     try:
         if movement.warehouse_id is not None:
@@ -250,8 +251,7 @@ def _confirm_and_apply_movement(
             )
     except Exception:
         movement.last_stock_sync_error = (
-            f"Stock bridge error during confirm. Check stock_bridge_log "
-            f"for movement {movement.id}"
+            f"Stock bridge error during confirm. Check stock_bridge_log for movement {movement.id}"
         )
         db.add(movement)
         db.flush()
@@ -262,6 +262,7 @@ def _confirm_and_apply_movement(
         tenant_id=tenant_id,
         movement=movement,
         action_context=action_context,
+        apply_cylinder_state=apply_cylinder_state,
     )
 
 
@@ -379,14 +380,27 @@ def _record_pickup_cylinder_events(
             cylinder_id=mitem.cylinder_id,
             tenant_id=tenant_id,
             event_type="CUSTOMER_PICKUP",
-            location_type="CUSTOMER",
-            location_id=customer_id,
+            location_type="VEHICLE",
+            location_id=session.id,
             warehouse_id=None,
             session_id=session.id,
-            customer_id=customer_id,
+            customer_id=None,
             source_type="ROUTE_OPERATION",
             source_id=movement.id,
             occurred_at=now,
+            action_context=action_context,
+        )
+        transition_cylinder(
+            db,
+            tenant_id=tenant_id,
+            cylinder_id=mitem.cylinder_id,
+            payload=CylinderTransitionRequest(
+                to_state="EN_RUTA",
+                session_id=session.id,
+                movement_id=movement.id,
+                origin="ROUTE_PICKUP",
+                notes=movement.notes,
+            ),
             action_context=action_context,
         )
 
@@ -732,39 +746,41 @@ def confirm_route_operation_effects(
             payload=in_payload,
             action_context=action_context,
         )
+        pickup_origin: LogisticsMovement | None = None
         if out_movement is not None:
-            in_movement.origin_movement_id = out_movement.id
+            pickup_origin = out_movement
         else:
             # Recojo puro: el SC de origen histórico debe resolver la trazabilidad
             # del ledger (el IC referencia el sale_out original del cilindro).
-            origin = _resolve_pickup_origin_movement(
+            pickup_origin = _resolve_pickup_origin_movement(
                 db,
                 session=session,
                 delivery_point=delivery_point,
                 in_movement=in_movement,
             )
-            if origin is not None:
-                in_movement.origin_movement_id = origin.id
-        db.add(in_movement)
-        db.flush()
-        in_movement = _confirm_and_apply_movement(
-            db,
-            tenant_id=session.tenant_id,
-            movement=in_movement,
-            action_context=action_context,
-        )
-        movement_ids.append(in_movement.id)
-        movement_types.append("IC")
-        _append_customer_possession_from_movement(
-            db,
-            tenant_id=session.tenant_id,
-            customer_id=delivery_point.customer_id if delivery_point is not None else None,
-            movement=in_movement,
-            items=in_items,
-            source_type=SOURCE_MOBILE_PICKUP,
-            event_type=EVENT_OUT_FROM_CUSTOMER,
-            action_context=action_context,
-        )
+        if pickup_origin is not None:
+            in_movement.origin_movement_id = pickup_origin.id
+            db.add(in_movement)
+            db.flush()
+            in_movement = _confirm_and_apply_movement(
+                db,
+                tenant_id=session.tenant_id,
+                movement=in_movement,
+                action_context=action_context,
+                apply_cylinder_state=False,
+            )
+            movement_ids.append(in_movement.id)
+            movement_types.append("IC")
+            _append_customer_possession_from_movement(
+                db,
+                tenant_id=session.tenant_id,
+                customer_id=delivery_point.customer_id if delivery_point is not None else None,
+                movement=in_movement,
+                items=in_items,
+                source_type=SOURCE_MOBILE_PICKUP,
+                event_type=EVENT_OUT_FROM_CUSTOMER,
+                action_context=action_context,
+            )
         _record_pickup_cylinder_events(
             db,
             tenant_id=session.tenant_id,

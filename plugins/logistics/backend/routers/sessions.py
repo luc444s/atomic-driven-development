@@ -1,13 +1,17 @@
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
+from typing import Any, NoReturn
+
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
-from apps.api.app.api.deps import get_db_session
+from apps.api.app.core.lifecycle import ensure_session_factory
 from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
-from plugins.logistics.backend.common import build_action_context
+from plugins.logistics.backend.common import LogisticsActionContext, build_action_context
 from plugins.logistics.backend.dto.sessions import (
     AssignRouteRequest,
     DriverOptionRead,
@@ -15,6 +19,7 @@ from plugins.logistics.backend.dto.sessions import (
     SessionHistoryEntryRead,
     VehicleSessionCreateRequest,
     VehicleSessionDetailRead,
+    VehicleSessionPageRead,
     VehicleSessionRead,
 )
 from plugins.logistics.backend.services.sessions import (
@@ -36,20 +41,54 @@ from plugins.logistics.backend.services.snapshots import (
 
 router = APIRouter(prefix="/vehicle-sessions", tags=["logistics-vehicle-sessions"])
 
-DB_SESSION = Depends(get_db_session)
 TENANT_CONTEXT = Depends(get_current_tenant_context)
 REQUIRE_SESSION_READ = Depends(require_permission("logistics.session.read"))
 REQUIRE_SESSION_MANAGE = Depends(require_permission("logistics.session.manage"))
 
 
-def _get_or_404(db: Session, *, tenant_id: str, session_id: str):
-    session = get_vehicle_session(db, tenant_id=tenant_id, session_id=session_id)
-    if session is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jornada no encontrada")
-    return session
+def _make_sync_session(request: Request) -> Session:
+    factory = ensure_session_factory(request.app)
+    return factory()
 
 
-def _raise_service_error(exc: Exception) -> None:
+async def _run_sync[T](
+    request: Request,
+    fn: Callable[..., T],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
+    def _call() -> T:
+        db = _make_sync_session(request)
+        try:
+            result = fn(db, *args, **kwargs)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    return await asyncio.to_thread(_call)
+
+
+async def _run_sync_readonly[T](
+    request: Request,
+    fn: Callable[..., T],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
+    def _call() -> T:
+        db = _make_sync_session(request)
+        try:
+            return fn(db, *args, **kwargs)
+        finally:
+            db.close()
+
+    return await asyncio.to_thread(_call)
+
+
+def _raise_service_error(exc: Exception) -> NoReturn:
     if isinstance(exc, LookupError):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
     if isinstance(exc, ValueError):
@@ -57,227 +96,304 @@ def _raise_service_error(exc: Exception) -> None:
     raise exc
 
 
+def _get_session_or_404(db: Session, *, tenant_id: str, session_id: str):
+    session = get_vehicle_session(db, tenant_id=tenant_id, session_id=session_id)
+    if session is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Jornada no encontrada",
+        )
+    return session
+
+
+def _session_list(
+    db: Session,
+    *,
+    tenant_id: str,
+    status_filter: str | None,
+    active_only: bool,
+    page: int = 1,
+    per_page: int = 50,
+) -> tuple[list[VehicleSessionRead], int]:
+    sessions, total = list_vehicle_sessions(
+        db, tenant_id=tenant_id, status=status_filter, active_only=active_only,
+        page=page, per_page=per_page,
+    )
+    return [build_session_list_item(db, session=s) for s in sessions], total
+
+
+async def _transition(
+    request: Request,
+    session_id: str,
+    tenant_context: TenantContext,
+    action_context: LogisticsActionContext,
+    transition_fn: Callable[..., Any],
+    **extra: Any,
+) -> VehicleSessionDetailRead:
+    def _call() -> VehicleSessionDetailRead:
+        db = _make_sync_session(request)
+        try:
+            session = _get_session_or_404(
+                db, tenant_id=tenant_context.current_tenant_id,
+                session_id=session_id,
+            )
+            session = transition_fn(
+                db, session=session, action_context=action_context,
+                **extra,
+            )
+            result = build_session_snapshot(db, session=session)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    return await asyncio.to_thread(_call)
+
+
+# ── Read-only endpoints ──────────────────────────────────────────────
+
+
 @router.get("/drivers/catalog", response_model=list[DriverOptionRead])
-def get_driver_catalog(
-    db: Session = DB_SESSION,
+async def get_driver_catalog(
+    request: Request,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
 ) -> list[DriverOptionRead]:
-    return [
-        DriverOptionRead(id=user.id, full_name=user.full_name, email=user.email)
-        for user in list_driver_options(db, tenant_id=tenant_context.current_tenant_id)
-    ]
+    def _load(db: Session) -> list[DriverOptionRead]:
+        users = list_driver_options(db, tenant_id=tenant_context.current_tenant_id)
+        return [
+            DriverOptionRead(id=u.id, full_name=u.full_name, email=u.email)
+            for u in users
+        ]
+
+    return await _run_sync_readonly(request, _load)
 
 
 @router.get("/active", response_model=list[VehicleSessionRead])
-def get_active_sessions(
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_READ,
-) -> list[VehicleSessionRead]:
-    return [
-        build_session_list_item(db, session=session)
-        for session in list_vehicle_sessions(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            active_only=True,
-        )
-    ]
-
-
-@router.get("", response_model=list[VehicleSessionRead])
-def get_sessions(
-    status_filter: str | None = Query(default=None, alias="status"),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_READ,
-) -> list[VehicleSessionRead]:
-    return [
-        build_session_list_item(db, session=session)
-        for session in list_vehicle_sessions(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            status=status_filter,
-            active_only=status_filter == "active",
-        )
-    ]
-
-
-@router.post("", response_model=VehicleSessionDetailRead, status_code=status.HTTP_201_CREATED)
-def post_session(
-    payload: VehicleSessionCreateRequest,
+async def get_active_sessions(
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
-) -> VehicleSessionDetailRead:
-    try:
-        session = create_vehicle_session(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
+    _: User = REQUIRE_SESSION_READ,
+) -> list[VehicleSessionRead]:
+    def _load(db: Session) -> list[VehicleSessionRead]:
+        items, _ = _session_list(
+            db, tenant_id=tenant_context.current_tenant_id,
+            status_filter=None, active_only=True,
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
+        return items
+
+    return await _run_sync_readonly(request, _load)
+
+
+@router.get("", response_model=VehicleSessionPageRead)
+async def get_sessions(
+    request: Request,
+    status_filter: str | None = Query(default=None, alias="status"),
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=50, ge=1, le=200),
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_READ,
+) -> VehicleSessionPageRead:
+    def _load(db: Session) -> VehicleSessionPageRead:
+        items, total = _session_list(
+            db, tenant_id=tenant_context.current_tenant_id,
+            status_filter=status_filter, active_only=status_filter == "active",
+            page=page, per_page=per_page,
+        )
+        total_pages = max(1, -(-total // per_page))
+        return VehicleSessionPageRead(
+            items=items, total=total, page=page, per_page=per_page, total_pages=total_pages,
+        )
+
+    return await _run_sync_readonly(request, _load)
 
 
 @router.get("/{session_id}", response_model=VehicleSessionDetailRead)
-def get_session_detail(
+async def get_session_detail(
     session_id: str,
-    db: Session = DB_SESSION,
+    request: Request,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
-    return build_session_snapshot(db, session=session)
+    def _load(db: Session) -> VehicleSessionDetailRead:
+        s = _get_session_or_404(
+            db, tenant_id=tenant_context.current_tenant_id, session_id=session_id
+        )
+        return build_session_snapshot(db, session=s)
+
+    return await _run_sync_readonly(request, _load)
 
 
 @router.get("/{session_id}/history", response_model=list[SessionHistoryEntryRead])
-def get_session_history(
+async def get_session_history(
     session_id: str,
-    db: Session = DB_SESSION,
+    request: Request,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
 ):
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
-    return build_session_snapshot(db, session=session).history
+    def _load(db: Session) -> list[SessionHistoryEntryRead]:
+        s = _get_session_or_404(
+            db, tenant_id=tenant_context.current_tenant_id, session_id=session_id
+        )
+        return build_session_snapshot(db, session=s).history
+
+    return await _run_sync_readonly(request, _load)
 
 
-@router.post("/{session_id}/start-loading", response_model=VehicleSessionDetailRead)
-def post_start_loading(
-    session_id: str,
+# ── Mutation endpoints ───────────────────────────────────────────────
+
+
+@router.post(
+    "",
+    response_model=VehicleSessionDetailRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_session(
+    payload: VehicleSessionCreateRequest,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
+    def _call() -> VehicleSessionDetailRead:
+        db = _make_sync_session(request)
+        try:
+            session = create_vehicle_session(
+                db,
+                tenant_id=tenant_context.current_tenant_id,
+                payload=payload,
+                action_context=build_action_context(request, tenant_context),
+            )
+            result = build_session_snapshot(db, session=session)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
     try:
-        session = start_loading_session(
-            db,
-            session=session,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-        return build_session_snapshot(db, session=session)
+        return await asyncio.to_thread(_call)
     except Exception as exc:
-        db.rollback()
+        _raise_service_error(exc)
+
+
+@router.post("/{session_id}/start-loading", response_model=VehicleSessionDetailRead)
+async def post_start_loading(
+    session_id: str,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> VehicleSessionDetailRead:
+    try:
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            start_loading_session,
+        )
+    except Exception as exc:
         _raise_service_error(exc)
 
 
 @router.post("/{session_id}/ready", response_model=VehicleSessionDetailRead)
-def post_ready(
+async def post_ready(
     session_id: str,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
-        session = mark_session_ready(
-            db,
-            session=session,
-            action_context=build_action_context(request, tenant_context),
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            mark_session_ready,
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
     except Exception as exc:
-        db.rollback()
         _raise_service_error(exc)
 
 
 @router.post("/{session_id}/depart", response_model=VehicleSessionDetailRead)
-def post_depart(
+async def post_depart(
     session_id: str,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
-        session = depart_session(
-            db,
-            session=session,
-            action_context=build_action_context(request, tenant_context),
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            depart_session,
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
     except Exception as exc:
-        db.rollback()
         _raise_service_error(exc)
 
 
 @router.post("/{session_id}/mark-returning", response_model=VehicleSessionDetailRead)
-def post_mark_returning(
+async def post_mark_returning(
     session_id: str,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
-        session = mark_session_returning(
-            db,
-            session=session,
-            action_context=build_action_context(request, tenant_context),
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            mark_session_returning,
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
     except Exception as exc:
-        db.rollback()
         _raise_service_error(exc)
 
 
 @router.post("/{session_id}/cancel", response_model=VehicleSessionDetailRead)
-def post_cancel(
+async def post_cancel(
     session_id: str,
     payload: SessionActionRequest,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
-        session = cancel_session(
-            db,
-            session=session,
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            cancel_session,
             notes=payload.notes,
-            action_context=build_action_context(request, tenant_context),
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
     except Exception as exc:
-        db.rollback()
         _raise_service_error(exc)
 
 
 @router.post("/{session_id}/assign-route", response_model=VehicleSessionDetailRead)
-def post_assign_route(
+async def post_assign_route(
     session_id: str,
     payload: AssignRouteRequest,
     request: Request,
-    db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_MANAGE,
 ) -> VehicleSessionDetailRead:
-    session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
-        session = assign_route_to_session(
-            db,
-            session=session,
+        return await _transition(
+            request,
+            session_id,
+            tenant_context,
+            build_action_context(request, tenant_context),
+            assign_route_to_session,
             route_id=payload.route_id,
-            action_context=build_action_context(request, tenant_context),
         )
-        db.commit()
-        return build_session_snapshot(db, session=session)
     except Exception as exc:
-        db.rollback()
         _raise_service_error(exc)

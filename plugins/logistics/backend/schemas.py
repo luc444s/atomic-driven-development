@@ -1300,6 +1300,8 @@ class PlanningReservationCreateRequest(BaseModel):
     service_type: str | None = Field(default=None, max_length=50)
     route_id: str | None = None
     driver_id: str | None = None
+    customer_ids: list[str] = Field(default_factory=list)
+    address_ids: list[str] = Field(default_factory=list)
     adr_required: bool = False
     notes: str | None = None
     quote_id: str | None = None
@@ -1326,6 +1328,8 @@ class PlanningReservationUpdateRequest(BaseModel):
     service_type: str | None = Field(default=None, max_length=50)
     route_id: str | None = None
     driver_id: str | None = None
+    customer_ids: list[str] | None = None
+    address_ids: list[str] | None = None
     adr_required: bool | None = None
     notes: str | None = None
     permit_override: bool | None = None
@@ -1349,6 +1353,8 @@ class PlanningReservationRead(BaseModel):
     route_id: str | None = None
     driver_id: str | None = None
     driver_name: str | None = None
+    customer_ids: list[str] = Field(default_factory=list)
+    address_ids: list[str] = Field(default_factory=list)
     adr_required: bool
     notes: str | None = None
     status: str

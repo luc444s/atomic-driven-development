@@ -113,6 +113,8 @@ export type PlanningReservation = {
   route_id: string | null;
   driver_id: string | null;
   driver_name: string | null;
+  customer_ids: string[];
+  address_ids: string[];
   adr_required: boolean;
   notes: string | null;
   status: string;
@@ -138,6 +140,8 @@ export type PlanningReservationPayload = {
   service_type?: string | null;
   route_id?: string | null;
   driver_id?: string | null;
+  customer_ids?: string[];
+  address_ids?: string[];
   adr_required?: boolean;
   notes?: string | null;
   permit_override?: boolean;

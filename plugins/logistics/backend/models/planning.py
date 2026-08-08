@@ -61,6 +61,8 @@ class LogisticsPlanningReservation(Base):
     conflict_reason: Mapped[str | None] = mapped_column(String(40), nullable=True)
     permit_override: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     override_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    customer_ids_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    address_ids_json: Mapped[list | None] = mapped_column(JSON, nullable=True)
     linked_session_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
     )

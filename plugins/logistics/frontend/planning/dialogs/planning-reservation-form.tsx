@@ -1,8 +1,12 @@
-import { Dispatch, SetStateAction, useMemo } from "react";
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { Input, Textarea } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
 import type { ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
+import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
+import { listCustomerAddressesByCustomers } from "../../api/delivery-points";
 import {
   listPlanningStockBalances,
   planningKeys,
@@ -28,6 +32,9 @@ export type PlanningReservationFormValues = {
   planned_end_at: string;
   driver_id: string;
   route_id: string;
+  customer_ids: string[];
+  address_ids: string[];
+  customer_names: Record<string, string>;
   items: PlanningReservationProductLine[];
   notes: string;
   permit_override: boolean;
@@ -50,6 +57,7 @@ type Props = {
     unit_weight_kg: number | null;
   }>;
   onAddLine: () => void;
+  showRouteSelect?: boolean;
 };
 
 export function PlanningReservationForm({
@@ -62,7 +70,55 @@ export function PlanningReservationForm({
   products,
   resolveProduct,
   onAddLine,
+  showRouteSelect = false,
 }: Props) {
+  const [isCustomerSearchOpen, setIsCustomerSearchOpen] = useState(false);
+  const [addressesQuery, setAddressesQuery] = useState<
+    { id: string; customer_id: string; line1: string; latitude: number | null; longitude: number | null }[]
+  >([]);
+
+  const addressesByCustomers = useQuery({
+    queryKey: ["logistics", "planning-addresses", form.customer_ids],
+    queryFn: () => listCustomerAddressesByCustomers(form.customer_ids.join(",")),
+    enabled: form.customer_ids.length > 0,
+  });
+
+  useEffect(() => {
+    setAddressesQuery(addressesByCustomers.data ?? []);
+  }, [addressesByCustomers.data]);
+
+  function toggleCustomer(customer: { id: string; display_name: string }) {
+    if (form.customer_ids.includes(customer.id)) {
+      setForm((current) => ({
+        ...current,
+        customer_ids: current.customer_ids.filter((id) => id !== customer.id),
+      }));
+    } else {
+      setForm((current) => ({
+        ...current,
+        customer_ids: [...current.customer_ids, customer.id],
+        customer_names: { ...current.customer_names, [customer.id]: customer.display_name },
+      }));
+    }
+  }
+
+  function toggleAddress(addressId: string) {
+    setForm((current) => ({
+      ...current,
+      address_ids: current.address_ids.includes(addressId)
+        ? current.address_ids.filter((id) => id !== addressId)
+        : [...current.address_ids, addressId],
+    }));
+  }
+
+  const gpsMarkers = addressesQuery
+    .filter((address) => address.latitude != null && address.longitude != null)
+    .map((address) => ({
+      id: address.id,
+      position: { lat: address.latitude!, lng: address.longitude! },
+      label: `${form.customer_names[address.customer_id] ?? ""} — ${address.line1}`,
+    }));
+
   const stockBalancesQuery = useQuery({
     queryKey: planningKeys.stock(form.origin_warehouse_id || undefined),
     queryFn: () => listPlanningStockBalances(form.origin_warehouse_id),
@@ -129,10 +185,119 @@ export function PlanningReservationForm({
         <label className="text-sm font-medium">Conductor</label>
         <Select value={form.driver_id} onChange={(value) => setForm((current) => ({ ...current, driver_id: value }))} options={[{ value: "", label: "Sin conductor" }, ...drivers.map((driver) => ({ value: driver.id, label: driver.full_name }))]} />
       </div>
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Ruta</label>
-        <Select value={form.route_id} onChange={(value) => setForm((current) => ({ ...current, route_id: value }))} options={[{ value: "", label: "Sin ruta" }, ...routes.map((route) => ({ value: route.id, label: formatRouteLabel(route) }))]} />
+
+      <div className="space-y-2 md:col-span-2">
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-foreground">Clientes de la planificación</span>
+          <Button type="button" variant="secondary" onClick={() => setIsCustomerSearchOpen(true)}>
+            Agregar cliente
+          </Button>
+        </div>
+        {form.customer_ids.length > 0 ? (
+          <div className="flex flex-wrap gap-2">
+            {form.customer_ids.map((customerId) => (
+              <span
+                key={customerId}
+                className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-3 py-1 text-xs text-foreground"
+              >
+                {form.customer_names[customerId] ?? customerId}
+                <button
+                  type="button"
+                  onClick={() => setForm((current) => ({ ...current, customer_ids: current.customer_ids.filter((id) => id !== customerId) }))}
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">
+            Agrega los clientes a visitar. Sus puntos de entrega aparecerán en el mapa.
+          </p>
+        )}
+        <CustomerSearchDialog
+          open={isCustomerSearchOpen}
+          onOpenChange={setIsCustomerSearchOpen}
+          onSelect={toggleCustomer}
+        />
       </div>
+
+      {addressesQuery.length > 0 ? (
+        <div className="space-y-2 md:col-span-2">
+          <span className="block text-sm font-medium text-foreground">Direcciones del cliente (clic para incluir)</span>
+          <LocationMap
+            center={gpsMarkers[0]?.position ?? { lat: 37.18, lng: -4.75 }}
+            height={200}
+            autoFit
+            markers={gpsMarkers.map((marker) => {
+              const assigned = form.address_ids.includes(marker.id);
+              return {
+                ...marker,
+                label: assigned ? "Punto asignado" : `${marker.label}${assigned ? " ✓" : ""}`,
+                labelVisible: assigned,
+                color: (assigned ? "assigned" : "default") as const,
+              };
+            })}
+            onMarkerClick={(id) => toggleAddress(id)}
+          />
+          <div className="grid gap-1">
+            {addressesQuery.map((address) => {
+              const selected = form.address_ids.includes(address.id);
+              return (
+                <button
+                  key={address.id}
+                  type="button"
+                  onClick={() => toggleAddress(address.id)}
+                  className={`flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-left text-xs transition ${
+                    selected ? "border-primary bg-primary/10 text-foreground" : "border-border bg-surface text-foreground"
+                  }`}
+                >
+                  <span className="truncate">
+                    {form.customer_names[address.customer_id] ?? ""} — {address.line1}
+                  </span>
+                  <span className="text-muted-foreground">
+                    {address.latitude != null && address.longitude != null ? "📍" : "sin GPS"}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+
+      {form.address_ids.length > 0 ? (
+        <div className="rounded-lg border border-dashed border-border p-4 text-center md:col-span-2">
+          {form.driver_id ? (
+            <p className="text-sm text-foreground">
+              La ruta se creará automáticamente con las {form.address_ids.length} dirección(es) seleccionada(s).
+            </p>
+          ) : (
+            <div>
+              <p className="text-sm text-amber-600">
+                Selecciona un conductor para auto-crear la ruta desde las direcciones.
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Sin conductor, deberás seleccionar una ruta manualmente.
+              </p>
+            </div>
+          )}
+        </div>
+      ) : null}
+
+      {form.address_ids.length > 0 && !form.driver_id ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Ruta (requerida sin conductor)</label>
+          <Select value={form.route_id} onChange={(value) => setForm((current) => ({ ...current, route_id: value }))} options={[{ value: "", label: "Seleccionar ruta" }, ...routes.map((route) => ({ value: route.id, label: formatRouteLabel(route) }))]} />
+        </div>
+      ) : null}
+
+      {showRouteSelect && form.customer_ids.length === 0 && form.address_ids.length === 0 ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium">Ruta</label>
+          <Select value={form.route_id} onChange={(value) => setForm((current) => ({ ...current, route_id: value }))} options={[{ value: "", label: "Sin ruta" }, ...routes.map((route) => ({ value: route.id, label: formatRouteLabel(route) }))]} />
+        </div>
+      ) : null}
       <div className="md:col-span-2">
         <PlanningProductLinesEditor
           lines={form.items}

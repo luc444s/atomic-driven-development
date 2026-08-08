@@ -1,11 +1,12 @@
-from collections.abc import Generator
+from collections.abc import AsyncGenerator, Generator
 
 from fastapi import Request
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from apps.api.app.core.config import Settings
-from apps.api.app.core.database import db_session_scope
-from apps.api.app.core.lifecycle import ensure_session_factory
+from apps.api.app.core.database import async_db_session_scope, db_session_scope
+from apps.api.app.core.lifecycle import ensure_async_session_factory, ensure_session_factory
 from apps.api.app.kernel.events.bus import EventBus
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
 
@@ -25,3 +26,9 @@ def get_event_bus(request: Request) -> EventBus:
 def get_db_session(request: Request) -> Generator[Session, None, None]:
     session_factory = ensure_session_factory(request.app)
     yield from db_session_scope(session_factory)
+
+
+async def get_async_db_session(request: Request) -> AsyncGenerator[AsyncSession, None]:
+    session_factory = ensure_async_session_factory(request.app)
+    async for session in async_db_session_scope(session_factory):
+        yield session

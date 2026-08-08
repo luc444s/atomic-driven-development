@@ -13,8 +13,10 @@ from plugins.logistics.backend.common import (
     emit_logistics_event,
 )
 from plugins.logistics.backend.models import (
+    LogisticsDeliveryPoint,
     LogisticsPlanningReservation,
     LogisticsRoute,
+    LogisticsRouteStop,
     LogisticsVehicle,
     LogisticsVehicleSession,
     LogisticsWarehouse,
@@ -89,6 +91,130 @@ def _ensure_route_exists(db: Session, *, tenant_id: str, route_id: str | None) -
     )
     if route is None:
         raise LookupError("Ruta no encontrada")
+
+
+def _auto_create_route_from_addresses(
+    db: Session,
+    *,
+    tenant_id: str,
+    address_ids: list[str],
+    origin_warehouse_id: str,
+    driver_id: str | None = None,
+) -> str | None:
+    """Crea una ruta automáticamente desde direcciones seleccionadas.
+    Busca en lg_delivery_points primero, luego en crm_customer_addresses.
+    Retorna None si no se puede crear (sin conductor o sin direcciones).
+    """
+    if not address_ids:
+        return None
+    if not driver_id:
+        return None
+
+    from datetime import date as date_type
+
+    from plugins.crm.backend.models import CrmCustomerAddress
+    from plugins.logistics.backend.models import LogisticsWarehouse
+
+    origin = db.scalar(
+        select(LogisticsWarehouse).where(LogisticsWarehouse.id == origin_warehouse_id)
+    )
+    origin_label = origin.name if origin else None
+
+    # Buscar en delivery points primero
+    delivery_addresses = list(
+        db.scalars(
+            select(LogisticsDeliveryPoint).where(
+                LogisticsDeliveryPoint.id.in_(address_ids),
+                LogisticsDeliveryPoint.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+    found_dp_ids = {a.id for a in delivery_addresses}
+
+    # Buscar direcciones CRM que no están en delivery points
+    crm_ids = [aid for aid in address_ids if aid not in found_dp_ids]
+    crm_addresses = []
+    if crm_ids:
+        crm_addresses = list(
+            db.scalars(
+                select(CrmCustomerAddress).where(
+                    CrmCustomerAddress.id.in_(crm_ids),
+                    CrmCustomerAddress.tenant_id == tenant_id,
+                )
+            ).all()
+        )
+
+    if not delivery_addresses and not crm_addresses:
+        return None
+
+    # Obtener nombre del cliente para destino
+    destination_label = None
+    if crm_addresses:
+        last = crm_addresses[-1]
+        destination_label = last.line1
+    elif delivery_addresses:
+        last = delivery_addresses[-1]
+        destination_label = last.customer_name or last.address
+
+    route = LogisticsRoute(
+        tenant_id=tenant_id,
+        route_date=date_type.today(),
+        driver_id=driver_id,
+        origin_label=origin_label,
+        destination_label=destination_label,
+        status="PLANIFICADO",
+        notes=f"Auto-creada desde planificación ({len(delivery_addresses) + len(crm_addresses)} direcciones)",
+        created_by="system",
+    )
+    db.add(route)
+    db.flush()
+
+    order = 1
+    for addr in delivery_addresses:
+        stop = LogisticsRouteStop(
+            route_id=route.id,
+            delivery_point_id=addr.id,
+            customer_id=addr.customer_id,
+            customer_name_snapshot=addr.customer_name,
+            stop_order=order,
+            status="PENDIENTE",
+        )
+        db.add(stop)
+        order += 1
+
+    # Buscar customer name para direcciones CRM
+    crm_customer_ids = list({a.customer_id for a in crm_addresses})
+    crm_customer_names = {}
+    if crm_customer_ids:
+        from plugins.crm.backend.models import CrmCustomer
+
+        customers = list(
+            db.scalars(
+                select(CrmCustomer).where(CrmCustomer.id.in_(crm_customer_ids))
+            ).all()
+        )
+        crm_customer_names = {c.id: c.legal_name for c in customers}
+
+    for addr in crm_addresses:
+        stop = LogisticsRouteStop(
+            route_id=route.id,
+            delivery_point_id=None,
+            customer_id=addr.customer_id,
+            customer_name_snapshot=crm_customer_names.get(addr.customer_id),
+            stop_order=order,
+            notes=addr.line1,
+            gps_coordinates=(
+                {"lat": addr.latitude, "lng": addr.longitude}
+                if addr.latitude is not None and addr.longitude is not None
+                else None
+            ),
+            status="PENDIENTE",
+        )
+        db.add(stop)
+        order += 1
+
+    db.flush()
+    return route.id
 
 
 def _summary_to_dict(summary: PlanningExpectedLoadSummary | dict[str, object]) -> dict[str, object]:
@@ -267,6 +393,8 @@ def build_reservation_read(
         route_id=reservation.route_id,
         driver_id=reservation.driver_id,
         driver_name=driver.full_name if driver else None,
+        customer_ids=reservation.customer_ids_json or [],
+        address_ids=reservation.address_ids_json or [],
         adr_required=reservation.adr_required,
         notes=reservation.notes,
         status=reservation.status,
@@ -331,7 +459,21 @@ def create_reservation(
     vehicle = _get_vehicle(db, tenant_id=tenant_id, vehicle_id=payload.vehicle_id)
     warehouse = _get_warehouse(db, tenant_id=tenant_id, warehouse_id=payload.origin_warehouse_id)
     _get_driver(db, tenant_id=tenant_id, driver_id=payload.driver_id)
-    _ensure_route_exists(db, tenant_id=tenant_id, route_id=payload.route_id)
+
+    customer_ids = list(payload.customer_ids) if payload.customer_ids else []
+    address_ids = list(payload.address_ids) if payload.address_ids else []
+
+    route_id = payload.route_id
+    if not route_id and address_ids:
+        route_id = _auto_create_route_from_addresses(
+            db,
+            tenant_id=tenant_id,
+            address_ids=address_ids,
+            origin_warehouse_id=warehouse.id,
+            driver_id=payload.driver_id,
+        )
+    _ensure_route_exists(db, tenant_id=tenant_id, route_id=route_id)
+
     summary = _summary_to_dict(payload.expected_load_summary)
     status, conflict_reason = _resolve_status(
         db,
@@ -354,8 +496,10 @@ def create_reservation(
         expected_weight_total=payload.expected_weight_total,
         expected_volume_total=payload.expected_volume_total,
         service_type=payload.service_type,
-        route_id=payload.route_id,
+        route_id=route_id,
         driver_id=payload.driver_id,
+        customer_ids_json=customer_ids or None,
+        address_ids_json=address_ids or None,
         adr_required=payload.adr_required,
         notes=payload.notes,
         quote_id=payload.quote_id,
@@ -445,6 +589,10 @@ def update_reservation(
     reservation.service_type = data.get("service_type", reservation.service_type)
     reservation.route_id = route_id
     reservation.driver_id = driver_id
+    if "customer_ids" in data:
+        reservation.customer_ids_json = data["customer_ids"] or None
+    if "address_ids" in data:
+        reservation.address_ids_json = data["address_ids"] or None
     reservation.adr_required = data.get("adr_required", reservation.adr_required)
     reservation.notes = data.get("notes", reservation.notes)
     reservation.status = status
@@ -547,6 +695,7 @@ def activate_reservation(
                     product_id=item.get("product_id"),
                     planned_quantity=item.get("quantity", 1),
                     source_warehouse_id=reservation.origin_warehouse_id,
+                    notes=None,
                 )
                 for item in reservation_items
                 if item.get("product_id")

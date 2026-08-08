@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, FastAPI, HTTPException, Request, status
 
 from apps.api.app.core.cache import close_cache, init_cache
 from apps.api.app.core.config import get_settings
-from apps.api.app.core.database import build_session_factory
+from apps.api.app.core.database import build_async_session_factory, build_session_factory
 from apps.api.app.core.logging import get_logger
 from apps.api.app.kernel.audit.service import record_audit
 from apps.api.app.kernel.events.bus import EventBus
@@ -71,6 +71,7 @@ def bootstrap_app_state(app: FastAPI, settings=None) -> None:
     app.state.plugin_runtime = plugin_runtime
     app.state.event_bus = event_bus
     app.state.session_factory = session_factory
+    app.state.async_session_factory = build_async_session_factory(effective_settings)
     app.state.task_dispatcher = task_dispatcher
 
 
@@ -78,6 +79,12 @@ def ensure_session_factory(app: FastAPI):
     if app.state.session_factory is None:
         app.state.session_factory = build_session_factory(app.state.settings)
     return app.state.session_factory
+
+
+def ensure_async_session_factory(app: FastAPI):
+    if not hasattr(app.state, "async_session_factory") or app.state.async_session_factory is None:
+        app.state.async_session_factory = build_async_session_factory(app.state.settings)
+    return app.state.async_session_factory
 
 
 @asynccontextmanager

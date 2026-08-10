@@ -254,7 +254,22 @@ def summarize_cylinders(db: Session, *, tenant_id: str) -> list[CylinderSummaryI
         .group_by(LogisticsCylinder.current_state)
         .order_by(LogisticsCylinder.current_state)
     ).all()
-    return [CylinderSummaryItem(state=row[0], count=row[1]) for row in rows]
+
+    real_full_count = db.scalar(
+        select(func.count(LogisticsCylinder.id)).where(
+            LogisticsCylinder.tenant_id == tenant_id,
+            LogisticsCylinder.current_state == "LLENADO_OK",
+            LogisticsCylinder.container_type != "CRYOGENIC_TANK",
+        )
+    )
+
+    summary: list[CylinderSummaryItem] = []
+    for state, count in rows:
+        if state == "LLENADO_OK":
+            summary.append(CylinderSummaryItem(state=state, count=int(real_full_count or 0)))
+            continue
+        summary.append(CylinderSummaryItem(state=state, count=count))
+    return summary
 
 
 def summarize_serialized_cylinders_by_warehouse(

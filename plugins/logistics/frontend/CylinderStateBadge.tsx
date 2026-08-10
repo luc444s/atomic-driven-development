@@ -17,9 +17,9 @@ const STATE_CLASSNAMES: Record<string, string> = {
 
 const STATE_LABELS: Record<string, string> = {
   CREADO_VACIO: "Nuevo",
-  EN_ALMACEN_VACIO: "Disponible",
+  EN_ALMACEN_VACIO: "Vacío",
   EN_LLENADO: "En llenado",
-  LLENADO_OK: "Listo",
+  LLENADO_OK: "Lleno",
   CARGA_EN_VEHICULO: "Cargado",
   EN_RUTA: "En camino",
   EN_CLIENTE_LLENO: "En cliente",

@@ -63,7 +63,7 @@ describe("logistics frontend helpers", () => {
   });
 
   it("keeps human labels for cylinder states", () => {
-    expect(getCylinderStateLabel("EN_ALMACEN_VACIO")).toBe("Disponible");
+    expect(getCylinderStateLabel("EN_ALMACEN_VACIO")).toBe("Vacío");
     expect(getCylinderStateLabel("EN_CLIENTE_LLENO")).toBe("En cliente");
   });
 

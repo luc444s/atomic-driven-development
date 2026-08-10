@@ -351,7 +351,7 @@ def seed_products(db: Session, tenant_id: str, user_id: str, catalogs: dict) -> 
             unit_id=units["KG"].id,
             status_code="ACTIVO", condition_code="GAS",
             weight_kg=weight, default_weight_kg=default_weight,
-            country_code="PER", is_service=False, is_active=True,
+            country_code="PE", is_service=False, is_active=True,
                 created_by=user_id,
         )
         db.add(product)
@@ -578,7 +578,7 @@ def seed_customers(db: Session, tenant_id: str, user_id: str) -> list:
             id=new_id(), tenant_id=tenant_id,
             legal_name=legal_name, commercial_name=commercial_name,
             document_type_code=doc_type, document_number=doc_number,
-            country_code="PER",
+            country_code="PE",
             email=random_email(legal_name),
             phone=random_phone(),
             payment_term_code=pt.code,
@@ -594,7 +594,7 @@ def seed_customers(db: Session, tenant_id: str, user_id: str) -> list:
         addr = CrmCustomerAddress(
             id=new_id(), tenant_id=tenant_id, customer_id=customer.id,
             address_type="FISCAL", line1=random.choice(ADDRESSES),
-            city=city, state=city, country_code="PER",
+            city=city, state=city, country_code="PE",
         )
         db.add(addr)
 
@@ -603,7 +603,7 @@ def seed_customers(db: Session, tenant_id: str, user_id: str) -> list:
                 addr2 = CrmCustomerAddress(
                     id=new_id(), tenant_id=tenant_id, customer_id=customer.id,
                     address_type=atype, line1=random.choice(ADDRESSES),
-                    city=city, state=city, country_code="PER",
+                    city=city, state=city, country_code="PE",
                 )
                 db.add(addr2)
 

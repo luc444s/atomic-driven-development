@@ -26,6 +26,7 @@ from plugins.logistics.backend.routers.route_stop_results import (
 from plugins.logistics.backend.routers.session_waybills import router as session_waybills_router
 from plugins.logistics.backend.routers.sessions import router as sessions_router
 from plugins.logistics.backend.routers.traceability import router as traceability_router
+from plugins.logistics.backend.services.catalog_bootstrap import ensure_logistics_catalogs
 
 LOGISTICS_PERMISSIONS = [
     "logistics.cylinder.read",
@@ -128,6 +129,23 @@ LOGISTICS_EVENTS = [
     "logistics.route_control.stop_arrived_manually",
     "logistics.route_control.stop_departed_manually",
 ]
+
+
+def _run_catalog_bootstrap(context: PluginContext) -> None:
+    if context.db_session_provider is None:
+        raise RuntimeError("logistics lifecycle hook requires db_session_provider")
+
+    with context.db_session_provider() as db:
+        ensure_logistics_catalogs(db)
+        db.commit()
+
+
+def on_install(context: PluginContext) -> None:
+    _run_catalog_bootstrap(context)
+
+
+def on_enable(context: PluginContext) -> None:
+    _run_catalog_bootstrap(context)
 
 
 def register(context: PluginContext) -> None:

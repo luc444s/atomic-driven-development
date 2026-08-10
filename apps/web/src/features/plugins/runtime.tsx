@@ -88,6 +88,7 @@ export function buildFrontendPluginRuntime({
 export function usePluginFrontendRuntime() {
   const userPermissions = useAuthStore((state) => state.permissions ?? EMPTY_PERMISSIONS);
   const pluginRuntimeRecords = useAuthStore((state) => state.pluginRuntimeRecords);
+  const isRuntimeBootstrapped = useAuthStore((state) => state.isRuntimeBootstrapped);
   const registrations = listFrontendPluginRegistrations();
   const resolvedRuntime = buildFrontendPluginRuntime({
     records: pluginRuntimeRecords,
@@ -96,7 +97,7 @@ export function usePluginFrontendRuntime() {
   });
 
   return {
-    isLoading: false,
+    isLoading: !isRuntimeBootstrapped,
     error: null,
     registrations,
     ...resolvedRuntime,

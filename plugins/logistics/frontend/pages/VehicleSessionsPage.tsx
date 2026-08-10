@@ -1,10 +1,12 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
+import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
 import { Alert } from "../../../../apps/web/src/shared/ui/alert";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent } from "../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
+import { Pagination } from "../../../../apps/web/src/shared/ui/pagination";
 import {
   createRoute,
   createRouteStop,
@@ -68,6 +70,7 @@ const EMPTY_ROUTE_FORM: JornadaRouteForm = {
 
 export function VehicleSessionsPage() {
   const queryClient = useQueryClient();
+  const permissions = useAuthStore((state) => state.permissions);
   const [isOpen, setIsOpen] = useState(false);
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
   const [isRouteOpen, setIsRouteOpen] = useState(false);
@@ -83,12 +86,18 @@ export function VehicleSessionsPage() {
   const [vehicleForm, setVehicleForm] = useState(EMPTY_VEHICLE_FORM);
   const [routeForm, setRouteForm] = useState(EMPTY_ROUTE_FORM);
   const [fixedVehicleId, setFixedVehicleId] = useState<string | null>(null);
+  const [sessionsPage, setSessionsPage] = useState(1);
 
   const sessionsQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.list({}),
-    queryFn: () => listVehicleSessions({}),
+    queryKey: logisticsKeys.vehicleSessions.list({ page: sessionsPage }),
+    queryFn: () => listVehicleSessions({ page: sessionsPage, per_page: 50 }),
+    refetchInterval: 5000,
   });
-  const vehiclesQuery = useQuery({ queryKey: logisticsKeys.vehicles(), queryFn: listVehicles });
+  const vehiclesQuery = useQuery({
+    queryKey: logisticsKeys.vehicles(),
+    queryFn: listVehicles,
+    refetchInterval: 5000,
+  });
   const driversQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.drivers(),
     queryFn: listDriverOptions,
@@ -104,6 +113,7 @@ export function VehicleSessionsPage() {
   const plannedReservationsQuery = useQuery({
     queryKey: planningKeys.reservations.list({ start: "now" }),
     queryFn: () => listPlanningReservations({ start: new Date().toISOString() }),
+    refetchInterval: 5000,
   });
 
   const customerNamesRef = useRef<Record<string, string>>({});
@@ -226,7 +236,7 @@ export function VehicleSessionsPage() {
   );
 
   const vehicleCards = useMemo(
-    () => buildVehicleProjectionCards(vehiclesQuery.data ?? [], sessionsQuery.data ?? []),
+    () => buildVehicleProjectionCards(vehiclesQuery.data ?? [], sessionsQuery.data?.items ?? []),
     [sessionsQuery.data, vehiclesQuery.data]
   );
 
@@ -324,25 +334,20 @@ export function VehicleSessionsPage() {
       description="Centro operativo del reparto: cada jornada concentra vehículo, ruta, carga, salida, retorno y conciliación."
       actions={
         <div className="flex flex-wrap justify-end gap-2">
-          <Button
-            onClick={() => setIsVehicleOpen(true)}
-          >
-            Nuevo vehículo
-          </Button>
-          <Button
-            variant="secondary"
-            className="border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-accent/40 hover:text-foreground"
-            onClick={() => setIsRoutesLibraryOpen(true)}
-          >
-            Rutas
-          </Button>
-          <Button
-            variant="secondary"
-            className="border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-accent/40 hover:text-foreground"
-            onClick={() => setIsWarehousesOpen(true)}
-          >
-            Almacenes
-          </Button>
+          {permissions.includes("logistics.vehicle.manage") ? (
+            <Button onClick={() => setIsVehicleOpen(true)}>
+              Nuevo vehículo
+            </Button>
+          ) : null}
+          {permissions.includes("logistics.warehouse.manage") ? (
+            <Button
+              variant="secondary"
+              className="border-transparent bg-transparent text-muted-foreground hover:border-border hover:bg-accent/40 hover:text-foreground"
+              onClick={() => setIsWarehousesOpen(true)}
+            >
+              Almacenes
+            </Button>
+          ) : null}
         </div>
       }
     >
@@ -357,6 +362,14 @@ export function VehicleSessionsPage() {
           />
         ))}
       </div>
+
+      {sessionsQuery.data && sessionsQuery.data.total_pages > 1 ? (
+        <Pagination
+          page={sessionsQuery.data.page}
+          totalPages={sessionsQuery.data.total_pages}
+          onChange={setSessionsPage}
+        />
+      ) : null}
 
       {!vehicleCards.length ? (
         <Card>
@@ -382,10 +395,7 @@ export function VehicleSessionsPage() {
         isPending={createMutation.isPending}
         onSubmit={onSubmit}
         onOpenCreateVehicle={() => setIsVehicleOpen(true)}
-        onOpenCreateRoute={() => {
-          setRoutesAutoStart(true);
-          setIsRoutesLibraryOpen(true);
-        }}
+        onOpenCreateRoute={() => {}}
         fixedVehicleId={fixedVehicleId}
         setRouteVehicle={(vehicleId) =>
           setRouteForm((current) => ({ ...current, vehicle_id: vehicleId }))
@@ -447,24 +457,6 @@ export function VehicleSessionsPage() {
         onCreateJornada={openCreateJornadaFromVehicle}
         plannedReservations={selectedVehicleReservations}
       />
-
-      <Dialog
-        open={isRoutesLibraryOpen}
-        onClose={() => {
-          setIsRoutesLibraryOpen(false);
-          setRoutesAutoStart(false);
-        }}
-        maxWidthClassName="max-w-[1500px]"
-      >
-        <RoutesPage
-          autoStart={routesAutoStart}
-          onRouteCreated={(routeId) => {
-            setFormState((current) => ({ ...current, route_id: routeId }));
-            setIsRoutesLibraryOpen(false);
-            setRoutesAutoStart(false);
-          }}
-        />
-      </Dialog>
 
       <Dialog
         open={isWarehousesOpen}

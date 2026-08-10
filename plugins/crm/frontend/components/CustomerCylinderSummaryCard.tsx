@@ -62,9 +62,8 @@ export function CustomerCylinderSummaryCard({ customerId }: CustomerCylinderSumm
 
         {summaryQuery.data ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <MetricBox label="Contrato" value={summaryQuery.data.summary.contracted} />
-              <MetricBox label="Asignados" value={summaryQuery.data.summary.assigned} />
               <MetricBox label="En cliente" value={summaryQuery.data.summary.at_customer} />
               <MetricBox
                 label="Desviación"

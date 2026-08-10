@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../..
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { toast } from "../../../../apps/web/src/shared/ui/toast";
-import { listDeliveryPoints, logisticsKeys } from "../../../logistics/frontend/api";
+import { logisticsKeys } from "../../../logistics/frontend/api";
 import {
   createCustomerAddress,
   createCustomerCommercialAssignment,
@@ -27,7 +27,6 @@ import { CommercialDialog } from "./CommercialDialog";
 import { ContactosDialog } from "./ContactosDialog";
 import { CustomerContractsButton } from "./CustomerContractsButton";
 import { CustomerOverviewCard } from "./CustomerOverviewCard";
-import { DeliveryPointsDialog } from "./DeliveryPointsDialog";
 import { DireccionesDialog } from "./DireccionesDialog";
 import { PricingTermsDialog } from "./PricingTermsDialog";
 import type {
@@ -46,7 +45,7 @@ const EMPTY_ADDRESS: CustomerAddressPayload = {
   state: null,
   district: null,
   postal_code: null,
-  country_code: "PER",
+  country_code: "PE",
   latitude: null,
   longitude: null,
   place_id: null,
@@ -107,7 +106,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const [isAddressesOpen, setIsAddressesOpen] = useState(false);
   const [isContactsOpen, setIsContactsOpen] = useState(false);
   const [isCommercialOpen, setIsCommercialOpen] = useState(false);
-  const [isDeliveryPointsOpen, setIsDeliveryPointsOpen] = useState(false);
   const [isBankAccountsOpen, setIsBankAccountsOpen] = useState(false);
   const [isPricingOpen, setIsPricingOpen] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; label: string; onConfirm: () => void } | null>(null);
@@ -122,11 +120,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
   const detailQuery = useQuery({
     queryKey: crmKeys.customers.detail(customerId),
     queryFn: () => getCustomer(customerId),
-    enabled: open,
-  });
-  const deliveryPointsQuery = useQuery({
-    queryKey: logisticsKeys.deliveryPoints(),
-    queryFn: listDeliveryPoints,
     enabled: open,
   });
   const commercialAssignmentsQuery = useQuery({
@@ -289,18 +282,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
     }
   }
 
-  const deliveryPoints = (deliveryPointsQuery.data ?? [])
-    .filter((point) => point.customer_id === customerId)
-    .map((point) => ({
-      id: point.id,
-      address: point.address,
-      contact_name: point.contact_name,
-      phone: point.phone,
-      delivery_day: point.delivery_day,
-      time_window: point.time_window,
-      is_active: point.is_active,
-    }));
-
   const content = (
     <div className="space-y-6">
       {detailQuery.error ? <Alert title="No se pudo cargar el cliente">{detailQuery.error.message}</Alert> : null}
@@ -356,14 +337,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                   >
                     <p className="text-sm font-medium text-foreground">Gestión comercial</p>
                     <p className="mt-1 text-xs text-muted-foreground">Asigna agente y supervisor comercial.</p>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsDeliveryPointsOpen(true)}
-                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
-                  >
-                    <p className="text-sm font-medium text-foreground">Puntos de entrega</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Direcciones operativas para reparto.</p>
                   </button>
                   <button
                     type="button"
@@ -490,13 +463,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                 }),
               });
             }}
-          />
-
-          <DeliveryPointsDialog
-            open={isDeliveryPointsOpen}
-            onClose={() => setIsDeliveryPointsOpen(false)}
-            deliveryPoints={deliveryPoints}
-            isLoading={deliveryPointsQuery.isLoading}
           />
 
           <BankAccountsDialog

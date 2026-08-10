@@ -12,6 +12,7 @@ class CoreUserRead(BaseModel):
     name: str
     email: str
     active: bool
+    category: str | None
     roles: list[str]
     warehouse_ids: list[str]
     created_at: datetime
@@ -23,6 +24,7 @@ class CoreUserCreateRequest(BaseModel):
     email: str
     password: str
     branch_id: str | None = None
+    category: str | None = None
     role_ids: list[str] = []
     warehouse_ids: list[str] = []
 
@@ -32,8 +34,14 @@ class CoreUserUpdateRequest(BaseModel):
     email: str | None = None
     password: str | None = None
     branch_id: str | None = None
+    category: str | None = None
     role_ids: list[str] | None = None
     warehouse_ids: list[str] | None = None
+
+
+class CoreUserCategoryRead(BaseModel):
+    value: str
+    label: str
 
 
 class CoreRoleRead(BaseModel):

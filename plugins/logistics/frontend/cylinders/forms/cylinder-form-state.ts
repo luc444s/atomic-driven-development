@@ -196,7 +196,7 @@ export const EMPTY_SCAN_FORM: ScanFormState = {
 };
 
 export const EMPTY_CYLINDER_CREATE_META: CylinderCreateMetaState = {
-  entry_mode: "EMPTY_FROM_CUSTOMER",
+  entry_mode: "EMPTY_FROM_WAREHOUSE",
   warehouse_id: "",
   customer_id: "",
   customer_name: "",

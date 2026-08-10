@@ -36,6 +36,16 @@ function normalize(value: string) {
     .trim();
 }
 
+function tokenMatch(haystack: string, query: string): boolean {
+  const tokens = query.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  const words = haystack.split(/\s+/);
+  return tokens.every((token) =>
+    words.some((word) => word.startsWith(token))
+  );
+}
+
 export function Combobox({
   value,
   onChange,
@@ -71,11 +81,12 @@ export function Combobox({
     if (!normalizedQuery) {
       return options;
     }
+    const query = normalize(normalizedQuery);
     return options.filter((option) => {
       const haystack = [option.label, ...(option.keywords ?? [])]
         .map(normalize)
         .join(" ");
-      return haystack.includes(normalizedQuery);
+      return tokenMatch(haystack, query);
     });
   }, [normalizedQuery, options]);
 

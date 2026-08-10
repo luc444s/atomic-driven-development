@@ -31,6 +31,7 @@ DB_SESSION = Depends(get_db_session)
 TENANT_CONTEXT = Depends(get_current_tenant_context)
 REQUIRE_SESSION_READ = Depends(require_permission("logistics.session.read"))
 REQUIRE_SESSION_MANAGE = Depends(require_permission("logistics.session.manage"))
+REQUIRE_SESSION_ROUTE_EXECUTE = Depends(require_permission("logistics.session.route_execute"))
 FromRecordedAt = Annotated[datetime | None, Query(alias="from")]
 ToRecordedAt = Annotated[datetime | None, Query(alias="to")]
 HistoryLimit = Annotated[int, Query(ge=1, le=1000)]
@@ -62,7 +63,7 @@ def post_vehicle_location(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> VehicleLocationEventRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -120,7 +121,7 @@ def post_route_stop_arrive(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteControlStateRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -145,7 +146,7 @@ def post_route_stop_depart(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteControlStateRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:

@@ -12,6 +12,8 @@ from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.schemas import (
+    CylinderBatchCreateRequest,
+    CylinderCreateFields,
     CylinderCreateRequest,
     CylinderFillRequest,
     CylinderLabelDataRead,
@@ -41,6 +43,7 @@ from plugins.logistics.backend.schemas import (
 )
 from plugins.logistics.backend.services.cylinders import (
     create_cylinder,
+    create_cylinders_batch,
     fill_cylinder,
     get_allowed_transitions,
     get_cylinder,
@@ -78,7 +81,10 @@ from plugins.logistics.backend.services.extras import (
     list_hydrotests,
     list_warranties,
 )
-from plugins.logistics.backend.services.resources import get_warehouse
+from plugins.logistics.backend.services.resources import (
+    get_principal_fixed_warehouse,
+    get_warehouse,
+)
 from plugins.logistics.backend.services.state_machine import StateTransitionError
 
 router = APIRouter(tags=["logistics-cylinders"])
@@ -118,14 +124,21 @@ def _raise_service_error(exc: Exception) -> Never:
     raise exc
 
 
-def _resolve_active_warehouse_id(tenant_context: TenantContext) -> str:
+def _resolve_active_warehouse_id(db: Session, tenant_context: TenantContext) -> str:
     warehouse_ids = tenant_context.current_warehouse_ids
-    if warehouse_ids is None or len(warehouse_ids) != 1:
+    if warehouse_ids is not None and len(warehouse_ids) == 1:
+        return warehouse_ids[0]
+    principal = get_principal_fixed_warehouse(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        branch_id=tenant_context.current_branch_id,
+    )
+    if principal is None:
         raise ValueError(
-            "No se pudo resolver un almacen activo unico para el usuario. "
-            "Ajusta el contexto operativo antes de crear el envase."
+            "No se pudo resolver un almacen principal para la operacion. "
+            "Configura un almacen FIXED activo en la sucursal."
         )
-    return warehouse_ids[0]
+    return principal.id
 
 
 def _resolve_entry_warehouse_id(
@@ -144,7 +157,11 @@ def _resolve_entry_warehouse_id(
         if warehouse is None:
             raise LookupError("Warehouse not found")
         return warehouse.id
-    return _resolve_active_warehouse_id(tenant_context)
+    return _resolve_active_warehouse_id(db, tenant_context)
+
+
+def _requires_creation_warehouse(payload: CylinderCreateFields) -> bool:
+    return payload.entry_mode is not None or payload.container_type == "CRYOGENIC_TANK"
 
 
 @router.get("/cylinders", response_model=list[CylinderRead])
@@ -628,7 +645,7 @@ def create_cylinder_endpoint(
     try:
         resolved_warehouse_id = (
             _resolve_entry_warehouse_id(db, tenant_context, payload.warehouse_id)
-            if payload.entry_mode is not None
+            if _requires_creation_warehouse(payload)
             else None
         )
         cylinder = create_cylinder(
@@ -646,6 +663,43 @@ def create_cylinder_endpoint(
         db.rollback()
         _raise_service_error(exc)
     return cylinder_to_read(db, cylinder)
+
+
+@router.post(
+    "/cylinders/batch",
+    response_model=list[CylinderRead],
+    status_code=status.HTTP_201_CREATED,
+)
+def create_cylinders_batch_endpoint(
+    payload: CylinderBatchCreateRequest,
+    request: Request,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_CYLINDER_CREATE,
+) -> list[CylinderRead]:
+    base_payload = CylinderCreateFields.model_validate(payload.model_dump(exclude={"serials"}))
+    try:
+        resolved_warehouse_id = (
+            _resolve_entry_warehouse_id(db, tenant_context, base_payload.warehouse_id)
+            if _requires_creation_warehouse(base_payload)
+            else None
+        )
+        cylinders = create_cylinders_batch(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            serials=payload.serials,
+            payload=base_payload,
+            warehouse_id=resolved_warehouse_id,
+            action_context=build_action_context(request, tenant_context),
+        )
+        db.commit()
+    except IntegrityError as exc:
+        db.rollback()
+        raise _conflict(exc) from exc
+    except Exception as exc:
+        db.rollback()
+        _raise_service_error(exc)
+    return [cylinder_to_read(db, cylinder) for cylinder in cylinders]
 
 
 @router.post(

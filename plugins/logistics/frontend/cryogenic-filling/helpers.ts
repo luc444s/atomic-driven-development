@@ -18,7 +18,7 @@ export type CryogenicTankSourceCard = {
   key: string;
   tankId: string;
   serial: string;
-  description: string | null;
+  description: string;
   warehouseId: string | null;
   warehouseCode: string | null;
   warehouseName: string | null;
@@ -44,6 +44,11 @@ export function buildCryogenicTankSourceCards(input: {
       .filter((item) => item.quantity > 0)
       .map((item) => [`${item.warehouse_id}:${item.product_id}`, item] as const),
   );
+  const balanceByProduct = new Map(
+    input.balances
+      .filter((item) => item.quantity > 0)
+      .map((item) => [item.product_id, item] as const),
+  );
 
   const cards: CryogenicTankSourceCard[] = [];
   for (const tank of input.tanks) {
@@ -55,12 +60,19 @@ export function buildCryogenicTankSourceCards(input: {
       warehouseId !== null
         ? balanceByKey.get(`${warehouseId}:${tank.product_id}`)
         : undefined;
+    const fallbackBalance = balanceByProduct.get(tank.product_id);
+
+    const effectiveBalance = balance ?? fallbackBalance;
+    const resolvedWarehouseId = warehouseId ?? effectiveBalance?.warehouse_id ?? null;
     const sourceProduct = input.productsById.get(tank.product_id);
+    const balanceKg = effectiveBalance?.quantity ?? 0;
+    const densityKgPerM3 = sourceProduct?.default_weight_kg ?? 1141;
+    const liters = densityKgPerM3 > 0 ? (balanceKg * 1000) / densityKgPerM3 : balanceKg;
 
     let eligibleEmptyCount = 0;
     const resultProductIds = new Set<string>();
     for (const cylinder of input.emptyResultCylinders) {
-      if (cylinder.warehouse_id === null || cylinder.warehouse_id !== warehouseId) {
+      if (resolvedWarehouseId !== null && cylinder.warehouse_id !== resolvedWarehouseId) {
         continue;
       }
       const recipe = input.recipeByResultProductId.get(cylinder.product_id ?? "");
@@ -75,14 +87,14 @@ export function buildCryogenicTankSourceCards(input: {
       key: tank.id,
       tankId: tank.id,
       serial: tank.serial,
-      description: tank.description,
-      warehouseId,
-      warehouseCode: balance?.warehouse_code ?? null,
-      warehouseName: balance?.warehouse_name ?? tank.warehouse_name ?? null,
+      description: tank.description ?? "",
+      warehouseId: resolvedWarehouseId,
+      warehouseCode: effectiveBalance?.warehouse_code ?? null,
+      warehouseName: effectiveBalance?.warehouse_name ?? tank.warehouse_name ?? null,
       sourceProductId: tank.product_id,
       sourceProductSku: sourceProduct?.sku ?? tank.product_id,
       sourceProductName: sourceProduct?.name ?? tank.product_id,
-      availableLiters: balance?.quantity ?? 0,
+      availableLiters: liters,
       nominalCapacityM3: tank.volume_m3,
       currentState: tank.current_state,
       eligibleEmptyCount,

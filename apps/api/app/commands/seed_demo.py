@@ -37,6 +37,15 @@ BASE_PERMISSIONS = [
     "core.branches.manage",
 ]
 
+DRIVER_ROLE_PERMISSIONS = [
+    "core.plugin.runtime.read",
+    "logistics.route.read",
+    "logistics.session.read",
+    "logistics.session.route_execute",
+    "logistics.vehicle.read",
+    "logistics.warehouse.read",
+]
+
 
 def _get_or_create_tenant(db: Session, settings: Settings) -> Tenant:
     stmt: Select[tuple[Tenant]] = select(Tenant).where(
@@ -84,6 +93,25 @@ def _get_or_create_role(db: Session, tenant: Tenant) -> Role:
         tenant_id=tenant.id,
         name="admin",
         description="Administrative role for demo tenant",
+    )
+    db.add(role)
+    db.flush()
+    return role
+
+
+def _get_or_create_driver_role(db: Session, tenant: Tenant) -> Role:
+    stmt: Select[tuple[Role]] = select(Role).where(
+        Role.tenant_id == tenant.id,
+        Role.name == "driver",
+    )
+    role = db.scalar(stmt)
+    if role is not None:
+        return role
+
+    role = Role(
+        tenant_id=tenant.id,
+        name="driver",
+        description="Conductor — operaciones de ruta y consulta de catalogo",
     )
     db.add(role)
     db.flush()
@@ -155,25 +183,30 @@ def seed_demo_data(
 ) -> dict[str, str]:
     tenant = _get_or_create_tenant(db, settings)
     branch = _get_or_create_branch(db, tenant, settings)
-    role = _get_or_create_role(db, tenant)
+    admin_role = _get_or_create_role(db, tenant)
+    driver_role = _get_or_create_driver_role(db, tenant)
 
     plugin_permissions = [
         plugin.manifest.permissions for plugin in plugins if plugin.manifest is not None
     ]
-    permission_names = sorted(set(BASE_PERMISSIONS).union(*plugin_permissions))
-    for permission_name in permission_names:
+    all_permission_names = sorted(set(BASE_PERMISSIONS).union(*plugin_permissions))
+    for permission_name in all_permission_names:
         permission = _get_or_create_permission(db, permission_name)
-        _ensure_role_permission(db, role.id, permission.id)
+        _ensure_role_permission(db, admin_role.id, permission.id)
+
+    for permission_name in DRIVER_ROLE_PERMISSIONS:
+        permission = _get_or_create_permission(db, permission_name)
+        _ensure_role_permission(db, driver_role.id, permission.id)
 
     user = _get_or_create_admin_user(db, tenant, branch, settings)
-    assign_role_to_user(db, user=user, role=role)
+    assign_role_to_user(db, user=user, role=admin_role)
     sync_plugin_registry(db, list(plugins))
     db.commit()
 
     return {
         "tenant_id": tenant.id,
         "branch_id": branch.id,
-        "role_id": role.id,
+        "role_id": admin_role.id,
         "user_id": user.id,
         "user_email": user.email,
     }

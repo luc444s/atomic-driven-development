@@ -70,7 +70,12 @@ def has_valid_adr(db: Session, cylinder: LogisticsCylinder) -> bool:
     if not product_id:
         return False
     adr = resolve_product_adr(db, product_id)
-    return bool(adr and adr.category and adr.un_number and adr.label)
+    return bool(
+        adr
+        and adr.category
+        and adr.un_number
+        and (adr.label or adr.cargo_description)
+    )
 
 
 def has_valid_hydrotest(cylinder: LogisticsCylinder) -> bool:

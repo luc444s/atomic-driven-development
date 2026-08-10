@@ -135,8 +135,6 @@ export function DetailMenuDialog({
             <CardContent>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {canUpdate ? <ActionCardButton title="Editar ficha" description="Actualiza los datos principales." onClick={openEditDialog} /> : null}
-                {canUpdate ? <ActionCardButton title="Registrar llenado" description="Descuenta stock y deja la carga técnica dentro del envase." onClick={() => openFillingDialog("fill")} /> : null}
-                {canUpdate ? <ActionCardButton title="Registrar vaciado" description="Deja el envase en cero sin devolver stock en este slice." onClick={() => openFillingDialog("vacate")} /> : null}
                 {canMaintenance ? <ActionCardButton title="Registrar PH" description="Nueva prueba hidrostática." onClick={() => setIsHydrotestOpen(true)} /> : null}
                 {canMaintenance ? <ActionCardButton title="Registrar garantía" description="Asocia una garantía comercial." onClick={() => setIsWarrantyOpen(true)} /> : null}
                 {canTransition ? <ActionCardButton title="Corrección de estado" description="Solo para regularización o corrección excepcional." onClick={() => setIsTransitionOpen(true)} /> : null}

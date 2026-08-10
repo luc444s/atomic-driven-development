@@ -302,6 +302,8 @@ class ProductAdrRead(BaseModel):
     id: str
     product_id: str
     source_product_id: str | None
+    source_product_id_2: str | None
+    source_product_id_3: str | None
     source_quantity_liters: float | None
     category: str | None
     packaging_type: str | None
@@ -323,6 +325,8 @@ class ProductAdrRead(BaseModel):
 
 class ProductAdrCreateRequest(BaseModel):
     source_product_id: str | None = None
+    source_product_id_2: str | None = None
+    source_product_id_3: str | None = None
     source_quantity_liters: float | None = None
     category: str | None = Field(default=None, max_length=50)
     packaging_type: str | None = Field(default=None, max_length=50)
@@ -341,6 +345,8 @@ class ProductAdrCreateRequest(BaseModel):
 
 class ProductAdrUpdateRequest(BaseModel):
     source_product_id: str | None = None
+    source_product_id_2: str | None = None
+    source_product_id_3: str | None = None
     source_quantity_liters: float | None = None
     category: str | None = Field(default=None, max_length=50)
     packaging_type: str | None = Field(default=None, max_length=50)
@@ -430,6 +436,7 @@ class ProductListItemRead(BaseModel):
     condition_name: str | None
     is_service: bool
     is_active: bool
+    default_weight_kg: float | None
     created_at: datetime
     updated_at: datetime
 

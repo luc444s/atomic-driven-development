@@ -1,11 +1,11 @@
 # ruff: noqa: E501
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from typing import NamedTuple
 from uuid import uuid4
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import and_, func, or_, select
 from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.common import (
@@ -21,6 +21,7 @@ from plugins.logistics.backend.models import (
     LogisticsWarehouse,
 )
 from plugins.logistics.backend.schemas import (
+    CylinderCreateFields,
     CylinderCreateRequest,
     CylinderSummaryItem,
     CylinderTransitionRequest,
@@ -109,6 +110,30 @@ class CryogenicFillRecipe(NamedTuple):
     result_net_weight_kg: float
 
 
+def _tokenize_search_conditions(search: str, model: type):
+    """Split search into tokens and combine with AND across searchable fields.
+
+    "AIRE COMPRIMIDO" → matches rows where each field OR-match contains both "AIRE" AND "COMPRIMIDO".
+    Empty tokens (from multiple spaces) are discarded.
+    """
+    tokens = [t for t in search.strip().split() if t]
+    if not tokens:
+        return None
+    conditions = []
+    for token in tokens:
+        pattern = f"%{token}%"
+        conditions.append(
+            or_(
+                model.serial.ilike(pattern),
+                model.description.ilike(pattern),
+                model.barcode1.ilike(pattern),
+                model.barcode2.ilike(pattern),
+                model.location.ilike(pattern),
+            )
+        )
+    return and_(*conditions)
+
+
 def list_cylinders(
     db: Session,
     *,
@@ -121,16 +146,9 @@ def list_cylinders(
 ) -> list[LogisticsCylinder]:
     stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
     if search:
-        normalized_search = f"%{search.strip()}%"
-        stmt = stmt.where(
-            or_(
-                LogisticsCylinder.serial.ilike(normalized_search),
-                LogisticsCylinder.description.ilike(normalized_search),
-                LogisticsCylinder.barcode1.ilike(normalized_search),
-                LogisticsCylinder.barcode2.ilike(normalized_search),
-                LogisticsCylinder.location.ilike(normalized_search),
-            )
-        )
+        search_condition = _tokenize_search_conditions(search, LogisticsCylinder)
+        if search_condition is not None:
+            stmt = stmt.where(search_condition)
     if state:
         stmt = stmt.where(LogisticsCylinder.current_state == state)
     if active is not None:
@@ -157,16 +175,9 @@ def list_cylinders_page(
 ) -> tuple[list[LogisticsCylinder], int]:
     stmt = select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
     if search:
-        normalized_search = f"%{search.strip()}%"
-        stmt = stmt.where(
-            or_(
-                LogisticsCylinder.serial.ilike(normalized_search),
-                LogisticsCylinder.description.ilike(normalized_search),
-                LogisticsCylinder.barcode1.ilike(normalized_search),
-                LogisticsCylinder.barcode2.ilike(normalized_search),
-                LogisticsCylinder.location.ilike(normalized_search),
-            )
-        )
+        search_condition = _tokenize_search_conditions(search, LogisticsCylinder)
+        if search_condition is not None:
+            stmt = stmt.where(search_condition)
     if state:
         stmt = stmt.where(LogisticsCylinder.current_state == state)
     if active is not None:
@@ -384,6 +395,21 @@ def create_cylinder(
             document_reference=document_reference,
             action_context=action_context,
         )
+        record_cylinder_event(
+            db,
+            cylinder_id=cylinder.id,
+            tenant_id=tenant_id,
+            event_type="WAREHOUSE_IN",
+            location_type="WAREHOUSE",
+            location_id=warehouse_id,
+            warehouse_id=warehouse_id,
+            session_id=None,
+            customer_id=payload.customer_id,
+            source_type="CYLINDER_CREATE",
+            source_id=None,
+            occurred_at=datetime.now(UTC),
+            action_context=action_context,
+        )
 
     if (
         cylinder.container_type == "CRYOGENIC_TANK"
@@ -422,6 +448,31 @@ def create_cylinder(
         },
     )
     return cylinder
+
+
+def create_cylinders_batch(
+    db: Session,
+    *,
+    tenant_id: str,
+    serials: list[str],
+    payload: CylinderCreateFields,
+    warehouse_id: str | None,
+    action_context: LogisticsActionContext,
+) -> list[LogisticsCylinder]:
+    created: list[LogisticsCylinder] = []
+    for serial in serials:
+        item_payload = CylinderCreateRequest.model_validate(
+            {**payload.model_dump(), "serial": serial}
+        )
+        cylinder = create_cylinder(
+            db,
+            tenant_id=tenant_id,
+            payload=item_payload,
+            warehouse_id=warehouse_id,
+            action_context=action_context,
+        )
+        created.append(cylinder)
+    return created
 
 
 def update_cylinder(

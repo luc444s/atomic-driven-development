@@ -72,6 +72,10 @@ def clean(value: str | None) -> str:
     return value.replace("\x00", "").strip()
 
 
+def normalize_legacy_product_text(value: str) -> str:
+    return value.replace("Industriall", "Industrial")
+
+
 def num(value: str | None) -> float | None:
     v = clean(value)
     if not v or v == ".0000":
@@ -359,10 +363,12 @@ class Importer:
             if existing:
                 self.map_product[legacy_id] = existing.id
                 continue
-            sku = clean(row["Nro_Producto"]) or str(legacy_id)
+            sku = normalize_legacy_product_text(clean(row["Nro_Producto"]) or str(legacy_id))
             if len(sku) > 30:
                 sku = sku[:30]
-            name = clean(row["Desc_Producto"]) or f"PRODUCTO {legacy_id}"
+            name = normalize_legacy_product_text(
+                clean(row["Desc_Producto"]) or f"PRODUCTO {legacy_id}"
+            )
             if len(name) > 200:
                 name = name[:200]
             line_ref = clean(row["Cod_Linea"])

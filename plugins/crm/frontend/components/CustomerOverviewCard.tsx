@@ -95,7 +95,6 @@ export function CustomerOverviewCard({ customer }: CustomerOverviewCardProps) {
               <p className="mb-3 text-xs font-semibold text-muted-foreground">Envases en posesión</p>
               <div className="grid gap-x-6 gap-y-3 sm:grid-cols-2">
                 <MetricBox label="Contrato" value={summaryQuery.data.summary.contracted} />
-                <MetricBox label="Asignados" value={summaryQuery.data.summary.assigned} />
                 <MetricBox label="En cliente" value={summaryQuery.data.summary.at_customer} />
                 <MetricBox
                   label="Desviación"

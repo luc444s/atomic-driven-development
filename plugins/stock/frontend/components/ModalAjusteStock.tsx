@@ -89,9 +89,6 @@ export function ModalAjusteStock({
     },
   });
 
-  const numericQuantity = Number(quantity);
-  const requiresUnitCost = Number.isFinite(numericQuantity) && numericQuantity > 0;
-
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
@@ -146,11 +143,6 @@ export function ModalAjusteStock({
             onChange={(event) => setQuantity(event.target.value)}
             placeholder="10 o -2"
           />
-          {requiresUnitCost ? (
-            <span className="text-xs text-muted-foreground">
-              Para ingresos, el costo unitario se tomará del costo activo del producto en Productos.
-            </span>
-          ) : null}
         </label>
       </div>
       <div className="grid gap-4 md:grid-cols-1">
@@ -186,7 +178,7 @@ export function ModalAjusteStock({
     <Dialog
       open={open}
       title="Ajustar stock"
-      description="Registra ajustes manuales positivos o negativos sobre el ledger."
+      description="Registra ajustes manuales positivos o negativos sobre el inventario."
       onClose={onClose}
       maxWidthClassName="max-w-4xl"
     >

@@ -18,6 +18,7 @@ class UserProfile(BaseModel):
     full_name: str
     is_active: bool
     is_superadmin: bool
+    category: str | None
     permissions: list[str]
     warehouse_ids: list[str]
 

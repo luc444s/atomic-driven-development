@@ -424,13 +424,24 @@ def test_adjust_zero_quantity_rejected(app) -> None:
         assert "diferente de cero" in response.text
 
 
-def test_positive_adjust_uses_active_product_cost_when_unit_cost_missing(app) -> None:
+def test_positive_adjust_without_unit_cost_uses_current_average_cost(app) -> None:
     _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         warehouse = create_warehouse(client, headers, code="WH-AC", name="Almacen Auto Cost")
         product = create_product(client, headers)
-        create_active_base_cost(client, headers, product_id=product["id"], amount=7.5)
+        seed = client.post(
+            "/api/v1/plugins/stock/adjust",
+            headers=headers,
+            json={
+                "product_id": product["id"],
+                "warehouse_id": warehouse["id"],
+                "quantity": 2,
+                "unit_cost": 7.5,
+                "reason": "Ingreso inicial valorizado",
+            },
+        )
+        assert seed.status_code == 201, seed.text
 
         response = client.post(
             "/api/v1/plugins/stock/adjust",
@@ -439,17 +450,17 @@ def test_positive_adjust_uses_active_product_cost_when_unit_cost_missing(app) ->
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 3,
-                "reason": "Ingreso con costo activo",
+                "reason": "Ingreso por reconciliacion",
             },
         )
         assert response.status_code == 201, response.text
         payload = response.json()
-        assert payload["quantity"] == 3
+        assert payload["quantity"] == 5
         assert payload["unit_cost"] == 7.5
-        assert payload["total_cost"] == 22.5
+        assert payload["total_cost"] == 37.5
 
 
-def test_positive_adjust_without_active_product_cost_is_rejected(app) -> None:
+def test_positive_adjust_without_unit_cost_and_zero_balance_uses_zero_legacy_cost(app) -> None:
     _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
@@ -463,11 +474,14 @@ def test_positive_adjust_without_active_product_cost_is_rejected(app) -> None:
                 "product_id": product["id"],
                 "warehouse_id": warehouse["id"],
                 "quantity": 3,
-                "reason": "Ingreso sin costo activo",
+                "reason": "Ingreso sin costo explicito",
             },
         )
-        assert response.status_code == 400, response.text
-        assert response.json()["detail"] == "El producto no tiene costo unitario activo. No puedes continuar."
+        assert response.status_code == 201, response.text
+        payload = response.json()
+        assert payload["quantity"] == 3
+        assert payload["unit_cost"] == 0
+        assert payload["total_cost"] == 0
 
 
 def test_adjust_insufficient_stock_rejected(app) -> None:
@@ -1113,7 +1127,7 @@ def test_global_ledger(app) -> None:
 
 
 def test_allocate_and_consume_via_sale_out(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-ALLOC1", name="Alloc 1")
@@ -1213,7 +1227,7 @@ def test_allocate_and_consume_via_sale_out(app) -> None:
 
 
 def test_release_allocation(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-REL", name="Release")
@@ -1258,7 +1272,7 @@ def test_release_allocation(app) -> None:
 
 
 def test_group_allocation_release(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-GRP", name="Group")
@@ -1310,7 +1324,7 @@ def test_group_allocation_release(app) -> None:
 
 
 def test_sale_out_direct_skip_allocation(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-DIR", name="Direct")
@@ -1347,7 +1361,7 @@ def test_sale_out_direct_skip_allocation(app) -> None:
 
 
 def test_purchase_in_with_cost_tracking(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-COST", name="Cost")
@@ -1403,7 +1417,7 @@ def test_purchase_in_with_cost_tracking(app) -> None:
 
 
 def test_return_in_uses_historical_cost(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-RET", name="Return")
@@ -1461,7 +1475,7 @@ def test_return_in_uses_historical_cost(app) -> None:
 
 
 def test_damage_out_and_negative_stock_warning(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-DMG", name="Damage")
@@ -1544,7 +1558,7 @@ def test_adjust_positive_requires_active_product_cost(app) -> None:
 
 
 def test_available_quantity_in_balance_read(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-AVAIL", name="Avail")
@@ -1580,7 +1594,7 @@ def test_available_quantity_in_balance_read(app) -> None:
 
 
 def test_config_allow_negative_stock(app) -> None:
-    seeded = _setup_stock_env(app)
+    _setup_stock_env(app)
     with TestClient(app) as client:
         headers = auth_headers(client)
         wh = create_warehouse(client, headers, code="WH-NEG", name="NegStock")

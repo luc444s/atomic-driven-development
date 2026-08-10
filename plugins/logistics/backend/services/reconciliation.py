@@ -21,8 +21,6 @@ from plugins.logistics.backend.models import (
     LogisticsSessionReconciliation,
     LogisticsVehicleSession,
 )
-from plugins.logistics.backend.schemas import CylinderTransitionRequest
-from plugins.logistics.backend.services.cylinders import transition_cylinder
 from plugins.logistics.backend.services.rules import (
     ensure_session_can_close,
     has_open_discrepancies,
@@ -87,6 +85,34 @@ def _product_name(db: Session, *, product_id: str) -> str:
 _VEHICLE_PHYSICAL_STATES = ("CARGA_EN_VEHICULO", "EN_RUTA")
 
 
+def _merge_expected_lines_with_physical_counts(
+    *,
+    expected_lines: list[ReconciliationLineRead],
+    physical_counts: dict[str, float],
+    product_name_resolver,
+) -> list[ReconciliationLineRead]:
+    merged = [
+        ReconciliationLineRead(
+            product_id=line.product_id,
+            product_name=line.product_name,
+            expected_quantity=float(line.expected_quantity),
+        )
+        for line in expected_lines
+    ]
+    existing_pids = {line.product_id for line in merged}
+    for pid, qty in sorted(physical_counts.items()):
+        if qty <= 0 or pid in existing_pids:
+            continue
+        merged.append(
+            ReconciliationLineRead(
+                product_id=pid,
+                product_name=product_name_resolver(pid),
+                expected_quantity=qty,
+            )
+        )
+    return merged
+
+
 def _count_physical_vehicle_cylinders(
     db: Session, *, session_id: str
 ) -> dict[str, float]:
@@ -120,6 +146,7 @@ def get_reconciliation_view(
     db: Session, *, session: LogisticsVehicleSession
 ) -> SessionReconciliationRead:
     latest_transfer_in = _get_latest_transfer_in_operation(db, session_id=session.id)
+    physical_counts = _count_physical_vehicle_cylinders(db, session_id=session.id)
     if latest_transfer_in is not None:
         expected_lines = [
             ReconciliationLineRead(
@@ -129,6 +156,14 @@ def get_reconciliation_view(
             )
             for item in _list_transfer_in_items(db, operation_id=latest_transfer_in.id)
         ]
+        # Complementar con conteo físico de cilindros en el vehículo.
+        # El transfer_in puede no incluir cilindros recogidos en ruta.
+        if physical_counts:
+            expected_lines = _merge_expected_lines_with_physical_counts(
+                expected_lines=expected_lines,
+                physical_counts=physical_counts,
+                product_name_resolver=lambda pid: _product_name(db, product_id=pid),
+            )
     else:
         balances = get_warehouse_balances(
             db,
@@ -312,37 +347,14 @@ def close_vehicle_session(
         release_reason="SESSION_CLOSED",
     )
 
+    from plugins.logistics.backend.services.load_plans import (
+        _return_session_cylinders_to_warehouse,
+    )
     from plugins.logistics.backend.services.planning_reservations import (
         sync_reservation_from_session,
     )
 
     sync_reservation_from_session(db, session=session)
-
-    # Transicionar cilindros restantes en el vehículo a EN_ALMACEN_VACIO.
-    # Durante AWAITING_RECONCILIATION los cilindros siguen en el vehículo para
-    # que la conciliación los cuente. Al cerrar se devuelven al almacén.
-    cylinders_to_return = list(db.scalars(
-        select(LogisticsCylinder).where(
-            LogisticsCylinder.tenant_id == session.tenant_id,
-            LogisticsCylinder.session_id == session.id,
-            LogisticsCylinder.current_state.in_(
-                ("CARGA_EN_VEHICULO", "EN_RUTA",
-                 "EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO")
-            ),
-        )
-    ).all())
-    for cylinder in cylinders_to_return:
-        transition_cylinder(
-            db, tenant_id=session.tenant_id,
-            cylinder_id=cylinder.id,
-            payload=CylinderTransitionRequest(
-                to_state="EN_ALMACEN_VACIO",
-                session_id=session.id,
-                origin="SESSION_CLOSE",
-                notes=f"Cierre sesión {session.id}",
-            ),
-            action_context=action_context,
-        )
 
     transit_remaining = db.scalar(
         select(func.count(LogisticsCylinder.id)).where(
@@ -353,6 +365,24 @@ def close_vehicle_session(
             ),
         )
     )
+    latest_transfer_in = _get_latest_transfer_in_operation(db, session_id=session.id)
+    if transit_remaining and transit_remaining > 0 and latest_transfer_in is not None:
+        _return_session_cylinders_to_warehouse(
+            db,
+            session=session,
+            warehouse_id=session.origin_warehouse_id,
+            notes=notes,
+            action_context=action_context,
+        )
+        transit_remaining = db.scalar(
+            select(func.count(LogisticsCylinder.id)).where(
+                LogisticsCylinder.tenant_id == session.tenant_id,
+                LogisticsCylinder.session_id == session.id,
+                LogisticsCylinder.current_state.in_(
+                    ("CARGA_EN_VEHICULO", "EN_RUTA")
+                ),
+            )
+        )
     if transit_remaining and transit_remaining > 0:
         raise ValueError(
             f"No se puede cerrar la sesión: {transit_remaining} cilindros "

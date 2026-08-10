@@ -9,7 +9,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "RUC",
         "name": "RUC",
-        "country_code": "PER",
+        "country_code": "PE",
         "description": "Registro Unico de Contribuyentes",
         "is_person": False,
         "is_company": True,
@@ -18,7 +18,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "DNI",
         "name": "DNI",
-        "country_code": "PER",
+        "country_code": "PE",
         "description": "Documento Nacional de Identidad",
         "is_person": True,
         "is_company": False,
@@ -27,7 +27,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "CEDULA_FISICA",
         "name": "Cedula Fisica",
-        "country_code": "CRI",
+        "country_code": "CR",
         "description": "Cedula fisica de Costa Rica",
         "is_person": True,
         "is_company": False,
@@ -36,7 +36,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "CEDULA_JURIDICA",
         "name": "Cedula Juridica",
-        "country_code": "CRI",
+        "country_code": "CR",
         "description": "Cedula juridica de Costa Rica",
         "is_person": False,
         "is_company": True,
@@ -45,7 +45,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "NIF",
         "name": "NIF",
-        "country_code": "ESP",
+        "country_code": "ES",
         "description": "Numero de Identificacion Fiscal",
         "is_person": False,
         "is_company": True,
@@ -54,7 +54,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "NIE",
         "name": "NIE",
-        "country_code": "ESP",
+        "country_code": "ES",
         "description": "Numero de Identidad de Extranjero",
         "is_person": True,
         "is_company": False,
@@ -63,7 +63,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "DIMEX",
         "name": "DIMEX",
-        "country_code": "CRI",
+        "country_code": "CR",
         "description": "Documento de Identidad Migratorio para Extranjeros",
         "is_person": True,
         "is_company": False,
@@ -72,7 +72,7 @@ DOCUMENT_TYPE_SEEDS: tuple[dict[str, object], ...] = (
     {
         "code": "NITE",
         "name": "NITE",
-        "country_code": "CRI",
+        "country_code": "CR",
         "description": "Numero de Identificacion Tributaria Especial",
         "is_person": False,
         "is_company": True,

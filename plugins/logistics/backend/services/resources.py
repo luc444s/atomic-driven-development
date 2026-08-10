@@ -45,6 +45,26 @@ def get_warehouse(db: Session, *, tenant_id: str, warehouse_id: str) -> Logistic
     )
 
 
+def get_principal_fixed_warehouse(
+    db: Session,
+    *,
+    tenant_id: str,
+    branch_id: str | None,
+) -> LogisticsWarehouse | None:
+    stmt = (
+        select(LogisticsWarehouse)
+        .where(
+            LogisticsWarehouse.tenant_id == tenant_id,
+            LogisticsWarehouse.warehouse_type != "MOBILE",
+            LogisticsWarehouse.is_active.is_(True),
+        )
+        .order_by(LogisticsWarehouse.code.asc(), LogisticsWarehouse.name)
+    )
+    if branch_id is not None:
+        stmt = stmt.where(LogisticsWarehouse.branch_id == branch_id)
+    return db.scalar(stmt)
+
+
 def create_warehouse(
     db: Session,
     *,

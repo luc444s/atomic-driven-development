@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 
 from apps.api.app.core.config import get_settings
 from apps.api.app.core.database import build_session_factory
@@ -11,7 +10,6 @@ from apps.api.app.kernel.plugins.persistent import build_persistent_plugin_runti
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
 from apps.api.app.kernel.tasks.broker import configure_dramatiq_broker
 from apps.api.app.kernel.tasks.dispatcher import build_task_dispatcher
-from packages.contracts.events import EventContract
 from packages.sdk import PluginContext
 
 settings = get_settings()
@@ -51,31 +49,7 @@ def build_runtime_event_bus() -> EventBus:
     for plugin_id, handlers in runtime.collect_event_handlers().items():
         event_bus.register_handlers(handlers, source=plugin_id)
 
-    _register_cross_plugin_integrations(event_bus, session_factory)
     return event_bus
-
-
-def _register_cross_plugin_integrations(
-    event_bus: EventBus, session_factory: Any
-) -> None:
-    """Integraciones entre plugins (el kernel orquesta; la lógica vive en el plugin)."""
-
-    def _handle_product_created(event: EventContract) -> None:
-        # Todo producto nuevo materializa su contador de stock en 0
-        # en todos los almacenes (regla de negocio del módulo stock).
-        product_id = event.payload.get("product_id")
-        tenant_id = event.tenant_id
-        if not isinstance(product_id, str) or not isinstance(tenant_id, str):
-            return
-        from plugins.stock.backend.services.balances import ensure_balances_for_product
-
-        with session_factory() as db:
-            ensure_balances_for_product(db, tenant_id=tenant_id, product_id=product_id)
-            db.commit()
-
-    event_bus.register_listener(
-        "productos.product.created", _handle_product_created, source="kernel:integration"
-    )
 
 
 def _dispatch_pending_events_impl() -> dict[str, int]:

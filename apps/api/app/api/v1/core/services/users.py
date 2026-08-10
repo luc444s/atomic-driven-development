@@ -13,11 +13,16 @@ from apps.api.app.kernel.auth.service import (
 )
 from apps.api.app.kernel.permissions.service import (
     list_roles_by_ids_for_tenant,
+    list_roles_by_names_for_tenant,
     list_user_role_names,
     replace_user_roles,
 )
 from apps.api.app.kernel.tenants.models import Branch
 from apps.api.app.kernel.tenants.service import list_user_warehouse_ids, replace_user_warehouse_ids
+
+USER_CATEGORY_MAP: dict[str, list[str]] = {
+    "driver": ["driver"],
+}
 
 
 def serialize_core_user(db: Session, user: User) -> dict[str, object]:
@@ -28,6 +33,7 @@ def serialize_core_user(db: Session, user: User) -> dict[str, object]:
         "name": user.full_name,
         "email": user.email,
         "active": user.is_active,
+        "category": user.category,
         "roles": list_user_role_names(db, tenant_id=user.tenant_id, user_id=user.id),
         "warehouse_ids": list_user_warehouse_ids(db, tenant_id=user.tenant_id, user_id=user.id),
         "created_at": user.created_at,
@@ -55,12 +61,23 @@ def create_core_user(
     email: str,
     password: str,
     branch: Branch | None,
+    category: str | None,
     role_ids: list[str],
     warehouse_ids: list[str],
     action_context: CoreActionContext,
 ) -> dict[str, object]:
-    roles = list_roles_by_ids_for_tenant(db, tenant_id=tenant_id, role_ids=role_ids)
-    if len(roles) != len(set(role_ids)):
+    resolved_role_ids = list(role_ids)
+    if category and category in USER_CATEGORY_MAP:
+        category_role_names = USER_CATEGORY_MAP[category]
+        category_roles = list_roles_by_names_for_tenant(
+            db, tenant_id=tenant_id, role_names=category_role_names
+        )
+        for cr in category_roles:
+            if cr.id not in resolved_role_ids:
+                resolved_role_ids.append(cr.id)
+
+    roles = list_roles_by_ids_for_tenant(db, tenant_id=tenant_id, role_ids=resolved_role_ids)
+    if len(roles) != len(set(resolved_role_ids)):
         raise ValueError("Invalid role for tenant")
     if any(not role.is_active for role in roles):
         raise ValueError("Disabled roles cannot be assigned")
@@ -74,6 +91,10 @@ def create_core_user(
         branch=branch,
         is_active=True,
     )
+    if category:
+        user.category = category
+        db.add(user)
+        db.flush()
     replace_user_roles(db, user=user, roles=roles)
     replace_user_warehouse_ids(db, user=user, warehouse_ids=warehouse_ids)
     audit_core_action(
@@ -109,6 +130,7 @@ def update_core_user(
     password: str | None,
     branch: Branch | None,
     branch_was_provided: bool,
+    category: str | None,
     role_ids: list[str] | None,
     warehouse_ids: list[str] | None,
     action_context: CoreActionContext,
@@ -135,6 +157,10 @@ def update_core_user(
     )
     if email is not None:
         user.email = email
+        db.add(user)
+        db.flush()
+    if category is not None:
+        user.category = category if category else None
         db.add(user)
         db.flush()
     if roles is not None:

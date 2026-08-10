@@ -111,8 +111,7 @@ class CylinderRead(BaseModel):
     updated_at: datetime
 
 
-class CylinderCreateRequest(BaseModel):
-    serial: str = Field(min_length=1, max_length=50)
+class CylinderCreateFields(BaseModel):
     container_type: str = Field(default="CYLINDER", max_length=20)
     branch_id: str | None = None
     warehouse_id: str | None = None
@@ -176,6 +175,29 @@ class CylinderCreateRequest(BaseModel):
             return None
         normalized = value.strip().upper()
         return normalized or None
+
+
+class CylinderCreateRequest(CylinderCreateFields):
+    serial: str = Field(min_length=1, max_length=50)
+
+
+class CylinderBatchCreateRequest(CylinderCreateFields):
+    serials: list[str] = Field(min_length=1, max_length=10000)
+
+    @field_validator("serials")
+    @classmethod
+    def normalize_serials(cls, value: list[str]) -> list[str]:
+        normalized: list[str] = []
+        seen: set[str] = set()
+        for serial in value:
+            item = serial.strip().upper()
+            if not item:
+                raise ValueError("serial vacio en lista")
+            if item in seen:
+                raise ValueError(f"serial duplicado: {item}")
+            seen.add(item)
+            normalized.append(item)
+        return normalized
 
 
 def normalize_container_type(value: str) -> str:

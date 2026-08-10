@@ -15,10 +15,11 @@ from plugins.logistics.backend.models import (
     LogisticsOperation,
     LogisticsVehicleSession,
 )
-from plugins.logistics.backend.schemas import CylinderTransitionRequest
-from plugins.logistics.backend.services.cylinders import (
-    get_cylinder_current_location,
-    transition_cylinder,
+from plugins.logistics.backend.models.cylinder import LogisticsCylinderStateLog
+from plugins.logistics.backend.services.cylinders import get_cylinder_current_location
+from plugins.logistics.backend.services.envase import (
+    get_latest_ownership,
+    register_ownership_change,
 )
 from plugins.logistics.backend.services.load_serials import (
     confirm_selected_serials_for_operation,
@@ -31,6 +32,13 @@ from plugins.logistics.backend.services.rules import (
     ensure_session_editable,
 )
 from plugins.productos.backend.models import Product, ProductAdr
+
+_RETURNABLE_SESSION_STATES = (
+    "CARGA_EN_VEHICULO",
+    "EN_RUTA",
+    "EN_CLIENTE_LLENO",
+    "EN_CLIENTE_VACIO",
+)
 
 
 def _require_product(db: Session, *, product_id: str) -> Product:
@@ -68,6 +76,43 @@ def _ensure_positive_quantity_for_origin_line(
     )
 
 
+def _raise_stock_error_for_load_line(
+    *, product_name: str, available_quantity: float, planned_quantity: float
+) -> None:
+    if available_quantity <= 0:
+        raise ValueError(f"El producto {product_name} no tiene stock")
+    if available_quantity < planned_quantity:
+        raise ValueError(
+            f"El producto {product_name} no tiene stock suficiente "
+            f"(disponible={available_quantity}, solicitado={planned_quantity})"
+        )
+
+
+def _ensure_available_stock_for_load_line(
+    db: Session,
+    *,
+    tenant_id: str,
+    product_id: str,
+    product_name: str,
+    planned_quantity: float,
+    source_warehouse_id: str | None,
+) -> None:
+    if source_warehouse_id is None:
+        return
+    balances = get_warehouse_balances(
+        db,
+        tenant_id=tenant_id,
+        warehouse_id=source_warehouse_id,
+    )
+    balance = next((item for item in balances.items if item.product_id == product_id), None)
+    available_quantity = float(balance.available_quantity or 0) if balance is not None else 0.0
+    _raise_stock_error_for_load_line(
+        product_name=product_name,
+        available_quantity=available_quantity,
+        planned_quantity=planned_quantity,
+    )
+
+
 def _resolve_product_filled_weight_kg(db: Session, *, product: Product) -> float:
     # Si el producto tiene receta ADR activa con net_weight_kg, el peso real
     # lleno es la tara del envase + el peso del gas. Sin receta, usa la tara sola.
@@ -85,8 +130,100 @@ def _resolve_product_filled_weight_kg(db: Session, *, product: Product) -> float
     )
     tara = float(product.weight_kg or 0)
     if active_adr is not None:
-        return tara + float(active_adr.net_weight_kg)
+        return tara + float(active_adr.net_weight_kg or 0)
     return tara
+
+
+def _resolve_returned_warehouse_state(*, current_state: str, has_positive_load: bool) -> str:
+    if current_state == "EN_CLIENTE_LLENO":
+        return "LLENADO_OK"
+    if current_state == "EN_CLIENTE_VACIO":
+        return "EN_ALMACEN_VACIO"
+    return "LLENADO_OK" if has_positive_load else "EN_ALMACEN_VACIO"
+
+
+def _has_positive_cylinder_load(cylinder: LogisticsCylinder) -> bool:
+    return any(
+        value is not None and float(value) > 0
+        for value in (cylinder.content_kg, cylinder.volume_m3)
+    )
+
+
+def _return_session_cylinders_to_warehouse(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    warehouse_id: str,
+    notes: str | None,
+    action_context: LogisticsActionContext,
+) -> None:
+    from datetime import UTC, datetime
+
+    from plugins.logistics.backend.services.cylinders import record_cylinder_event
+
+    cylinders = list(
+        db.scalars(
+            select(LogisticsCylinder).where(
+                LogisticsCylinder.tenant_id == session.tenant_id,
+                LogisticsCylinder.session_id == session.id,
+                LogisticsCylinder.current_state.in_(_RETURNABLE_SESSION_STATES),
+            )
+        ).all()
+    )
+    if not cylinders:
+        return
+
+    for cylinder in cylinders:
+        previous_state = cylinder.current_state
+        target_state = _resolve_returned_warehouse_state(
+            current_state=previous_state,
+            has_positive_load=_has_positive_cylinder_load(cylinder),
+        )
+        cylinder.current_state = target_state
+        db.add(cylinder)
+        db.flush()
+
+        db.add(
+            LogisticsCylinderStateLog(
+                tenant_id=session.tenant_id,
+                cylinder_id=cylinder.id,
+                from_state=previous_state,
+                to_state=target_state,
+                changed_by=action_context.actor_user_id,
+                origin="SESSION_RETURN",
+                notes=notes or f"Retorno sesión {session.id}",
+                metadata_json={
+                    "warehouse_id": warehouse_id,
+                    "session_id": session.id,
+                },
+            )
+        )
+        latest_ownership = get_latest_ownership(db, cylinder_id=cylinder.id)
+        if latest_ownership is not None and latest_ownership.customer_id is not None:
+            register_ownership_change(
+                db,
+                cylinder=cylinder,
+                movement_id=None,
+                customer_id=None,
+                customer_name="ALMACEN",
+                notes=notes,
+                action_context=action_context,
+            )
+        record_cylinder_event(
+            db,
+            cylinder_id=cylinder.id,
+            tenant_id=session.tenant_id,
+            event_type="WAREHOUSE_IN",
+            location_type="WAREHOUSE",
+            location_id=warehouse_id,
+            warehouse_id=warehouse_id,
+            session_id=session.id,
+            customer_id=None,
+            source_type="SESSION_RETURN",
+            source_id=session.id,
+            occurred_at=datetime.now(UTC),
+            action_context=action_context,
+        )
 
 
 def list_load_plan_items(db: Session, *, load_plan_id: str) -> list[LogisticsLoadPlanItem]:
@@ -206,6 +343,14 @@ def confirm_load_plan(
             planned_quantity=float(item.planned_quantity or 0),
             source_warehouse_id=item.source_warehouse_id,
         )
+        _ensure_available_stock_for_load_line(
+            db,
+            tenant_id=session.tenant_id,
+            product_id=item.product_id,
+            product_name=item.product_name,
+            planned_quantity=float(item.planned_quantity or 0),
+            source_warehouse_id=item.source_warehouse_id,
+        )
     ensure_required_serials_for_load_plan(db, session=session, load_plan_items=items)
     total_weight = sum(float(item.planned_weight_kg or 0) for item in items)
     from plugins.logistics.backend.models import LogisticsVehicle  # local import to avoid cycle
@@ -277,6 +422,13 @@ def return_remaining_stock(
         session=session,
         destination_warehouse_id=target,
         balances=balances,
+        notes=notes,
+        action_context=action_context,
+    )
+    _return_session_cylinders_to_warehouse(
+        db,
+        session=session,
+        warehouse_id=target,
         notes=notes,
         action_context=action_context,
     )

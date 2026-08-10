@@ -10,6 +10,7 @@ export type CoreUser = {
   name: string;
   email: string;
   active: boolean;
+  category: string | null;
   roles: string[];
   created_at: string;
   updated_at: string;
@@ -47,6 +48,7 @@ export type CreateCoreUserPayload = {
   email: string;
   password: string;
   branch_id: string | null;
+  category: string | null;
   role_ids: string[];
 };
 
@@ -55,7 +57,13 @@ export type UpdateCoreUserPayload = {
   email?: string;
   password?: string;
   branch_id?: string | null;
+  category?: string | null;
   role_ids?: string[];
+};
+
+export type CoreUserCategory = {
+  value: string;
+  label: string;
 };
 
 export type CreateCoreRolePayload = {
@@ -106,6 +114,10 @@ export async function invalidatePluginRuntimeCaches(queryClient: QueryClient) {
 
 export function listCoreUsers() {
   return apiRequest<CoreUser[]>("/api/v1/core/users");
+}
+
+export function listCoreUserCategories() {
+  return apiRequest<CoreUserCategory[]>("/api/v1/core/users/categories");
 }
 
 export function createCoreUser(payload: CreateCoreUserPayload) {

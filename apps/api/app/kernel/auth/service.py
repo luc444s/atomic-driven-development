@@ -122,6 +122,7 @@ def build_user_profile(db: Session, user: User) -> dict[str, object]:
         "full_name": user.full_name,
         "is_active": user.is_active,
         "is_superadmin": user.is_superadmin,
+        "category": user.category,
         "permissions": list_user_permissions(db, user_id=user.id, tenant_id=user.tenant_id),
         "warehouse_ids": list_user_warehouse_ids(db, tenant_id=user.tenant_id, user_id=user.id),
     }

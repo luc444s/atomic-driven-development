@@ -179,7 +179,7 @@ def create_customer(
             "legal_name": name,
             "document_type_code": "RUC",
             "document_number": document_number,
-            "country_code": "PER",
+            "country_code": "PE",
             "billing_type": "por_operacion",
             "is_exempt": False,
         },

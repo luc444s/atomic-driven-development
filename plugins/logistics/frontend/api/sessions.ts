@@ -58,6 +58,14 @@ export type VehicleSessionDetail = VehicleSession & {
   history: SessionHistoryEntry[];
 };
 
+export type VehicleSessionPage = {
+  items: VehicleSession[];
+  total: number;
+  page: number;
+  per_page: number;
+  total_pages: number;
+};
+
 export type SessionWaybillVehicle = {
   id: string;
   plate: string;
@@ -149,8 +157,12 @@ export const VEHICLE_SESSION_STATUS_LABELS: Record<string, string> = {
   CANCELLED: "Cancelada",
 };
 
-export function listVehicleSessions(filters: { status?: string } = {}) {
-  return apiRequest<VehicleSession[]>(withQuery(`${API_PREFIX}/vehicle-sessions`, { status: filters.status }));
+export function listVehicleSessions(filters: { status?: string; page?: number; per_page?: number } = {}) {
+  const params: Record<string, string> = {};
+  if (filters.status) params.status = filters.status;
+  if (filters.page) params.page = String(filters.page);
+  if (filters.per_page) params.per_page = String(filters.per_page);
+  return apiRequest<VehicleSessionPage>(withQuery(`${API_PREFIX}/vehicle-sessions`, params));
 }
 
 export function listActiveVehicleSessions() {

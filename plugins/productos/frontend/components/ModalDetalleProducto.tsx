@@ -31,8 +31,10 @@ import {
   setPrimaryProductBarcode,
   setPrimaryProductMedia,
   toggleProduct,
+  updateProductAdr,
   uploadProductMedia,
 } from "../api";
+import type { ProductAdr } from "../types";
 
 const selectClassName =
   "w-full rounded-md border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition focus:border-ring";
@@ -94,6 +96,8 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
     unit_measure: "",
     valid_from: today(),
   });
+  const [editAdr, setEditAdr] = useState<ProductAdr | null>(null);
+  const [isEditAdrOpen, setIsEditAdrOpen] = useState(false);
   const [promotionForm, setPromotionForm] = useState({
     name: "",
     condition: "PORCENTAJE",
@@ -231,6 +235,35 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
       }),
     onSuccess: async () => {
       toast.success("ADR registrado");
+      await refreshDetail();
+    },
+  });
+
+  const updateAdrMutation = useMutation({
+    mutationFn: async () => {
+      if (!editAdr) return;
+      return updateProductAdr(productId, editAdr.id, {
+        source_product_id: editAdr.source_product_id,
+        source_product_id_2: editAdr.source_product_id_2,
+        source_product_id_3: editAdr.source_product_id_3,
+        source_quantity_liters: editAdr.source_quantity_liters,
+        category: editAdr.category,
+        packaging_type: editAdr.packaging_type,
+        net_weight_kg: editAdr.net_weight_kg,
+        net_volume_m3: editAdr.net_volume_m3,
+        un_number: editAdr.un_number,
+        cargo_description: editAdr.cargo_description,
+        label: editAdr.label,
+        tunnel_restriction: editAdr.tunnel_restriction,
+        subline_id: editAdr.subline_id,
+        factor: editAdr.factor,
+        points: editAdr.points,
+        unit_measure: editAdr.unit_measure,
+      });
+    },
+    onSuccess: async () => {
+      toast.success("ADR actualizado");
+      setIsEditAdrOpen(false);
       await refreshDetail();
     },
   });
@@ -447,62 +480,128 @@ export function ModalDetalleProducto({ open, productId, onClose, onEditProduct, 
         );
       case "adr":
         return (
+          <>
           <Card>
             <CardHeader>
               <CardTitle>ADR</CardTitle>
               <CardDescription>La configuración activa del producto transportado vive aquí, no en logística.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-4">
-                <Input value={adrForm.category} onChange={(event) => setAdrForm((current) => ({ ...current, category: event.target.value }))} placeholder="Categoría" />
-                <Input value={adrForm.packaging_type} onChange={(event) => setAdrForm((current) => ({ ...current, packaging_type: event.target.value }))} placeholder="Tipo bulto" />
-                <Input value={adrForm.un_number} onChange={(event) => setAdrForm((current) => ({ ...current, un_number: event.target.value }))} placeholder="UN" />
-                <Input value={adrForm.label} onChange={(event) => setAdrForm((current) => ({ ...current, label: event.target.value }))} placeholder="Etiqueta" />
-              </div>
-              <div className="grid gap-4 md:grid-cols-4">
-                <Input value={adrForm.net_weight_kg} onChange={(event) => setAdrForm((current) => ({ ...current, net_weight_kg: event.target.value }))} placeholder="Peso kg" />
-                <Input value={adrForm.net_volume_m3} onChange={(event) => setAdrForm((current) => ({ ...current, net_volume_m3: event.target.value }))} placeholder="Volumen m3" />
-                <Input value={adrForm.factor} onChange={(event) => setAdrForm((current) => ({ ...current, factor: event.target.value }))} placeholder="Factor" />
-                <Input value={adrForm.points} onChange={(event) => setAdrForm((current) => ({ ...current, points: event.target.value }))} placeholder="Puntos" />
-              </div>
-              <div className="grid gap-4 md:grid-cols-3">
-                <Input value={adrForm.tunnel_restriction} onChange={(event) => setAdrForm((current) => ({ ...current, tunnel_restriction: event.target.value }))} placeholder="Túnel" />
-                <Input value={adrForm.unit_measure} onChange={(event) => setAdrForm((current) => ({ ...current, unit_measure: event.target.value }))} placeholder="Unidad medida" />
-                <select className={selectClassName} value={adrForm.subline_id} onChange={(event) => setAdrForm((current) => ({ ...current, subline_id: event.target.value }))}>
-                  <option value="">Sin sublínea ADR</option>
-                  {(sublineQuery.data ?? []).map((item) => (
-                    <option key={item.id} value={item.id}>
-                      {item.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <Textarea
-                className="min-h-20"
-                value={adrForm.cargo_description}
-                onChange={(event) => setAdrForm((current) => ({ ...current, cargo_description: event.target.value }))}
-                placeholder="Mercancía / descripción"
-              />
-              <div className="flex justify-between gap-4">
-                <Button variant="secondary" onClick={() => (activeAdr ? submitMutation(() => expireProductAdr(productId, activeAdr.id)) : Promise.resolve())}>
-                  Expirar ADR vigente
-                </Button>
-                <Button onClick={() => submitMutation(() => adrMutation.mutateAsync())}>Registrar ADR</Button>
-              </div>
               <DataTable
                 columns={[
-                  { key: "category", header: "Categoría", render: (row) => row.category ?? "-" },
-                  { key: "un", header: "UN", render: (row) => row.un_number ?? "-" },
-                  { key: "label", header: "Etiqueta", render: (row) => row.label ?? "-" },
-                  { key: "from", header: "Desde", render: (row) => row.valid_from },
-                  { key: "to", header: "Hasta", render: (row) => row.valid_to ?? "Vigente" },
+                  { key: "category", header: "Categoría", render: (row: ProductAdr) => row.category ?? "-" },
+                  { key: "un", header: "UN", render: (row: ProductAdr) => row.un_number ?? "-" },
+                  { key: "label", header: "Etiqueta", render: (row: ProductAdr) => row.label ?? "-" },
+                  { key: "from", header: "Desde", render: (row: ProductAdr) => row.valid_from },
+                  { key: "to", header: "Hasta", render: (row: ProductAdr) => row.valid_to ?? "Vigente" },
                 ]}
                 rows={detailQuery.data?.adr_configs ?? []}
                 rowKey={(row) => row.id}
+                onRowClick={(row) => { setEditAdr(row); setIsEditAdrOpen(true); }}
                 emptyMessage="Sin configuración ADR."
               />
             </CardContent>
           </Card>
+          <Dialog
+            open={isEditAdrOpen}
+            title="Editar ADR"
+            onClose={() => { setIsEditAdrOpen(false); setEditAdr(null); }}
+            maxWidthClassName="max-w-2xl"
+          >
+            {editAdr ? (
+              <div className="space-y-4">
+                <div className="rounded-md border border-border bg-muted/40 p-3 space-y-3">
+                  <p className="text-sm font-medium text-foreground">Receta criogénica</p>
+                  <div className="grid gap-4 md:grid-cols-3">
+                    <label className="block space-y-2 text-sm text-foreground">
+                      <span>Fuente 1</span>
+                      <Input value={editAdr.source_product_id ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, source_product_id: event.target.value || null } : null)} placeholder="ID criogénico" />
+                    </label>
+                    <label className="block space-y-2 text-sm text-foreground">
+                      <span>Fuente 2</span>
+                      <Input value={editAdr.source_product_id_2 ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, source_product_id_2: event.target.value || null } : null)} placeholder="ID criogénico" />
+                    </label>
+                    <label className="block space-y-2 text-sm text-foreground">
+                      <span>Fuente 3</span>
+                      <Input value={editAdr.source_product_id_3 ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, source_product_id_3: event.target.value || null } : null)} placeholder="ID criogénico" />
+                    </label>
+                  </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Categoría</span>
+                    <Input value={editAdr.category ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, category: event.target.value || null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Tipo bulto</span>
+                    <Input value={editAdr.packaging_type ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, packaging_type: event.target.value || null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>UN</span>
+                    <Input value={editAdr.un_number ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, un_number: event.target.value || null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Etiqueta</span>
+                    <Input value={editAdr.label ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, label: event.target.value || null } : null)} />
+                  </label>
+                </div>
+                <div className="grid gap-4 md:grid-cols-4">
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Peso kg</span>
+                    <Input value={editAdr.net_weight_kg?.toString() ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, net_weight_kg: event.target.value ? Number(event.target.value) : null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Volumen m3</span>
+                    <Input value={editAdr.net_volume_m3?.toString() ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, net_volume_m3: event.target.value ? Number(event.target.value) : null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Factor</span>
+                    <Input value={editAdr.factor?.toString() ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, factor: event.target.value ? Number(event.target.value) : null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Puntos</span>
+                    <Input value={editAdr.points?.toString() ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, points: event.target.value ? Number(event.target.value) : null } : null)} />
+                  </label>
+                </div>
+                <div className="grid gap-4 md:grid-cols-3">
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Túnel</span>
+                    <Input value={editAdr.tunnel_restriction ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, tunnel_restriction: event.target.value || null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Unidad medida</span>
+                    <Input value={editAdr.unit_measure ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, unit_measure: event.target.value || null } : null)} />
+                  </label>
+                  <label className="block space-y-2 text-sm text-foreground">
+                    <span>Sublínea ADR</span>
+                    <select className={selectClassName} value={editAdr.subline_id ?? ""} onChange={(event) => setEditAdr((current) => current ? { ...current, subline_id: event.target.value || null } : null)}>
+                      <option value="">Sin sublínea ADR</option>
+                      {(sublineQuery.data ?? []).map((item) => (
+                        <option key={item.id} value={item.id}>{item.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="block space-y-2 text-sm text-foreground">
+                  <span>Mercancía / descripción</span>
+                  <Textarea
+                    className="min-h-20"
+                    value={editAdr.cargo_description ?? ""}
+                    onChange={(event) => setEditAdr((current) => current ? { ...current, cargo_description: event.target.value || null } : null)}
+                  />
+                </label>
+                <div className="flex justify-end gap-3">
+                  <Button type="button" variant="secondary" onClick={() => { setIsEditAdrOpen(false); setEditAdr(null); }}>
+                    Cancelar
+                  </Button>
+                  <Button type="button" onClick={() => updateAdrMutation.mutateAsync()} disabled={updateAdrMutation.isPending}>
+                    {updateAdrMutation.isPending ? "Guardando..." : "Guardar"}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+          </Dialog>
+          </>
         );
       case "media":
         return (

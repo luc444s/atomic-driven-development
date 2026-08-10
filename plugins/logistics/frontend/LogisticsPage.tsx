@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { useMutation } from "../../../apps/web/src/lib/react-query";
+import { useMutation, useQueryClient } from "../../../apps/web/src/lib/react-query";
 import { getMovement, listMovementItems } from "./api/movements";
 
 import { Alert } from "../../../apps/web/src/shared/ui/alert";
@@ -10,9 +10,11 @@ import { getCylinderStateLabel } from "./CylinderStateBadge";
 import { LogisticsSection } from "./components/LogisticsSection";
 import { CylinderDialogsHost } from "./cylinders/components/CylinderDialogsHost";
 import { CylinderFiltersCard } from "./cylinders/components/CylinderFiltersCard";
+import { GenerateCylinderBatchDialog } from "./cylinders/dialogs/GenerateCylinderBatchDialog";
 import { CylinderSummaryCards } from "./cylinders/components/CylinderSummaryCards";
 import { CylinderTableSection } from "./cylinders/components/CylinderTableSection";
 import type { CylinderEntryMode, LogisticsCylinder } from "./api";
+import { createCylinderBatch, getCylinderQueryKeys } from "./api";
 import {
   type CylinderFormState,
   type CylinderCreateMetaState,
@@ -62,6 +64,7 @@ export function LogisticsPage() {
   const [isRetimbradoOpen, setIsRetimbradoOpen] = useState(false);
   const [isServiceOpen, setIsServiceOpen] = useState(false);
   const [isTransitionOpen, setIsTransitionOpen] = useState(false);
+  const [isBatchOpen, setIsBatchOpen] = useState(false);
   const [isPrintLabelOpen, setIsPrintLabelOpen] = useState(false);
   const [isScanOpen, setIsScanOpen] = useState(false);
   const [isFillingOpen, setIsFillingOpen] = useState(false);
@@ -154,26 +157,43 @@ export function LogisticsPage() {
     },
   });
 
+  const queryClient = useQueryClient();
+
   async function handleCreateCylinder(serials: string[]) {
+    handleCreateCylinderWithProduct(serials, cylinderForm.gas_group_id);
+  }
+
+  async function handleCreateCylinderWithProduct(serials: string[], productId: string) {
     setPanelError(null);
-    let lastError: string | null = null;
-    for (const serial of serials) {
-      try {
-        const formWithSerial = { ...cylinderForm, serial };
-        await mutations.createMutation.mutateAsync(buildCreateCylinderPayload(formWithSerial, createMeta));
-      } catch (error) {
-        lastError = error instanceof Error ? error.message : `Error al crear ${serial}`;
-      }
-    }
-    if (serials.length > 1 && !lastError) {
+    const batchForm = {
+      ...cylinderForm,
+      content_kg: "",
+      volume_m3: "",
+      weight_current: "",
+    };
+    const batchMeta = { ...createMeta, entry_mode: "EMPTY_FROM_WAREHOUSE" as const };
+    const commonFields = buildCreateCylinderPayload(
+      { ...batchForm, gas_group_id: productId },
+      batchMeta,
+    );
+    delete (commonFields as { serial?: string }).serial;
+    try {
+      await createCylinderBatch(serials, commonFields);
       onCylinderFormChange({ ...cylinderForm, serial: "" });
-      setTimeout(() => {
-        const input = document.querySelector<HTMLInputElement>('input[placeholder="Nro. de serie del cilindro"]');
-        input?.focus();
-      }, 0);
-    } else if (lastError) {
-      setPanelError(lastError);
-    } else {
+      for (const key of getCylinderQueryKeys()) {
+        await queryClient.invalidateQueries({ queryKey: key });
+      }
+      if (serials.length > 1) {
+        setTimeout(() => {
+          const input = document.querySelector<HTMLInputElement>('input[placeholder="Nro. de serie del cilindro"]');
+          input?.focus();
+        }, 0);
+      } else {
+        setIsCreateOpen(false);
+        resetCreateDialog();
+      }
+    } catch (error) {
+      setPanelError(error instanceof Error ? error.message : "Error al crear el lote.");
       setIsCreateOpen(false);
       resetCreateDialog();
     }
@@ -437,9 +457,14 @@ export function LogisticsPage() {
               <Button onClick={() => setIsCryogenicFillingOpen(true)}>Llenado</Button>
             ) : null}
             {permissions.canCreate ? (
-              <Button variant="secondary" onClick={() => setIsCreateOpen(true)}>
-                Nuevo envase
-              </Button>
+              <>
+                <Button variant="secondary" onClick={() => setIsBatchOpen(true)}>
+                  Generar lote
+                </Button>
+                <Button variant="secondary" onClick={() => setIsCreateOpen(true)}>
+                  Nuevo envase
+                </Button>
+              </>
             ) : null}
           </div>
         }
@@ -560,6 +585,16 @@ export function LogisticsPage() {
         confirmDelete={confirmDelete}
         setConfirmDelete={setConfirmDelete}
         mutations={mutations}
+      />
+
+      <GenerateCylinderBatchDialog
+        open={isBatchOpen}
+        onClose={() => setIsBatchOpen(false)}
+        onGenerate={(serials, productId) => {
+          handleCreateCylinderWithProduct(serials, productId);
+          setIsBatchOpen(false);
+        }}
+        gasOptions={data.gasOptions}
       />
 
       </LogisticsSection>

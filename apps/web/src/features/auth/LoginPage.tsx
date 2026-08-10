@@ -1,5 +1,5 @@
 import { useMutation } from "@tanstack/react-query";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { login } from "./api";
@@ -23,24 +23,32 @@ export function LoginPage() {
   const location = useLocation();
   const [email, setEmail] = useState("admin@example.com");
   const [password, setPassword] = useState("ChangeMe123!");
-  const from = (location.state as LocationState | null)?.from?.pathname ?? "/app/system";
+  const defaultRedirect = "/app/system";
+  const from = (location.state as LocationState | null)?.from?.pathname ?? defaultRedirect;
+
+  const loggedInRef = useRef(false);
 
   const loginMutation = useMutation({
     mutationFn: login,
     onSuccess: (response) => {
       setSession(response.access_token);
-      navigate(from, { replace: true });
+      loggedInRef.current = true;
+      if (response.user.category === "driver") {
+        navigate("/app/logistics/vehicle-sessions", { replace: true });
+      } else {
+        navigate(from, { replace: true });
+      }
     },
   });
 
   useEffect(() => {
-    if (token) {
-      navigate("/app/system", { replace: true });
+    if (token && !loggedInRef.current) {
+      navigate(defaultRedirect, { replace: true });
     }
   }, [navigate, token]);
 
-  if (token) {
-    return <Navigate replace to="/app/system" />;
+  if (token && !loggedInRef.current) {
+    return <Navigate replace to={defaultRedirect} />;
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {

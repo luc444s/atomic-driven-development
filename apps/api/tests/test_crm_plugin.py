@@ -52,7 +52,7 @@ def test_crm_plugin_customer_flow(app) -> None:
         headers = auth_headers(client)
 
         document_types_response = client.get(
-            "/api/v1/plugins/crm/catalog/document-types?country_code=PER",
+            "/api/v1/plugins/crm/catalog/document-types?country_code=PE",
             headers=headers,
         )
         assert document_types_response.status_code == 200, document_types_response.text
@@ -74,7 +74,7 @@ def test_crm_plugin_customer_flow(app) -> None:
                 "commercial_name": "GLP Norte",
                 "document_type_code": "RUC",
                 "document_number": "20100070970",
-                "country_code": "PER",
+                "country_code": "PE",
                 "email": "ventas@glpnorte.pe",
                 "phone": "014445555",
                 "payment_term_code": "CONTADO",
@@ -92,7 +92,7 @@ def test_crm_plugin_customer_flow(app) -> None:
                 "legal_name": "Duplicado SAC",
                 "document_type_code": "RUC",
                 "document_number": "20100070970",
-                "country_code": "PER",
+                "country_code": "PE",
                 "billing_type": "por_operacion",
                 "is_exempt": False,
             },
@@ -116,7 +116,7 @@ def test_crm_plugin_customer_flow(app) -> None:
                 "label": "Fiscal",
                 "line1": "Av. Peru 123",
                 "district": "Lima",
-                "country_code": "PER",
+                "country_code": "PE",
                 "is_operational_site": False,
                 "geocode_source": "MANUAL",
             },
@@ -303,7 +303,7 @@ def test_crm_plugin_validates_invalid_document(app) -> None:
                 "legal_name": "Cliente Invalido",
                 "document_type_code": "RUC",
                 "document_number": "123",
-                "country_code": "PER",
+                "country_code": "PE",
                 "billing_type": "por_operacion",
                 "is_exempt": False,
             },

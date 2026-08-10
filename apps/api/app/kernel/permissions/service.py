@@ -66,6 +66,20 @@ def list_roles_by_ids_for_tenant(db: Session, *, tenant_id: str, role_ids: list[
     return list(db.scalars(stmt))
 
 
+def list_roles_by_names_for_tenant(
+    db: Session, *, tenant_id: str, role_names: list[str]
+) -> list[Role]:
+    if not role_names:
+        return []
+
+    stmt: Select[tuple[Role]] = (
+        select(Role)
+        .where(Role.tenant_id == tenant_id, Role.name.in_(role_names), Role.is_active.is_(True))
+        .order_by(Role.name.asc())
+    )
+    return list(db.scalars(stmt))
+
+
 def get_role_for_tenant(db: Session, *, tenant_id: str, role_id: str) -> Role | None:
     stmt: Select[tuple[Role]] = select(Role).where(Role.id == role_id, Role.tenant_id == tenant_id)
     return db.scalar(stmt)

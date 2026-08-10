@@ -37,6 +37,14 @@ class SessionHistoryEntryRead(BaseModel):
     label: str
 
 
+class VehicleSessionPageRead(BaseModel):
+    items: list["VehicleSessionRead"]
+    total: int
+    page: int
+    per_page: int
+    total_pages: int
+
+
 class VehicleSessionRead(BaseModel):
     id: str
     vehicle_id: str

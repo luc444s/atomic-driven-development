@@ -33,17 +33,19 @@ export function buildShellSidebarSections({
   permissions,
   pluginNavigation,
 }: BuildShellSidebarSectionsInput): ShellNavSection[] {
-  const sections: ShellNavSection[] = [
-    {
+  const sections: ShellNavSection[] = [];
+
+  if (permissions.includes("core.users.read")) {
+    sections.push({
       title: "Sistema",
       items: [{ kind: "link", label: "Dashboard", to: "/app/system" }],
-    },
-  ];
+    });
+  }
 
-  if (
+  if (sections.length > 0 && (
     permissions.includes("core.plugin.runtime.read") ||
     permissions.includes("core.plugin.manage")
-  ) {
+  )) {
     sections[0].items.push({ kind: "link", label: "Plugins", to: "/app/plugins" });
   }
 
@@ -124,6 +126,12 @@ export function buildShellSidebarSections({
     title: "Sesión",
     items: [{ kind: "action", label: "Cerrar sesión", action: "logout" }],
   });
+
+  const logisticsIndex = sections.findIndex((s) => s.title === "LOGISTICS");
+  if (logisticsIndex > 0) {
+    const [logistics] = sections.splice(logisticsIndex, 1);
+    sections.unshift(logistics);
+  }
 
   return sections;
 }

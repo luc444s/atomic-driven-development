@@ -7,10 +7,10 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from plugins.productos.backend.services.pricing import resolve_active_cost
 from plugins.stock.backend.common import StockActionContext, audit_stock_action, emit_stock_event
 from plugins.stock.backend.models import StockBalance, StockConfig, StockLedger
 from plugins.stock.backend.schemas import StockBalanceRead, StockConfigRead, StockTransferResultRead
+from plugins.stock.backend.services.adjustments import resolve_positive_adjust_unit_cost
 from plugins.stock.backend.services.allocation import _lock_balance
 from plugins.stock.backend.services.balances import (
     _as_float,
@@ -156,15 +156,6 @@ def adjust_stock(
         raise ValueError("La cantidad debe ser diferente de cero")
 
     is_positive = quantity_decimal > Decimal("0.000")
-    resolved_unit_cost = unit_cost
-    if is_positive and resolved_unit_cost is None:
-        active_cost = resolve_active_cost(db, product_id=product_id, cost_type="BASE")
-        if active_cost is not None:
-            resolved_unit_cost = float(active_cost.amount)
-    if is_positive and resolved_unit_cost is None:
-        raise ValueError(
-            "El producto no tiene costo unitario activo. No puedes continuar."
-        )
 
     balance = _lock_balance(
         db,
@@ -175,6 +166,13 @@ def adjust_stock(
     )
     current = _current_quantity(balance.quantity)
     current_total_cost = _current_cost(balance.total_cost)
+    resolved_unit_cost = unit_cost
+    if is_positive:
+        resolved_unit_cost = resolve_positive_adjust_unit_cost(
+            current_quantity=current,
+            current_total_cost=current_total_cost,
+            unit_cost=unit_cost,
+        )
 
     new_quantity = current + quantity_decimal
     if new_quantity < Decimal("0.000"):

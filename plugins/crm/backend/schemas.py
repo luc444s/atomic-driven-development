@@ -271,7 +271,7 @@ class CustomerAddressCreateRequest(BaseModel):
     state: str | None = Field(default=None, max_length=100)
     district: str | None = Field(default=None, max_length=100)
     postal_code: str | None = Field(default=None, max_length=12)
-    country_code: str = Field(default="PER", min_length=2, max_length=5)
+    country_code: str = Field(default="PE", min_length=2, max_length=5)
     latitude: float | None = None
     longitude: float | None = None
     place_id: str | None = Field(default=None, max_length=64)
@@ -421,7 +421,7 @@ class CustomerCreateRequest(BaseModel):
     commercial_name: str | None = Field(default=None, max_length=100)
     document_type_code: str = Field(min_length=1, max_length=20)
     document_number: str = Field(min_length=1, max_length=30)
-    country_code: str = Field(default="PER", min_length=2, max_length=5)
+    country_code: str = Field(default="PE", min_length=2, max_length=5)
     email: str | None = Field(default=None, max_length=100)
     phone: str | None = Field(default=None, max_length=50)
     mobile: str | None = Field(default=None, max_length=50)

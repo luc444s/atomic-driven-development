@@ -31,6 +31,7 @@ type AuthState = {
   permissions: string[];
   enabledPlugins: PluginRuntimeRecord[];
   pluginRuntimeRecords: PluginRuntimeRecord[];
+  isRuntimeBootstrapped: boolean;
   isSuperadmin: boolean;
   setSession: (token: string) => void;
   hydrateUserContext: (user: UserProfile | null) => void;
@@ -46,6 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   permissions: [],
   enabledPlugins: [],
   pluginRuntimeRecords: [],
+  isRuntimeBootstrapped: false,
   isSuperadmin: false,
   setSession: (token) => {
     if (typeof window !== "undefined") {
@@ -90,6 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         ...state,
         pluginRuntimeRecords: records,
         enabledPlugins: records.filter((record) => record.state === "enabled" && record.is_enabled),
+        isRuntimeBootstrapped: true,
       };
     });
   },
@@ -109,6 +112,7 @@ const initialAuthContextState = {
   permissions: [],
   enabledPlugins: [],
   pluginRuntimeRecords: [],
+  isRuntimeBootstrapped: false,
   isSuperadmin: false,
 } satisfies Omit<AuthState, "token" | "setSession" | "hydrateUserContext" | "setPluginRuntime" | "logout">;
 

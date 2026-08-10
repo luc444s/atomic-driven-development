@@ -44,6 +44,7 @@
     "logistics.scan.read",
     "logistics.session.manage",
     "logistics.session.read",
+    "logistics.session.route_execute",
     "logistics.service.manage",
     "logistics.service.read",
     "logistics.vehicle.manage",

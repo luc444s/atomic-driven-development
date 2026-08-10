@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from sqlalchemy import Select, func, or_, select
@@ -230,6 +231,17 @@ def list_products(
     limit: int = 10,
     offset: int = 0,
 ) -> tuple[list[ProductListItemRead], int]:
+    """Listado paginado con busqueda por prefijo de palabra.
+
+    Cuando se recibe ``sku`` o ``name``, el texto se divide en tokens
+    (ej. ``"OX B10"`` → ``["OX", "B10"]``). Cada token debe coincidir
+    como prefijo de alguna palabra en ``sku``, ``name``, ``description``
+    o ``short_description``. Caracteres no alfanumericos en bordes de
+    token se descartan (``"/200"`` → ``"200"``).
+
+    Patron por token: ``ILIKE '<token>%'`` (inicio de cadena)
+    o ``ILIKE '% <token>%'`` (inicio de palabra tras espacio).
+    """
     line_alias = ProductLine
     brand_alias = ProductBrand
     unit_alias = ProductUnit
@@ -255,6 +267,7 @@ def list_products(
             condition_alias.name.label("condition_name"),
             Product.is_service,
             Product.is_active,
+            Product.default_weight_kg,
             Product.created_at,
             Product.updated_at,
         )
@@ -270,16 +283,26 @@ def list_products(
         select(func.count()).select_from(Product).where(Product.tenant_id == tenant_id)
     )
     if sku or name:
-        search_conditions = []
-        if sku:
-            sku_pattern = f"%{sku.strip()}%"
-            search_conditions.append(Product.sku.ilike(sku_pattern))
-        if name:
-            name_pattern = f"%{name.strip()}%"
-            search_conditions.append(Product.name.ilike(name_pattern))
-        search_filter = or_(*search_conditions)
-        stmt = stmt.where(search_filter)
-        count_stmt = count_stmt.where(search_filter)
+        query_text = (name or sku or "").strip()
+        raw_tokens = [t.strip() for t in query_text.split() if t.strip()]
+        tokens = [re.sub(r"^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "", t) for t in raw_tokens]
+        tokens = [t for t in tokens if t]
+        if tokens:
+            for token in tokens:
+                start = f"{token}%"
+                spaced = f"% {token}%"
+                token_filter = or_(
+                    Product.sku.ilike(start),
+                    Product.sku.ilike(spaced),
+                    Product.name.ilike(start),
+                    Product.name.ilike(spaced),
+                    Product.description.ilike(start),
+                    Product.description.ilike(spaced),
+                    Product.short_description.ilike(start),
+                    Product.short_description.ilike(spaced),
+                )
+                stmt = stmt.where(token_filter)
+                count_stmt = count_stmt.where(token_filter)
     if line_id:
         stmt = stmt.where(Product.line_id == line_id)
         count_stmt = count_stmt.where(Product.line_id == line_id)
@@ -315,6 +338,7 @@ def list_products(
                 condition_name=row.condition_name,
                 is_service=row.is_service,
                 is_active=row.is_active,
+                default_weight_kg=row.default_weight_kg,
                 created_at=row.created_at,
                 updated_at=row.updated_at,
             )
@@ -327,7 +351,24 @@ def list_products(
 def search_products(
     db: Session, *, tenant_id: str, query: str, limit: int = 10
 ) -> list[ProductSearchItemRead]:
-    term = f"%{query.strip()}%"
+    """Busqueda ligera por prefijo de palabra (dialogos, pickers, autocompletado).
+
+    Divide ``query`` en tokens por espacios. Cada token debe coincidir
+    como prefijo de alguna palabra en ``sku``, ``name``, ``description``,
+    ``short_description`` o ``barcode``. Caracteres no alfanumericos en
+    bordes de token se descartan (``"/200"`` → ``"200"``).
+
+    Patron por token (campos de texto): ``ILIKE '<token>%'`` o ``ILIKE '% <token>%'``.
+    Barcode: ``ILIKE '%<token>%'`` (sin word-boundary, busca en cualquier posicion).
+
+    Solo productos activos. Resultados ordenados por nombre, distinct, con limite.
+    """
+    raw_tokens = [t.strip() for t in query.strip().split() if t.strip()]
+    tokens = [re.sub(r"^[^a-zA-Z0-9]+|[^a-zA-Z0-9]+$", "", t) for t in raw_tokens]
+    tokens = [t for t in tokens if t]
+    if not tokens:
+        return []
+
     stmt = (
         select(Product, ProductBrand.name.label("brand_name"))
         .outerjoin(ProductBrand, ProductBrand.id == Product.brand_id)
@@ -335,16 +376,29 @@ def search_products(
         .where(
             Product.tenant_id == tenant_id,
             Product.is_active.is_(True),
-            or_(
-                Product.sku.ilike(term),
-                Product.name.ilike(term),
-                ProductBarcode.barcode.ilike(term),
-            ),
         )
         .order_by(Product.name.asc())
         .distinct()
         .limit(limit)
     )
+
+    for token in tokens:
+        start = f"{token}%"
+        spaced = f"% {token}%"
+        stmt = stmt.where(
+            or_(
+                Product.sku.ilike(start),
+                Product.sku.ilike(spaced),
+                Product.name.ilike(start),
+                Product.name.ilike(spaced),
+                Product.description.ilike(start),
+                Product.description.ilike(spaced),
+                Product.short_description.ilike(start),
+                Product.short_description.ilike(spaced),
+                ProductBarcode.barcode.ilike(f"%{token}%"),
+            )
+        )
+
     rows = db.execute(stmt).all()
     return [
         ProductSearchItemRead(

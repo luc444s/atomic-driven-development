@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 import pytest
-from sqlalchemy import text
+from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
 
 from apps.api.app.core.config import Settings
@@ -21,6 +21,8 @@ from apps.api.app.kernel.plugins.persistent import (
 from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntimeError
 from apps.api.app.main import create_app
 from packages.sdk import PluginContext
+from plugins.logistics.backend import plugin as logistics_plugin
+from plugins.logistics.backend.models import LogisticsMovementType
 
 
 def login(client, email: str = "admin@example.com", password: str = "ChangeMe123!"):
@@ -210,6 +212,29 @@ def test_plugin_runtime_state_persists_after_reboot(
         assert record is not None
         assert record.state == "enabled"
         assert record.enabled_at is not None
+
+
+def test_logistics_enable_repopulates_missing_static_catalog_rows(
+    app,
+) -> None:
+    discovered = app.state.plugin_registry.get("logistics")
+    assert discovered is not None
+    assert discovered.manifest is not None
+
+    with app.state.session_factory() as db:
+        db.execute(delete(LogisticsMovementType).where(LogisticsMovementType.code == "IFP"))
+        db.commit()
+        assert db.scalar(
+            select(LogisticsMovementType.code).where(LogisticsMovementType.code == "IFP")
+        ) is None
+
+    context = app.state.plugin_runtime.context_builder(discovered.manifest)
+    logistics_plugin.on_enable(context)
+
+    with app.state.session_factory() as db:
+        assert db.scalar(
+            select(LogisticsMovementType.code).where(LogisticsMovementType.code == "IFP")
+        ) == "IFP"
 
 
 def test_plugin_runtime_marks_failed_plugin(tmp_path: Path, test_settings: Settings) -> None:

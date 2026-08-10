@@ -3,7 +3,7 @@ id: "0039"
 title: "Unit Cost Activo para Ajustes Positivos"
 domain: stock
 module: stock
-status: borrador
+status: historica
 extends:
   - docs/specs/core/0016-2-stock-transactional-gaps.md
   - docs/specs/core/0029B-stock-bridge-transactional.md
@@ -11,6 +11,16 @@ extends:
 ---
 
 # SPEC 0039 - Unit Cost Activo para Ajustes Positivos
+
+## Estado
+
+`historica`.
+
+Esta spec queda superada para `stock.adjust` por:
+
+- `docs/specs/drafts/stock-ajuste-reconciliacion-fisica-y-desacople-de-valuacion.md`
+
+Su criterio sigue siendo util como contexto para flujos valorizados, pero ya no manda sobre la semantica de reconciliacion fisica propuesta para `adjust`.
 
 ## Contexto
 

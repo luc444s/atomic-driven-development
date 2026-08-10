@@ -115,6 +115,8 @@ export type ProductAdr = {
   id: string;
   product_id: string;
   source_product_id: string | null;
+  source_product_id_2: string | null;
+  source_product_id_3: string | null;
   source_quantity_liters: number | null;
   category: string | null;
   packaging_type: string | null;
@@ -178,6 +180,7 @@ export type ProductListItem = {
   condition_name: string | null;
   is_service: boolean;
   is_active: boolean;
+  default_weight_kg: number | null;
   created_at: string;
   updated_at: string;
 };

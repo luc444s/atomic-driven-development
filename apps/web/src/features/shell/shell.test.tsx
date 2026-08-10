@@ -19,6 +19,7 @@ const demoUser: UserProfile = {
   full_name: "Admin Solygas",
   is_active: true,
   is_superadmin: false,
+  category: null,
   permissions: [
     "core.users.read",
     "core.roles.read",

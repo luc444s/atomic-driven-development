@@ -22,6 +22,7 @@ const users = [
     name: "Admin Core",
     email: "admin@example.com",
     active: true,
+    category: null,
     roles: ["admin"],
     created_at: "2026-06-25T00:00:00Z",
     updated_at: "2026-06-25T00:00:00Z",
@@ -93,11 +94,12 @@ describe("core management frontend", () => {
         users={users}
         roles={roles}
         branches={branches}
+        categories={[]}
         canCreate
         canUpdate
         canDisable
         isDialogOpen={false}
-        formState={{ name: "", email: "", password: "", branch_id: "", role_ids: [] }}
+        formState={{ name: "", email: "", password: "", branch_id: "", category: "", role_ids: [] }}
         formError={null}
         isSaving={false}
         isToggling={false}

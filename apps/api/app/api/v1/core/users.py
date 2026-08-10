@@ -11,11 +11,13 @@ from apps.api.app.api.v1.core.common import (
     tenant_not_found,
 )
 from apps.api.app.api.v1.core.schemas import (
+    CoreUserCategoryRead,
     CoreUserCreateRequest,
     CoreUserRead,
     CoreUserUpdateRequest,
 )
 from apps.api.app.api.v1.core.services.users import (
+    USER_CATEGORY_MAP,
     create_core_user,
     get_core_user,
     list_core_users,
@@ -46,6 +48,19 @@ def _resolve_branch(db: Session, *, tenant_id: str, branch_id: str | None):
             detail="Invalid branch for tenant",
         )
     return branch
+
+
+CATEGORY_LABELS: dict[str, str] = {
+    "driver": "Conductor",
+}
+
+
+@router.get("/categories", response_model=list[CoreUserCategoryRead])
+def list_user_categories() -> list[CoreUserCategoryRead]:
+    return [
+        CoreUserCategoryRead(value=key, label=CATEGORY_LABELS.get(key, key))
+        for key in USER_CATEGORY_MAP
+    ]
 
 
 @router.get("", response_model=list[CoreUserRead])
@@ -93,6 +108,7 @@ def create_user(
                 tenant_id=tenant_context.current_tenant_id,
                 branch_id=payload.branch_id,
             ),
+            category=payload.category,
             role_ids=payload.role_ids,
             warehouse_ids=payload.warehouse_ids,
             action_context=build_action_context(request, tenant_context),
@@ -133,6 +149,7 @@ def update_user(
             if branch_was_provided
             else None,
             branch_was_provided=branch_was_provided,
+            category=payload.category,
             role_ids=payload.role_ids,
             warehouse_ids=payload.warehouse_ids,
             action_context=build_action_context(request, tenant_context),

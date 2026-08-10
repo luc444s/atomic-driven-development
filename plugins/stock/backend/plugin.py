@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from packages.sdk import PluginContext
+from plugins.stock.backend.event_handlers import build_product_created_handler
 from plugins.stock.backend.router import router
 
 STOCK_PERMISSIONS = [
@@ -36,3 +37,7 @@ def register(context: PluginContext) -> None:
     context.register_router(router)
     context.register_permissions(STOCK_PERMISSIONS)
     context.register_events(STOCK_EVENTS)
+    context.register_event_handler(
+        "productos.product.created",
+        build_product_created_handler(context),
+    )

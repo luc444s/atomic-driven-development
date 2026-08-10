@@ -28,7 +28,6 @@ export function CustomerCylinderSummaryDialog({
           columns={[
             { key: "product", header: "Producto", render: (row) => row.product_name },
             { key: "contracted", header: "Contrato", render: (row) => row.contracted },
-            { key: "assigned", header: "Asignados", render: (row) => row.assigned },
             { key: "customer", header: "En cliente", render: (row) => row.at_customer },
             {
               key: "unknown",
@@ -61,7 +60,6 @@ export function CustomerCylinderSummaryDialog({
                   dense
                   columns={[
                     { key: "condition", header: "Condición", render: (condition) => condition.code },
-                    { key: "assigned", header: "Asignados", render: (condition) => condition.assigned },
                     { key: "customer", header: "En cliente", render: (condition) => condition.at_customer },
                     { key: "pipeline", header: "En tránsito", render: (condition) => condition.pipeline },
                     { key: "lost", header: "Perdidos", render: (condition) => condition.lost },

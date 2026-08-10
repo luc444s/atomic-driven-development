@@ -167,13 +167,23 @@ def list_vehicle_sessions(
     tenant_id: str,
     status: str | None = None,
     active_only: bool = False,
-) -> list[LogisticsVehicleSession]:
+    page: int = 1,
+    per_page: int = 50,
+) -> tuple[list[LogisticsVehicleSession], int]:
     stmt = select(LogisticsVehicleSession).where(LogisticsVehicleSession.tenant_id == tenant_id)
     if active_only:
         stmt = stmt.where(LogisticsVehicleSession.status.in_(ACTIVE_SESSION_STATUSES))
     elif status:
         stmt = stmt.where(LogisticsVehicleSession.status == status)
-    return list(db.scalars(stmt.order_by(LogisticsVehicleSession.opened_at.desc())).all())
+
+    from sqlalchemy import func
+
+    count_stmt = select(func.count()).select_from(stmt.subquery())
+    total = db.scalar(count_stmt) or 0
+
+    stmt = stmt.order_by(LogisticsVehicleSession.opened_at.desc())
+    stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+    return list(db.scalars(stmt).all()), total
 
 
 def get_vehicle_session(

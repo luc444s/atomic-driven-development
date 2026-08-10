@@ -1,0 +1,25 @@
+{
+  "id": "compras",
+  "name": "Compras",
+  "version": "0.1.0",
+  "api_version": "1",
+  "requires": [
+    "productos"
+  ],
+  "backend_entrypoint": "purchase.backend.plugin:register",
+  "frontend_entrypoint": "purchase/frontend/register.ts",
+  "permissions": [
+    "compras.supplier.read",
+    "compras.supplier.manage",
+    "compras.order.read",
+    "compras.order.create",
+    "compras.order.manage",
+    "compras.order.receive"
+  ],
+  "events": [
+    "compras.order.created",
+    "compras.order.received",
+    "compras.order.cancelled"
+  ],
+  "description": "Gestion de compras: proveedores, ordenes y recepcion con integracion automatica a stock."
+}

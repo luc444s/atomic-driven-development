@@ -29,7 +29,7 @@ const EMPTY_CUSTOMER: CustomerPayload = {
   commercial_name: null,
   document_type_code: "RUC",
   document_number: "",
-  country_code: "PER",
+  country_code: "PE",
   email: null,
   phone: null,
   mobile: null,
@@ -62,7 +62,7 @@ function emptyAddress(address_type = "FISCAL"): CustomerAddressPayload {
     state: null,
     district: null,
     postal_code: null,
-    country_code: "PER",
+    country_code: "PE",
     latitude: null,
     longitude: null,
     place_id: null,
@@ -189,6 +189,13 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
     }
   }, [open]);
 
+  useEffect(() => {
+    const validTypes = documentTypesQuery.data ?? [];
+    if (validTypes.length > 0 && !validTypes.some(t => t.code === formState.document_type_code)) {
+      setFormState(current => ({ ...current, document_type_code: validTypes[0].code }));
+    }
+  }, [formState.country_code, documentTypesQuery.data]);
+
   const createMutation = useMutation({
     mutationFn: async (payload: CustomerPayload) => {
       const customer = await createCustomer(payload);
@@ -235,9 +242,24 @@ export function ModalNuevoCliente({ open, customerId, onClose, onSaved, onOpenDe
     },
   });
 
+  function validateRequired(): string | null {
+    if (!formState.legal_name.trim()) {
+      return "La razón social es obligatoria.";
+    }
+    if (!formState.document_number.trim()) {
+      return "El número de documento es obligatorio.";
+    }
+    return null;
+  }
+
   async function submitForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    const validationError = validateRequired();
+    if (validationError) {
+      setError(validationError);
+      return;
+    }
     try {
       if (customerId) {
         await updateMutation.mutateAsync(formState);

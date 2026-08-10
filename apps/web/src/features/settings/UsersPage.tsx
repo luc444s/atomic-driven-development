@@ -12,6 +12,7 @@ import {
   invalidateCoreManagementKey,
   listCoreBranches,
   listCoreRoles,
+  listCoreUserCategories,
   listCoreUsers,
   updateCoreUser,
 } from "../core-management/api";
@@ -31,6 +32,7 @@ type UserFormState = {
   email: string;
   password: string;
   branch_id: string;
+  category: string;
   role_ids: string[];
 };
 
@@ -39,6 +41,7 @@ const EMPTY_USER_FORM: UserFormState = {
   email: "",
   password: "",
   branch_id: "",
+  category: "",
   role_ids: [],
 };
 
@@ -69,6 +72,11 @@ export function UsersPage() {
     queryFn: listCoreBranches,
     enabled: canEditUsers,
   });
+  const categoriesQuery = useQuery({
+    queryKey: [...coreManagementKeys.users, "categories"],
+    queryFn: listCoreUserCategories,
+    enabled: canEditUsers,
+  });
 
   const saveUserMutation = useMutation({
     mutationFn: async (payload: UserFormState) => {
@@ -78,6 +86,7 @@ export function UsersPage() {
           email: payload.email,
           password: payload.password || undefined,
           branch_id: payload.branch_id || null,
+          category: payload.category || null,
           role_ids: payload.role_ids,
         });
       }
@@ -87,6 +96,7 @@ export function UsersPage() {
         email: payload.email,
         password: payload.password,
         branch_id: payload.branch_id || null,
+        category: payload.category || null,
         role_ids: payload.role_ids,
       });
     },
@@ -125,6 +135,7 @@ export function UsersPage() {
       email: user.email,
       password: "",
       branch_id: user.branch_id ?? "",
+      category: user.category ?? "",
       role_ids: user.roles.map((roleName) => rolesByName.get(roleName) ?? "").filter(Boolean),
     });
     setFormError(null);
@@ -152,6 +163,7 @@ export function UsersPage() {
       users={usersQuery.data ?? []}
       roles={getAssignableRoles(rolesQuery.data ?? [])}
       branches={branchesQuery.data ?? []}
+      categories={categoriesQuery.data ?? []}
       canCreate={canCreate}
       canUpdate={canUpdate}
       canDisable={canDisable}
@@ -175,6 +187,7 @@ type UsersPageContentProps = {
   users: CoreUser[];
   roles: CoreRole[];
   branches: CoreBranch[];
+  categories: { value: string; label: string }[];
   canCreate: boolean;
   canUpdate: boolean;
   canDisable: boolean;
@@ -196,6 +209,7 @@ export function UsersPageContent({
   users,
   roles,
   branches,
+  categories,
   canCreate,
   canUpdate,
   canDisable,
@@ -244,6 +258,11 @@ export function UsersPageContent({
                 key: "branch",
                 header: "Sucursal",
                 render: (user) => branches.find((branch) => branch.id === user.branch_id)?.name ?? "-",
+              },
+              {
+                key: "category",
+                header: "Categoria",
+                render: (user) => user.category ? <Badge>{user.category}</Badge> : "-",
               },
               {
                 key: "roles",
@@ -331,6 +350,19 @@ export function UsersPageContent({
               onChange={(value) => onFieldChange({ branch_id: value })}
               options={branches.map((b) => ({ value: b.id, label: b.name }))}
               placeholder="Sin branch"
+            />
+          </label>
+
+          <label className="block space-y-2 text-sm text-foreground">
+            <span>Categoria</span>
+            <Select
+              value={formState.category}
+              onChange={(value) => onFieldChange({ category: value })}
+              options={[
+                { value: "", label: "Sin categoria" },
+                ...categories.map((c) => ({ value: c.value, label: c.label })),
+              ]}
+              placeholder="Sin categoria"
             />
           </label>
 

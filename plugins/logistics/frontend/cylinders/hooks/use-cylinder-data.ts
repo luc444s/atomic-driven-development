@@ -71,11 +71,13 @@ export function useCylinderData(input: UseCylinderDataInput) {
         page,
         per_page: perPage,
       }),
+    refetchInterval: 5000,
   });
   const statesQuery = useQuery({ queryKey: logisticsKeys.states(), queryFn: listCylinderStates });
   const summaryQuery = useQuery({
     queryKey: logisticsKeys.cylinders.summary(),
     queryFn: listCylinderSummary,
+    refetchInterval: 5000,
   });
   const gasProductsQuery = useQuery({ queryKey: logisticsKeys.gasProducts(), queryFn: listGasProducts });
   const brandsQuery = useQuery({ queryKey: logisticsKeys.brands(), queryFn: listBrands });

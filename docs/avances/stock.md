@@ -87,6 +87,8 @@ Este documento debe leerse antes de extender `plugins/stock/`.
 
 ### 2.7 Ajuste positivo toma costo activo de productos
 
+Historico. Esta regla queda en revision por el draft `stock-ajuste-reconciliacion-fisica-y-desacople-de-valuacion`, que propone redefinir `adjust` como reconciliacion fisica y desacoplarlo del costo activo de `productos`.
+
 - para `POST /stock/adjust` con cantidad positiva, `stock` ahora resuelve `unit_cost` desde el costo activo `BASE` del producto en `productos`;
 - si el producto no tiene costo activo, el ajuste se bloquea con error claro;
 - el modal de ajuste ya no pide costo manual como fuente primaria: informa que el costo se toma del producto.

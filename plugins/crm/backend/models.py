@@ -98,7 +98,7 @@ class CrmCustomer(Base):
         ForeignKey("crm_document_types.code"), nullable=False, index=True
     )
     document_number: Mapped[str] = mapped_column(String(30), nullable=False, index=True)
-    country_code: Mapped[str] = mapped_column(String(5), nullable=False, default="PER")
+    country_code: Mapped[str] = mapped_column(String(5), nullable=False, default="PE")
     email: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
     mobile: Mapped[str | None] = mapped_column(String(50), nullable=True)
@@ -174,7 +174,7 @@ class CrmCustomerAddress(Base):
     state: Mapped[str | None] = mapped_column(String(100), nullable=True)
     district: Mapped[str | None] = mapped_column(String(100), nullable=True)
     postal_code: Mapped[str | None] = mapped_column(String(12), nullable=True)
-    country_code: Mapped[str] = mapped_column(String(5), nullable=False, default="PER")
+    country_code: Mapped[str] = mapped_column(String(5), nullable=False, default="PE")
     latitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     longitude: Mapped[float | None] = mapped_column(Float, nullable=True)
     place_id: Mapped[str | None] = mapped_column(String(64), nullable=True)

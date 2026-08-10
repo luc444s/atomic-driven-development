@@ -41,6 +41,7 @@ DB_SESSION = Depends(get_db_session)
 TENANT_CONTEXT = Depends(get_current_tenant_context)
 REQUIRE_SESSION_READ = Depends(require_permission("logistics.session.read"))
 REQUIRE_SESSION_MANAGE = Depends(require_permission("logistics.session.manage"))
+REQUIRE_SESSION_ROUTE_EXECUTE = Depends(require_permission("logistics.session.route_execute"))
 
 
 def _get_or_404(db: Session, *, tenant_id: str, session_id: str):
@@ -76,7 +77,7 @@ def post_route_operation(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteOperationRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -101,7 +102,7 @@ def post_confirm_route_event(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteOperationRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -126,7 +127,7 @@ def post_exchange_route_operation(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteOperationRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -154,7 +155,7 @@ def post_confirm_route_operation(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteOperationRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -205,7 +206,7 @@ def post_route_incident(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteIncidentRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -234,7 +235,7 @@ def post_resolve_route_incident(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteIncidentRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:
@@ -264,7 +265,7 @@ def post_correct_route_incident(
     request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
+    _: User = REQUIRE_SESSION_ROUTE_EXECUTE,
 ) -> RouteIncidentRead:
     session = _get_or_404(db, tenant_id=tenant_context.current_tenant_id, session_id=session_id)
     try:

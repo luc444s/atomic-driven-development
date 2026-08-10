@@ -117,7 +117,7 @@ export function DireccionesDialog({
               state: (row.state as string) || null,
               district: (row.district as string) || null,
               postal_code: (row.postal_code as string) || null,
-              country_code: (row.country_code as string) || "PER",
+              country_code: (row.country_code as string) || "PE",
               latitude: (row.latitude as number) || null,
               longitude: (row.longitude as number) || null,
               place_id: (row.place_id as string) || null,

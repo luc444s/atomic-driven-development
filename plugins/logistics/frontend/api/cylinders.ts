@@ -282,7 +282,11 @@ export type LogisticsCylinderService = {
   updated_at: string;
 };
 
-export type CylinderEntryMode = "EMPTY_FROM_CUSTOMER" | "FULL_FROM_SUPPLIER";
+export type CylinderEntryMode =
+  | "EMPTY_FROM_CUSTOMER"
+  | "FULL_FROM_SUPPLIER"
+  | "EMPTY_FROM_WAREHOUSE"
+  | "FULL_FROM_WAREHOUSE";
 
 export type CreateCylinderPayload = BaseCylinderPayload & {
   entry_mode?: CylinderEntryMode | null;
@@ -454,6 +458,19 @@ export function createCylinder(payload: CreateCylinderPayload) {
   return apiRequest<LogisticsCylinder>(`${API_PREFIX}/cylinders`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function createCylinderBatch(
+  serials: string[],
+  basePayload: Omit<CreateCylinderPayload, "serial">,
+) {
+  return apiRequest<LogisticsCylinder[]>(`${API_PREFIX}/cylinders/batch`, {
+    method: "POST",
+    body: JSON.stringify({
+      ...basePayload,
+      serials,
+    }),
   });
 }
 

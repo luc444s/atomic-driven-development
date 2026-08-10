@@ -36,11 +36,11 @@ interface CustomerSearchItem {
 }
 
 const ENTRY_MODE_OPTIONS = [
-  { value: "EMPTY_FROM_WAREHOUSE", label: "Vacio desde almacen" },
-  { value: "FULL_FROM_WAREHOUSE", label: "Lleno desde almacen" },
-  { value: "EMPTY_FROM_CUSTOMER", label: "Vacio desde cliente" },
-  { value: "FULL_FROM_SUPPLIER", label: "Lleno desde proveedor" },
+  { value: "EMPTY_FROM_WAREHOUSE", label: "Vacío desde almacén" },
+  { value: "EMPTY_FROM_CUSTOMER", label: "Vacío desde cliente" },
 ];
+
+const WAREHOUSE_SESSION_KEY = "systutor:last-alta-warehouse";
 
 const CONTAINER_TYPE_OPTIONS = [
   { value: "CYLINDER", label: "Estandar" },
@@ -160,12 +160,25 @@ export function CreateCylinderDialog({
   const customerId = createMeta.customer_id;
 
   function handleEntryModeChange(value: string) {
-    const entryMode = (value as CylinderEntryMode) || "EMPTY_FROM_CUSTOMER";
+    const entryMode = (value as CylinderEntryMode) || "EMPTY_FROM_WAREHOUSE";
     onCreateMetaChange({
       ...createMeta,
       entry_mode: entryMode,
     });
   }
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+    if (!createMeta.warehouse_id) {
+      const saved =
+        window.sessionStorage.getItem(WAREHOUSE_SESSION_KEY) ?? "";
+      if (saved && warehouseOptions.some((option) => option.value === saved)) {
+        onCreateMetaChange({ ...createMeta, warehouse_id: saved });
+      }
+    }
+  }, [open]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -222,9 +235,12 @@ export function CreateCylinderDialog({
                 <Field label="Almacen de alta">
                   <Combobox
                     value={createMeta.warehouse_id}
-                    onChange={(value) =>
-                      onCreateMetaChange({ ...createMeta, warehouse_id: value })
-                    }
+                    onChange={(value) => {
+                      onCreateMetaChange({ ...createMeta, warehouse_id: value });
+                      if (value) {
+                        window.sessionStorage.setItem(WAREHOUSE_SESSION_KEY, value);
+                      }
+                    }}
                     options={warehouseOptions}
                     placeholder="Seleccionar almacen"
                     searchPlaceholder="Buscar almacen..."

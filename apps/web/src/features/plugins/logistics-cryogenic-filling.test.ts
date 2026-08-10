@@ -163,6 +163,33 @@ describe("cryogenic filling helpers", () => {
     expect(cards[0].availableLiters).toBe(0);
   });
 
+  it("uses the balance warehouse when the tank has no direct warehouse_id", () => {
+    const cards = buildCryogenicTankSourceCards({
+      tanks: [makeTank({ warehouse_id: null, warehouse_name: null }) as any],
+      balances: [
+        {
+          product_id: "lox-1",
+          warehouse_id: "wh-1",
+          warehouse_code: "PIEDRA",
+          warehouse_name: "Piedra",
+          product_sku: "LOX",
+          product_name: "Oxigeno Liquido",
+          quantity: 1000,
+        },
+      ] as any,
+      emptyResultCylinders: [makeEmptyCylinder("result-1", "wh-1", "OXI-IND-B1000001")] as any,
+      recipeByResultProductId: new Map([["result-1", makeRecipe("lox-1", 1.899)]]) as any,
+      productsById: new Map([
+        ["lox-1", { id: "lox-1", sku: "LOX", name: "Oxigeno Liquido" }],
+      ]) as any,
+    });
+
+    expect(cards).toHaveLength(1);
+    expect(cards[0].warehouseId).toBe("wh-1");
+    expect(cards[0].eligibleEmptyCount).toBe(1);
+    expect(cards[0].resultProductIds).toEqual(["result-1"]);
+  });
+
   it("ignores tanks without a liquid gas product and empties of another warehouse", () => {
     const cards = buildCryogenicTankSourceCards({
       tanks: [

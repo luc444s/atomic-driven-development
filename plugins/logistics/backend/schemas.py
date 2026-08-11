@@ -332,6 +332,19 @@ class RoutingCommitOrderResponseRead(BaseModel):
     stop_count: int
 
 
+class RoutingAssignedRouteRead(BaseModel):
+    calculation_id: str
+    route_id: str
+    session_id: str | None = None
+    planning_reservation_id: str | None = None
+    provider_stack: str
+    ordered_stop_ids: list[str] = Field(default_factory=list)
+    totals: dict = Field(default_factory=dict)
+    violations: list[str] = Field(default_factory=list)
+    polyline: str | None = None
+    created_at: datetime
+
+
 class TraceabilityEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

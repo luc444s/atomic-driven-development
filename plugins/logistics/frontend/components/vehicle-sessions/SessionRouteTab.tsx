@@ -3,12 +3,15 @@ import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
 } from "../../../../../apps/web/src/shared/ui/card";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { getRoute, getRouteStopProgress, listRouteStops, logisticsKeys } from "../../api";
+import {
+  getAssignedRoute,
+  getRoute,
+  getRouteStopProgress,
+  listRouteStops,
+  logisticsKeys,
+} from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 import { RouteContextMap } from "../route-builder/RouteContextMap";
 import { SessionWaybillCard } from "./SessionWaybillCard";
@@ -44,6 +47,11 @@ export function SessionRouteTab({
   const routeQuery = useQuery({
     queryKey: routeId ? logisticsKeys.routes.detail(routeId) : ["logistics", "routes", "none", "detail"],
     queryFn: () => getRoute(routeId!),
+    enabled: open && Boolean(routeId),
+  });
+  const assignedRouteQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.assigned(routeId) : ["logistics", "routes", "none", "assigned-route"],
+    queryFn: () => getAssignedRoute(routeId!),
     enabled: open && Boolean(routeId),
   });
   const stopProgressQuery = useQuery({
@@ -125,6 +133,7 @@ export function SessionRouteTab({
               completedStops={completedStopIds.size}
               totalStops={stops.length}
               completedStopIds={completedStopIds}
+              assignedPolyline={assignedRouteQuery.data?.polyline ?? null}
             />
           ) : null}
         </div>

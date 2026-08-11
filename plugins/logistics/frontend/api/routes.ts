@@ -38,6 +38,19 @@ export type LogisticsRouteStop = {
   updated_at: string;
 };
 
+export type LogisticsAssignedRoute = {
+  calculation_id: string;
+  route_id: string;
+  session_id: string | null;
+  planning_reservation_id: string | null;
+  provider_stack: string;
+  ordered_stop_ids: string[];
+  totals: Record<string, unknown>;
+  violations: string[];
+  polyline: string | null;
+  created_at: string;
+};
+
 export function listRoutes(filters: { date?: string; driver?: string; status?: string }) {
   return apiRequest<LogisticsRoute[]>(
     withQuery(`${API_PREFIX}/routes`, { date: filters.date, driver: filters.driver, status: filters.status })
@@ -50,6 +63,10 @@ export function getRoute(routeId: string) {
 
 export function listRouteStops(routeId: string) {
   return apiRequest<LogisticsRouteStop[]>(`${API_PREFIX}/routes/${routeId}/stops`);
+}
+
+export function getAssignedRoute(routeId: string) {
+  return apiRequest<LogisticsAssignedRoute | null>(`${API_PREFIX}/routing/assigned-route/${routeId}`);
 }
 
 export function createRoute(payload: Record<string, unknown>) {

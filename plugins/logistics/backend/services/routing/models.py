@@ -108,6 +108,19 @@ class RoutingCommitOrderResponse(BaseModel):
     stop_count: int
 
 
+class RoutingAssignedRouteSnapshot(BaseModel):
+    calculation_id: str
+    route_id: str
+    session_id: str | None = None
+    planning_reservation_id: str | None = None
+    provider_stack: str
+    ordered_stop_ids: list[str]
+    totals: dict
+    violations: list[str]
+    polyline: str | None = None
+    created_at: datetime
+
+
 class TimeDistanceMatrix(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

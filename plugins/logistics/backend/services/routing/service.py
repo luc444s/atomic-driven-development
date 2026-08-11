@@ -18,6 +18,7 @@ from plugins.logistics.backend.services.routing.geometry import build_route_geom
 from plugins.logistics.backend.services.routing.matrix import build_time_distance_matrix
 from plugins.logistics.backend.services.routing.models import (
     Coordinate,
+    RoutingAssignedRouteSnapshot,
     RoutingCalculatedStop,
     RoutingCalculationRequest,
     RoutingCalculationResponse,
@@ -238,3 +239,34 @@ class RoutingService:
             separators=(",", ":"),
         )
         return sha256(raw.encode("utf-8")).hexdigest()
+
+    def get_latest_assigned_route(
+        self,
+        db: Session,
+        *,
+        tenant_id: str,
+        route_id: str,
+    ) -> RoutingAssignedRouteSnapshot | None:
+        calculation = db.scalar(
+            select(LogisticsRouteCalculation)
+            .where(
+                LogisticsRouteCalculation.tenant_id == tenant_id,
+                LogisticsRouteCalculation.route_id == route_id,
+            )
+            .order_by(LogisticsRouteCalculation.created_at.desc())
+            .limit(1)
+        )
+        if calculation is None:
+            return None
+        return RoutingAssignedRouteSnapshot(
+            calculation_id=calculation.id,
+            route_id=route_id,
+            session_id=calculation.session_id,
+            planning_reservation_id=calculation.planning_reservation_id,
+            provider_stack=calculation.provider_stack,
+            ordered_stop_ids=list(calculation.ordered_stop_ids_json or []),
+            totals=dict(calculation.totals_json or {}),
+            violations=list(calculation.violations_json or []),
+            polyline=calculation.polyline,
+            created_at=calculation.created_at,
+        )

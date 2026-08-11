@@ -9,6 +9,7 @@ from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, re
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.schemas import (
+    RoutingAssignedRouteRead,
     RoutingCalculationRequestRead,
     RoutingCalculationResponseRead,
     RoutingCommitOrderRequestRead,
@@ -20,6 +21,7 @@ router = APIRouter(prefix="/routing", tags=["logistics-routing"])
 
 DB_SESSION = Depends(get_db_session)
 TENANT_CONTEXT = Depends(get_current_tenant_context)
+REQUIRE_ROUTE_READ = Depends(require_permission("logistics.route.read"))
 REQUIRE_ROUTE_MANAGE = Depends(require_permission("logistics.route.manage"))
 
 
@@ -66,3 +68,21 @@ def post_routing_commit_order(
     except ValueError as exc:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+
+
+@router.get("/assigned-route/{route_id}", response_model=RoutingAssignedRouteRead | None)
+def get_assigned_route_snapshot(
+    route_id: str,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_READ,
+) -> RoutingAssignedRouteRead | None:
+    service = RoutingService(get_settings())
+    snapshot = service.get_latest_assigned_route(
+        db,
+        tenant_id=tenant_context.current_tenant_id,
+        route_id=route_id,
+    )
+    if snapshot is None:
+        return None
+    return RoutingAssignedRouteRead.model_validate(snapshot)

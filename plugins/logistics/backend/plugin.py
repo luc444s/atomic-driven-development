@@ -70,6 +70,7 @@ LOGISTICS_PERMISSIONS = [
     "logistics.contract.renew",
     "logistics.session.read",
     "logistics.session.manage",
+    "logistics.session.route_execute",
 ]
 
 LOGISTICS_EVENTS = [

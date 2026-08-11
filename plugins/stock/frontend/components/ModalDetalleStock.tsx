@@ -6,6 +6,83 @@ import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
 import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
 import { getBalanceDetail, listProductWarehouseLedger, stockKeys } from "../api";
 
+const OPERATION_LABELS: Record<string, string> = {
+  SALE_OUT: "Salida por venta",
+  sale_out: "Salida por venta",
+  PURCHASE_IN: "Entrada por compra",
+  purchase_in: "Entrada por compra",
+  RETURN_IN: "Devolución recibida",
+  return_in: "Devolución recibida",
+  RETURN_IN_FALLBACK: "Devolución (fallback)",
+  return_in_fallback: "Devolución (fallback)",
+  PURCHASE_IN_FALLBACK: "Compra (fallback)",
+  purchase_in_fallback: "Compra (fallback)",
+  DAMAGE_OUT: "Baja por daño",
+  damage_out: "Baja por daño",
+  TRANSFER_OUT: "Transferencia (salida)",
+  transfer_out: "Transferencia (salida)",
+  TRANSFER_IN: "Transferencia (entrada)",
+  transfer_in: "Transferencia (entrada)",
+  ADJUST: "Ajuste manual",
+  adjust: "Ajuste manual",
+  INITIAL: "Stock inicial",
+  SEED: "Carga inicial",
+  LEGACY: "Migración legacy",
+  FILL: "Llenado de envase",
+  CREATE: "Alta de envase",
+};
+
+const TYPE_LABELS: Record<string, string> = {
+  movement: "Movimiento",
+  purchase_order: "Orden de compra",
+  waybill: "Guía de remisión",
+  quote: "Cotización",
+  return_note: "Nota de devolución",
+  damage_report: "Reporte de daño",
+  seed: "Carga inicial",
+  manual: "Manual",
+  adjustment: "Ajuste",
+  initial_setup: "Configuración inicial",
+  test: "Prueba",
+  transfer: "Transferencia",
+};
+
+const OP_TAGS: Record<string, string> = {
+  sale_out: "Venta",
+  purchase_in: "Compra",
+  return_in: "Devolución",
+  return_in_fallback: "Devolución (alt)",
+  purchase_in_fallback: "Compra (alt)",
+  damage_out: "Daño",
+  transfer: "Transferencia",
+  legacy: "Legacy",
+  stock: "Stock",
+  "cylinder-fill": "Llenado de envase",
+  "cylinder-create": "Alta de envase",
+};
+
+function formatReference(referenceType: string | null, referenceId: string | null, operation: string): string {
+  const opLabel = OPERATION_LABELS[operation] || operation;
+  const typeLabel = referenceType ? TYPE_LABELS[referenceType] || referenceType : null;
+  const base = typeLabel || opLabel;
+
+  if (!referenceId) return base;
+
+  const parts = referenceId.split(":");
+  if (parts.length >= 2) {
+    const middle = parts[1];
+    if (middle && OP_TAGS[middle]) {
+      return `${base} · ${OP_TAGS[middle]}`;
+    }
+    if (parts.length >= 2 && parts[0] in OP_TAGS) {
+      return `${base} · ${OP_TAGS[parts[0]]}`;
+    }
+  }
+
+  if (referenceId.length <= 20) return `${base} · ${referenceId}`;
+  return base;
+}
+
 export type ModalDetalleStockProps = {
   open: boolean;
   productId: string;
@@ -113,7 +190,7 @@ export function ModalDetalleStock({
               { key: "operation", header: "Operación", render: (row) => row.operation },
               { key: "quantity", header: "Cantidad", render: (row) => row.quantity },
               { key: "after", header: "Saldo", render: (row) => row.balance_after },
-              { key: "reference", header: "Referencia", render: (row) => row.reference_id ?? "-" },
+              { key: "reference", header: "Referencia", render: (row) => formatReference(row.reference_type, row.reference_id, row.operation) },
               { key: "notes", header: "Notas", render: (row) => row.notes ?? "-" },
               { key: "created", header: "Fecha", render: (row) => new Date(row.created_at).toLocaleString() },
             ]}

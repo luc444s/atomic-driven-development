@@ -373,14 +373,15 @@ class PluginRuntime:
                 f"undeclared plugin events: {', '.join(sorted(undeclared_events))}"
             )
 
-        handler_events = [
+        invalid_handler_events = [
             event_name
             for event_name in registration.event_handlers
-            if event_name not in manifest.events
+            if not isinstance(event_name, str) or not event_name.strip() or "." not in event_name
         ]
-        if handler_events:
+        if invalid_handler_events:
             raise PluginRuntimeError(
-                f"event handlers must target declared events: {', '.join(sorted(handler_events))}"
+                "event handlers must target fully-qualified events: "
+                f"{', '.join(sorted(invalid_handler_events))}"
             )
 
     @staticmethod

@@ -11,6 +11,8 @@ from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.schemas import (
     RoutingCalculationRequestRead,
     RoutingCalculationResponseRead,
+    RoutingCommitOrderRequestRead,
+    RoutingCommitOrderResponseRead,
 )
 from plugins.logistics.backend.services.routing.service import RoutingService
 
@@ -39,3 +41,28 @@ def post_routing_preview(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail=str(exc),
         ) from exc
+
+
+@router.post("/commit-order", response_model=RoutingCommitOrderResponseRead)
+def post_routing_commit_order(
+    payload: RoutingCommitOrderRequestRead,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> RoutingCommitOrderResponseRead:
+    service = RoutingService(get_settings())
+    try:
+        response = service.commit_order(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            actor_user_id=tenant_context.current_user_id,
+            payload=payload,
+        )
+        db.commit()
+        return RoutingCommitOrderResponseRead.model_validate(response)
+    except LookupError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError as exc:
+        db.rollback()
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

@@ -318,6 +318,20 @@ class RoutingCalculationResponseRead(BaseModel):
     committed: bool = False
 
 
+class RoutingCommitOrderRequestRead(BaseModel):
+    route_id: str
+    session_id: str | None = None
+    planning_reservation_id: str | None = None
+    preview: RoutingCalculationResponseRead
+
+
+class RoutingCommitOrderResponseRead(BaseModel):
+    calculation_id: str
+    route_id: str
+    committed: bool
+    stop_count: int
+
+
 class TraceabilityEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

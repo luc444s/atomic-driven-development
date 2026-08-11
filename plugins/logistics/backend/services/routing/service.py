@@ -1,8 +1,18 @@
 from __future__ import annotations
 
+import json
 from datetime import timedelta
+from hashlib import sha256
+
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
 from apps.api.app.core.config import Settings
+from plugins.logistics.backend.models import (
+    LogisticsRoute,
+    LogisticsRouteCalculation,
+    LogisticsRouteStop,
+)
 from plugins.logistics.backend.services.routing.cache import RoutingCache
 from plugins.logistics.backend.services.routing.geometry import build_route_geometry
 from plugins.logistics.backend.services.routing.matrix import build_time_distance_matrix
@@ -11,6 +21,8 @@ from plugins.logistics.backend.services.routing.models import (
     RoutingCalculatedStop,
     RoutingCalculationRequest,
     RoutingCalculationResponse,
+    RoutingCommitOrderRequest,
+    RoutingCommitOrderResponse,
     RoutingProviderAvailability,
     RoutingTotals,
 )
@@ -132,3 +144,97 @@ class RoutingService:
             *(stop.coordinate() for stop in request.stops),
             request.vehicle.end_coordinate(),
         ]
+
+    def commit_order(
+        self,
+        db: Session,
+        *,
+        tenant_id: str,
+        actor_user_id: str,
+        payload: RoutingCommitOrderRequest,
+    ) -> RoutingCommitOrderResponse:
+        route = db.scalar(
+            select(LogisticsRoute).where(
+                LogisticsRoute.id == payload.route_id,
+                LogisticsRoute.tenant_id == tenant_id,
+            )
+        )
+        if route is None:
+            raise LookupError("route not found")
+
+        stops = list(
+            db.scalars(
+                select(LogisticsRouteStop)
+                .where(LogisticsRouteStop.route_id == payload.route_id)
+                .order_by(LogisticsRouteStop.stop_order.asc())
+            ).all()
+        )
+        ordered_stop_ids = [
+            item.stop_id
+            for item in sorted(payload.preview.ordered_stops, key=lambda item: item.sequence)
+        ]
+        if not ordered_stop_ids:
+            raise ValueError("commit-order requires at least one ordered stop")
+
+        route_stop_ids = {item.id for item in stops}
+        if route_stop_ids != set(ordered_stop_ids):
+            raise ValueError("ordered stops do not match route stops")
+
+        for offset, stop in enumerate(stops, start=1):
+            stop.stop_order = 1000 + offset
+            db.add(stop)
+        db.flush()
+
+        stop_by_id = {stop.id: stop for stop in stops}
+        for sequence, stop_id in enumerate(ordered_stop_ids, start=1):
+            stop = stop_by_id[stop_id]
+            stop.stop_order = sequence
+            db.add(stop)
+
+        calculation = LogisticsRouteCalculation(
+            tenant_id=tenant_id,
+            route_id=payload.route_id,
+            session_id=payload.session_id,
+            planning_reservation_id=payload.planning_reservation_id,
+            provider_stack=payload.preview.provider_stack,
+            input_hash=self._build_input_hash(payload),
+            ordered_stop_ids_json=ordered_stop_ids,
+            totals_json=payload.preview.totals.model_dump(),
+            violations_json=payload.preview.violations,
+            polyline=payload.preview.polyline,
+            created_by=actor_user_id,
+        )
+        db.add(calculation)
+        db.flush()
+
+        return RoutingCommitOrderResponse(
+            calculation_id=calculation.id,
+            route_id=payload.route_id,
+            committed=True,
+            stop_count=len(ordered_stop_ids),
+        )
+
+    def _build_input_hash(self, payload: RoutingCommitOrderRequest) -> str:
+        raw = json.dumps(
+            {
+                "route_id": payload.route_id,
+                "session_id": payload.session_id,
+                "planning_reservation_id": payload.planning_reservation_id,
+                "provider_stack": payload.preview.provider_stack,
+                "ordered_stops": [
+                    {
+                        "stop_id": item.stop_id,
+                        "sequence": item.sequence,
+                        "distance_from_prev_m": item.distance_from_prev_m,
+                        "travel_seconds_from_prev": item.travel_seconds_from_prev,
+                    }
+                    for item in payload.preview.ordered_stops
+                ],
+                "totals": payload.preview.totals.model_dump(),
+                "violations": payload.preview.violations,
+                "polyline": payload.preview.polyline,
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+        )
+        return sha256(raw.encode("utf-8")).hexdigest()

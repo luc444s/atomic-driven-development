@@ -61,6 +61,7 @@ from .resources import (
     LogisticsWarehouse,
     LogisticsZone,
 )
+from .route_calculations import LogisticsRouteCalculation
 from .route_control import LogisticsRouteControlState, LogisticsVehicleLocationEvent
 from .route_incidents import LogisticsRouteIncident
 from .route_operations import LogisticsRouteOperation, LogisticsRouteOperationItem

@@ -94,6 +94,20 @@ class RoutingCalculationResponse(BaseModel):
     committed: bool = False
 
 
+class RoutingCommitOrderRequest(BaseModel):
+    route_id: str
+    session_id: str | None = None
+    planning_reservation_id: str | None = None
+    preview: RoutingCalculationResponse
+
+
+class RoutingCommitOrderResponse(BaseModel):
+    calculation_id: str
+    route_id: str
+    committed: bool
+    stop_count: int
+
+
 class TimeDistanceMatrix(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

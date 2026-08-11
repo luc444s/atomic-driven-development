@@ -146,3 +146,32 @@ def test_routing_service_preview_requires_available_stack(test_settings: Setting
         assert str(exc) == "routing stack unavailable"
     else:
         raise AssertionError("Expected routing stack unavailable error")
+
+
+def test_routing_service_preview_rejects_stop_limit(test_settings: Settings) -> None:
+    settings = test_settings.model_copy(
+        update={
+            "logistics_routing_enabled": True,
+        }
+    )
+    service = RoutingService(settings, osrm=FakeOsrm(), vroom=FakeVroom())
+    request = RoutingCalculationRequest(
+        vehicle=RoutingVehicleInput(
+            vehicle_id="veh-1",
+            start_lat=40.0,
+            start_lng=-3.0,
+            end_lat=40.0,
+            end_lng=-3.0,
+        ),
+        stops=[
+            RoutingStopInput(stop_id=f"stop-{index}", lat=40.1 + index, lng=-3.1 - index)
+            for index in range(41)
+        ],
+    )
+
+    try:
+        service.calculate_preview(request)
+    except ValueError as exc:
+        assert str(exc) == "routing preview supports up to 40 stops"
+    else:
+        raise AssertionError("Expected stop-limit validation error")

@@ -34,6 +34,8 @@ from plugins.logistics.backend.services.routing.providers.vroom import VroomClie
 
 
 class RoutingService:
+    MAX_STOPS = 40
+
     def __init__(
         self,
         settings: Settings,
@@ -78,6 +80,8 @@ class RoutingService:
         availability = self.availability()
         if not availability.ready or self.osrm is None or self.vroom is None:
             raise RoutingCapabilityError("routing stack unavailable")
+        if len(request.stops) > self.MAX_STOPS:
+            raise ValueError(f"routing preview supports up to {self.MAX_STOPS} stops")
         if not request.stops:
             raise ValueError("routing preview requires at least one stop")
 

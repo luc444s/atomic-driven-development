@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 
 from apps.api.app.api.deps import get_db_session
@@ -8,6 +8,7 @@ from apps.api.app.core.config import get_settings
 from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
 from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
+from plugins.logistics.backend.common import audit_logistics_action, build_action_context
 from plugins.logistics.backend.schemas import (
     RoutingAssignedRouteRead,
     RoutingCalculationRequestRead,
@@ -68,17 +69,31 @@ def post_routing_optimize(
 @router.post("/commit-order", response_model=RoutingCommitOrderResponseRead)
 def post_routing_commit_order(
     payload: RoutingCommitOrderRequestRead,
+    request: Request,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_ROUTE_MANAGE,
 ) -> RoutingCommitOrderResponseRead:
     service = RoutingService(get_settings())
     try:
+        action_context = build_action_context(request, tenant_context)
         response = service.commit_order(
             db,
             tenant_id=tenant_context.current_tenant_id,
             actor_user_id=tenant_context.current_user_id,
             payload=payload,
+        )
+        audit_logistics_action(
+            db,
+            context=action_context,
+            action="routing.commit_order",
+            entity_type="route",
+            entity_id=payload.route_id,
+            details={
+                "calculation_id": response.calculation_id,
+                "provider_stack": payload.preview.provider_stack,
+                "stop_count": response.stop_count,
+            },
         )
         db.commit()
         return RoutingCommitOrderResponseRead.model_validate(response)

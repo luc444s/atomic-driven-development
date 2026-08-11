@@ -31,13 +31,7 @@ class VroomClient:
             "start": [start.lng, start.lat],
             "end": [end.lng, end.lat],
         }
-        response = httpx.post(
-            f"{self.base_url}",
-            json={"vehicles": [vehicle], "jobs": jobs},
-            timeout=self.timeout_seconds,
-        )
-        response.raise_for_status()
-        payload = response.json()
+        payload = self._post_json({"vehicles": [vehicle], "jobs": jobs})
         routes = payload.get("routes")
         if not isinstance(routes, list) or not routes:
             raise RoutingProviderError("VROOM response missing routes")
@@ -48,3 +42,21 @@ class VroomClient:
                 ordered.append(int(step["job"]))
         ordered.append(len(coordinates) - 1)
         return ordered
+
+    def _post_json(self, payload: dict) -> dict:
+        last_error: Exception | None = None
+        for _attempt in range(2):
+            try:
+                response = httpx.post(
+                    f"{self.base_url}",
+                    json=payload,
+                    timeout=self.timeout_seconds,
+                )
+                response.raise_for_status()
+                data = response.json()
+                if not isinstance(data, dict):
+                    raise RoutingProviderError("VROOM response must be JSON object")
+                return data
+            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+                last_error = exc
+        raise RoutingProviderError(f"VROOM request failed: {last_error}")

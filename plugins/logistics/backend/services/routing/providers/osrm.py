@@ -21,14 +21,29 @@ class OsrmClient:
     def _coordinate_param(self, coordinates: Sequence[Coordinate]) -> str:
         return ";".join(f"{item.lng},{item.lat}" for item in coordinates)
 
+    def _get_json(self, path: str, *, params: dict[str, str] | None = None) -> dict:
+        last_error: Exception | None = None
+        for _attempt in range(2):
+            try:
+                response = httpx.get(
+                    f"{self.base_url}{path}",
+                    params=params,
+                    timeout=self.timeout_seconds,
+                )
+                response.raise_for_status()
+                payload = response.json()
+                if not isinstance(payload, dict):
+                    raise RoutingProviderError("OSRM response must be JSON object")
+                return payload
+            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+                last_error = exc
+        raise RoutingProviderError(f"OSRM request failed: {last_error}")
+
     def build_matrix(self, coordinates: Sequence[Coordinate]) -> TimeDistanceMatrix:
-        response = httpx.get(
-            f"{self.base_url}/table/v1/driving/{self._coordinate_param(coordinates)}",
+        payload = self._get_json(
+            f"/table/v1/driving/{self._coordinate_param(coordinates)}",
             params={"annotations": "duration,distance"},
-            timeout=self.timeout_seconds,
         )
-        response.raise_for_status()
-        payload = response.json()
         durations = payload.get("durations")
         distances = payload.get("distances")
         if not isinstance(durations, list) or not isinstance(distances, list):
@@ -40,13 +55,10 @@ class OsrmClient:
         )
 
     def build_route(self, coordinates: Sequence[Coordinate]) -> RouteGeometry:
-        response = httpx.get(
-            f"{self.base_url}/route/v1/driving/{self._coordinate_param(coordinates)}",
+        payload = self._get_json(
+            f"/route/v1/driving/{self._coordinate_param(coordinates)}",
             params={"overview": "full", "geometries": "polyline", "steps": "false"},
-            timeout=self.timeout_seconds,
         )
-        response.raise_for_status()
-        payload = response.json()
         routes = payload.get("routes")
         if not isinstance(routes, list) or not routes:
             raise RoutingProviderError("OSRM route response missing routes")
@@ -67,12 +79,9 @@ class OsrmClient:
         )
 
     def snap(self, coordinate: Coordinate) -> Coordinate:
-        response = httpx.get(
-            f"{self.base_url}/nearest/v1/driving/{coordinate.lng},{coordinate.lat}",
-            timeout=self.timeout_seconds,
+        payload = self._get_json(
+            f"/nearest/v1/driving/{coordinate.lng},{coordinate.lat}",
         )
-        response.raise_for_status()
-        payload = response.json()
         waypoints = payload.get("waypoints")
         if not isinstance(waypoints, list) or not waypoints:
             raise RoutingProviderError("OSRM nearest response missing waypoints")

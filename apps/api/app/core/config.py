@@ -57,6 +57,11 @@ class Settings(BaseModel):
     seed_admin_email: str = "admin@example.com"
     seed_admin_password: str = "ChangeMe123!"
     seed_admin_full_name: str = "System Admin"
+    logistics_routing_enabled: bool = False
+    logistics_osrm_base_url: str | None = None
+    logistics_vroom_base_url: str | None = None
+    logistics_routing_request_timeout_seconds: int = 10
+    logistics_routing_cache_ttl_seconds: int = 300
 
 
 @lru_cache
@@ -96,6 +101,18 @@ def get_settings() -> Settings:
         seed_admin_email=os.getenv("SYSTUTOR_SEED_ADMIN_EMAIL", "admin@example.com"),
         seed_admin_password=os.getenv("SYSTUTOR_SEED_ADMIN_PASSWORD", "ChangeMe123!"),
         seed_admin_full_name=os.getenv("SYSTUTOR_SEED_ADMIN_FULL_NAME", "System Admin"),
+        logistics_routing_enabled=os.getenv(
+            "SYSTUTOR_LOGISTICS_ROUTING_ENABLED", "false"
+        ).lower()
+        in {"1", "true", "yes", "on"},
+        logistics_osrm_base_url=os.getenv("SYSTUTOR_LOGISTICS_OSRM_BASE_URL") or None,
+        logistics_vroom_base_url=os.getenv("SYSTUTOR_LOGISTICS_VROOM_BASE_URL") or None,
+        logistics_routing_request_timeout_seconds=int(
+            os.getenv("SYSTUTOR_LOGISTICS_ROUTING_REQUEST_TIMEOUT_SECONDS", "10")
+        ),
+        logistics_routing_cache_ttl_seconds=int(
+            os.getenv("SYSTUTOR_LOGISTICS_ROUTING_CACHE_TTL_SECONDS", "300")
+        ),
         use_transactional_stock_bridge=os.getenv(
             "SYSTUTOR_USE_TRANSACTIONAL_STOCK_BRIDGE", "true"
         ).lower()

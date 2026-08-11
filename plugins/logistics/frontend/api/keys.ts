@@ -42,6 +42,7 @@ export const logisticsKeys = {
     detail: (id: string) => [...logisticsKeys.routes.all(), id] as const,
     stops: (id: string) => [...logisticsKeys.routes.detail(id), "stops"] as const,
     assigned: (id: string) => [...logisticsKeys.routes.detail(id), "assigned-route"] as const,
+    optimize: (id: string) => [...logisticsKeys.routes.detail(id), "optimize-preview"] as const,
   },
   loads: (routeId: string) => [...logisticsKeys.all, "loads", routeId] as const,
   movementTypes: () => [...logisticsKeys.all, "movement-types"] as const,

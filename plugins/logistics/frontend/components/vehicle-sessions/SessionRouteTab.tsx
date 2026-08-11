@@ -4,13 +4,16 @@ import {
   Card,
   CardContent,
 } from "../../../../../apps/web/src/shared/ui/card";
-import { useQuery } from "../../../../../apps/web/src/lib/react-query";
+import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import {
+  commitRouteOrder,
   getAssignedRoute,
   getRoute,
   getRouteStopProgress,
   listRouteStops,
   logisticsKeys,
+  optimizeRouteCalculation,
+  type RoutingCalculationResponse,
 } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 import { RouteContextMap } from "../route-builder/RouteContextMap";
@@ -38,6 +41,7 @@ export function SessionRouteTab({
   sessionStatus,
 }: Props) {
   const controller = useSessionRouteTabController({ open, routeId, sessionId, sessionStatus });
+  const queryClient = useQueryClient();
 
   const stopsQuery = useQuery({
     queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
@@ -74,10 +78,79 @@ export function SessionRouteTab({
           label: routeOriginLabel ?? "Inicio",
         }
       : null;
+  const canRecalculate = Boolean(routeId && routeQuery.data?.vehicle_id && startPoint && stops.length > 0);
+
+  function buildOptimizePayload() {
+    if (!routeId || !routeQuery.data?.vehicle_id || !startPoint || stops.length === 0) {
+      throw new Error("Faltan datos mínimos para recalcular la ruta")
+    }
+    return {
+      route_id: routeId,
+      session_id: sessionId,
+      mode: "optimize",
+      vehicle: {
+        vehicle_id: routeQuery.data.vehicle_id,
+        start_lat: startPoint.lat,
+        start_lng: startPoint.lng,
+      },
+      stops: stops
+        .map((stop) => {
+          const coords = stop.gps_coordinates as { lat?: number; lng?: number } | null;
+          if (coords?.lat == null || coords?.lng == null) {
+            return null;
+          }
+          return {
+            stop_id: stop.id,
+            customer_id: stop.customer_id,
+            customer_name: stop.customer_name_snapshot,
+            lat: coords.lat,
+            lng: coords.lng,
+            service_minutes: 0,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null),
+    };
+  }
+
+  const optimizeMutation = useMutation({
+    mutationFn: () => optimizeRouteCalculation(buildOptimizePayload()),
+  });
+  const commitOptimizeMutation = useMutation({
+    mutationFn: (preview: RoutingCalculationResponse) =>
+      commitRouteOrder({
+        route_id: routeId!,
+        session_id: sessionId,
+        preview,
+      }),
+    onSuccess: async () => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.routes.stops(routeId!) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.routes.assigned(routeId!) }),
+      ]);
+      optimizeMutation.reset();
+    },
+  });
+  const proposedRoute = optimizeMutation.data;
+  const currentDistance = Number(assignedRouteQuery.data?.totals?.distance_m ?? 0);
+  const proposedDistance = proposedRoute?.totals.distance_m ?? 0;
+  const distanceDelta = proposedRoute ? proposedDistance - currentDistance : 0;
 
   return (
     <div className="space-y-4">
       {controller.error ? <Alert title="No se pudo actualizar la jornada en ruta">{controller.error}</Alert> : null}
+      {optimizeMutation.error ? (
+        <Alert title="No se pudo recalcular la ruta">
+          {optimizeMutation.error instanceof Error
+            ? optimizeMutation.error.message
+            : "Error al generar propuesta de ruta."}
+        </Alert>
+      ) : null}
+      {proposedRoute ? (
+        <Alert title="Propuesta nueva de ruta">
+          Actual: {currentDistance} m · Propuesta: {proposedDistance} m · Delta: {distanceDelta} m.
+          {proposedRoute.violations.length ? ` Violaciones: ${proposedRoute.violations.join(", ")}.` : " Sin violaciones."}
+        </Alert>
+      ) : null}
       <div className="grid gap-4 xl:grid-cols-[minmax(420px,620px)_minmax(0,1fr)] 2xl:grid-cols-[680px_minmax(0,1fr)]">
         <div className="space-y-4 xl:sticky xl:top-0 self-start">
           <SessionWaybillCard
@@ -118,6 +191,21 @@ export function SessionRouteTab({
                 <Button variant="secondary" onClick={controller.openIncidentsModal}>
                   Incidencias{controller.routeIncidents.length ? ` (${controller.routeIncidents.length})` : ""}
                 </Button>
+                <Button
+                  variant="secondary"
+                  disabled={!canRecalculate || optimizeMutation.isPending}
+                  onClick={() => optimizeMutation.mutate()}
+                >
+                  {optimizeMutation.isPending ? "Calculando..." : "Recalcular ruta"}
+                </Button>
+                {proposedRoute ? (
+                  <Button
+                    disabled={commitOptimizeMutation.isPending}
+                    onClick={() => commitOptimizeMutation.mutate(proposedRoute)}
+                  >
+                    {commitOptimizeMutation.isPending ? "Aceptando..." : "Aceptar propuesta"}
+                  </Button>
+                ) : null}
                 <Button disabled={!controller.canRegisterOperation} onClick={controller.openEventModal}>
                   Registrar movimiento
                 </Button>

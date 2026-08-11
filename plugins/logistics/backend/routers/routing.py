@@ -45,6 +45,26 @@ def post_routing_preview(
         ) from exc
 
 
+@router.post("/optimize", response_model=RoutingCalculationResponseRead)
+def post_routing_optimize(
+    payload: RoutingCalculationRequestRead,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_ROUTE_MANAGE,
+) -> RoutingCalculationResponseRead:
+    del db, tenant_context
+    service = RoutingService(get_settings())
+    try:
+        return RoutingCalculationResponseRead.model_validate(service.calculate_preview(payload))
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    except RuntimeError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=str(exc),
+        ) from exc
+
+
 @router.post("/commit-order", response_model=RoutingCommitOrderResponseRead)
 def post_routing_commit_order(
     payload: RoutingCommitOrderRequestRead,

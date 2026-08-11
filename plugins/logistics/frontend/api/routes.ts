@@ -51,6 +51,90 @@ export type LogisticsAssignedRoute = {
   created_at: string;
 };
 
+export type RoutingStopInput = {
+  stop_id: string;
+  customer_id?: string | null;
+  customer_name?: string | null;
+  address_id?: string | null;
+  address_label?: string | null;
+  lat: number;
+  lng: number;
+  service_minutes?: number;
+  time_window_start?: string | null;
+  time_window_end?: string | null;
+  demand_units?: number;
+  demand_weight_kg?: number;
+  demand_volume_m3?: number;
+  adr_required?: boolean;
+  priority?: number | null;
+};
+
+export type RoutingVehicleInput = {
+  vehicle_id: string;
+  start_warehouse_id?: string | null;
+  end_warehouse_id?: string | null;
+  start_lat: number;
+  start_lng: number;
+  end_lat?: number | null;
+  end_lng?: number | null;
+  capacity_units?: number | null;
+  capacity_weight_kg?: number | null;
+  capacity_volume_m3?: number | null;
+  adr_capable?: boolean;
+};
+
+export type RoutingCalculationRequest = {
+  route_id?: string | null;
+  session_id?: string | null;
+  planning_reservation_id?: string | null;
+  vehicle: RoutingVehicleInput;
+  stops: RoutingStopInput[];
+  departure_at?: string | null;
+  mode?: string;
+  commit_order?: boolean;
+};
+
+export type RoutingCalculatedStop = {
+  stop_id: string;
+  sequence: number;
+  eta_at: string | null;
+  etd_at: string | null;
+  distance_from_prev_m: number | null;
+  travel_seconds_from_prev: number | null;
+  service_minutes: number;
+  violation_codes: string[];
+};
+
+export type RoutingCalculationResponse = {
+  provider_stack: string;
+  route_id: string | null;
+  session_id: string | null;
+  ordered_stops: RoutingCalculatedStop[];
+  totals: {
+    distance_m: number;
+    travel_seconds: number;
+    service_seconds: number;
+    total_seconds: number;
+  };
+  polyline: string | null;
+  violations: string[];
+  committed: boolean;
+};
+
+export type RoutingCommitOrderRequest = {
+  route_id: string;
+  session_id?: string | null;
+  planning_reservation_id?: string | null;
+  preview: RoutingCalculationResponse;
+};
+
+export type RoutingCommitOrderResponse = {
+  calculation_id: string;
+  route_id: string;
+  committed: boolean;
+  stop_count: number;
+};
+
 export function listRoutes(filters: { date?: string; driver?: string; status?: string }) {
   return apiRequest<LogisticsRoute[]>(
     withQuery(`${API_PREFIX}/routes`, { date: filters.date, driver: filters.driver, status: filters.status })
@@ -67,6 +151,27 @@ export function listRouteStops(routeId: string) {
 
 export function getAssignedRoute(routeId: string) {
   return apiRequest<LogisticsAssignedRoute | null>(`${API_PREFIX}/routing/assigned-route/${routeId}`);
+}
+
+export function previewRouteCalculation(payload: RoutingCalculationRequest) {
+  return apiRequest<RoutingCalculationResponse>(`${API_PREFIX}/routing/preview`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function optimizeRouteCalculation(payload: RoutingCalculationRequest) {
+  return apiRequest<RoutingCalculationResponse>(`${API_PREFIX}/routing/optimize`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function commitRouteOrder(payload: RoutingCommitOrderRequest) {
+  return apiRequest<RoutingCommitOrderResponse>(`${API_PREFIX}/routing/commit-order`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function createRoute(payload: Record<string, unknown>) {

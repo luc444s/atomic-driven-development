@@ -1,5 +1,6 @@
 import { useMemo, useRef } from "react";
 import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
+import type { RoutingCalculationResponse } from "../../api";
 import { DEFAULT_MAP_CENTER } from "./map-defaults";
 import { type BuilderPhase, type RouteStopDraft } from "./useRouteBuilder";
 
@@ -8,15 +9,51 @@ type Props = {
   startPoint: RouteStopDraft | null;
   endPoint: RouteStopDraft | null;
   stops: RouteStopDraft[];
+  preview: RoutingCalculationResponse | null;
   onClickMap: (lat: number, lng: number) => void;
   onDragMarker: (id: string, lat: number, lng: number) => void;
 };
+
+function decodePolyline(encoded: string): { lat: number; lng: number }[] {
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const points: { lat: number; lng: number }[] = [];
+
+  while (index < encoded.length) {
+    let shift = 0;
+    let result = 0;
+    let byte = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index <= encoded.length);
+    const deltaLat = result & 1 ? ~(result >> 1) : result >> 1;
+    lat += deltaLat;
+
+    shift = 0;
+    result = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index <= encoded.length);
+    const deltaLng = result & 1 ? ~(result >> 1) : result >> 1;
+    lng += deltaLng;
+
+    points.push({ lat: lat / 1e5, lng: lng / 1e5 });
+  }
+
+  return points;
+}
 
 export function RouteBuilderMap({
   phase,
   startPoint,
   endPoint,
   stops,
+  preview,
   onClickMap,
   onDragMarker,
 }: Props) {
@@ -62,7 +99,8 @@ export function RouteBuilderMap({
     initialCenter.current = plannedPath[0];
   }
 
-  const center = plannedPath.length > 0 ? initialCenter.current : DEFAULT_MAP_CENTER;
+  const previewPath = preview?.polyline ? decodePolyline(preview.polyline) : [];
+  const center = (previewPath.length > 0 ? previewPath[0] : plannedPath[0]) ?? DEFAULT_MAP_CENTER;
 
   const isBuilding = phase !== "idle";
   const phaseLabel =
@@ -81,10 +119,16 @@ export function RouteBuilderMap({
       ) : null}
       <LocationMap
         center={center}
-        zoom={plannedPath.length > 0 ? 12 : 6}
+        zoom={plannedPath.length > 0 || previewPath.length > 0 ? 12 : 6}
         height={400}
         markers={markers}
-        polylines={plannedPath.length > 1 ? [{ id: "planned", points: plannedPath, color: "#2563eb" }] : []}
+        polylines={
+          previewPath.length > 1
+            ? [{ id: "preview", points: previewPath, color: "#2563eb" }]
+            : plannedPath.length > 1
+              ? [{ id: "planned", points: plannedPath, color: "#2563eb" }]
+              : []
+        }
         onMapClick={isBuilding ? (latlng) => onClickMap(latlng.lat, latlng.lng) : undefined}
         onMarkerDrag={isBuilding ? (id, latlng) => onDragMarker(id, latlng.lat, latlng.lng) : undefined}
       />

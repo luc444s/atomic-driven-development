@@ -1,6 +1,12 @@
+import { useMutation, useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import type { PlanningReservation } from "../../api";
+import {
+  getRoute,
+  listRouteStops,
+  optimizeRouteCalculation,
+  type PlanningReservation,
+} from "../../api";
 import { PlanningConflictPanel } from "./planning-conflict-panel";
 import { formatReservationWindow } from "../utils/planning-calendar-formatters";
 
@@ -23,6 +29,56 @@ export function PlanningReservationDetailPanel({
   isActivating,
   isCancelling,
 }: Props) {
+  const routeQuery = useQuery({
+    queryKey: reservation?.route_id ? ["planning", "route", reservation.route_id] : ["planning", "route", "none"],
+    queryFn: () => getRoute(reservation!.route_id!),
+    enabled: Boolean(reservation?.route_id),
+  });
+  const routeStopsQuery = useQuery({
+    queryKey: reservation?.route_id ? ["planning", "route-stops", reservation.route_id] : ["planning", "route-stops", "none"],
+    queryFn: () => listRouteStops(reservation!.route_id!),
+    enabled: Boolean(reservation?.route_id),
+  });
+  const previewMutation = useMutation({
+    mutationFn: async () => {
+      if (!reservation?.route_id) {
+        throw new Error("La reserva no tiene ruta para calcular")
+      }
+      const start = routeQuery.data?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
+      if (start?.lat == null || start?.lng == null) {
+        throw new Error("La ruta no tiene origen geográfico para cálculo")
+      }
+      const stops = (routeStopsQuery.data ?? [])
+        .map((stop) => {
+          const coords = stop.gps_coordinates as { lat?: number; lng?: number } | null;
+          if (coords?.lat == null || coords?.lng == null) {
+            return null;
+          }
+          return {
+            stop_id: stop.id,
+            customer_id: stop.customer_id,
+            customer_name: stop.customer_name_snapshot,
+            lat: coords.lat,
+            lng: coords.lng,
+            service_minutes: 0,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+      if (!stops.length) {
+        throw new Error("La ruta no tiene paradas geográficas para cálculo")
+      }
+      return optimizeRouteCalculation({
+        route_id: reservation.route_id,
+        vehicle: {
+          vehicle_id: reservation.vehicle_id,
+          start_lat: start.lat,
+          start_lng: start.lng,
+        },
+        stops,
+      });
+    },
+  });
+
   return (
     <Card className="h-full">
       <CardHeader>
@@ -42,8 +98,19 @@ export function PlanningReservationDetailPanel({
 
             <PlanningConflictPanel reason={reservation.conflict_reason} />
 
+            {previewMutation.data ? (
+              <div className="rounded-md border border-border p-3 text-sm text-foreground">
+                Preview ruta: {previewMutation.data.totals.distance_m} m · {previewMutation.data.totals.travel_seconds}s.
+              </div>
+            ) : null}
+
             <div className="flex flex-wrap gap-2">
               <Button variant="secondary" onClick={onEdit}>Editar</Button>
+              {reservation.route_id ? (
+                <Button variant="secondary" onClick={() => previewMutation.mutate()} disabled={previewMutation.isPending}>
+                  {previewMutation.isPending ? "Calculando ruta..." : "Preview ruta"}
+                </Button>
+              ) : null}
               {reservation.linked_session_id ? (
                 <Button onClick={() => onOpenSession(reservation.linked_session_id!)}>Abrir jornada</Button>
               ) : (

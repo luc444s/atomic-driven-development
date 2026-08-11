@@ -1,7 +1,7 @@
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Input } from "../../../../../apps/web/src/shared/ui/input";
 import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import type { LogisticsVehicle, VehicleSession } from "../../api";
+import type { LogisticsVehicle, RoutingCalculationResponse, VehicleSession } from "../../api";
 import { LocationSearch } from "../../../../../apps/web/src/shared/ui/location-search";
 import { type RouteStopDraft } from "./useRouteBuilder";
 
@@ -14,9 +14,11 @@ type Props = {
   vehicleId: string;
   customName: string;
   isSaving: boolean;
+  isCalculating: boolean;
   vehicles: LogisticsVehicle[];
   sessions: VehicleSession[];
   selectedSessionId: string;
+  preview: RoutingCalculationResponse | null;
   onRemoveStart: () => void;
   onRemoveEnd: () => void;
   onRemoveStop: (index: number) => void;
@@ -26,6 +28,8 @@ type Props = {
   onCustomNameChange: (value: string) => void;
   onSessionChange: (value: string) => void;
   onAssignSession: () => void;
+  onCalculate: () => void;
+  onClearPreview: () => void;
   onCancel: () => void;
   onSave: () => void;
   onSearchSelect: (lat: number, lng: number) => void;
@@ -42,9 +46,11 @@ export function RouteBuilderPanel({
   vehicleId,
   customName,
   isSaving,
+  isCalculating,
   vehicles,
   sessions,
   selectedSessionId,
+  preview,
   onRemoveStart,
   onRemoveEnd,
   onRemoveStop,
@@ -54,6 +60,8 @@ export function RouteBuilderPanel({
   onCustomNameChange,
   onSessionChange,
   onAssignSession,
+  onCalculate,
+  onClearPreview,
   onCancel,
   onSave,
   onSearchSelect,
@@ -62,6 +70,7 @@ export function RouteBuilderPanel({
 }: Props) {
   const isBuilding = phase !== "idle";
   const canSave = startPoint && endPoint && !isSaving && isBuilding;
+  const canCalculate = Boolean(startPoint && endPoint && vehicleId && !isCalculating && isBuilding);
 
   const vehicleOptions = vehicles.map((v) => ({ value: v.id, label: v.plate }));
   const sessionOptions = sessions
@@ -165,9 +174,21 @@ export function RouteBuilderPanel({
                 <Button disabled={!selectedSessionId} onClick={onAssignSession}>Asignar</Button>
               </div>
             ) : null}
+
+            {preview ? (
+              <div className="rounded-md border border-border p-3 text-sm text-foreground space-y-1">
+                <p>Preview: {preview.totals.distance_m} m · {preview.totals.travel_seconds}s</p>
+                <p>Paradas optimizadas: {preview.ordered_stops.length}</p>
+                {preview.violations.length ? <p>Violaciones: {preview.violations.join(", ")}</p> : null}
+              </div>
+            ) : null}
           </div>
 
           <div className="flex justify-end gap-3">
+            <Button variant="secondary" disabled={!canCalculate} onClick={onCalculate}>
+              {isCalculating ? "Calculando..." : "Calcular ruta"}
+            </Button>
+            {preview ? <Button variant="secondary" onClick={onClearPreview}>Limpiar preview</Button> : null}
             <Button variant="secondary" onClick={onCancel}>Cancelar</Button>
             <Button disabled={!canSave} onClick={onSave}>
               {isSaving ? "Guardando..." : "Guardar ruta"}

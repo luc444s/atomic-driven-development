@@ -80,9 +80,11 @@ export function RoutesPage({ autoStart = false, onRouteCreated }: Props) {
             vehicleId={builder.vehicleId}
             customName={builder.customName}
             isSaving={builder.isSaving}
+            isCalculating={builder.isCalculating}
             vehicles={vehiclesQuery.data ?? []}
             sessions={activeSessionsQuery.data ?? []}
             selectedSessionId={selectedSessionId}
+            preview={builder.preview}
             onRemoveStart={builder.removeStart}
             onRemoveEnd={builder.removeEnd}
             onRemoveStop={builder.removeStop}
@@ -96,6 +98,8 @@ export function RoutesPage({ autoStart = false, onRouteCreated }: Props) {
                 assignRouteMutation.mutate(builder.editingRouteId ?? selectedRouteId!);
               }
             }}
+            onCalculate={builder.calculatePreview}
+            onClearPreview={builder.clearPreview}
             onCancel={builder.cancelBuilder}
             onSave={builder.save}
             onSearchSelect={(lat, lng) => builder.handleMapClick(lat, lng)}
@@ -111,14 +115,15 @@ export function RoutesPage({ autoStart = false, onRouteCreated }: Props) {
             <Alert title="Error">{error}</Alert>
           </div>
         ) : null}
-        <RouteBuilderMap
-          phase={builder.phase}
-          startPoint={builder.startPoint}
-          endPoint={builder.endPoint}
-          stops={builder.stops}
-          onClickMap={(lat, lng) => builder.handleMapClick(lat, lng)}
-          onDragMarker={(id, lat, lng) => builder.handleMarkerDrag(id, lat, lng)}
-        />
+          <RouteBuilderMap
+            phase={builder.phase}
+            startPoint={builder.startPoint}
+            endPoint={builder.endPoint}
+            stops={builder.stops}
+            preview={builder.preview}
+            onClickMap={(lat, lng) => builder.handleMapClick(lat, lng)}
+            onDragMarker={(id, lat, lng) => builder.handleMarkerDrag(id, lat, lng)}
+          />
       </div>
     </div>
   );

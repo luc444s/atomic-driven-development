@@ -1,7 +1,13 @@
 import { useState } from "react";
 
 import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
-import { createRoute, createRouteStop, logisticsKeys } from "../../api";
+import {
+  createRoute,
+  createRouteStop,
+  logisticsKeys,
+  optimizeRouteCalculation,
+  type RoutingCalculationResponse,
+} from "../../api";
 
 export type BuilderPhase = "idle" | "picking_start" | "picking_end" | "picking_stops";
 
@@ -27,6 +33,7 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
   const [vehicleId, setVehicleId] = useState("");
   const [customName, setCustomName] = useState("");
   const [editingRouteId, setEditingRouteId] = useState<string | null>(null);
+  const [preview, setPreview] = useState<RoutingCalculationResponse | null>(null);
 
   function buildDerivedName(startName: string | null, endName: string | null) {
     if (!startName || !endName) return "";
@@ -103,6 +110,7 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
     setStops([]);
     setCustomName("");
     setEditingRouteId(null);
+    setPreview(null);
   }
 
   function startEditing(routeId: string) {
@@ -112,6 +120,7 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
     setStops([]);
     setPhase("picking_start");
     setCustomName("");
+    setPreview(null);
   }
 
   function cancelBuilder() {
@@ -121,7 +130,38 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
     setStops([]);
     setCustomName("");
     setEditingRouteId(null);
+    setPreview(null);
   }
+
+  const optimizeMutation = useMutation({
+    mutationFn: async () => {
+      if (!startPoint || !endPoint || !vehicleId) {
+        throw new Error("Faltan partida, destino o vehículo para calcular la ruta");
+      }
+      return optimizeRouteCalculation({
+        vehicle: {
+          vehicle_id: vehicleId,
+          start_lat: startPoint.lat,
+          start_lng: startPoint.lng,
+          end_lat: endPoint.lat,
+          end_lng: endPoint.lng,
+        },
+        stops: stops.map((stop, index) => ({
+          stop_id: `draft-stop-${index + 1}`,
+          lat: stop.lat,
+          lng: stop.lng,
+          address_label: stop.name,
+          service_minutes: 0,
+        })),
+        departure_at: `${routeDate}T08:00:00`,
+        mode: "preview",
+      });
+    },
+    onSuccess: (result) => setPreview(result),
+    onError: (cause) => {
+      onError(cause instanceof Error ? cause.message : "No se pudo calcular la ruta");
+    },
+  });
 
   async function handleMarkerDrag(id: string, lat: number, lng: number) {
     if (id === "start" && startPoint) {
@@ -206,10 +246,14 @@ export function useRouteBuilder({ onError, onRouteCreated }: Props) {
     vehicleId,
     customName,
     editingRouteId,
+    preview,
     isSaving: saveMutation.isPending,
+    isCalculating: optimizeMutation.isPending,
     setRouteDate,
     setVehicleId,
     setCustomName,
+    calculatePreview: optimizeMutation.mutate,
+    clearPreview: () => setPreview(null),
     handleMapClick,
     removeStart,
     removeEnd,

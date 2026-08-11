@@ -246,6 +246,78 @@ class CylinderUpdateRequest(BaseModel):
         return normalize_container_type(value)
 
 
+class RoutingStopInputRead(BaseModel):
+    stop_id: str
+    customer_id: str | None = None
+    customer_name: str | None = None
+    address_id: str | None = None
+    address_label: str | None = None
+    lat: float
+    lng: float
+    service_minutes: int = 0
+    time_window_start: datetime | None = None
+    time_window_end: datetime | None = None
+    demand_units: float = 0
+    demand_weight_kg: float = 0
+    demand_volume_m3: float = 0
+    adr_required: bool = False
+    priority: int | None = None
+
+
+class RoutingVehicleInputRead(BaseModel):
+    vehicle_id: str
+    start_warehouse_id: str | None = None
+    end_warehouse_id: str | None = None
+    start_lat: float
+    start_lng: float
+    end_lat: float | None = None
+    end_lng: float | None = None
+    capacity_units: float | None = None
+    capacity_weight_kg: float | None = None
+    capacity_volume_m3: float | None = None
+    adr_capable: bool = False
+
+
+class RoutingCalculationRequestRead(BaseModel):
+    route_id: str | None = None
+    session_id: str | None = None
+    planning_reservation_id: str | None = None
+    vehicle: RoutingVehicleInputRead
+    stops: list[RoutingStopInputRead]
+    departure_at: datetime | None = None
+    mode: str = "preview"
+    commit_order: bool = False
+
+
+class RoutingCalculatedStopRead(BaseModel):
+    stop_id: str
+    sequence: int
+    eta_at: datetime | None = None
+    etd_at: datetime | None = None
+    distance_from_prev_m: int | None = None
+    travel_seconds_from_prev: int | None = None
+    service_minutes: int = 0
+    violation_codes: list[str] = Field(default_factory=list)
+
+
+class RoutingTotalsRead(BaseModel):
+    distance_m: int
+    travel_seconds: int
+    service_seconds: int
+    total_seconds: int
+
+
+class RoutingCalculationResponseRead(BaseModel):
+    provider_stack: str
+    route_id: str | None = None
+    session_id: str | None = None
+    ordered_stops: list[RoutingCalculatedStopRead]
+    totals: RoutingTotalsRead
+    polyline: str | None = None
+    violations: list[str] = Field(default_factory=list)
+    committed: bool = False
+
+
 class TraceabilityEventRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

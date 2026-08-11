@@ -23,6 +23,7 @@ from plugins.logistics.backend.routers.route_operations import router as route_o
 from plugins.logistics.backend.routers.route_stop_results import (
     router as route_stop_results_router,
 )
+from plugins.logistics.backend.routers.routing import router as routing_router
 from plugins.logistics.backend.routers.session_waybills import router as session_waybills_router
 from plugins.logistics.backend.routers.sessions import router as sessions_router
 from plugins.logistics.backend.routers.traceability import router as traceability_router
@@ -158,6 +159,7 @@ def register(context: PluginContext) -> None:
     context.register_router(sessions_router)
     context.register_router(operational_summary_router)
     context.register_router(orders_router)
+    context.register_router(routing_router)
     context.register_router(route_control_router)
     context.register_router(route_operations_router)
     context.register_router(route_stop_results_router)

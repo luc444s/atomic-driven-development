@@ -142,6 +142,16 @@ export type CreateVehicleSessionPayload = {
   route_id?: string | null;
 };
 
+export type CreateVehicleSessionWithRoutePayload = {
+  vehicle_id: string;
+  driver_id: string;
+  origin_warehouse_id?: string | null;
+  route_id?: string | null;
+  customer_ids?: string[];
+  address_ids?: string[];
+  route_date?: string | null;
+};
+
 export type SessionActionPayload = {
   notes?: string | null;
 };
@@ -183,6 +193,13 @@ export function listDriverOptions() {
 
 export function createVehicleSession(payload: CreateVehicleSessionPayload) {
   return apiRequest<VehicleSessionDetail>(`${API_PREFIX}/vehicle-sessions`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createVehicleSessionWithRoute(payload: CreateVehicleSessionWithRoutePayload) {
+  return apiRequest<VehicleSessionDetail>(`${API_PREFIX}/vehicle-sessions/create-with-route`, {
     method: "POST",
     body: JSON.stringify(payload),
   });

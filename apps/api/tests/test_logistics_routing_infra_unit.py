@@ -3,6 +3,11 @@ from __future__ import annotations
 from datetime import UTC, datetime
 
 from apps.api.app.core.config import Settings
+from plugins.logistics.backend.schemas import (
+    RoutingCalculationRequestRead,
+    RoutingStopInputRead,
+    RoutingVehicleInputRead,
+)
 from plugins.logistics.backend.services.routing import RoutingService
 from plugins.logistics.backend.services.routing.cache import RoutingCache
 from plugins.logistics.backend.services.routing.models import (
@@ -91,9 +96,17 @@ class FakeOsrm:
 
 
 class FakeVroom:
-    def optimize_single_vehicle(self, *, coordinates):
+    def optimize_single_vehicle(self, *, coordinates, has_end):
         assert len(coordinates) == 4
+        assert has_end is True
         return [0, 2, 1, 3]
+
+
+class FakeVroomNoEnd:
+    def optimize_single_vehicle(self, *, coordinates, has_end):
+        assert len(coordinates) == 3
+        assert has_end is False
+        return [0, 2, 1]
 
 
 def test_routing_service_calculates_preview_with_fake_providers(test_settings: Settings) -> None:
@@ -146,6 +159,55 @@ def test_routing_service_preview_requires_available_stack(test_settings: Setting
         assert str(exc) == "routing stack unavailable"
     else:
         raise AssertionError("Expected routing stack unavailable error")
+
+
+def test_routing_service_accepts_router_read_payloads(test_settings: Settings) -> None:
+    settings = test_settings.model_copy(update={"logistics_routing_enabled": True})
+    osrm = FakeOsrm()
+    service = RoutingService(settings, osrm=osrm, vroom=FakeVroom())
+    request = RoutingCalculationRequestRead(
+        vehicle=RoutingVehicleInputRead(
+            vehicle_id="veh-1",
+            start_lat=40.0,
+            start_lng=-3.0,
+            end_lat=40.0,
+            end_lng=-3.0,
+        ),
+        stops=[
+            RoutingStopInputRead(stop_id="stop-a", lat=40.1, lng=-3.1, service_minutes=5),
+            RoutingStopInputRead(stop_id="stop-b", lat=40.2, lng=-3.2, service_minutes=7),
+        ],
+        departure_at=datetime(2026, 8, 11, 8, 0, tzinfo=UTC),
+    )
+
+    response = service.calculate_preview(request)
+
+    assert response.provider_stack == "osrm+vroom"
+    assert [item.stop_id for item in response.ordered_stops] == ["stop-b", "stop-a"]
+
+
+def test_routing_service_one_way_route_does_not_force_return_to_origin(
+    test_settings: Settings,
+) -> None:
+    settings = test_settings.model_copy(update={"logistics_routing_enabled": True})
+    osrm = FakeOsrm()
+    service = RoutingService(settings, osrm=osrm, vroom=FakeVroomNoEnd())
+    request = RoutingCalculationRequestRead(
+        vehicle=RoutingVehicleInputRead(
+            vehicle_id="veh-1",
+            start_lat=40.0,
+            start_lng=-3.0,
+        ),
+        stops=[
+            RoutingStopInputRead(stop_id="stop-a", lat=40.1, lng=-3.1, service_minutes=5),
+            RoutingStopInputRead(stop_id="stop-b", lat=40.2, lng=-3.2, service_minutes=7),
+        ],
+        departure_at=datetime(2026, 8, 11, 8, 0, tzinfo=UTC),
+    )
+
+    response = service.calculate_preview(request)
+
+    assert [item.stop_id for item in response.ordered_stops] == ["stop-b", "stop-a"]
 
 
 def test_routing_service_preview_rejects_stop_limit(test_settings: Settings) -> None:

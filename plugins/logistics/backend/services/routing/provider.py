@@ -25,7 +25,12 @@ class MatrixProvider(Protocol):
 
 
 class OptimizationProvider(Protocol):
-    def optimize_single_vehicle(self, *, coordinates: Sequence[Coordinate]) -> list[int]: ...
+    def optimize_single_vehicle(
+        self,
+        *,
+        coordinates: Sequence[Coordinate],
+        has_end: bool,
+    ) -> list[int]: ...
 
 
 class GeometryProvider(Protocol):

@@ -36,7 +36,8 @@ def post_routing_preview(
     del db, tenant_context
     service = RoutingService(get_settings())
     try:
-        return RoutingCalculationResponseRead.model_validate(service.calculate_preview(payload))
+        response = service.calculate_preview(payload)
+        return RoutingCalculationResponseRead.model_validate(response.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -56,7 +57,8 @@ def post_routing_optimize(
     del db, tenant_context
     service = RoutingService(get_settings())
     try:
-        return RoutingCalculationResponseRead.model_validate(service.calculate_preview(payload))
+        response = service.calculate_preview(payload)
+        return RoutingCalculationResponseRead.model_validate(response.model_dump())
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     except RuntimeError as exc:
@@ -96,7 +98,7 @@ def post_routing_commit_order(
             },
         )
         db.commit()
-        return RoutingCommitOrderResponseRead.model_validate(response)
+        return RoutingCommitOrderResponseRead.model_validate(response.model_dump())
     except LookupError as exc:
         db.rollback()
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
@@ -120,4 +122,4 @@ def get_assigned_route_snapshot(
     )
     if snapshot is None:
         return None
-    return RoutingAssignedRouteRead.model_validate(snapshot)
+    return RoutingAssignedRouteRead.model_validate(snapshot.model_dump())

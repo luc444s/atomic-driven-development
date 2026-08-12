@@ -47,6 +47,9 @@ class RoutingVehicleInput(BaseModel):
     def start_coordinate(self) -> Coordinate:
         return Coordinate(lat=self.start_lat, lng=self.start_lng)
 
+    def has_end_coordinate(self) -> bool:
+        return self.end_lat is not None and self.end_lng is not None
+
     def end_coordinate(self) -> Coordinate:
         return Coordinate(
             lat=self.end_lat if self.end_lat is not None else self.start_lat,

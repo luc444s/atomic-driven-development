@@ -85,6 +85,7 @@ class RoutingService:
         if not request.stops:
             raise ValueError("routing preview requires at least one stop")
 
+        has_end = request.vehicle.has_end_coordinate()
         coordinates = self._build_coordinates(request)
         build_time_distance_matrix(
             provider=self.osrm,
@@ -92,7 +93,11 @@ class RoutingService:
             cache_get=self.cache.get,
             cache_set=self.cache.set,
         )
-        ordered_indexes = optimize_stop_sequence(provider=self.vroom, coordinates=coordinates)
+        ordered_indexes = optimize_stop_sequence(
+            provider=self.vroom,
+            coordinates=coordinates,
+            has_end=has_end,
+        )
         ordered_coordinates = [coordinates[index] for index in ordered_indexes]
         geometry = build_route_geometry(
             provider=self.osrm,
@@ -106,7 +111,8 @@ class RoutingService:
         running_at = request.departure_at
         service_seconds = 0
 
-        for sequence, index in enumerate(ordered_indexes[1:-1], start=1):
+        stop_indexes = ordered_indexes[1:-1] if has_end else ordered_indexes[1:]
+        for sequence, index in enumerate(stop_indexes, start=1):
             stop = stop_lookup[index]
             leg = geometry.legs[sequence - 1] if sequence - 1 < len(geometry.legs) else None
             eta_at = None
@@ -144,11 +150,13 @@ class RoutingService:
         )
 
     def _build_coordinates(self, request: RoutingCalculationRequest) -> list[Coordinate]:
-        return [
+        coordinates = [
             request.vehicle.start_coordinate(),
             *(stop.coordinate() for stop in request.stops),
-            request.vehicle.end_coordinate(),
         ]
+        if request.vehicle.has_end_coordinate():
+            coordinates.append(request.vehicle.end_coordinate())
+        return coordinates
 
     def commit_order(
         self,

@@ -5,6 +5,7 @@ from datetime import date, datetime, time
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from apps.api.app.core.pagination import NumberedPageRead, NumberedPaginationRead
+from plugins.logistics.backend.services.routing.models import Coordinate
 
 CYLINDER_ENTRY_MODES = (
     "EMPTY_FROM_WAREHOUSE",
@@ -157,7 +158,7 @@ class CylinderCreateFields(BaseModel):
 
     @field_validator("container_type")
     @classmethod
-    def normalize_container_type_field(cls, value: str) -> str:
+    def normalize_create_container_type_field(cls, value: str) -> str:
         return normalize_container_type(value)
 
     @field_validator("document_type")
@@ -240,7 +241,7 @@ class CylinderUpdateRequest(BaseModel):
 
     @field_validator("container_type")
     @classmethod
-    def normalize_container_type_field(cls, value: str | None) -> str | None:
+    def normalize_update_container_type_field(cls, value: str | None) -> str | None:
         if value is None:
             return None
         return normalize_container_type(value)
@@ -263,6 +264,9 @@ class RoutingStopInputRead(BaseModel):
     adr_required: bool = False
     priority: int | None = None
 
+    def coordinate(self) -> Coordinate:
+        return Coordinate(lat=self.lat, lng=self.lng)
+
 
 class RoutingVehicleInputRead(BaseModel):
     vehicle_id: str
@@ -276,6 +280,18 @@ class RoutingVehicleInputRead(BaseModel):
     capacity_weight_kg: float | None = None
     capacity_volume_m3: float | None = None
     adr_capable: bool = False
+
+    def start_coordinate(self) -> Coordinate:
+        return Coordinate(lat=self.start_lat, lng=self.start_lng)
+
+    def has_end_coordinate(self) -> bool:
+        return self.end_lat is not None and self.end_lng is not None
+
+    def end_coordinate(self) -> Coordinate:
+        return Coordinate(
+            lat=self.end_lat if self.end_lat is not None else self.start_lat,
+            lng=self.end_lng if self.end_lng is not None else self.start_lng,
+        )
 
 
 class RoutingCalculationRequestRead(BaseModel):

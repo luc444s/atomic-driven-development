@@ -132,7 +132,7 @@ export function CreateJornadaDialog({
     <Dialog
       open={open}
       title="Nueva jornada"
-      description="Crea la jornada desde un solo flujo. Aquí mismo puedes seleccionar o crear vehículo y ruta."
+      description="Crea la jornada en un solo flujo. Si usas direcciones, el sistema debe generar la ruta asignada antes de crear la jornada."
       onClose={onClose}
     >
       <form className="space-y-4" onSubmit={onSubmit}>
@@ -309,7 +309,7 @@ export function CreateJornadaDialog({
             Cancelar
           </Button>
           <Button type="submit" disabled={isPending}>
-            Crear jornada
+            {isPending ? "Creando jornada..." : "Crear jornada"}
           </Button>
         </div>
       </form>

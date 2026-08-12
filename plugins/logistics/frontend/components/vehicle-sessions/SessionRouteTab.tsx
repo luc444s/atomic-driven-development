@@ -131,6 +131,7 @@ export function SessionRouteTab({
     },
   });
   const proposedRoute = optimizeMutation.data;
+  const hasAssignedRouteSnapshot = Boolean(assignedRouteQuery.data);
   const currentDistance = Number(assignedRouteQuery.data?.totals?.distance_m ?? 0);
   const proposedDistance = proposedRoute?.totals.distance_m ?? 0;
   const distanceDelta = proposedRoute ? proposedDistance - currentDistance : 0;
@@ -146,8 +147,10 @@ export function SessionRouteTab({
         </Alert>
       ) : null}
       {proposedRoute ? (
-        <Alert title="Propuesta nueva de ruta">
-          Actual: {currentDistance} m · Propuesta: {proposedDistance} m · Delta: {distanceDelta} m.
+        <Alert title={hasAssignedRouteSnapshot ? "Propuesta nueva de ruta" : "Primera propuesta de ruta"}>
+          {hasAssignedRouteSnapshot
+            ? `Actual: ${currentDistance} m · Propuesta: ${proposedDistance} m · Delta: ${distanceDelta} m.`
+            : `Propuesta: ${proposedDistance} m.`}
           {proposedRoute.violations.length ? ` Violaciones: ${proposedRoute.violations.join(", ")}.` : " Sin violaciones."}
         </Alert>
       ) : null}

@@ -7,6 +7,7 @@ from typing import Any, NoReturn
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
+from apps.api.app.core.config import get_settings
 from apps.api.app.core.lifecycle import ensure_session_factory
 from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
 from apps.api.app.kernel.auth.models import User
@@ -18,6 +19,7 @@ from plugins.logistics.backend.dto.sessions import (
     SessionActionRequest,
     SessionHistoryEntryRead,
     VehicleSessionCreateRequest,
+    VehicleSessionCreateWithRouteRequest,
     VehicleSessionDetailRead,
     VehicleSessionPageRead,
     VehicleSessionRead,
@@ -26,6 +28,7 @@ from plugins.logistics.backend.services.sessions import (
     assign_route_to_session,
     cancel_session,
     create_vehicle_session,
+    create_vehicle_session_with_route,
     depart_session,
     get_vehicle_session,
     list_driver_options,
@@ -265,6 +268,42 @@ async def post_session(
                 tenant_id=tenant_context.current_tenant_id,
                 payload=payload,
                 action_context=build_action_context(request, tenant_context),
+            )
+            result = build_session_snapshot(db, session=session)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    try:
+        return await asyncio.to_thread(_call)
+    except Exception as exc:
+        _raise_service_error(exc)
+
+
+@router.post(
+    "/create-with-route",
+    response_model=VehicleSessionDetailRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_session_with_route(
+    payload: VehicleSessionCreateWithRouteRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> VehicleSessionDetailRead:
+    def _call() -> VehicleSessionDetailRead:
+        db = _make_sync_session(request)
+        try:
+            session = create_vehicle_session_with_route(
+                db,
+                tenant_id=tenant_context.current_tenant_id,
+                payload=payload,
+                action_context=build_action_context(request, tenant_context),
+                settings=get_settings(),
             )
             result = build_session_snapshot(db, session=session)
             db.commit()

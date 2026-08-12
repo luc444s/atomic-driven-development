@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.api.app.kernel.auth.models import User
+from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,
@@ -13,11 +14,21 @@ from plugins.logistics.backend.common import (
 )
 from plugins.logistics.backend.models import (
     LogisticsRoute,
+    LogisticsRouteStop,
     LogisticsVehicle,
     LogisticsVehicleSession,
     LogisticsWarehouse,
 )
+from plugins.logistics.backend.schemas import RouteCreateRequest, RouteStopCreateRequest
 from plugins.logistics.backend.services.resources import get_vehicle, get_warehouse
+from plugins.logistics.backend.services.routes import create_route, create_route_stop
+from plugins.logistics.backend.services.routing.models import (
+    RoutingCalculationRequest,
+    RoutingCommitOrderRequest,
+    RoutingStopInput,
+    RoutingVehicleInput,
+)
+from plugins.logistics.backend.services.routing.service import RoutingService
 from plugins.logistics.backend.services.rules import (
     ACTIVE_SESSION_STATUSES,
     ensure_session_can_be_ready,
@@ -159,6 +170,243 @@ def create_vehicle_session(
         payload={"vehicle_id": vehicle.id, "mobile_warehouse_id": mobile.id},
     )
     return session
+
+
+def create_vehicle_session_with_route(
+    db: Session,
+    *,
+    tenant_id: str,
+    payload,
+    action_context: LogisticsActionContext,
+    settings,
+    opened_at: datetime | None = None,
+) -> LogisticsVehicleSession:
+    vehicle = get_vehicle(db, tenant_id=tenant_id, vehicle_id=payload.vehicle_id)
+    if vehicle is None:
+        raise LookupError("Vehiculo no encontrado")
+    driver = db.scalar(
+        select(User).where(
+            User.id == payload.driver_id,
+            User.tenant_id == tenant_id,
+            User.is_active.is_(True),
+        )
+    )
+    if driver is None:
+        raise LookupError("Conductor no encontrado")
+    origin_warehouse_id = payload.origin_warehouse_id or vehicle.warehouse_id
+    if not origin_warehouse_id:
+        raise ValueError(
+            "El vehiculo necesita warehouse de origen o debe indicarse uno en la jornada"
+        )
+    origin = get_warehouse(db, tenant_id=tenant_id, warehouse_id=origin_warehouse_id)
+    if origin is None:
+        raise LookupError("Warehouse origen no encontrado")
+    if origin.latitude is None or origin.longitude is None:
+        raise ValueError("El almacén origen requiere coordenadas GPS para crear la jornada")
+
+    route = _ensure_route_ready_for_session(
+        db,
+        tenant_id=tenant_id,
+        vehicle=vehicle,
+        driver=driver,
+        origin=origin,
+        payload=payload,
+        action_context=action_context,
+        settings=settings,
+    )
+
+    session_payload = type(
+        "SessionPayload",
+        (),
+        {
+            "vehicle_id": payload.vehicle_id,
+            "driver_id": payload.driver_id,
+            "origin_warehouse_id": origin.id,
+            "route_id": route.id,
+        },
+    )()
+    return create_vehicle_session(
+        db,
+        tenant_id=tenant_id,
+        payload=session_payload,
+        action_context=action_context,
+        opened_at=opened_at,
+    )
+
+
+def _ensure_route_ready_for_session(
+    db: Session,
+    *,
+    tenant_id: str,
+    vehicle: LogisticsVehicle,
+    driver: User,
+    origin: LogisticsWarehouse,
+    payload,
+    action_context: LogisticsActionContext,
+    settings,
+) -> LogisticsRoute:
+    route: LogisticsRoute | None = None
+    if payload.route_id:
+        route = db.scalar(
+            select(LogisticsRoute).where(
+                LogisticsRoute.id == payload.route_id,
+                LogisticsRoute.tenant_id == tenant_id,
+            )
+        )
+        if route is None:
+            raise LookupError("Ruta no encontrada")
+    else:
+        route = _create_route_from_addresses(
+            db,
+            tenant_id=tenant_id,
+            vehicle=vehicle,
+            driver=driver,
+            origin=origin,
+            payload=payload,
+            action_context=action_context,
+        )
+
+    stops = list(
+        db.scalars(
+            select(LogisticsRouteStop)
+            .where(LogisticsRouteStop.route_id == route.id)
+            .order_by(LogisticsRouteStop.stop_order.asc())
+        ).all()
+    )
+    if not stops:
+        raise ValueError("La ruta requiere al menos una parada para crear la jornada")
+
+    routing_request = _build_routing_request(
+        route=route,
+        vehicle=vehicle,
+        origin=origin,
+        stops=stops,
+    )
+    service = RoutingService(settings)
+    preview = service.calculate_preview(routing_request)
+    service.commit_order(
+        db,
+        tenant_id=tenant_id,
+        actor_user_id=action_context.actor_user_id,
+        payload=RoutingCommitOrderRequest(
+            route_id=route.id,
+            preview=preview,
+        ),
+    )
+    return route
+
+
+def _create_route_from_addresses(
+    db: Session,
+    *,
+    tenant_id: str,
+    vehicle: LogisticsVehicle,
+    driver: User,
+    origin: LogisticsWarehouse,
+    payload,
+    action_context: LogisticsActionContext,
+) -> LogisticsRoute:
+    if not payload.address_ids:
+        raise ValueError("La jornada requiere una ruta existente o direcciones para crearla")
+    addresses = list(
+        db.scalars(
+            select(CrmCustomerAddress).where(
+                CrmCustomerAddress.id.in_(payload.address_ids),
+                CrmCustomerAddress.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+    if len(addresses) != len(payload.address_ids):
+        raise LookupError("Una o más direcciones no existen")
+    for address in addresses:
+        if address.latitude is None or address.longitude is None:
+            raise ValueError(
+                "Todas las direcciones requieren coordenadas GPS para crear la jornada"
+            )
+
+    customers = list(
+        db.scalars(
+            select(CrmCustomer).where(
+                CrmCustomer.id.in_([address.customer_id for address in addresses]),
+                CrmCustomer.tenant_id == tenant_id,
+            )
+        ).all()
+    )
+    customer_names = {customer.id: customer.legal_name for customer in customers}
+    destination = addresses[-1]
+    route = create_route(
+        db,
+        tenant_id=tenant_id,
+        created_by=action_context.actor_user_id,
+        payload=RouteCreateRequest(
+            route_date=payload.route_date or datetime.now(UTC).date(),
+            driver_id=driver.id,
+            vehicle_id=vehicle.id,
+            origin_label=origin.name,
+            destination_label=customer_names.get(destination.customer_id) or destination.line1,
+            notes=(customer_names.get(destination.customer_id) or destination.line1),
+        ),
+        action_context=action_context,
+    )
+    route.gps_start_coordinates = {"lat": origin.latitude, "lng": origin.longitude}
+    db.add(route)
+    db.flush()
+
+    ordered_addresses = [
+        next(address for address in addresses if address.id == address_id)
+        for address_id in payload.address_ids
+    ]
+    for order, address in enumerate(ordered_addresses, start=1):
+        create_route_stop(
+            db,
+            route=route,
+            payload=RouteStopCreateRequest(
+                delivery_point_id=None,
+                customer_id=address.customer_id,
+                customer_name_snapshot=customer_names.get(address.customer_id),
+                stop_order=order,
+                gps_coordinates={"lat": address.latitude, "lng": address.longitude},
+                notes=address.line1,
+            ),
+            action_context=action_context,
+        )
+    return route
+
+
+def _build_routing_request(
+    *,
+    route: LogisticsRoute,
+    vehicle: LogisticsVehicle,
+    origin: LogisticsWarehouse,
+    stops: list[LogisticsRouteStop],
+) -> RoutingCalculationRequest:
+    if route.gps_start_coordinates:
+        start_lat = float(route.gps_start_coordinates.get("lat", origin.latitude))
+        start_lng = float(route.gps_start_coordinates.get("lng", origin.longitude))
+    else:
+        start_lat = float(origin.latitude)
+        start_lng = float(origin.longitude)
+    return RoutingCalculationRequest(
+        route_id=route.id,
+        vehicle=RoutingVehicleInput(
+            vehicle_id=vehicle.id,
+            start_warehouse_id=origin.id,
+            start_lat=start_lat,
+            start_lng=start_lng,
+        ),
+        stops=[
+            RoutingStopInput(
+                stop_id=stop.id,
+                customer_id=stop.customer_id,
+                customer_name=stop.customer_name_snapshot,
+                address_label=stop.notes,
+                lat=float((stop.gps_coordinates or {}).get("lat")),
+                lng=float((stop.gps_coordinates or {}).get("lng")),
+                service_minutes=0,
+            )
+            for stop in stops
+        ],
+    )
 
 
 def list_vehicle_sessions(

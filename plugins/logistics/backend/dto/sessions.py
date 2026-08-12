@@ -18,6 +18,16 @@ class VehicleSessionCreateRequest(BaseModel):
     route_id: str | None = None
 
 
+class VehicleSessionCreateWithRouteRequest(BaseModel):
+    vehicle_id: str
+    driver_id: str
+    origin_warehouse_id: str | None = None
+    route_id: str | None = None
+    customer_ids: list[str] = Field(default_factory=list)
+    address_ids: list[str] = Field(default_factory=list)
+    route_date: date | None = None
+
+
 class SessionActionRequest(BaseModel):
     notes: str | None = Field(default=None, max_length=500)
 
@@ -38,7 +48,7 @@ class SessionHistoryEntryRead(BaseModel):
 
 
 class VehicleSessionPageRead(BaseModel):
-    items: list["VehicleSessionRead"]
+    items: list[VehicleSessionRead]
     total: int
     page: int
     per_page: int

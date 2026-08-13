@@ -44,7 +44,11 @@ def list_driver_options(db: Session, *, tenant_id: str) -> list[User]:
     return list(
         db.scalars(
             select(User)
-            .where(User.tenant_id == tenant_id, User.is_active.is_(True))
+            .where(
+                User.tenant_id == tenant_id,
+                User.is_active.is_(True),
+                User.category == "driver",
+            )
             .order_by(User.full_name.asc())
         ).all()
     )

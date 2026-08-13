@@ -29,6 +29,31 @@ from plugins.logistics.backend.services.rules import get_next_transition_blocker
 from plugins.logistics.backend.services.session_waybills import _build_destination
 
 
+def _first_driver_id(client: TestClient, headers: dict[str, str]) -> str:
+    # El catalogo de conductores solo lista usuarios activos con category="driver".
+    # Se crea uno via API antes de consumir el catalogo en cada test.
+    create_response = client.post(
+        "/api/v1/core/users",
+        headers=headers,
+        json={
+            "name": "Driver Test",
+            "email": "driver.test@example.com",
+            "password": "ChangeMe123!",
+            "branch_id": None,
+            "category": "driver",
+            "role_ids": [],
+            "warehouse_ids": [],
+        },
+    )
+    assert create_response.status_code == 201, create_response.text
+    catalog_response = client.get(
+        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
+        headers=headers,
+    )
+    assert catalog_response.status_code == 200, catalog_response.text
+    return catalog_response.json()[0]["id"]
+
+
 def _build_session(
     status: str, *, loaded_weight_kg: float | None = None
 ) -> LogisticsVehicleSession:
@@ -131,12 +156,7 @@ def test_vehicle_session_exposes_route_labels(
     assert vehicle_response.status_code == 201, vehicle_response.text
     vehicle = vehicle_response.json()
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     route_date = datetime.now(UTC).date().isoformat()
     route_response = client.post(
@@ -220,12 +240,7 @@ def test_vehicle_session_load_cycle(client: TestClient, app, seeded_demo: dict[s
     )
     assert adjust_response.status_code == 201, adjust_response.text
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     create_session_response = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -319,12 +334,7 @@ def test_pending_draft_session_cannot_start_before_its_turn(
     assert vehicle_response.status_code == 201, vehicle_response.text
     vehicle = vehicle_response.json()
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     first_session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -425,10 +435,7 @@ def test_operational_summary_marks_route_gap_when_departed_without_route(
     )
     assert adjust_response.status_code == 201, adjust_response.text
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -556,10 +563,7 @@ def test_load_serials_are_required_and_block_duplicate_selection(
         db.commit()
         cylinder_id = cylinder.id
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     session_one = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -731,10 +735,7 @@ def test_load_serials_confirm_and_release_on_cancel(
         db.commit()
         cylinder_id = cylinder.id
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,
@@ -923,10 +924,7 @@ def test_load_serial_search_shows_other_product_as_unavailable(
         db.add(cylinder)
         db.commit()
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,
@@ -1032,10 +1030,7 @@ def test_confirm_and_ready_moves_empty_stock_serial_into_vehicle(
         db.commit()
         cylinder_id = cylinder.id
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,
@@ -1152,10 +1147,7 @@ def test_load_serial_search_supports_numeric_lookup_inside_prefixed_serial(
         db.add(cylinder)
         db.commit()
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,
@@ -1277,10 +1269,7 @@ def test_load_serial_search_uses_last_movement_warehouse_when_location_missing(
         )
         db.commit()
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,
@@ -1352,10 +1341,7 @@ def test_confirm_and_ready_blocks_origin_line_without_positive_quantity(
     vehicle = vehicle_response.json()
 
     product = create_product(client, headers, sku="CQ-GLP10", name="Bombona 10kg CQ")
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -1437,12 +1423,7 @@ def test_vehicle_session_reconciliation_auto_closes(
     )
     assert adjust_response.status_code == 201, adjust_response.text
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     create_session_response = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -1581,12 +1562,7 @@ def test_vehicle_session_waybill_is_available_inside_jornada(
     )
     assert adjust_response.status_code == 201, adjust_response.text
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     create_session_response = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -1832,12 +1808,7 @@ def test_route_operation_changes_composition_and_outdates_waybill(
     )
     assert adjust_response.status_code == 201, adjust_response.text
 
-    drivers_response = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    )
-    assert drivers_response.status_code == 200, drivers_response.text
-    driver_id = drivers_response.json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     create_session_response = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -2070,10 +2041,7 @@ def test_exchange_incident_and_route_stop_progress(
     )
     assert stock_seed.status_code == 201, stock_seed.text
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
 
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
@@ -2383,10 +2351,7 @@ def test_route_stop_result_minimal_updates_progress_and_summary(
     )
     assert stock_seed.status_code == 201, stock_seed.text
 
-    driver_id = client.get(
-        "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
-        headers=headers,
-    ).json()[0]["id"]
+    driver_id = _first_driver_id(client, headers)
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,

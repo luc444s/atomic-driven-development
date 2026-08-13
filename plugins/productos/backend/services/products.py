@@ -185,6 +185,7 @@ def update_product(
         "status_code",
         "condition_code",
         "weight_kg",
+        "default_weight_kg",
         "content_m3",
         "country_code",
         "is_service",

@@ -254,3 +254,38 @@ def _validate_adr_payload(
             raise ValueError(CRYOGENIC_RECIPE_REQUIRED_MESSAGE)
         if not isinstance(value, (int, float, Decimal)) or float(value) <= 0:
             raise ValueError(f"{field_name} debe ser mayor que cero en la receta criogenica")
+
+    _validate_cryogenic_liquid_liters(
+        db,
+        source_product_id=source_product_id,
+        source_quantity_liters=source_quantity_liters,
+        net_weight_kg=net_weight_kg,
+    )
+
+
+def _validate_cryogenic_liquid_liters(
+    db: Session,
+    *,
+    source_product_id: str,
+    source_quantity_liters: object,
+    net_weight_kg: object,
+) -> None:
+    # source_quantity_liters es litros de LIQUIDO criogenico consumidos por llenado,
+    # no capacidad de agua del envase. Se valida por conservacion de masa:
+    # litros liquido = masa de gas (net_weight_kg) / densidad liquida (kg/L).
+    # Densidad liquida = default_weight_kg (kg/m3) / 1000 del producto fuente.
+    source_product = db.get(Product, source_product_id)
+    if source_product is None or source_product.default_weight_kg is None:
+        return
+    density_kg_per_l = float(source_product.default_weight_kg) / 1000.0
+    if density_kg_per_l <= 0:
+        return
+    expected_liquid_liters = float(net_weight_kg) / density_kg_per_l
+    provided_liquid_liters = float(source_quantity_liters)
+    tolerance = max(expected_liquid_liters * 0.05, 0.001)
+    if abs(provided_liquid_liters - expected_liquid_liters) > tolerance:
+        raise ValueError(
+            "source_quantity_liters debe expresar litros de liquido criogenico: "
+            f"{provided_liquid_liters:.3f} L no coincide con la masa {float(net_weight_kg)} kg "
+            f"a densidad {density_kg_per_l} kg/L (esperado {expected_liquid_liters:.3f} L)"
+        )

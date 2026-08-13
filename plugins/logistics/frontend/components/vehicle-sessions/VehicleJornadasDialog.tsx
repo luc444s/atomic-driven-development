@@ -1,8 +1,17 @@
+import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { Button } from "../../../../../apps/web/src/shared/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
 import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { VEHICLE_SESSION_STATUS_LABELS } from "../../api";
+import {
+  getAssignedRoute,
+  getRoute,
+  getRouteStopProgress,
+  listRouteStops,
+  logisticsKeys,
+  VEHICLE_SESSION_STATUS_LABELS,
+} from "../../api";
 import type { PlanningReservation } from "../../api";
+import { RouteContextMap } from "../route-builder/RouteContextMap";
 import { VehicleSessionStatusBadge } from "./VehicleSessionStatusBadge";
 import type { VehicleProjectionCard } from "./vehicle-jornadas-projection";
 import { VehiclePlannedLoadPanel } from "../../planning/panels/vehicle-planned-load-panel";
@@ -24,6 +33,45 @@ export function VehicleJornadasDialog({
   onCreateJornada,
   plannedReservations,
 }: Props) {
+  const activeSession = card?.active_session ?? null;
+  const routeId = activeSession?.route_id ?? null;
+  // Vista rápida: si el vehículo ya tiene jornada activa con ruta, el diálogo
+  // debe mostrar la ruta asignada sin obligar al usuario a abrir la jornada.
+  const routeQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.detail(routeId) : ["logistics", "routes", "none", "detail"],
+    queryFn: () => getRoute(routeId!),
+    enabled: open && Boolean(routeId),
+  });
+  const stopsQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
+    queryFn: () => listRouteStops(routeId!),
+    enabled: open && Boolean(routeId),
+  });
+  const assignedRouteQuery = useQuery({
+    queryKey: routeId ? logisticsKeys.routes.assigned(routeId) : ["logistics", "routes", "none", "assigned-route"],
+    queryFn: () => getAssignedRoute(routeId!),
+    enabled: open && Boolean(routeId),
+  });
+  const stopProgressQuery = useQuery({
+    queryKey: activeSession ? logisticsKeys.vehicleSessions.routeStopProgress(activeSession.id) : ["logistics", "vehicle-sessions", "none", "route-stop-progress"],
+    queryFn: () => getRouteStopProgress(activeSession!.id),
+    enabled: open && Boolean(activeSession?.id),
+  });
+  const completedStopIds = new Set(
+    (stopProgressQuery.data ?? [])
+      .filter((item) => item.progress_status === "COMPLETED")
+      .map((item) => item.route_stop_id)
+  );
+  const routeStart = routeQuery.data?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
+  const startPoint =
+    routeStart?.lat != null && routeStart?.lng != null
+      ? {
+          lat: routeStart.lat,
+          lng: routeStart.lng,
+          label: activeSession?.route_origin_label ?? "Inicio",
+        }
+      : null;
+
   return (
     <Dialog
       open={open}
@@ -48,17 +96,33 @@ export function VehicleJornadasDialog({
                 <CardTitle>Jornada activa</CardTitle>
                 <CardDescription>Unidad ejecutable actual del vehículo.</CardDescription>
               </CardHeader>
-              <CardContent className="flex items-center justify-between gap-4 text-sm">
-                <div className="space-y-1">
-                  <div className="font-medium text-foreground">
-                    {VEHICLE_SESSION_STATUS_LABELS[card.active_session.status] ?? card.active_session.status}
+              <CardContent className="space-y-4 text-sm">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="font-medium text-foreground">
+                      {VEHICLE_SESSION_STATUS_LABELS[card.active_session.status] ?? card.active_session.status}
+                    </div>
+                    <div className="text-muted-foreground">Conductor: {card.active_session.driver_name}</div>
+                    <div className="text-muted-foreground">
+                      Apertura: {new Date(card.active_session.opened_at).toLocaleString()}
+                    </div>
                   </div>
-                  <div className="text-muted-foreground">Conductor: {card.active_session.driver_name}</div>
-                  <div className="text-muted-foreground">
-                    Apertura: {new Date(card.active_session.opened_at).toLocaleString()}
-                  </div>
+                  <VehicleSessionStatusBadge status={card.active_session.status} />
                 </div>
-                <VehicleSessionStatusBadge status={card.active_session.status} />
+
+                {/* Si ya existe snapshot asignado, el mapa usa esa polyline.
+                    Si no existe todavía, RouteContextMap cae a la línea simple. */}
+                {routeId && (stopsQuery.data?.length ?? 0) > 0 ? (
+                  <RouteContextMap
+                    stops={stopsQuery.data ?? []}
+                    startPoint={startPoint}
+                    activeStopId={null}
+                    completedStops={completedStopIds.size}
+                    totalStops={(stopsQuery.data ?? []).length}
+                    completedStopIds={completedStopIds}
+                    assignedPolyline={assignedRouteQuery.data?.polyline ?? null}
+                  />
+                ) : null}
               </CardContent>
             </Card>
           ) : null}

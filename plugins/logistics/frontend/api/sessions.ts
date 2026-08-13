@@ -1,5 +1,6 @@
+import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
 import { API_PREFIX, withQuery } from "./_shared";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest, getApiBaseUrl } from "../../../../apps/web/src/shared/api/client";
 
 export type DriverOption = {
   id: string;
@@ -99,11 +100,47 @@ export type SessionWaybillTotals = {
   total_adr_points: number | null;
 };
 
+export type WaybillIssuer = {
+  legal_name: string;
+  address_line: string;
+  postal_city_line: string;
+};
+
+export type WaybillConsignee = {
+  mode: "SINGLE_DESTINATION" | "ROUTE_DISTRIBUTION";
+  legal_name: string | null;
+  address_line: string | null;
+  note: string | null;
+};
+
+export type WaybillRegulatoryLine = {
+  adr_goods_description: string;
+  product_name: string;
+  adr_category: string | null;
+  package_type_label: string | null;
+  package_count: number | null;
+  net_quantity: number | null;
+  net_unit_label: string | null;
+  adr_total_quantity: number | null;
+  adr_total_unit_label: string | null;
+};
+
 export type SessionWaybillSnapshot = {
   vehicle: SessionWaybillVehicle;
   driver: SessionWaybillDriver;
   destination: SessionWaybillDestination;
   transported_items: SessionWaybillItem[];
+  totals: SessionWaybillTotals;
+};
+
+export type SessionWaybillOfficialSnapshot = {
+  issue_date: string;
+  vehicle_plate: string;
+  trailer_plate: string | null;
+  driver_name: string;
+  issuer: WaybillIssuer;
+  consignee: WaybillConsignee;
+  regulatory_lines: WaybillRegulatoryLine[];
   totals: SessionWaybillTotals;
 };
 
@@ -120,18 +157,38 @@ export type SessionWaybillVersion = {
   snapshot_schema_version: number;
   change_event: string;
   change_reason: string;
+  document_kind: "PREVIEW" | "OFFICIAL";
+  snapshot: Record<string, unknown>;
+};
+
+export type SessionWaybillPreviewVersion = Omit<SessionWaybillVersion, "document_kind" | "snapshot"> & {
+  document_kind: "PREVIEW";
   snapshot: SessionWaybillSnapshot;
 };
 
+export type SessionWaybillOfficialVersion = Omit<SessionWaybillVersion, "document_kind" | "snapshot"> & {
+  document_kind: "OFFICIAL";
+  snapshot: SessionWaybillOfficialSnapshot;
+};
+
 export type SessionWaybillState = {
-  active: SessionWaybillVersion | null;
+  active: SessionWaybillPreviewVersion | null;
+  issued: SessionWaybillOfficialVersion | null;
   sync_status: string | null;
   can_regenerate: boolean;
+  can_emit: boolean;
+  can_reissue: boolean;
+  emit_block_reason: string | null;
 };
 
 export type SessionWaybillRegeneratePayload = {
   reason: string;
   event: string;
+  idempotency_key?: string | null;
+};
+
+export type SessionWaybillEmitPayload = {
+  reason: string;
   idempotency_key?: string | null;
 };
 
@@ -249,6 +306,36 @@ export function regenerateSessionWaybill(sessionId: string, payload: SessionWayb
     method: "POST",
     body: JSON.stringify(payload),
   });
+}
+
+export function emitSessionWaybill(sessionId: string, payload: SessionWaybillEmitPayload) {
+  return apiRequest<SessionWaybillState>(`${API_PREFIX}/vehicle-sessions/${sessionId}/carta-porte/emit`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+function buildAbsoluteApiUrl(path: string) {
+  return `${getApiBaseUrl()}${path}`;
+}
+
+export async function openSessionWaybillDocument(sessionId: string, versionId?: string | null) {
+  const token = useAuthStore.getState().token;
+  const headers = new Headers();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+  const suffix = versionId ? `?version_id=${encodeURIComponent(versionId)}` : "";
+  const response = await fetch(
+    buildAbsoluteApiUrl(`${API_PREFIX}/vehicle-sessions/${sessionId}/carta-porte/document${suffix}`),
+    { headers }
+  );
+  if (!response.ok) {
+    throw new Error(`No se pudo abrir carta porte oficial (${response.status})`);
+  }
+  // New tab uses blob because auth token lives in fetch headers, not browser URL navigation.
+  const objectUrl = URL.createObjectURL(await response.blob());
+  window.open(objectUrl, "_blank", "noopener,noreferrer");
 }
 
 export function assignRouteToSession(sessionId: string, routeId: string) {

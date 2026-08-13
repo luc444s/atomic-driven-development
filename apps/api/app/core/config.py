@@ -62,6 +62,9 @@ class Settings(BaseModel):
     logistics_vroom_base_url: str | None = None
     logistics_routing_request_timeout_seconds: int = 10
     logistics_routing_cache_ttl_seconds: int = 300
+    logistics_waybill_issuer_legal_name: str | None = None
+    logistics_waybill_issuer_address_line: str | None = None
+    logistics_waybill_issuer_postal_city_line: str | None = None
 
 
 @lru_cache
@@ -113,6 +116,18 @@ def get_settings() -> Settings:
         logistics_routing_cache_ttl_seconds=int(
             os.getenv("SYSTUTOR_LOGISTICS_ROUTING_CACHE_TTL_SECONDS", "300")
         ),
+        logistics_waybill_issuer_legal_name=os.getenv(
+            "SYSTUTOR_LOGISTICS_WAYBILL_ISSUER_LEGAL_NAME"
+        )
+        or None,
+        logistics_waybill_issuer_address_line=os.getenv(
+            "SYSTUTOR_LOGISTICS_WAYBILL_ISSUER_ADDRESS_LINE"
+        )
+        or None,
+        logistics_waybill_issuer_postal_city_line=os.getenv(
+            "SYSTUTOR_LOGISTICS_WAYBILL_ISSUER_POSTAL_CITY_LINE"
+        )
+        or None,
         use_transactional_stock_bridge=os.getenv(
             "SYSTUTOR_USE_TRANSACTIONAL_STOCK_BRIDGE", "true"
         ).lower()

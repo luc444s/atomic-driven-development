@@ -214,6 +214,42 @@ async def get_sessions(
     return await _run_sync_readonly(request, _load)
 
 
+@router.post(
+    "/create-with-route",
+    response_model=VehicleSessionDetailRead,
+    status_code=status.HTTP_201_CREATED,
+)
+async def post_session_with_route(
+    payload: VehicleSessionCreateWithRouteRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> VehicleSessionDetailRead:
+    def _call() -> VehicleSessionDetailRead:
+        db = _make_sync_session(request)
+        try:
+            session = create_vehicle_session_with_route(
+                db,
+                tenant_id=tenant_context.current_tenant_id,
+                payload=payload,
+                action_context=build_action_context(request, tenant_context),
+                settings=get_settings(),
+            )
+            result = build_session_snapshot(db, session=session)
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    try:
+        return await asyncio.to_thread(_call)
+    except Exception as exc:
+        _raise_service_error(exc)
+
+
 @router.get("/{session_id}", response_model=VehicleSessionDetailRead)
 async def get_session_detail(
     session_id: str,
@@ -268,42 +304,6 @@ async def post_session(
                 tenant_id=tenant_context.current_tenant_id,
                 payload=payload,
                 action_context=build_action_context(request, tenant_context),
-            )
-            result = build_session_snapshot(db, session=session)
-            db.commit()
-            return result
-        except Exception:
-            db.rollback()
-            raise
-        finally:
-            db.close()
-
-    try:
-        return await asyncio.to_thread(_call)
-    except Exception as exc:
-        _raise_service_error(exc)
-
-
-@router.post(
-    "/create-with-route",
-    response_model=VehicleSessionDetailRead,
-    status_code=status.HTTP_201_CREATED,
-)
-async def post_session_with_route(
-    payload: VehicleSessionCreateWithRouteRequest,
-    request: Request,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_SESSION_MANAGE,
-) -> VehicleSessionDetailRead:
-    def _call() -> VehicleSessionDetailRead:
-        db = _make_sync_session(request)
-        try:
-            session = create_vehicle_session_with_route(
-                db,
-                tenant_id=tenant_context.current_tenant_id,
-                payload=payload,
-                action_context=build_action_context(request, tenant_context),
-                settings=get_settings(),
             )
             result = build_session_snapshot(db, session=session)
             db.commit()

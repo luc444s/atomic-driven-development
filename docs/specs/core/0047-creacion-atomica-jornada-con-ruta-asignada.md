@@ -261,8 +261,21 @@ Resultado:
 
 - flujo usable sin ambigüedad operativa.
 
+### PR11 — Mapa embedded de jornada activa en vista por vehículo
+
+Alcance:
+
+- `VehicleJornadasDialog` muestra mapa completo si existe `active_session` con `route_id`;
+- consulta `route detail`, `route stops`, `assigned-route snapshot` y `route-stop-progress`;
+- usa `RouteContextMap` con prioridad de `polyline` persistida y fallback a línea simple.
+
+Resultado:
+
+- al abrir un vehículo con jornada activa, la ruta asignada queda visible inmediatamente;
+- no hace falta entrar primero al contexto completo de la jornada para ver el mapa.
+
 ## Orden obligatorio
 
 ```text
-PR8 -> PR9 -> PR10
+PR8 -> PR9 -> PR10 -> PR11
 ```

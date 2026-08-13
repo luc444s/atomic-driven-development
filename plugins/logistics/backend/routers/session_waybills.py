@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi.responses import HTMLResponse
 from sqlalchemy.orm import Session
 
 from apps.api.app.core.lifecycle import ensure_session_factory
@@ -11,14 +12,18 @@ from apps.api.app.kernel.auth.models import User
 from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.dto.sessions import (
+    SessionWaybillEmitRequest,
+    SessionWaybillHistoryVersionRead,
     SessionWaybillRegenerateRequest,
     SessionWaybillStateRead,
-    SessionWaybillVersionRead,
 )
 from plugins.logistics.backend.services.session_waybills import (
+    emit_session_waybill_document,
+    get_session_waybill_document_version,
     get_session_waybill_state,
     list_session_waybill_history,
     regenerate_session_waybill,
+    render_waybill_html,
 )
 from plugins.logistics.backend.services.sessions import get_vehicle_session
 
@@ -80,15 +85,15 @@ async def get_session_waybill(
 
 @router.get(
     "/{session_id}/carta-porte/history",
-    response_model=list[SessionWaybillVersionRead],
+    response_model=list[SessionWaybillHistoryVersionRead],
 )
 async def get_session_waybill_history(
     session_id: str,
     request: Request,
     tenant_context: TenantContext = TENANT_CONTEXT,
     _: User = REQUIRE_SESSION_READ,
-) -> list[SessionWaybillVersionRead]:
-    def _load() -> list[SessionWaybillVersionRead]:
+) -> list[SessionWaybillHistoryVersionRead]:
+    def _load() -> list[SessionWaybillHistoryVersionRead]:
         db = _make_sync_session(request)
         try:
             session = _get_or_404(
@@ -101,6 +106,85 @@ async def get_session_waybill_history(
             db.close()
 
     return await asyncio.to_thread(_load)
+
+
+@router.post(
+    "/{session_id}/carta-porte/emit",
+    response_model=SessionWaybillStateRead,
+)
+async def post_emit_session_waybill(
+    session_id: str,
+    payload: SessionWaybillEmitRequest,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_MANAGE,
+) -> SessionWaybillStateRead:
+    def _mutate() -> SessionWaybillStateRead:
+        db = _make_sync_session(request)
+        try:
+            session = _get_or_404(
+                db,
+                tenant_id=tenant_context.current_tenant_id,
+                session_id=session_id,
+            )
+            result = emit_session_waybill_document(
+                db,
+                session=session,
+                settings=request.app.state.settings,
+                reason=payload.reason,
+                idempotency_key=payload.idempotency_key,
+                action_context=build_action_context(request, tenant_context),
+            )
+            db.commit()
+            return result
+        except Exception:
+            db.rollback()
+            raise
+        finally:
+            db.close()
+
+    try:
+        return await asyncio.to_thread(_mutate)
+    except Exception as exc:
+        _raise_service_error(exc)
+        raise AssertionError("unreachable") from exc
+
+
+@router.get(
+    "/{session_id}/carta-porte/document",
+    response_class=HTMLResponse,
+)
+async def get_session_waybill_document(
+    session_id: str,
+    request: Request,
+    version_id: str | None = None,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_READ,
+) -> HTMLResponse:
+    def _load() -> str:
+        db = _make_sync_session(request)
+        try:
+            _get_or_404(
+                db,
+                tenant_id=tenant_context.current_tenant_id,
+                session_id=session_id,
+            )
+            version = get_session_waybill_document_version(
+                db,
+                session_id=session_id,
+                version_id=version_id,
+            )
+            if version is None:
+                raise LookupError("No existe documento oficial emitido para esta jornada")
+            return render_waybill_html(version)
+        finally:
+            db.close()
+
+    try:
+        return HTMLResponse(content=await asyncio.to_thread(_load))
+    except Exception as exc:
+        _raise_service_error(exc)
+        raise AssertionError("unreachable") from exc
 
 
 @router.post(

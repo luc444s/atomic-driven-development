@@ -5,9 +5,11 @@ import { listCustomers } from "../../../../crm/frontend/api";
 import {
   confirmRouteEvent,
   createRouteIncident,
+  emitSessionWaybill,
   getCurrentComposition,
   getCustomerCylinderSummary,
   getRealWarehouses,
+  openSessionWaybillDocument,
   getRouteStopProgress,
   getSessionWaybill,
   listRouteIncidents,
@@ -118,6 +120,25 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo regenerar la carta porte");
+    },
+  });
+
+  const emitMutation = useMutation({
+    mutationFn: () =>
+      emitSessionWaybill(sessionId, {
+        reason: "Emision oficial desde la jornada",
+        idempotency_key: `session-waybill-issue:${sessionId}:${Date.now()}`,
+      }),
+    onSuccess: async () => {
+      setError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybill(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo emitir la carta porte oficial");
     },
   });
 
@@ -308,6 +329,20 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     regenerateMutation.mutate();
   }
 
+  async function openWaybillDocument() {
+    const issuedVersionId = waybillState?.issued?.id;
+    if (!issuedVersionId) {
+      setError("No existe documento oficial emitido para esta jornada");
+      return;
+    }
+    try {
+      // Open uses authenticated fetch + blob because browser navigation cannot attach bearer token.
+      await openSessionWaybillDocument(sessionId, issuedVersionId);
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo abrir la carta porte oficial");
+    }
+  }
+
   const stopOptions = buildStopOptions(stopsQuery.data ?? []);
   const customerOptions = buildCustomerOptions(customersQuery.data?.items ?? []);
   const warehouseOptions = getRealWarehouses(warehousesQuery.data ?? []).map((warehouse) => ({
@@ -369,8 +404,10 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     waybillHistory,
     isWaybillLoading: waybillQuery.isLoading,
     canRegenerate,
+    canEmitWaybill: Boolean(waybillState?.can_emit) && canManageRouteContext,
     canRegisterOperation: canManageRouteContext,
     isRegeneratingWaybill: regenerateMutation.isPending,
+    isEmittingWaybill: emitMutation.isPending,
     routeOperations,
     routeIncidents,
     routeStopResults,
@@ -410,5 +447,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     closeStopResultsModal,
     saveStopResult,
     regenerateWaybill,
+    emitWaybill: () => emitMutation.mutate(),
+    openWaybillDocument,
   };
 }

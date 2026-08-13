@@ -67,6 +67,6 @@ class VroomClient:
                 if not isinstance(data, dict):
                     raise RoutingProviderError("VROOM response must be JSON object")
                 return data
-            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+            except (httpx.RequestError, httpx.HTTPStatusError) as exc:
                 last_error = exc
         raise RoutingProviderError(f"VROOM request failed: {last_error}")

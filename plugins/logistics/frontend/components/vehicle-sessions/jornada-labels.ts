@@ -65,7 +65,11 @@ const WAYBILL_SYNC_STATUS_LABELS: Record<string, string> = {
 
 const WAYBILL_VERSION_STATUS_LABELS: Record<string, string> = {
   ACTIVE: "Activa",
+  ACTIVE_PREVIEW: "Preview activa",
   SUPERSEDED: "Reemplazada",
+  SUPERSEDED_PREVIEW: "Preview reemplazada",
+  ISSUED: "Emitida",
+  SUPERSEDED_ISSUED: "Emitida historica",
   VOID: "Anulada",
 };
 
@@ -75,6 +79,7 @@ const WAYBILL_CHANGE_EVENT_LABELS: Record<string, string> = {
   DRIVER_CHANGED: "Cambio de conductor",
   VEHICLE_CHANGED: "Cambio de vehiculo",
   DESTINATION_CHANGED: "Cambio de destino",
+  OFFICIAL_ISSUE: "Emision oficial",
 };
 
 const LOAD_SERIAL_ASSIGNMENT_STATUS_LABELS: Record<string, string> = {

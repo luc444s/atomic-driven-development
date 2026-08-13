@@ -35,7 +35,7 @@ class OsrmClient:
                 if not isinstance(payload, dict):
                     raise RoutingProviderError("OSRM response must be JSON object")
                 return payload
-            except (httpx.TimeoutException, httpx.HTTPStatusError) as exc:
+            except (httpx.RequestError, httpx.HTTPStatusError) as exc:
                 last_error = exc
         raise RoutingProviderError(f"OSRM request failed: {last_error}")
 

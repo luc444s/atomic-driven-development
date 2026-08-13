@@ -162,7 +162,11 @@ export function SessionRouteTab({
             isLoading={controller.isWaybillLoading}
             canRegenerate={controller.canRegenerate}
             isRegenerating={controller.isRegeneratingWaybill}
+            canEmit={controller.canEmitWaybill}
+            isEmitting={controller.isEmittingWaybill}
             onRegenerate={controller.regenerateWaybill}
+            onEmit={controller.emitWaybill}
+            onViewDocument={controller.openWaybillDocument}
           />
         </div>
 

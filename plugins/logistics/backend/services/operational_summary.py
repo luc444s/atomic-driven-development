@@ -188,7 +188,7 @@ def _build_waybill_summary(
         select(LogisticsSessionWaybillVersion)
         .where(
             LogisticsSessionWaybillVersion.session_id == session.id,
-            LogisticsSessionWaybillVersion.status == "ACTIVE",
+            LogisticsSessionWaybillVersion.status.in_({"ACTIVE", "ACTIVE_PREVIEW"}),
         )
         .order_by(LogisticsSessionWaybillVersion.version.desc())
     )

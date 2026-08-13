@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -132,7 +133,43 @@ class SessionWaybillSnapshotRead(BaseModel):
     totals: SessionWaybillTotalsRead
 
 
-class SessionWaybillVersionRead(BaseModel):
+class WaybillIssuerRead(BaseModel):
+    legal_name: str
+    address_line: str
+    postal_city_line: str
+
+
+class WaybillConsigneeRead(BaseModel):
+    mode: Literal["SINGLE_DESTINATION", "ROUTE_DISTRIBUTION"]
+    legal_name: str | None = None
+    address_line: str | None = None
+    note: str | None = None
+
+
+class WaybillRegulatoryLineRead(BaseModel):
+    adr_goods_description: str
+    product_name: str
+    adr_category: str | None = None
+    package_type_label: str | None = None
+    package_count: int | None = None
+    net_quantity: float | None = None
+    net_unit_label: str | None = None
+    adr_total_quantity: float | None = None
+    adr_total_unit_label: str | None = None
+
+
+class WaybillOfficialSnapshotRead(BaseModel):
+    issue_date: date
+    vehicle_plate: str
+    trailer_plate: str | None = None
+    driver_name: str
+    issuer: WaybillIssuerRead
+    consignee: WaybillConsigneeRead
+    regulatory_lines: list[WaybillRegulatoryLineRead] = Field(default_factory=list)
+    totals: SessionWaybillTotalsRead
+
+
+class SessionWaybillVersionBaseRead(BaseModel):
     id: str
     vehicle_session_id: str
     movement_ids: list[str] = Field(default_factory=list)
@@ -145,13 +182,31 @@ class SessionWaybillVersionRead(BaseModel):
     snapshot_schema_version: int
     change_event: str
     change_reason: str
+    document_kind: Literal["PREVIEW", "OFFICIAL"]
+
+
+class SessionWaybillPreviewVersionRead(SessionWaybillVersionBaseRead):
+    document_kind: Literal["PREVIEW"] = "PREVIEW"
     snapshot: SessionWaybillSnapshotRead
 
 
+class SessionWaybillOfficialVersionRead(SessionWaybillVersionBaseRead):
+    document_kind: Literal["OFFICIAL"] = "OFFICIAL"
+    snapshot: WaybillOfficialSnapshotRead
+
+
+class SessionWaybillHistoryVersionRead(SessionWaybillVersionBaseRead):
+    snapshot: dict[str, Any]
+
+
 class SessionWaybillStateRead(BaseModel):
-    active: SessionWaybillVersionRead | None = None
+    active: SessionWaybillPreviewVersionRead | None = None
+    issued: SessionWaybillOfficialVersionRead | None = None
     sync_status: str | None = None
     can_regenerate: bool = False
+    can_emit: bool = False
+    can_reissue: bool = False
+    emit_block_reason: str | None = None
 
 
 class AssignRouteRequest(BaseModel):
@@ -161,4 +216,9 @@ class AssignRouteRequest(BaseModel):
 class SessionWaybillRegenerateRequest(BaseModel):
     reason: str = Field(min_length=1, max_length=500)
     event: str = Field(min_length=1, max_length=40)
+    idempotency_key: str | None = Field(default=None, max_length=120)
+
+
+class SessionWaybillEmitRequest(BaseModel):
+    reason: str = Field(min_length=1, max_length=500)
     idempotency_key: str | None = Field(default=None, max_length=120)

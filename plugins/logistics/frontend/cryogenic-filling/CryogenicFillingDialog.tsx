@@ -708,7 +708,7 @@ export function CryogenicFillingDialog({
                   <p>Criogénico: {selectedSource.sourceProductName}</p>
                   <p>Tipo: {selectedResultProduct?.name ?? "-"}</p>
                   <p>Solicitados: {preview.selectedCount} seriales</p>
-                  <p>Litros por cilindro: {selectedRecipe ? `${formatLiters(selectedRecipe.source_quantity_liters ?? 0)} L` : "-"}</p>
+                  <p>Litros de liquido por cilindro: {selectedRecipe ? `${formatLiters(selectedRecipe.source_quantity_liters ?? 0)} L` : "-"}</p>
                   <p>Litros requeridos: {formatLiters(preview.litersRequired)} L</p>
                   <p>Litros disponibles: {formatLiters(preview.litersAvailable)} L</p>
                   <p>Stock fuente suficiente para: {preview.fillableCount} seriales</p>

@@ -99,14 +99,17 @@ export function VehicleSessionsPage() {
   const driversQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.drivers(),
     queryFn: listDriverOptions,
+    staleTime: 10 * 60 * 1000,
   });
   const warehousesQuery = useQuery({
     queryKey: logisticsKeys.warehouses(),
     queryFn: listWarehouses,
+    staleTime: 10 * 60 * 1000,
   });
   const routesQuery = useQuery({
     queryKey: logisticsKeys.routes.list({}),
     queryFn: () => listRoutes({}),
+    staleTime: 2 * 60 * 1000,
   });
   const plannedReservationsQuery = useQuery({
     queryKey: planningKeys.reservations.list({ start: "now" }),

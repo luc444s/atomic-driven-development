@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -13,7 +12,6 @@ from plugins.logistics.backend.dto.route_operations import (
     CurrentCompositionRead,
 )
 from plugins.logistics.backend.models import (
-    LogisticsAdrProductConfig,
     LogisticsCylinder,
     LogisticsLoadSerialAssignment,
     LogisticsMovement,
@@ -21,7 +19,8 @@ from plugins.logistics.backend.models import (
     LogisticsRouteOperationItem,
     LogisticsVehicleSession,
 )
-from plugins.productos.backend.models import Product, ProductAdr
+from plugins.logistics.backend.services.snapshots import _load_adr_points_map
+from plugins.productos.backend.models import Product
 
 ACTIVE_SESSION_COMPOSITION_STATES = {"CARGA_EN_VEHICULO", "EN_RUTA"}
 
@@ -37,51 +36,6 @@ class SerializedCompositionRow:
 class AggregateDeltaRow:
     product_name: str
     quantity: float
-
-
-def _latest_adr_config(
-    db: Session, *, tenant_id: str, product_id: str, today: date
-) -> LogisticsAdrProductConfig | None:
-    return db.scalar(
-        select(LogisticsAdrProductConfig)
-        .where(
-            LogisticsAdrProductConfig.tenant_id == tenant_id,
-            LogisticsAdrProductConfig.product_id == product_id,
-            LogisticsAdrProductConfig.valid_from <= today,
-            (LogisticsAdrProductConfig.valid_to.is_(None))
-            | (LogisticsAdrProductConfig.valid_to >= today),
-        )
-        .order_by(LogisticsAdrProductConfig.valid_from.desc())
-    )
-
-
-def _fallback_prod_adr(
-    db: Session, *, tenant_id: str, product_id: str, today: date
-) -> ProductAdr | None:
-    return db.scalar(
-        select(ProductAdr)
-        .where(
-            ProductAdr.tenant_id == tenant_id,
-            ProductAdr.product_id == product_id,
-            ProductAdr.valid_from <= today,
-            (ProductAdr.valid_to.is_(None)) | (ProductAdr.valid_to >= today),
-        )
-        .order_by(ProductAdr.valid_from.desc())
-    )
-
-
-def _product_weight(db: Session, *, product_id: str) -> float | None:
-    product = db.scalar(select(Product).where(Product.id == product_id))
-    if product is None or product.weight_kg is None:
-        return None
-    return float(product.weight_kg)
-
-
-def _product_name(db: Session, *, product_id: str) -> str:
-    product = db.scalar(select(Product).where(Product.id == product_id))
-    if product is None:
-        raise LookupError("Producto no encontrado para composición")
-    return product.name
 
 
 def _load_serialized_composition(
@@ -213,6 +167,27 @@ def build_current_composition_v2(
     total_adr_points = 0.0
     product_ids = set(balance_map) | set(serialized_map) | set(physical_deltas)
 
+    products_by_id = {
+        product.id: product
+        for product in db.scalars(
+            select(Product).where(Product.id.in_(sorted(product_ids)))
+        ).all()
+    }
+    adr_points_map = _load_adr_points_map(
+        db,
+        tenant_id=session.tenant_id,
+        product_ids=sorted(product_ids),
+        today=reference_date,
+    )
+
+    def _resolve_product_name(product_id: str, fallback_name: str) -> str:
+        if fallback_name:
+            return fallback_name
+        product = products_by_id.get(product_id)
+        if product is None:
+            raise LookupError("Producto no encontrado para composición")
+        return product.name
+
     for product_id in sorted(product_ids):
         balance = balance_map.get(product_id)
         if product_id in serialized_map:
@@ -223,8 +198,10 @@ def build_current_composition_v2(
             product_name = (
                 balance.product_name
                 if balance is not None
-                else physical_deltas.get(product_id, AggregateDeltaRow("", 0)).product_name
-                or _product_name(db, product_id=product_id)
+                else _resolve_product_name(
+                    product_id,
+                    physical_deltas.get(product_id, AggregateDeltaRow("", 0)).product_name,
+                )
             )
             total_line_weight = serialized.weight_kg
             adr_points = serialized.adr_points
@@ -236,29 +213,22 @@ def build_current_composition_v2(
             product_name = (
                 balance.product_name
                 if balance is not None
-                else physical_deltas.get(product_id, AggregateDeltaRow("", 0)).product_name
-                or _product_name(db, product_id=product_id)
+                else _resolve_product_name(
+                    product_id,
+                    physical_deltas.get(product_id, AggregateDeltaRow("", 0)).product_name,
+                )
             )
-            weight_kg = _product_weight(db, product_id=product_id)
+            product = products_by_id.get(product_id)
+            weight_kg = (
+                float(product.weight_kg)
+                if product is not None and product.weight_kg is not None
+                else None
+            )
             total_line_weight = weight_kg * quantity if weight_kg is not None else None
             adr_points = None
-            adr_cfg = _latest_adr_config(
-                db,
-                tenant_id=session.tenant_id,
-                product_id=product_id,
-                today=reference_date,
-            )
-            if adr_cfg is not None and adr_cfg.adr_points is not None:
-                adr_points = float(adr_cfg.adr_points) * quantity
-            else:
-                fallback = _fallback_prod_adr(
-                    db,
-                    tenant_id=session.tenant_id,
-                    product_id=product_id,
-                    today=reference_date,
-                )
-                if fallback is not None and fallback.points is not None:
-                    adr_points = float(fallback.points) * quantity
+            points = adr_points_map.get(product_id)
+            if points is not None:
+                adr_points = points * quantity
 
         product_lines.append(
             CompositionLineRead(

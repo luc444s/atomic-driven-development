@@ -18,6 +18,7 @@ from plugins.logistics.backend.routers.planning_reservations import (
     router as planning_reservations_router,
 )
 from plugins.logistics.backend.routers.reconciliation import router as reconciliation_router
+from plugins.logistics.backend.routers.route_context import router as route_context_router
 from plugins.logistics.backend.routers.route_control import router as route_control_router
 from plugins.logistics.backend.routers.route_operations import router as route_operations_router
 from plugins.logistics.backend.routers.route_stop_results import (
@@ -161,6 +162,7 @@ def register(context: PluginContext) -> None:
     context.register_router(orders_router)
     context.register_router(routing_router)
     context.register_router(route_control_router)
+    context.register_router(route_context_router)
     context.register_router(route_operations_router)
     context.register_router(route_stop_results_router)
     context.register_router(session_waybills_router)

@@ -38,7 +38,7 @@ from plugins.logistics.backend.services.sessions import (
     start_loading_session,
 )
 from plugins.logistics.backend.services.snapshots import (
-    build_session_list_item,
+    build_session_list_items,
     build_session_snapshot,
 )
 
@@ -122,7 +122,7 @@ def _session_list(
         db, tenant_id=tenant_id, status=status_filter, active_only=active_only,
         page=page, per_page=per_page,
     )
-    return [build_session_list_item(db, session=s) for s in sessions], total
+    return build_session_list_items(db, sessions=sessions), total
 
 
 async def _transition(

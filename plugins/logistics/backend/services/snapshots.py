@@ -380,3 +380,138 @@ def build_session_list_item(db: Session, *, session: LogisticsVehicleSession) ->
     result = _build_session_read(db, session=session, include_history=False)
     assert isinstance(result, VehicleSessionRead)
     return result
+
+
+def build_session_list_items(
+    db: Session,
+    *,
+    sessions: list[LogisticsVehicleSession],
+) -> list[VehicleSessionRead]:
+    if not sessions:
+        return []
+
+    vehicle_ids = list({session.vehicle_id for session in sessions})
+    driver_ids = list({session.driver_id for session in sessions})
+    warehouse_ids = list(
+        {session.origin_warehouse_id for session in sessions}
+        | {session.mobile_warehouse_id for session in sessions}
+    )
+    route_ids = list({session.route_id for session in sessions if session.route_id})
+    session_ids = [session.id for session in sessions]
+
+    vehicles = {
+        vehicle.id: vehicle
+        for vehicle in db.scalars(
+            select(LogisticsVehicle).where(LogisticsVehicle.id.in_(vehicle_ids))
+        ).all()
+    }
+    drivers = {
+        user.id: user
+        for user in db.scalars(select(User).where(User.id.in_(driver_ids))).all()
+    }
+    warehouses = {
+        warehouse.id: warehouse
+        for warehouse in db.scalars(
+            select(LogisticsWarehouse).where(LogisticsWarehouse.id.in_(warehouse_ids))
+        ).all()
+    }
+    routes = {
+        route.id: route
+        for route in db.scalars(
+            select(LogisticsRoute).where(LogisticsRoute.id.in_(route_ids))
+        ).all()
+    }
+    latest_reconciliation_by_session: dict[str, LogisticsSessionReconciliation] = {}
+    for reconciliation in db.scalars(
+        select(LogisticsSessionReconciliation)
+        .where(LogisticsSessionReconciliation.session_id.in_(session_ids))
+        .order_by(LogisticsSessionReconciliation.updated_at.desc())
+    ).all():
+        latest_reconciliation_by_session.setdefault(reconciliation.session_id, reconciliation)
+
+    stock_summary_by_warehouse: dict[str, SessionStockSummaryRead] = {}
+    for mobile_warehouse_id in {session.mobile_warehouse_id for session in sessions}:
+        stock_summary_by_warehouse[mobile_warehouse_id] = _build_stock_summary(
+            db,
+            tenant_id=sessions[0].tenant_id,
+            mobile_warehouse_id=mobile_warehouse_id,
+        )
+
+    items: list[VehicleSessionRead] = []
+    for session in sessions:
+        vehicle = vehicles.get(session.vehicle_id)
+        if vehicle is None:
+            raise LookupError("Vehiculo no encontrado")
+        driver = drivers.get(session.driver_id)
+        origin = warehouses.get(session.origin_warehouse_id)
+        mobile = warehouses.get(session.mobile_warehouse_id)
+        if origin is None or mobile is None:
+            raise LookupError("Warehouse no encontrado")
+        route = routes.get(session.route_id) if session.route_id else None
+        route_date = route.route_date if route is not None else None
+        stock_summary = stock_summary_by_warehouse[session.mobile_warehouse_id]
+
+        occupancy_percent = None
+        max_weight = float(vehicle.useful_load or vehicle.capacity_weight or 0)
+        if max_weight > 0 and session.loaded_weight_kg is not None:
+            occupancy_percent = round((float(session.loaded_weight_kg) / max_weight) * 100, 1)
+
+        reconciliation = latest_reconciliation_by_session.get(session.id)
+        start_queue_blocker = get_session_start_queue_blocker(db, session=session)
+        next_transition_blocker = get_next_transition_blocker(
+            session,
+            has_open_discrepancies=(
+                has_open_discrepancies(db, reconciliation_id=reconciliation.id)
+                if reconciliation is not None
+                else False
+            ),
+            reconciliation_status=(
+                reconciliation.status if reconciliation is not None else None
+            ),
+            start_queue_blocker=start_queue_blocker,
+        )
+
+        items.append(
+            VehicleSessionRead(
+                id=session.id,
+                vehicle_id=vehicle.id,
+                vehicle_plate=vehicle.plate,
+                driver_id=session.driver_id,
+                driver_name=driver.full_name if driver else session.driver_id,
+                origin_warehouse_id=origin.id,
+                origin_warehouse_name=origin.name,
+                mobile_warehouse_id=mobile.id,
+                mobile_warehouse_code=mobile.code,
+                mobile_warehouse_name=mobile.name,
+                route_id=session.route_id,
+                route_date=route_date,
+                route_origin_label=route.origin_label if route is not None else None,
+                route_destination_label=(
+                    route.destination_label if route is not None else None
+                ),
+                status=session.status,
+                opened_at=session.opened_at,
+                ready_at=session.ready_at,
+                departed_at=session.departed_at,
+                returned_at=session.returned_at,
+                closed_at=session.closed_at,
+                planned_weight_kg=(
+                    float(session.planned_weight_kg)
+                    if session.planned_weight_kg is not None
+                    else None
+                ),
+                loaded_weight_kg=(
+                    float(session.loaded_weight_kg)
+                    if session.loaded_weight_kg is not None
+                    else None
+                ),
+                occupancy_percent=occupancy_percent,
+                last_activity=_session_last_activity_label(session),
+                can_depart=session.status == "READY_TO_DEPART",
+                can_close=session.status == "AWAITING_RECONCILIATION",
+                next_transition_allowed=next_transition_blocker is None,
+                next_transition_blocker=next_transition_blocker,
+                current_stock=stock_summary,
+            )
+        )
+    return items

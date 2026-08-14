@@ -4,13 +4,9 @@ import {
   Card,
   CardContent,
 } from "../../../../../apps/web/src/shared/ui/card";
-import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
+import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import {
   commitRouteOrder,
-  getAssignedRoute,
-  getRoute,
-  getRouteStopProgress,
-  listRouteStops,
   logisticsKeys,
   optimizeRouteCalculation,
   type RoutingCalculationResponse,
@@ -43,33 +39,14 @@ export function SessionRouteTab({
   const controller = useSessionRouteTabController({ open, routeId, sessionId, sessionStatus });
   const queryClient = useQueryClient();
 
-  const stopsQuery = useQuery({
-    queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
-    queryFn: () => listRouteStops(routeId!),
-    enabled: open && Boolean(routeId),
-  });
-  const routeQuery = useQuery({
-    queryKey: routeId ? logisticsKeys.routes.detail(routeId) : ["logistics", "routes", "none", "detail"],
-    queryFn: () => getRoute(routeId!),
-    enabled: open && Boolean(routeId),
-  });
-  const assignedRouteQuery = useQuery({
-    queryKey: routeId ? logisticsKeys.routes.assigned(routeId) : ["logistics", "routes", "none", "assigned-route"],
-    queryFn: () => getAssignedRoute(routeId!),
-    enabled: open && Boolean(routeId),
-  });
-  const stopProgressQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId),
-    queryFn: () => getRouteStopProgress(sessionId),
-    enabled: open,
-  });
-
-  const stops = stopsQuery.data ?? [];
-  const stopProgress = stopProgressQuery.data ?? [];
+  const stops = controller.stops;
+  const stopProgress = controller.routeStopProgress;
   const completedStopIds = new Set(
     stopProgress.filter((p) => p.progress_status === "COMPLETED").map((p) => p.route_stop_id)
   );
-  const routeStart = routeQuery.data?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
+  const routeDetail = controller.routeDetail;
+  const assignedRoute = controller.assignedRoute;
+  const routeStart = routeDetail?.gps_start_coordinates as { lat?: number; lng?: number } | null | undefined;
   const startPoint =
     routeStart?.lat != null && routeStart?.lng != null
       ? {
@@ -78,10 +55,10 @@ export function SessionRouteTab({
           label: routeOriginLabel ?? "Inicio",
         }
       : null;
-  const canRecalculate = Boolean(routeId && routeQuery.data?.vehicle_id && startPoint && stops.length > 0);
+  const canRecalculate = Boolean(routeId && routeDetail?.vehicle_id && startPoint && stops.length > 0);
 
   function buildOptimizePayload() {
-    if (!routeId || !routeQuery.data?.vehicle_id || !startPoint || stops.length === 0) {
+    if (!routeId || !routeDetail?.vehicle_id || !startPoint || stops.length === 0) {
       throw new Error("Faltan datos mínimos para recalcular la ruta")
     }
     return {
@@ -89,7 +66,7 @@ export function SessionRouteTab({
       session_id: sessionId,
       mode: "optimize",
       vehicle: {
-        vehicle_id: routeQuery.data.vehicle_id,
+        vehicle_id: routeDetail.vehicle_id,
         start_lat: startPoint.lat,
         start_lng: startPoint.lng,
       },
@@ -131,8 +108,8 @@ export function SessionRouteTab({
     },
   });
   const proposedRoute = optimizeMutation.data;
-  const hasAssignedRouteSnapshot = Boolean(assignedRouteQuery.data);
-  const currentDistance = Number(assignedRouteQuery.data?.totals?.distance_m ?? 0);
+  const hasAssignedRouteSnapshot = Boolean(assignedRoute);
+  const currentDistance = Number(assignedRoute?.totals?.distance_m ?? 0);
   const proposedDistance = proposedRoute?.totals.distance_m ?? 0;
   const distanceDelta = proposedRoute ? proposedDistance - currentDistance : 0;
 
@@ -228,7 +205,7 @@ export function SessionRouteTab({
               completedStops={completedStopIds.size}
               totalStops={stops.length}
               completedStopIds={completedStopIds}
-              assignedPolyline={assignedRouteQuery.data?.polyline ?? null}
+              assignedPolyline={assignedRoute?.polyline ?? null}
             />
           ) : null}
         </div>

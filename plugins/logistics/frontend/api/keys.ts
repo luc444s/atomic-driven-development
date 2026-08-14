@@ -91,6 +91,8 @@ export const logisticsKeys = {
       [...logisticsKeys.vehicleSessions.detail(id), "route-stop-progress"] as const,
     routeContext: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "route-context"] as const,
+    consoleContext: (id: string) =>
+      [...logisticsKeys.vehicleSessions.detail(id), "console-context"] as const,
     routeControlState: (id: string) =>
       [...logisticsKeys.vehicleSessions.detail(id), "route-control-state"] as const,
     locationHistory: (id: string, filters: Record<string, string | undefined>) =>

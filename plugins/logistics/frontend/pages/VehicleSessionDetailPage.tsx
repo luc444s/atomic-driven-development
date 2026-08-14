@@ -5,18 +5,13 @@ import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/
 import { ApiError } from "../../../../apps/web/src/shared/api/client";
 import { Button } from "../../../../apps/web/src/shared/ui/button";
 import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
-import { listBalances, stockKeys } from "../../../stock/frontend/api";
 import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
 import {
-  confirmAndReady,
   cancelSession,
+  confirmAndReady,
   countSessionReconciliation,
   departSession,
-  getSessionOperationalSummary,
-  getLoadPlan,
-  getSessionReconciliation,
-  getVehicleSession,
-  listSerializedCylinderSummary,
+  getSessionConsoleContext,
   logisticsKeys,
   markSessionReturning,
   returnRemaining,
@@ -64,61 +59,21 @@ export function VehicleSessionDetailPage({
   const [showProductSearch, setShowProductSearch] = useState(false);
   const [counts, setCounts] = useState<Record<string, string>>({});
 
-  const sessionQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.detail(sessionId),
-    queryFn: () => getVehicleSession(sessionId),
-    enabled: Boolean(sessionId),
-  });
-  const loadPlanQuery = useQuery({
-    queryKey: logisticsKeys.loadPlans.detail(sessionId),
-    queryFn: () => getLoadPlan(sessionId),
-    enabled: Boolean(sessionId),
-  });
-  const reconciliationQuery = useQuery({
-    queryKey: logisticsKeys.reconciliation.detail(sessionId),
-    queryFn: () => getSessionReconciliation(sessionId),
-    enabled: Boolean(sessionId),
-  });
-  const operationalSummaryQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId),
-    queryFn: () => getSessionOperationalSummary(sessionId),
+  const consoleContextQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.consoleContext(sessionId),
+    queryFn: () => getSessionConsoleContext(sessionId),
     enabled: Boolean(sessionId),
   });
 
-  const session = sessionQuery.data;
-
-  const originBalancesKey = session?.origin_warehouse_id
-    ? stockKeys.balances.list({ warehouse_id: session.origin_warehouse_id, limit: "200" })
-    : ["stock", "origin-none"];
-  const mobileBalancesKey = session?.mobile_warehouse_id
-    ? stockKeys.balances.list({ warehouse_id: session.mobile_warehouse_id, limit: "200" })
-    : ["stock", "mobile-none"];
-  const originSerializedKey = session?.origin_warehouse_id
-    ? ["logistics", "cylinders", "serialized-summary", session.origin_warehouse_id]
-    : ["logistics", "cylinders", "serialized-summary", "origin-none"];
-
-  const originBalancesQuery = useQuery({
-    queryKey: originBalancesKey,
-    queryFn: () => listBalances({ warehouse_id: session!.origin_warehouse_id, limit: "200" }),
-    enabled: Boolean(session?.origin_warehouse_id),
-  });
-  const mobileBalancesQuery = useQuery({
-    queryKey: mobileBalancesKey,
-    queryFn: () => listBalances({ warehouse_id: session!.mobile_warehouse_id, limit: "200" }),
-    enabled: Boolean(session?.mobile_warehouse_id),
-  });
-  const originSerializedQuery = useQuery({
-    queryKey: originSerializedKey,
-    queryFn: () => listSerializedCylinderSummary(session!.origin_warehouse_id),
-    enabled: Boolean(session?.origin_warehouse_id),
-  });
+  const context = consoleContextQuery.data;
+  const session = context?.session;
 
   useEffect(() => {
-    if (!loadPlanQuery.data) {
+    if (!context?.load_plan) {
       return;
     }
     setLoadPlanItems(
-      loadPlanQuery.data.items.map((item) => ({
+      context.load_plan.items.map((item) => ({
         id: item.id,
         product_id: item.product_id,
         product_name: item.product_name,
@@ -129,15 +84,15 @@ export function VehicleSessionDetailPage({
         serials_complete: item.serials_complete,
       }))
     );
-  }, [loadPlanQuery.data]);
+  }, [context?.load_plan]);
 
   useEffect(() => {
-    if (!reconciliationQuery.data) {
+    if (!context?.reconciliation) {
       return;
     }
     setCounts(
       Object.fromEntries(
-        reconciliationQuery.data.lines.map((line) => [
+        context.reconciliation.lines.map((line) => [
           line.product_id,
           line.counted_quantity != null
             ? String(line.counted_quantity)
@@ -145,18 +100,13 @@ export function VehicleSessionDetailPage({
         ])
       )
     );
-  }, [reconciliationQuery.data]);
+  }, [context?.reconciliation]);
 
   async function invalidateAll() {
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
-      queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId) }),
       queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.all() }),
-      queryClient.invalidateQueries({ queryKey: logisticsKeys.loadPlans.detail(sessionId) }),
-      queryClient.invalidateQueries({ queryKey: logisticsKeys.reconciliation.detail(sessionId) }),
-      queryClient.invalidateQueries({ queryKey: mobileBalancesKey }),
-      queryClient.invalidateQueries({ queryKey: originBalancesKey }),
-      queryClient.invalidateQueries({ queryKey: originSerializedKey }),
+      queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.consoleContext(sessionId) }),
+      queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeContext(sessionId) }),
     ]);
   }
 
@@ -220,9 +170,9 @@ export function VehicleSessionDetailPage({
     },
   });
 
-  const mobileRows = mobileBalancesQuery.data?.items ?? [];
-  const originRows = originBalancesQuery.data?.items ?? [];
-  const originSerializedRows = originSerializedQuery.data ?? [];
+  const mobileRows = context?.mobile_balances?.items ?? [];
+  const originRows = context?.origin_balances?.items ?? [];
+  const originSerializedRows = context?.origin_serialized ?? [];
   const isPending =
     startLoadingMutation.isPending ||
     departMutation.isPending ||
@@ -318,8 +268,8 @@ export function VehicleSessionDetailPage({
       <VehicleSessionConsole
         session={session}
         mobileRows={mobileRows}
-        operationalSummary={operationalSummaryQuery.data ?? null}
-        operationalSummaryLoading={operationalSummaryQuery.isLoading}
+        operationalSummary={context?.operational_summary ?? null}
+        operationalSummaryLoading={consoleContextQuery.isLoading}
         cancellation={{
           canCancel: ["DRAFT", "LOADING", "READY_TO_DEPART"].includes(session.status),
           isPending: cancelMutation.isPending,
@@ -373,7 +323,7 @@ export function VehicleSessionDetailPage({
       <ReconciliationModal
         open={activeModal === "reconciliation"}
         onClose={handleCloseModal}
-        reconciliation={reconciliationQuery.data}
+        reconciliation={context?.reconciliation}
         counts={counts}
         setCounts={setCounts}
         onSaveCount={() => runAction(() => countMutation.mutateAsync(), "reconciliation")}

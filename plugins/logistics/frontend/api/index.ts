@@ -28,6 +28,7 @@ export * from "./sessions";
 export * from "./operational-summary";
 export * from "./route-operations";
 export * from "./route-stop-results";
+export * from "./route-context";
 export * from "./load-plans";
 export * from "./load-serials";
 export * from "./reconciliation";

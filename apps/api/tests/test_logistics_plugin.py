@@ -128,7 +128,11 @@ def enable_logistics_plugin(app, seeded_demo: dict[str, str]) -> None:
                 continue
             db.add(LogisticsAgendaTaskType(code=code, description=description))
         record.migration_version = "0006"
-        db.flush()
+        # Commit antes del lifecycle hook: el hook abre una sesion aparte y
+        # siembra catalogos. En SQLite, si la sesion outer mantiene el lock de
+        # escritura (flush pendiente), la sesion del hook queda bloqueada al
+        # insertar las mismas filas -> deadlock "database is locked".
+        db.commit()
         set_core_plugin_enabled(
             db,
             registry=app.state.plugin_registry,

@@ -1,23 +1,14 @@
 import { useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
-import { listCustomers } from "../../../../crm/frontend/api";
 import {
   confirmRouteEvent,
   createRouteIncident,
   emitSessionWaybill,
-  getCurrentComposition,
   getCustomerCylinderSummary,
   getRealWarehouses,
+  getSessionRouteContext,
   openSessionWaybillDocument,
-  getRouteStopProgress,
-  getSessionWaybill,
-  listRouteIncidents,
-  listRouteOperations,
-  listRouteStopResults,
-  listRouteStops,
-  listSessionWaybillHistory,
-  listWarehouses,
   logisticsKeys,
   regenerateSessionWaybill,
   resolveRouteIncident,
@@ -39,60 +30,17 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
   const [error, setError] = useState<string | null>(null);
   const [fastSerialError, setFastSerialError] = useState<string | null>(null);
 
-  const stopsQuery = useQuery({
-    queryKey: routeId ? logisticsKeys.routes.stops(routeId) : ["logistics", "routes", "none", "stops"],
-    queryFn: () => listRouteStops(routeId!),
-    enabled: open && Boolean(routeId),
-  });
-  const customersQuery = useQuery({
-    queryKey: ["crm", "customers", "route-event-context"],
-    queryFn: () => listCustomers({ limit: 200, offset: 0 }),
+  const routeContextQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeContext(sessionId),
+    queryFn: () => getSessionRouteContext(sessionId),
     enabled: open,
-  });
-  const warehousesQuery = useQuery({
-    queryKey: ["logistics", "warehouses", "route-event-context"],
-    queryFn: () => listWarehouses(),
-    enabled: open,
-  });
-  const routeOperationsQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.routeOperations(sessionId),
-    queryFn: () => listRouteOperations(sessionId),
-    enabled: open,
-  });
-  const compositionQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.composition(sessionId),
-    queryFn: () => getCurrentComposition(sessionId),
-    enabled: open,
-  });
-  const waybillQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.waybill(sessionId),
-    queryFn: () => getSessionWaybill(sessionId),
-    enabled: open,
-  });
-  const historyQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId),
-    queryFn: () => listSessionWaybillHistory(sessionId),
-    enabled: open,
-  });
-  const routeIncidentsQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId),
-    queryFn: () => listRouteIncidents(sessionId),
-    enabled: open,
-  });
-  const routeStopProgressQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId),
-    queryFn: () => getRouteStopProgress(sessionId),
-    enabled: open,
-  });
-  const routeStopResultsQuery = useQuery({
-    queryKey: logisticsKeys.vehicleSessions.routeStopResults(sessionId),
-    queryFn: () => listRouteStopResults(sessionId),
-    enabled: open,
+    staleTime: 30 * 1000,
   });
 
   const uiState = useSessionRouteTabUiState();
 
-  const stops = stopsQuery.data ?? [];
+  const context = routeContextQuery.data;
+  const stops = context?.stops ?? [];
   const resolvedCustomerId = uiState.routeStopId
     ? stops.find((s) => s.id === uiState.routeStopId)?.customer_id ?? null
     : uiState.contextType === "CUSTOMER" ? uiState.contextCustomerId || null : null;
@@ -101,6 +49,12 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     queryFn: () => getCustomerCylinderSummary(resolvedCustomerId!),
     enabled: open && Boolean(resolvedCustomerId) && uiState.operationType === "PICKUP",
   });
+
+  function invalidateRouteContext() {
+    return queryClient.invalidateQueries({
+      queryKey: logisticsKeys.vehicleSessions.routeContext(sessionId),
+    });
+  }
 
   const regenerateMutation = useMutation({
     mutationFn: () =>
@@ -111,12 +65,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
       }),
     onSuccess: async () => {
       setError(null);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.composition(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybill(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId) }),
-      ]);
+      await invalidateRouteContext();
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo regenerar la carta porte");
@@ -131,11 +80,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
       }),
     onSuccess: async () => {
       setError(null);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybill(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId) }),
-      ]);
+      await invalidateRouteContext();
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo emitir la carta porte oficial");
@@ -155,7 +100,8 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
               ? "IN"
               : item.direction,
       }));
-      const correctionIncident = (routeIncidentsQuery.data ?? []).find((incident) => incident.id === uiState.correctionIncidentId);
+      const routeIncidents = context?.incidents ?? [];
+      const correctionIncident = routeIncidents.find((incident) => incident.id === uiState.correctionIncidentId);
       if (uiState.correctionIncidentId && !correctionIncident) {
         throw new Error("La incidencia a corregir ya no está disponible");
       }
@@ -188,13 +134,8 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
       setError(null);
       uiState.resetAfterRouteEventSuccess();
       await Promise.all([
+        invalidateRouteContext(),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.detail(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeOperations(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.composition(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybill(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.waybillHistory(sessionId) }),
       ]);
     },
     onError: (cause) => {
@@ -214,10 +155,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     onSuccess: async () => {
       setError(null);
       uiState.resetAfterIncidentResolved();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
-      ]);
+      await invalidateRouteContext();
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo resolver la incidencia");
@@ -235,10 +173,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     onSuccess: async () => {
       setError(null);
       uiState.resetAfterIncidentCreated();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeIncidents(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
-      ]);
+      await invalidateRouteContext();
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo registrar la incidencia");
@@ -261,8 +196,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     onSuccess: async () => {
       setError(null);
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopResults(sessionId) }),
-        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeStopProgress(sessionId) }),
+        invalidateRouteContext(),
         queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.operationalSummary(sessionId) }),
       ]);
     },
@@ -271,14 +205,14 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     },
   });
 
-  const waybillState = waybillQuery.data;
+  const waybillState = context?.waybill ?? null;
   const canManageRouteContext = ["OUTBOUND", "RETURNING"].includes(sessionStatus);
   const canRegenerate = Boolean(waybillState?.can_regenerate) && canManageRouteContext;
-  const routeOperations = routeOperationsQuery.data ?? [];
-  const routeIncidents = routeIncidentsQuery.data ?? [];
-  const routeStopResults = routeStopResultsQuery.data ?? [];
-  const routeStopProgress = routeStopProgressQuery.data ?? [];
-  const waybillHistory = historyQuery.data ?? [];
+  const routeOperations = context?.operations ?? [];
+  const routeIncidents = context?.incidents ?? [];
+  const routeStopResults = context?.stop_results ?? [];
+  const routeStopProgress = context?.stop_progress ?? [];
+  const waybillHistory = context?.waybill_history ?? [];
 
   function submitRouteEvent() {
     createAndConfirmMutation.mutate();
@@ -343,9 +277,9 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     }
   }
 
-  const stopOptions = buildStopOptions(stopsQuery.data ?? []);
-  const customerOptions = buildCustomerOptions(customersQuery.data?.items ?? []);
-  const warehouseOptions = getRealWarehouses(warehousesQuery.data ?? []).map((warehouse) => ({
+  const stopOptions = buildStopOptions(stops);
+  const customerOptions = buildCustomerOptions(context?.customers ?? []);
+  const warehouseOptions = getRealWarehouses(context?.warehouses ?? []).map((warehouse) => ({
     value: warehouse.id,
     label: `${warehouse.code} · ${warehouse.name}`,
   }));
@@ -361,7 +295,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     const isPickup = uiState.operationType === "PICKUP";
     const productLines = isPickup
       ? (customerCylindersQuery.data?.by_product ?? []).map((p) => ({ product_id: p.product_id, product_name: p.product_name, quantity: p.at_customer }))
-      : compositionQuery.data?.product_lines ?? [];
+      : context?.composition?.product_lines ?? [];
     const contextProductId = productLines[0]?.product_id ?? "";
     const selectionContext = isPickup ? "ROUTE_PICKUP" : "ROUTE_DELIVERY";
 
@@ -400,9 +334,13 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
   return {
     sessionId,
     error,
+    routeId,
+    stops,
+    routeDetail: context?.route_detail ?? null,
+    assignedRoute: context?.assigned_route ?? null,
     waybillState,
     waybillHistory,
-    isWaybillLoading: waybillQuery.isLoading,
+    isWaybillLoading: routeContextQuery.isLoading,
     canRegenerate,
     canEmitWaybill: Boolean(waybillState?.can_emit) && canManageRouteContext,
     canRegisterOperation: canManageRouteContext,
@@ -412,7 +350,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     routeIncidents,
     routeStopResults,
     routeStopProgress,
-    composition: compositionQuery.data,
+    composition: context?.composition ?? null,
     customerCylinders: (customerCylindersQuery.data?.by_product ?? [])
       .filter((p) => p.at_customer > 0)
       .map((p) => ({

@@ -68,7 +68,7 @@ def build_load_plan_read(
 ) -> LoadPlanRead:
     read = LoadPlanRead(
         id=load_plan.id if load_plan is not None else None,
-        session_id=load_plan.session_id if load_plan is not None else "",
+        session_id=load_plan.session_id if load_plan is not None else session.id,
         status=load_plan.status if load_plan is not None else "DRAFT",
         notes=load_plan.notes if load_plan is not None else None,
         planned_weight_kg=sum(float(item.planned_weight_kg or 0) for item in items),

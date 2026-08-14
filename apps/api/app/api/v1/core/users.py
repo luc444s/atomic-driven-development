@@ -17,6 +17,7 @@ from apps.api.app.api.v1.core.schemas import (
     CoreUserUpdateRequest,
 )
 from apps.api.app.api.v1.core.services.users import (
+    CATEGORY_LABELS,
     USER_CATEGORY_MAP,
     create_core_user,
     get_core_user,
@@ -48,11 +49,6 @@ def _resolve_branch(db: Session, *, tenant_id: str, branch_id: str | None):
             detail="Invalid branch for tenant",
         )
     return branch
-
-
-CATEGORY_LABELS: dict[str, str] = {
-    "driver": "Conductor",
-}
 
 
 @router.get("/categories", response_model=list[CoreUserCategoryRead])

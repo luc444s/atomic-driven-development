@@ -20,8 +20,18 @@ from apps.api.app.kernel.permissions.service import (
 from apps.api.app.kernel.tenants.models import Branch
 from apps.api.app.kernel.tenants.service import list_user_warehouse_ids, replace_user_warehouse_ids
 
+# Unica fuente de verdad para categorias de usuario.
+# clave -> (label display, roles auto-asignados al crear usuario con esa categoria)
+USER_CATEGORIES: dict[str, tuple[str, list[str]]] = {
+    "driver": ("Conductor", ["driver"]),
+}
+
 USER_CATEGORY_MAP: dict[str, list[str]] = {
-    "driver": ["driver"],
+    key: role_names for key, (_label, role_names) in USER_CATEGORIES.items()
+}
+
+CATEGORY_LABELS: dict[str, str] = {
+    key: label for key, (label, _role_names) in USER_CATEGORIES.items()
 }
 
 

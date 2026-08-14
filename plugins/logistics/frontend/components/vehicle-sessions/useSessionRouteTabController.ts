@@ -6,7 +6,6 @@ import {
   createRouteIncident,
   emitSessionWaybill,
   getCustomerCylinderSummary,
-  getRealWarehouses,
   getSessionRouteContext,
   openSessionWaybillDocument,
   logisticsKeys,
@@ -15,7 +14,8 @@ import {
   selectLoadSerial,
   upsertRouteStopResult,
 } from "../../api";
-import { buildCorrectionContext, buildCustomerOptions, buildRouteOperationOptions, buildStopOptions, directionOptions, incidentOptions, operationOptions } from "./session-route-tab-view";
+import { buildCorrectionContext, directionOptions, incidentOptions, operationOptions } from "./session-route-tab-view";
+import { buildRouteContextView } from "./route-context-view";
 import { useSessionRouteTabUiState } from "./useSessionRouteTabUiState";
 
 type Props = {
@@ -39,8 +39,8 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
 
   const uiState = useSessionRouteTabUiState();
 
-  const context = routeContextQuery.data;
-  const stops = context?.stops ?? [];
+  const view = buildRouteContextView(routeContextQuery.data);
+  const stops = view.stops;
   const resolvedCustomerId = uiState.routeStopId
     ? stops.find((s) => s.id === uiState.routeStopId)?.customer_id ?? null
     : uiState.contextType === "CUSTOMER" ? uiState.contextCustomerId || null : null;
@@ -100,7 +100,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
               ? "IN"
               : item.direction,
       }));
-      const routeIncidents = context?.incidents ?? [];
+      const routeIncidents = view.routeIncidents;
       const correctionIncident = routeIncidents.find((incident) => incident.id === uiState.correctionIncidentId);
       if (uiState.correctionIncidentId && !correctionIncident) {
         throw new Error("La incidencia a corregir ya no está disponible");
@@ -205,14 +205,14 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     },
   });
 
-  const waybillState = context?.waybill ?? null;
+  const waybillState = view.waybill;
   const canManageRouteContext = ["OUTBOUND", "RETURNING"].includes(sessionStatus);
   const canRegenerate = Boolean(waybillState?.can_regenerate) && canManageRouteContext;
-  const routeOperations = context?.operations ?? [];
-  const routeIncidents = context?.incidents ?? [];
-  const routeStopResults = context?.stop_results ?? [];
-  const routeStopProgress = context?.stop_progress ?? [];
-  const waybillHistory = context?.waybill_history ?? [];
+  const routeOperations = view.routeOperations;
+  const routeIncidents = view.routeIncidents;
+  const routeStopResults = view.routeStopResults;
+  const routeStopProgress = view.routeStopProgress;
+  const waybillHistory = view.waybillHistory;
 
   function submitRouteEvent() {
     createAndConfirmMutation.mutate();
@@ -277,13 +277,10 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     }
   }
 
-  const stopOptions = buildStopOptions(stops);
-  const customerOptions = buildCustomerOptions(context?.customers ?? []);
-  const warehouseOptions = getRealWarehouses(context?.warehouses ?? []).map((warehouse) => ({
-    value: warehouse.id,
-    label: `${warehouse.code} · ${warehouse.name}`,
-  }));
-  const routeOperationOptions = buildRouteOperationOptions(routeOperations);
+  const stopOptions = view.stopOptions;
+  const customerOptions = view.customerOptions;
+  const warehouseOptions = view.warehouseOptions;
+  const routeOperationOptions = view.routeOperationOptions;
 
   const correctionIncident = routeIncidents.find((incident) => incident.id === uiState.correctionIncidentId) ?? null;
   const correctionContext = buildCorrectionContext(correctionIncident, stopOptions, routeOperationOptions);
@@ -295,7 +292,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     const isPickup = uiState.operationType === "PICKUP";
     const productLines = isPickup
       ? (customerCylindersQuery.data?.by_product ?? []).map((p) => ({ product_id: p.product_id, product_name: p.product_name, quantity: p.at_customer }))
-      : context?.composition?.product_lines ?? [];
+      : view.composition?.product_lines ?? [];
     const contextProductId = productLines[0]?.product_id ?? "";
     const selectionContext = isPickup ? "ROUTE_PICKUP" : "ROUTE_DELIVERY";
 
@@ -336,8 +333,8 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     error,
     routeId,
     stops,
-    routeDetail: context?.route_detail ?? null,
-    assignedRoute: context?.assigned_route ?? null,
+    routeDetail: routeContextQuery.data?.route_detail ?? null,
+    assignedRoute: routeContextQuery.data?.assigned_route ?? null,
     waybillState,
     waybillHistory,
     isWaybillLoading: routeContextQuery.isLoading,
@@ -350,7 +347,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     routeIncidents,
     routeStopResults,
     routeStopProgress,
-    composition: context?.composition ?? null,
+    composition: view.composition,
     customerCylinders: (customerCylindersQuery.data?.by_product ?? [])
       .filter((p) => p.at_customer > 0)
       .map((p) => ({

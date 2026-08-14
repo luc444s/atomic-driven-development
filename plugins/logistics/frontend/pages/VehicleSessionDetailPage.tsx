@@ -21,6 +21,10 @@ import {
 import {
   type EditableLoadPlanItem,
 } from "../components/vehicle-sessions/SessionLoadTab";
+import {
+  buildEditableLoadPlanItems,
+  buildReconciliationCounts,
+} from "../components/vehicle-sessions/session-console-view";
 import { VehicleSessionConsole } from "../components/vehicle-sessions/VehicleSessionConsole";
 import { LoadModal } from "../components/vehicle-sessions/modals/LoadModal";
 import { ReconciliationModal } from "../components/vehicle-sessions/modals/ReconciliationModal";
@@ -72,34 +76,14 @@ export function VehicleSessionDetailPage({
     if (!context?.load_plan) {
       return;
     }
-    setLoadPlanItems(
-      context.load_plan.items.map((item) => ({
-        id: item.id,
-        product_id: item.product_id,
-        product_name: item.product_name,
-        planned_quantity: String(item.planned_quantity),
-        source_warehouse_id: item.source_warehouse_id,
-        requires_serials: item.requires_serials,
-        selected_serials_count: item.selected_serials_count,
-        serials_complete: item.serials_complete,
-      }))
-    );
+    setLoadPlanItems(buildEditableLoadPlanItems(context.load_plan));
   }, [context?.load_plan]);
 
   useEffect(() => {
     if (!context?.reconciliation) {
       return;
     }
-    setCounts(
-      Object.fromEntries(
-        context.reconciliation.lines.map((line) => [
-          line.product_id,
-          line.counted_quantity != null
-            ? String(line.counted_quantity)
-            : String(line.expected_quantity),
-        ])
-      )
-    );
+    setCounts(buildReconciliationCounts(context.reconciliation));
   }, [context?.reconciliation]);
 
   async function invalidateAll() {

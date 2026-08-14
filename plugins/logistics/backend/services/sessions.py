@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from apps.api.app.kernel.auth.models import User
+from apps.api.app.kernel.permissions.models import Role, UserRole
 from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
@@ -41,17 +42,22 @@ from plugins.logistics.backend.services.rules import (
 
 
 def list_driver_options(db: Session, *, tenant_id: str) -> list[User]:
-    return list(
-        db.scalars(
-            select(User)
-            .where(
-                User.tenant_id == tenant_id,
-                User.is_active.is_(True),
-                User.category == "driver",
-            )
-            .order_by(User.full_name.asc())
-        ).all()
+    # Conductor = usuario activo con rol "driver" asignado (no category).
+    # La categoria es legacy del import inicial y no se usa para filtrar.
+    stmt = (
+        select(User)
+        .join(UserRole, UserRole.user_id == User.id)
+        .join(Role, Role.id == UserRole.role_id)
+        .where(
+            User.tenant_id == tenant_id,
+            User.is_active.is_(True),
+            Role.name == "driver",
+            Role.is_active.is_(True),
+        )
+        .order_by(User.full_name.asc())
+        .distinct()
     )
+    return list(db.scalars(stmt))
 
 
 def _ensure_mobile_warehouse_for_vehicle(

@@ -1,3 +1,5 @@
+import { memo } from "react";
+
 import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
 import { Card } from "../../../../../apps/web/src/shared/ui/card";
 import { cn } from "../../../../../apps/web/src/shared/ui/cn";
@@ -10,7 +12,10 @@ type Props = {
   onOpenVehicle: (vehicleId: string) => void;
 };
 
-export function VehicleJornadaCard({ card, onOpenVehicle }: Props) {
+export const VehicleJornadaCard = memo(function VehicleJornadaCard({
+  card,
+  onOpenVehicle,
+}: Props) {
   const semanticStatus = card.active_session?.status ?? card.latest_session_status;
   const activeLabel = semanticStatus
     ? VEHICLE_SESSION_STATUS_LABELS[semanticStatus] ?? semanticStatus
@@ -72,4 +77,4 @@ export function VehicleJornadaCard({ card, onOpenVehicle }: Props) {
       </div>
     </Card>
   );
-}
+});

@@ -12,7 +12,7 @@ import {
   type RoutingCalculationResponse,
 } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
-import { RouteContextMap } from "../route-builder/RouteContextMap";
+import { RouteContextMapLazy as RouteContextMap } from "../route-builder/RouteContextMapLazy";
 import { SessionWaybillCard } from "./SessionWaybillCard";
 import { SessionRouteTabDialogs } from "./SessionRouteTabDialogs";
 import { useSessionRouteTabController } from "./useSessionRouteTabController";

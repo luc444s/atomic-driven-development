@@ -11,7 +11,7 @@ import {
   VEHICLE_SESSION_STATUS_LABELS,
 } from "../../api";
 import type { PlanningReservation } from "../../api";
-import { RouteContextMap } from "../route-builder/RouteContextMap";
+import { RouteContextMapLazy as RouteContextMap } from "../route-builder/RouteContextMapLazy";
 import { VehicleSessionStatusBadge } from "./VehicleSessionStatusBadge";
 import type { VehicleProjectionCard } from "./vehicle-jornadas-projection";
 import { VehiclePlannedLoadPanel } from "../../planning/panels/vehicle-planned-load-panel";

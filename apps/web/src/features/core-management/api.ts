@@ -48,7 +48,6 @@ export type CreateCoreUserPayload = {
   email: string;
   password: string;
   branch_id: string | null;
-  category: string | null;
   role_ids: string[];
 };
 
@@ -57,7 +56,6 @@ export type UpdateCoreUserPayload = {
   email?: string;
   password?: string;
   branch_id?: string | null;
-  category?: string | null;
   role_ids?: string[];
 };
 

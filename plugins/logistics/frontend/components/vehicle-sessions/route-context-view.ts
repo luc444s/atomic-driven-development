@@ -1,10 +1,10 @@
 import type { RouteContext } from "../../api";
 import { getRealWarehouses } from "../../api";
+import type { RouteSelectOption } from "./RouteOperationForm";
 import {
   buildCustomerOptions,
   buildRouteOperationOptions,
   buildStopOptions,
-  type RouteSelectOption,
 } from "./session-route-tab-view";
 
 export type RouteContextView = {

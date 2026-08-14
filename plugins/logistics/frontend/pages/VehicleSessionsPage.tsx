@@ -89,12 +89,10 @@ export function VehicleSessionsPage() {
   const sessionsQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.list({ page: sessionsPage }),
     queryFn: () => listVehicleSessions({ page: sessionsPage, per_page: 50 }),
-    refetchInterval: 5000,
   });
   const vehiclesQuery = useQuery({
     queryKey: logisticsKeys.vehicles(),
     queryFn: listVehicles,
-    refetchInterval: 5000,
   });
   const driversQuery = useQuery({
     queryKey: logisticsKeys.vehicleSessions.drivers(),
@@ -114,7 +112,6 @@ export function VehicleSessionsPage() {
   const plannedReservationsQuery = useQuery({
     queryKey: planningKeys.reservations.list({ start: "now" }),
     queryFn: () => listPlanningReservations({ start: new Date().toISOString() }),
-    refetchInterval: 5000,
   });
 
   const customerNamesRef = useRef<Record<string, string>>({});

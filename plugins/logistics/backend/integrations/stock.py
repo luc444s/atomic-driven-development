@@ -34,6 +34,7 @@ def get_warehouse_balances(
         allowed_warehouse_ids=None,
         limit=limit,
         offset=0,
+        ensure_catalog=False,
     )
 
 

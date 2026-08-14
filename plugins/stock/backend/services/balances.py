@@ -137,13 +137,15 @@ def list_balances(
     allowed_warehouse_ids: tuple[str, ...] | None,
     limit: int,
     offset: int,
+    ensure_catalog: bool = True,
 ) -> StockBalancePageRead:
-    _ensure_catalog_balances(
-        db,
-        tenant_id=tenant_id,
-        warehouse_id=warehouse_id,
-        allowed_warehouse_ids=allowed_warehouse_ids,
-    )
+    if ensure_catalog:
+        _ensure_catalog_balances(
+            db,
+            tenant_id=tenant_id,
+            warehouse_id=warehouse_id,
+            allowed_warehouse_ids=allowed_warehouse_ids,
+        )
     stmt = (
         select(StockBalance, Product, LogisticsWarehouse, StockConfig)
         .join(Product, Product.id == StockBalance.product_id)

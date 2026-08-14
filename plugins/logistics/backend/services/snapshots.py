@@ -53,6 +53,59 @@ def _get_route(db: Session, route_id: str) -> LogisticsRoute | None:
     return db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == route_id))
 
 
+def _load_adr_points_map(
+    db: Session,
+    *,
+    tenant_id: str,
+    product_ids: list[str],
+    today: date,
+) -> dict[str, float]:
+    result: dict[str, float] = {}
+    if not product_ids:
+        return result
+
+    configs = list(
+        db.scalars(
+            select(LogisticsAdrProductConfig)
+            .where(
+                LogisticsAdrProductConfig.tenant_id == tenant_id,
+                LogisticsAdrProductConfig.product_id.in_(product_ids),
+                LogisticsAdrProductConfig.valid_from <= today,
+                (LogisticsAdrProductConfig.valid_to.is_(None))
+                | (LogisticsAdrProductConfig.valid_to >= today),
+            )
+            .order_by(LogisticsAdrProductConfig.valid_from.desc())
+        ).all()
+    )
+    for config in configs:
+        if config.product_id in result:
+            continue
+        if config.adr_points is not None:
+            result[config.product_id] = float(config.adr_points)
+
+    missing = [product_id for product_id in product_ids if product_id not in result]
+    if missing:
+        fallbacks = list(
+            db.scalars(
+                select(ProductAdr)
+                .where(
+                    ProductAdr.tenant_id == tenant_id,
+                    ProductAdr.product_id.in_(missing),
+                    ProductAdr.valid_from <= today,
+                    (ProductAdr.valid_to.is_(None)) | (ProductAdr.valid_to >= today),
+                )
+                .order_by(ProductAdr.valid_from.desc())
+            ).all()
+        )
+        for fallback in fallbacks:
+            if fallback.product_id in result:
+                continue
+            if fallback.points is not None:
+                result[fallback.product_id] = float(fallback.points)
+
+    return result
+
+
 def _build_stock_summary(
     db: Session, *, tenant_id: str, mobile_warehouse_id: str,
     reference_date: date | None = None,
@@ -65,32 +118,22 @@ def _build_stock_summary(
     mobile_warehouse = _get_warehouse(db, mobile_warehouse_id)
 
     today = reference_date or date.today()
+    positive_ids = [item.product_id for item in balances.items if float(item.quantity) > 0]
+    adr_points_map = _load_adr_points_map(
+        db,
+        tenant_id=tenant_id,
+        product_ids=positive_ids,
+        today=today,
+    )
+
     total_adr = 0.0
     for item in balances.items:
-        if float(item.quantity) <= 0:
+        quantity = float(item.quantity)
+        if quantity <= 0:
             continue
-        adr_cfg = db.scalar(
-            select(LogisticsAdrProductConfig).where(
-                LogisticsAdrProductConfig.tenant_id == tenant_id,
-                LogisticsAdrProductConfig.product_id == item.product_id,
-                LogisticsAdrProductConfig.valid_from <= today,
-                (LogisticsAdrProductConfig.valid_to.is_(None))
-                | (LogisticsAdrProductConfig.valid_to >= today),
-            ).order_by(LogisticsAdrProductConfig.valid_from.desc())
-        )
-        if adr_cfg is not None and adr_cfg.adr_points is not None:
-            total_adr += float(adr_cfg.adr_points) * float(item.quantity)
-        else:
-            fallback = db.scalar(
-                select(ProductAdr).where(
-                    ProductAdr.tenant_id == tenant_id,
-                    ProductAdr.product_id == item.product_id,
-                    ProductAdr.valid_from <= today,
-                    (ProductAdr.valid_to.is_(None)) | (ProductAdr.valid_to >= today),
-                ).order_by(ProductAdr.valid_from.desc())
-            )
-            if fallback is not None and fallback.points is not None:
-                total_adr += float(fallback.points) * float(item.quantity)
+        points = adr_points_map.get(item.product_id)
+        if points is not None:
+            total_adr += points * quantity
 
     return SessionStockSummaryRead(
         warehouse_id=mobile_warehouse.id,

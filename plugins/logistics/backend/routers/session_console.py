@@ -1,0 +1,59 @@
+from __future__ import annotations
+
+import asyncio
+from collections.abc import Callable
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Request, status
+from sqlalchemy.orm import Session
+
+from apps.api.app.core.lifecycle import ensure_session_factory
+from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
+from apps.api.app.kernel.auth.models import User
+from apps.api.app.kernel.tenants.context import TenantContext
+from plugins.logistics.backend.dto.session_console import SessionConsoleContextRead
+from plugins.logistics.backend.services.session_console import build_session_console_context
+
+router = APIRouter(prefix="/vehicle-sessions", tags=["logistics-session-console"])
+
+TENANT_CONTEXT = Depends(get_current_tenant_context)
+REQUIRE_SESSION_READ = Depends(require_permission("logistics.session.read"))
+
+
+def _make_sync_session(request: Request) -> Session:
+    factory = ensure_session_factory(request.app)
+    return factory()
+
+
+async def _run_sync_readonly[T](
+    request: Request,
+    fn: Callable[..., T],
+    *args: Any,
+    **kwargs: Any,
+) -> T:
+    def _call() -> T:
+        db = _make_sync_session(request)
+        try:
+            return fn(db, *args, **kwargs)
+        finally:
+            db.close()
+
+    return await asyncio.to_thread(_call)
+
+
+@router.get("/{session_id}/console-context", response_model=SessionConsoleContextRead)
+async def get_session_console_context(
+    session_id: str,
+    request: Request,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+    _: User = REQUIRE_SESSION_READ,
+) -> SessionConsoleContextRead:
+    try:
+        return await _run_sync_readonly(
+            request,
+            build_session_console_context,
+            tenant_id=tenant_context.current_tenant_id,
+            session_id=session_id,
+        )
+    except LookupError as exc:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc

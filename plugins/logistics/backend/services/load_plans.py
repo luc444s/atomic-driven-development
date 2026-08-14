@@ -6,6 +6,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
+from plugins.logistics.backend.dto.load_plans import LoadPlanItemRead, LoadPlanRead
 from plugins.logistics.backend.integrations.stock import get_warehouse_balances
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
@@ -23,7 +24,9 @@ from plugins.logistics.backend.services.envase import (
 )
 from plugins.logistics.backend.services.load_serials import (
     confirm_selected_serials_for_operation,
+    count_active_assignments,
     ensure_required_serials_for_load_plan,
+    product_requires_serial_capture,
     release_active_serial_assignments,
 )
 from plugins.logistics.backend.services.operations import confirm_transfer_in, confirm_transfer_out
@@ -54,6 +57,69 @@ def get_load_plan(db: Session, *, session_id: str) -> LogisticsLoadPlan | None:
         .where(LogisticsLoadPlan.session_id == session_id)
         .order_by(LogisticsLoadPlan.updated_at.desc())
     )
+
+
+def build_load_plan_read(
+    db: Session,
+    *,
+    session: LogisticsVehicleSession,
+    load_plan: LogisticsLoadPlan | None,
+    items: list[LogisticsLoadPlanItem],
+) -> LoadPlanRead:
+    read = LoadPlanRead(
+        id=load_plan.id if load_plan is not None else None,
+        session_id=load_plan.session_id if load_plan is not None else "",
+        status=load_plan.status if load_plan is not None else "DRAFT",
+        notes=load_plan.notes if load_plan is not None else None,
+        planned_weight_kg=sum(float(item.planned_weight_kg or 0) for item in items),
+        items=[
+            LoadPlanItemRead(
+                id=item.id,
+                product_id=item.product_id,
+                product_name=item.product_name,
+                planned_quantity=float(item.planned_quantity),
+                planned_weight_kg=(
+                    float(item.planned_weight_kg) if item.planned_weight_kg is not None else None
+                ),
+                source_warehouse_id=item.source_warehouse_id,
+                notes=item.notes,
+                requires_serials=False,
+                selected_serials_count=0,
+                serials_complete=True,
+                created_at=item.created_at,
+            )
+            for item in items
+        ],
+    )
+    enriched_items: list[LoadPlanItemRead] = []
+    for item in read.items:
+        requires_serials = product_requires_serial_capture(
+            db,
+            tenant_id=session.tenant_id,
+            session_id=session.id,
+            product_id=item.product_id,
+            source_warehouse_id=item.source_warehouse_id,
+        )
+        selected_count = (
+            count_active_assignments(db, session_id=session.id, product_id=item.product_id)
+            if requires_serials
+            else 0
+        )
+        required_count = (
+            int(item.planned_quantity)
+            if float(item.planned_quantity).is_integer()
+            else -1
+        )
+        enriched_items.append(
+            item.model_copy(
+                update={
+                    "requires_serials": requires_serials,
+                    "selected_serials_count": selected_count,
+                    "serials_complete": (not requires_serials) or selected_count == required_count,
+                }
+            )
+        )
+    return read.model_copy(update={"items": enriched_items})
 
 
 def _ensure_positive_quantity_for_origin_line(

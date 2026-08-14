@@ -12,22 +12,18 @@ from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.dto.load_plans import (
     ConfirmLoadRequest,
-    LoadPlanItemRead,
     LoadPlanRead,
     LoadPlanUpsertRequest,
     ReturnRemainingRequest,
 )
 from plugins.logistics.backend.dto.sessions import VehicleSessionDetailRead
 from plugins.logistics.backend.services.load_plans import (
+    build_load_plan_read,
     confirm_load_plan,
     get_load_plan,
     list_load_plan_items,
     return_remaining_stock,
     upsert_load_plan,
-)
-from plugins.logistics.backend.services.load_serials import (
-    count_active_assignments,
-    product_requires_serial_capture,
 )
 from plugins.logistics.backend.services.sessions import get_vehicle_session, mark_session_ready
 from plugins.logistics.backend.services.snapshots import build_session_snapshot
@@ -46,67 +42,6 @@ def _get_session_or_404(db: Session, *, tenant_id: str, session_id: str):
     if session is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Jornada no encontrada")
     return session
-
-
-def _to_read(load_plan, items) -> LoadPlanRead:
-    return LoadPlanRead(
-        id=load_plan.id if load_plan is not None else None,
-        session_id=load_plan.session_id if load_plan is not None else "",
-        status=load_plan.status if load_plan is not None else "DRAFT",
-        notes=load_plan.notes if load_plan is not None else None,
-        planned_weight_kg=sum(float(item.planned_weight_kg or 0) for item in items),
-        items=[
-            LoadPlanItemRead(
-                id=item.id,
-                product_id=item.product_id,
-                product_name=item.product_name,
-                planned_quantity=float(item.planned_quantity),
-                planned_weight_kg=(
-                    float(item.planned_weight_kg) if item.planned_weight_kg is not None else None
-                ),
-                source_warehouse_id=item.source_warehouse_id,
-                notes=item.notes,
-                requires_serials=False,
-                selected_serials_count=0,
-                serials_complete=True,
-                created_at=item.created_at,
-            )
-            for item in items
-        ],
-    )
-
-
-def _to_read_with_serial_status(db: Session, *, session, load_plan, items) -> LoadPlanRead:
-    read = _to_read(load_plan, items)
-    enriched_items: list[LoadPlanItemRead] = []
-    for item in read.items:
-        requires_serials = product_requires_serial_capture(
-            db,
-            tenant_id=session.tenant_id,
-            session_id=session.id,
-            product_id=item.product_id,
-            source_warehouse_id=item.source_warehouse_id,
-        )
-        selected_count = (
-            count_active_assignments(db, session_id=session.id, product_id=item.product_id)
-            if requires_serials
-            else 0
-        )
-        required_count = (
-            int(item.planned_quantity)
-            if float(item.planned_quantity).is_integer()
-            else -1
-        )
-        enriched_items.append(
-            item.model_copy(
-                update={
-                    "requires_serials": requires_serials,
-                    "selected_serials_count": selected_count,
-                    "serials_complete": (not requires_serials) or selected_count == required_count,
-                }
-            )
-        )
-    return read.model_copy(update={"items": enriched_items})
 
 
 def _raise_service_error(exc: Exception) -> NoReturn:
@@ -133,7 +68,7 @@ def get_session_load_plan(
     if load_plan is None:
         return LoadPlanRead(session_id=session_id, status="DRAFT")
     items = list_load_plan_items(db, load_plan_id=load_plan.id)
-    return _to_read_with_serial_status(db, session=session, load_plan=load_plan, items=items)
+    return build_load_plan_read(db, session=session, load_plan=load_plan, items=items)
 
 
 @router.put("/{session_id}/load-plan", response_model=LoadPlanRead)
@@ -157,7 +92,7 @@ def put_session_load_plan(
         )
         db.commit()
         items = list_load_plan_items(db, load_plan_id=load_plan.id)
-        return _to_read_with_serial_status(db, session=session, load_plan=load_plan, items=items)
+        return build_load_plan_read(db, session=session, load_plan=load_plan, items=items)
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)

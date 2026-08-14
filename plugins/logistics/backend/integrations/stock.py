@@ -23,6 +23,7 @@ def get_warehouse_balances(
     tenant_id: str,
     warehouse_id: str,
     limit: int = 200,
+    ensure_catalog: bool = False,
 ) -> StockBalancePageRead:
     return list_balances(
         db,
@@ -34,7 +35,7 @@ def get_warehouse_balances(
         allowed_warehouse_ids=None,
         limit=limit,
         offset=0,
-        ensure_catalog=False,
+        ensure_catalog=ensure_catalog,
     )
 
 

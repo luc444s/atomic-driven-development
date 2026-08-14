@@ -53,6 +53,20 @@ def _get_route(db: Session, route_id: str) -> LogisticsRoute | None:
     return db.scalar(select(LogisticsRoute).where(LogisticsRoute.id == route_id))
 
 
+def _session_last_activity_label(session: LogisticsVehicleSession) -> str | None:
+    candidates = [
+        (session.closed_at, "Jornada cerrada"),
+        (session.returned_at, "Vehiculo retorno"),
+        (session.departed_at, "Vehiculo salio"),
+        (session.ready_at, "Jornada lista para salir"),
+        (session.opened_at, "Jornada creada"),
+    ]
+    for occurred_at, label in candidates:
+        if occurred_at is not None:
+            return label
+    return None
+
+
 def _load_adr_points_map(
     db: Session,
     *,
@@ -274,8 +288,12 @@ def _build_session_read(
         start_queue_blocker=start_queue_blocker,
     )
 
-    history = build_session_history(db, session=session)
-    last_activity = history[-1].label if history else None
+    if include_history:
+        history = build_session_history(db, session=session)
+        last_activity = history[-1].label if history else None
+    else:
+        history = []
+        last_activity = _session_last_activity_label(session)
     if include_history:
         return VehicleSessionDetailRead(
             id=session.id,

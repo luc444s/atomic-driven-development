@@ -160,11 +160,11 @@ def start_backend(env: dict[str, str], *, reload: bool = True) -> None:
         "--port",
         "8000",
         "--workers",
-        "4",
+        "2",
     ]
     if reload:
         cmd.remove("--workers")
-        cmd.remove("4")
+        cmd.remove("2")
         cmd.append("--reload")
 
     os.execve(str(python_bin), cmd, env)

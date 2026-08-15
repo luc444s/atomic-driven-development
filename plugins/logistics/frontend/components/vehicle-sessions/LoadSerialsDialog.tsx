@@ -242,7 +242,7 @@ export function LoadSerialsDialog({
     setCreateMeta({
       ...EMPTY_CYLINDER_CREATE_META,
       entry_mode: "FULL_FROM_SUPPLIER",
-      warehouse_id: item.source_warehouse_id,
+      warehouse_id: item.source_warehouse_id ?? "",
     });
     setCreateError(null);
     setIsCreateOpen(true);

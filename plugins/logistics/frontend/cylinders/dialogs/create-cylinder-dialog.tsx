@@ -72,10 +72,10 @@ export function CreateCylinderDialog({
   const [customerOptions, setCustomerOptions] = useState<ComboboxOption[]>([]);
   const [customerSearch, setCustomerSearch] = useState("");
   const [customerLoading, setCustomerLoading] = useState(false);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const serialInputRef = useRef<HTMLInputElement>(null);
   const [duplicateSerials, setDuplicateSerials] = useState<Set<string>>(new Set());
-  const dedupRef = useRef<ReturnType<typeof setTimeout>>();
+  const dedupRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const searchCustomers = useCallback(async (query: string) => {
     if (query.length < 1) {

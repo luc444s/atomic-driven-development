@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSessionWaybillHistoryLabel,
   formatSessionWaybillDocumentKind,
-} from "../../../../plugins/logistics/frontend/components/vehicle-sessions/session-waybill-view";
+} from "../../../../../plugins/logistics/frontend/components/vehicle-sessions/session-waybill-view";
 
 describe("official waybill helpers", () => {
   it("formats document kinds with operational labels", () => {

@@ -50,12 +50,17 @@ const nodeModulesAliases = Object.fromEntries(
 
 export default defineConfig({
   plugins: [react()],
+  // zustand 5 bajo pnpm: esbuild no resuelve los re-exports internos
+  // (zustand/react, zustand/vanilla) durante el prebundle. Se sirve sin
+  // optimizar: vite resuelve el exports map correctamente en runtime.
+  optimizeDeps: {
+    exclude: ["zustand"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@systutor/sdk/frontend": path.resolve(__dirname, "../../vendor/systutor-core/src/systutor/sdk/frontend/index.ts"),
       "@systutor/shell": path.resolve(__dirname, "../../vendor/systutor-shell/src"),
-      "pdfjs-dist/build/pdf.worker.min.js?url": path.resolve(__dirname, "node_modules/pdfjs-dist/build/pdf.worker.min.js"),
       ...nodeModulesAliases,
     },
   },

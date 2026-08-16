@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Badge } from "@systutor/shell/ui/badge";
 import { Button } from "@systutor/shell/ui/button";
 import { CorePdfViewer } from "@systutor/shell/ui/core-pdf-viewer";
+import workerUrl from "@/lib/pdf-worker";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Tabs, type Tab } from "@systutor/shell/ui/tabs";
 import { getApiBaseUrl } from "@systutor/shell/api/client";
@@ -241,7 +242,7 @@ export function ContractDetailDialog({
           {contract.contract_file_path && (
             <div>
               <h4 className="mb-2 font-medium">PDF actual</h4>
-              <CorePdfViewer fileUrl={pdfViewerUrl} loadingMessage="Cargando PDF..." />
+              <CorePdfViewer fileUrl={pdfViewerUrl} workerUrl={workerUrl} loadingMessage="Cargando PDF..." />
             </div>
           )}
           <div>

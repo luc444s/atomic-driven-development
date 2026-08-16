@@ -5,6 +5,7 @@ from systutor.core.lifecycle import bootstrap_app_state, lifespan
 from systutor.core.logging import configure_logging
 from systutor.core.request_context import RequestContextMiddleware
 
+from apps.api.app import user_categories  # noqa: F401
 from apps.api.app.api.v1.router import api_router
 from apps.api.app.config import get_settings
 from systutor.core.config import Settings

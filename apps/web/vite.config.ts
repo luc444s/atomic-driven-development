@@ -50,11 +50,18 @@ const nodeModulesAliases = Object.fromEntries(
 
 export default defineConfig({
   plugins: [react()],
-  // zustand 5 bajo pnpm: esbuild no resuelve los re-exports internos
-  // (zustand/react, zustand/vanilla) durante el prebundle. Se sirve sin
-  // optimizar: vite resuelve el exports map correctamente en runtime.
+  // zustand 5 no declara condiciones "module"/"browser" en su exports map
+  // y bajo pnpm sus re-exports internos (zustand/react, zustand/vanilla)
+  // resuelven a CJS (sin named exports). Se fuerza el prebundle con alias
+  // ESM dentro de esbuild; resolve.alias de vite no aplica dentro de .pnpm.
   optimizeDeps: {
-    exclude: ["zustand"],
+    esbuildOptions: {
+      alias: {
+        zustand: path.resolve(__dirname, "./node_modules/zustand/esm/index.mjs"),
+        "zustand/react": path.resolve(__dirname, "./node_modules/zustand/esm/react.mjs"),
+        "zustand/vanilla": path.resolve(__dirname, "./node_modules/zustand/esm/vanilla.mjs"),
+      },
+    },
   },
   resolve: {
     alias: {

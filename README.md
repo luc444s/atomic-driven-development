@@ -1,219 +1,137 @@
 # SYSTUTOR OSS
 
-Primera base operativa del proyecto SYSTUTOR OSS.
+Sistema operativo multi-tenant para la gestion de una empresa de gas
+envasado: envases, planificacion, despacho, clientes, stock, productos,
+cotizaciones y compras.
 
-Este repositorio arranca con:
-
-- ADRs base aceptados;
-- `AGENTS.md` para colaboradores y agentes;
-- monorepo inicial;
-- backend `FastAPI` con core persistente inicial;
-- runtime interno de eventos con outbox basico;
-- frontend shell `React + Vite` para login y estado del sistema;
-- aislamiento tenant activo a nivel aplicacion para auth, RBAC, auditoria y eventos;
-- contrato inicial de plugins;
-- entorno local con `PostgreSQL` y `Redis`.
+El kernel de infraestructura vive en su propio repositorio publico
+[systutor-core](https://github.com/luc444s/systutor-core) (MIT) y este
+repositorio lo consume como submodule. Los modulos de negocio viven aqui
+como plugins.
 
 ## Estado actual
 
-Esta version no implementa todavia modulos de negocio grandes.
+La **version 1.0.0** quedo cerrada el 2026-08-10 (ver
+`docs/changelogs/2026-08-10-v1.0.0.md`): `logistics`, `stock`,
+`productos`, `crm` y el shell forman un sistema usable end-to-end. El
+trabajo posterior es `v1.1+` y deuda tecnica no bloqueante.
 
-La prioridad actual es:
+## Modulos de negocio
 
-1. consolidar el core;
-2. dejar estructura estable para agentes;
-3. fijar contratos del kernel;
-4. habilitar el futuro modulo piloto `logistics`.
+| Plugin | Version | Alcance |
+|---|---|---|
+| `logistics` | 0.5.0 | Envases (cilindros y tanques criogenicos), planificacion, rutas y despacho, recepcion, jornadas/sesiones operativas, carta porte, contratos de envases, ADR, consola operativa |
+| `crm` | 1.0.0 | Clientes con datos fiscales, direcciones, contactos, catalogos y geografia |
+| `productos` | 0.1.0 | Catalogo maestro de productos con catalogos base, precios, costos, ADR, media y promociones |
+| `stock` | 0.2.0 | Ledger de inventario con reservas, costeo promedio ponderado y operaciones transaccionales |
+| `ventas` | 0.1.0 | Cotizaciones via consola DSL y formulario visual. Flujo cotizacion → planificacion |
+| `commerce` | 0.1.0 | Compras: proveedores, ordenes y recepcion con integracion a stock |
+
+Cada plugin declara identidad, version, permisos, eventos y migraciones
+propias (`plugin.json` + `backend/plugin.py`). El estado por modulo se
+documenta en `plugins/<modulo>/README.md` y `docs/avances/<modulo>.md`.
 
 ## Estructura
 
 ```text
 apps/
-  api/                Backend FastAPI (app huesped del kernel)
-  web/                Frontend shell React + Vite
+  api/                Backend FastAPI (aplicacion huesped del kernel)
+  web/                Frontend shell React + Vite (host modular)
 packages/
   ui/                 Componentes UI compartidos
 plugins/
-  logistics/          Plugin de negocio
-  crm/                Plugin de negocio
-  productos/          Plugin de negocio
-  stock/              Plugin de negocio
-  ventas/             Plugin de negocio
-  commerce/           Plugin de negocio
+  logistics/          Envases, planificacion, operacion, jornadas
+  crm/                Clientes
+  productos/          Catalogo maestro
+  stock/              Inventario
+  ventas/             Cotizaciones
+  commerce/           Compras
 vendor/
   systutor-core/      Kernel OSS (submodule git, MIT, ADR 0029)
 tools/
-  migrator/           Migrador legacy
+  migrator/           Migrador legacy (CSV + manifest)
   legacy-analyzer/    Analizador del legacy
+  dev/                Utilidades locales (servicios, benchmarks)
 docs/
   adr/                Decisiones de arquitectura
   specs/              Especificaciones funcionales
   contracts/          Contratos humanos del sistema
+  avances/            Estado actual por modulo
+  changelogs/         Cierres por fecha
 infra/
-  compose/            Documentacion de entorno local
+  compose/            Entorno local fuera de Termux
 ```
 
-El kernel vive en `vendor/systutor-core` (repo publico MIT). Los plugins
-importan infraestructura desde `systutor.*`; la config de negocio se resuelve
-en `apps/api/app/config.py` (`GasSettings`). Ver ADR 0029.
+## Kernel externo (systutor-core)
 
-## Backend local
+La infraestructura (auth, RBAC, tenancy, auditoria, eventos/outbox,
+runtime de plugins, documentos, firmas) vive en `vendor/systutor-core`.
 
-Requisitos esperados:
+- Los plugins importan infraestructura **solo** desde `systutor.*`.
+- La configuracion de negocio se resuelve en `apps/api/app/config.py`
+  (`GasSettings`), que registra su factory en el kernel.
+- El pin del submodule se actualiza por version explicita. Ver seccion
+  "Core externo" en `AGENTS.md` y `docs/adr/0029-extraccion-core-mit-multirepo.md`.
 
-- Termux
-- Python 3.12 o 3.13 local
+## Entorno local
 
-### Nota sobre Python
+Entorno primario: **Termux**. Python 3.12 base (3.13 aceptado en Termux
+mientras el codigo siga compatible con 3.12). Docker Compose queda como
+respaldo para entornos fuera de Termux.
 
-La base objetivo del proyecto sigue siendo **Python 3.12**.
-
-En Termux se acepta **Python 3.13** para desarrollo local, siempre que no se introduzcan features exclusivas de 3.13.
-
-### Nota sobre infraestructura local
-
-En este repositorio, **Termux es el entorno local primario**.
-
-Por eso:
-
-- el flujo recomendado no depende de Docker;
-- `docker-compose.yml` queda como soporte secundario para entornos fuera de Termux;
-- PostgreSQL y Redis pueden correr como servicios nativos de tu setup Termux o como servicios remotos accesibles por URL.
-
-Variables base:
+### Instalacion
 
 ```bash
-cp .env.example .env
+cp .env.example .env              # configurar URLs de PostgreSQL y Redis
+python3 -m venv .venv
+. .venv/bin/activate
+python3 -m pip install --upgrade pip
+python3 -m pip install -e ".[termux-dev]"
+python3 -m pip install -e vendor/systutor-core
+pkg install ruff                  # solo Termux: ruff por sistema
 ```
 
-El backend carga automáticamente el `.env` del root del proyecto al resolver `get_settings()`.
+No usar `.[dev]` en Termux (incluye `ruff` que compila por pip). En CI o
+fuera de Termux: `pip install -e ".[dev]"`.
 
-Crear entorno virtual e instalar dependencias:
-
- ```bash
- python3 -m venv .venv
- . .venv/bin/activate
- python3 -m pip install --upgrade pip
- python3 -m pip install -e ".[termux-dev]"
- python3 -m pip install -e vendor/systutor-core
- ```
-
-El submodule del kernel se instala editable para que `systutor.*` apunte al
-checkout de `vendor/systutor-core`. El pin del submodule se actualiza por
-version explicita (ver AGENTS.md).
-
-En Termux, `ruff` se instala por sistema para evitar compilarlo en cada `pip install`:
-
-```bash
-pkg install ruff
-```
-
-No usar en Termux:
-
-```bash
-python3 -m pip install -e ".[dev]"
-```
-
-si ese extra incluye `ruff`.
-
-Si necesitas un entorno Python completo fuera de Termux o en CI, usa:
-
-```bash
-python3 -m pip install -e ".[dev]"
-```
-
-Instalar frontend con pnpm:
+Frontend con pnpm:
 
 ```bash
 pnpm install
+cp apps/web/.env.example apps/web/.env   # VITE_API_BASE_URL
 ```
 
-### PostgreSQL y Redis en Termux
-
-
-Configura en `.env` URLs alcanzables desde tu entorno Termux :
-
-- `SYSTUTOR_DATABASE_URL`
-- `SYSTUTOR_REDIS_URL`
-
-Configura el frontend en `apps/web/.env` a partir de `apps/web/.env.example`:
-
-- `VITE_API_BASE_URL`
-
-Flujo recomendado:
-
-- usar PostgreSQL y Redis ya disponibles en tu entorno;
-- o usar servicios remotos/de otra maquina de desarrollo;
-- usar `docker-compose.yml` solo si trabajas fuera de Termux o en un entorno auxiliar.
-
-### Docker Compose secundario
-
-Si estas trabajando fuera de Termux o usando un entorno auxiliar compatible, puedes levantar servicios con:
+### Migraciones
 
 ```bash
-docker compose up -d postgres redis
+npm run migrate                      # alembic upgrade head
+npm run migrate:plugins              # migraciones por plugin
+.venv/bin/python -m apps.api.app.commands.seed_demo
 ```
 
-
-
-Ejecutar migraciones:
+### Ejecucion
 
 ```bash
-python3 -m alembic -c apps/api/alembic.ini upgrade head
+npm run services          # PostgreSQL + backend en un comando (Termux)
+npm run frontend          # shell React en 5173
+npm run psql              # consola PostgreSQL
+npm run status:services
 ```
 
-
-```bash
-python3 -m apps.api.app.commands.seed_demo
-```
-
-Levantar la API:
+Backend directo:
 
 ```bash
 uvicorn apps.api.app.main:app --reload
 ```
 
-Atajo recomendado para Termux: iniciar PostgreSQL local y backend en un solo comando:
+Worker de eventos (Dramatiq + Redis):
 
 ```bash
-npm run services
+dramatiq systutor.kernel.events.tasks
+python3 -c "from systutor.kernel.events.tasks import dispatch_pending_events; print(dispatch_pending_events.fn())"
 ```
 
-Atajos adicionales:
-
-```bash
-npm run postgres
-npm run psql
-npm run status:services
-```
-
-Levantar el frontend:
-
-```bash
-cp apps/web/.env.example apps/web/.env
-npm run frontend
-```
-
-Alternativa directa con pnpm en Termux:
-
-```bash
-cp apps/web/.env.example apps/web/.env
-node "/data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs" --filter @systutor/web dev
-```
-
-Levantar worker base de eventos:
-
-```bash
-dramatiq apps.api.app.kernel.events.tasks
-```
-
-Despachar eventos pendientes desde Python:
-
-```bash
-python3 -c "from apps.api.app.kernel.events.tasks import dispatch_pending_events; print(dispatch_pending_events.fn())"
-```
-
-API base:
+### API base
 
 - `GET /api/v1/system/health`
 - `GET /api/v1/system/ready`
@@ -221,134 +139,56 @@ API base:
 - `GET /api/v1/auth/me`
 - `GET /api/v1/system/plugins`
 
-## Aislamiento tenant activo
+Los endpoints de cada modulo viven bajo `/api/v1/plugins/<plugin_id>/...`.
 
-Desde `Core v0.3.1`, el aislamiento multi-tenant ya no es solo estructural.
+## Aislamiento multi-tenant
 
-Reglas activas:
+- Un usuario autenticado opera dentro del `tenant_id` persistido en DB.
+- El JWT se valida contra usuario, tenant, branch e `is_superadmin`.
+- Los permisos se resuelven solo mediante roles validos del tenant.
+- `health` y `ready` son globales; todo lo demas exige contexto de tenant.
 
-- un usuario autenticado opera dentro del `tenant_id` persistido en DB;
-- el JWT se valida contra usuario, tenant, branch e `is_superadmin` persistidos;
-- los permisos se resuelven solo mediante roles validos dentro del tenant correcto;
-- `Permission` sigue siendo catalogo global declarativo, pero no autoriza por si sola;
-- `PluginRegistry` sigue siendo global tecnico;
-- `health` y `ready` siguen siendo endpoints globales.
-
-En terminos practicos:
-
-```text
-Un usuario de Tenant A no puede leer, modificar, usar permisos ni roles de Tenant B.
-```
-
-Rutas frontend base:
-
-- `/login`
-- `/app/system`
-- `/app/plugins`
-
-Credenciales demo por defecto:
-
-- email: `admin@example.com`
-- password: `ChangeMe123!`
-
-Ejecutar pruebas:
-
-```bash
-python3 -m pytest apps/api/tests -q
-```
-
-Build frontend:
-
-```bash
-pnpm build
-```
-
-Validar calidad:
-
-```bash
-ruff check .
-python3 -m pyright
-python3 -m pytest apps/api/tests -q
-pnpm --dir apps/web build
-```
-
-Si usas `.venv`:
-
-```bash
-ruff check .
-./.venv/bin/python -m pyright
-./.venv/bin/python -m pytest apps/api/tests -q
-pnpm --dir apps/web build
-```
+En la practica: un usuario del Tenant A no puede leer, modificar ni usar
+permisos o roles del Tenant B.
 
 ## Login demo
 
-1. Iniciar PostgreSQL y backend:
-   ```bash
-   npm run services
-   ```
+1. `npm run services`
+2. Seed (primera vez): `.venv/bin/python -m apps.api.app.commands.seed_demo`
+3. `npm run frontend`
+4. `http://127.0.0.1:5173/login` — `admin@example.com` / `ChangeMe123!`
 
-2. Sembrar usuario admin (solo la primera vez):
-   ```bash
-   .venv/bin/python -m apps.api.app.commands.seed_demo
-   ```
+## Consola operativa
 
-3. En otra terminal, iniciar el frontend:
-   ```bash
-   npm run frontend
-   ```
+El sistema incluye una consola operativa embebida (Monaco) con DSL de
+comandos para flujos operativos y cotizaciones. Ver ADR 0022 y 0023.
 
-4. Abrir `http://127.0.0.1:5173/login` e ingresar:
-   - **email:** `admin@example.com`
-   - **password:** `ChangeMe123!`
+## Pruebas y calidad
 
-5. Validar `/app/system` (dashboard) y `/app/plugins` (runtime).
+```bash
+.venv/bin/python -m pytest apps/api/tests -q
+ruff check .
+.venv/bin/python -m pyright
+node /data/data/com.termux/files/usr/lib/node_modules/pnpm/bin/pnpm.cjs --filter @systutor/web build
+```
 
-## Flujo de prueba multi-tenant
+Los tests usan SQLite + `TestClient`. Los tests del kernel viven en
+`systutor-core` (su propia suite).
 
-1. Levantar backend y frontend.
-2. Iniciar sesion con el usuario demo.
-3. Verificar `GET /api/v1/auth/me` y confirmar `tenant_id` y `branch_id` correctos.
-4. Verificar dashboard y layout.
-5. Hacer logout.
-6. Intentar entrar a `/app` sin token.
-7. Verificar redireccion a login.
-8. Probar un token invalido o manipulado contra `/api/v1/auth/me`.
-9. Confirmar que `GET /api/v1/system/health` y `GET /api/v1/system/ready` siguen funcionando sin tenant.
+## Documentacion obligatoria antes de desarrollar
 
-## Documentos obligatorios
+1. `AGENTS.md` (reglas operativas, orden de lectura, limites kernel/plugins)
+2. `docs/adr/` (decisiones de arquitectura vigentes)
+3. Spec activa del dominio (`docs/specs/core/`)
+4. Contrato de datos/API si aplica (`docs/contracts/`)
 
-Antes de desarrollar:
+## Migracion legacy
 
-- `AGENTS.md`
-- `docs/adrs/`
+La migracion desde el sistema legacy es por dominio: CSV + `manifest.json`
+→ validacion → transformacion → PostgreSQL → auditoria. El migrador vive
+en `tools/migrator/` y no comparte runtime con el backend principal.
 
-## Regla operativa
+## Nota de drivers
 
-No introducir logica de negocio grande en el kernel. El kernel solo provee infraestructura comun para modulos y plugins.
-
-## Driver PostgreSQL
-
-Para compatibilidad con Termux se usa `psycopg` sin dependencia binaria obligatoria.
-
-No asumir `psycopg[binary]` como camino principal en Android/Termux.
-
-## Runtime v0.3
-
-El core v0.3 agrega:
-
-- event bus interno con listeners registrados;
-- `event_log` persistente con `event_outbox`;
-- dispatcher reutilizable y testeable sin Redis real;
-- worker base con Dramatiq + Redis;
-- runtime de plugins con validacion estricta, dependencias y carga deterministica.
-
-## Frontend Shell v0.1
-
-El shell frontend agrega:
-
-- login con JWT contra `/api/v1/auth/login`;
-- sesion simple con rehidratacion desde `localStorage`;
-- rutas protegidas para `/app/*`;
-- dashboard de sistema usando `health` y `ready`;
-- vista inicial del runtime de plugins usando `/api/v1/system/plugins`.
+En Termux se usa `psycopg` sin binario obligatorio. No asumir
+`psycopg[binary]` como camino principal en Android/Termux.

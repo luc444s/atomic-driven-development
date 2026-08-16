@@ -8,10 +8,10 @@ from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.api.deps import get_db_session
+from systutor.kernel.auth.dependencies import get_current_tenant_context, require_permission
+from systutor.kernel.tenants.context import TenantContext
 
-from apps.api.app.api.deps import get_db_session
-from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
-from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.ventas.cotizacion.backend.models import QuoteDraft
 from plugins.ventas.cotizacion.backend.schemas import (
     ExecuteCommandRequest,

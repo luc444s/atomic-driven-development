@@ -1,4 +1,5 @@
 import sys
+
 print("PYTHON:", sys.executable)
 print("VERSION:", sys.version)
 print("PATHS:")

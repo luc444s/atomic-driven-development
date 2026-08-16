@@ -13,9 +13,9 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from apps.api.app.core.config import get_settings  # noqa: E402
-from apps.api.app.core.database import Base  # noqa: E402
-import apps.api.app.kernel.models  # noqa: F401,E402
+from apps.api.app.config import get_settings  # noqa: E402
+from systutor.core.database import Base  # noqa: E402
+import systutor.kernel.models  # noqa: F401,E402
 
 
 config = context.config

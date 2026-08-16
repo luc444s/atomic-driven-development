@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.auth.models import User
+from systutor.kernel.permissions.models import Role, UserRole
 
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.permissions.models import Role, UserRole
 from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
 from plugins.logistics.backend.common import (
     LogisticsActionContext,

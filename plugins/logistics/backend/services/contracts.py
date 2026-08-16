@@ -6,12 +6,12 @@ from pathlib import Path
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
-
-from apps.api.app.core.config import PROJECT_ROOT
-from apps.api.app.kernel.signatures.service import (
+from systutor.kernel.signatures.service import (
     complete_signature_session,
     create_signature_session,
 )
+
+from apps.api.app.config import PROJECT_ROOT
 from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import (
     LogisticsActionContext,

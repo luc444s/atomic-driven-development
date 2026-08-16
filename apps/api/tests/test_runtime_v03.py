@@ -6,14 +6,13 @@ from pathlib import Path
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.models import AuditLog
-from apps.api.app.kernel.events.bus import EventBus, dispatch_pending_outbox_events
-from apps.api.app.kernel.events.models import EventLog, EventOutbox
-from apps.api.app.kernel.plugins.manifest import PluginManifest
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
-from packages.contracts.events import EventContract
-from packages.sdk import PluginRegistration
+from systutor.contracts.events import EventContract
+from systutor.kernel.audit.models import AuditLog
+from systutor.kernel.events.bus import EventBus, dispatch_pending_outbox_events
+from systutor.kernel.events.models import EventLog, EventOutbox
+from systutor.kernel.plugins.manifest import PluginManifest
+from systutor.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntime
+from systutor.sdk import PluginRegistration
 
 
 def _write_plugin(plugin_root: Path, *, plugin_id: str, requires: list[str] | None = None) -> None:
@@ -42,7 +41,7 @@ def _write_plugin(plugin_root: Path, *, plugin_id: str, requires: list[str] | No
     )
     (plugin_root / "README.md").write_text(f"# {plugin_id}\n", encoding="utf-8")
     (plugin_root / "backend" / "plugin.py").write_text(
-        "from packages.sdk import PluginContext\n\n"
+        "from systutor.sdk import PluginContext\n\n"
         "def register(context: PluginContext) -> None:\n"
         f"    context.register_permissions(['{plugin_id}.sample.read'])\n"
         f"    context.register_events(['{plugin_id}.sample.created'])\n",
@@ -238,7 +237,7 @@ def test_plugin_runtime_accepts_register_returning_plugin_registration(tmp_path:
     plugin_root = plugins_dir / "billing"
     _write_plugin(plugin_root, plugin_id="billing")
     (plugin_root / "backend" / "plugin.py").write_text(
-        "from packages.sdk import PluginContext, PluginRegistration\n\n"
+        "from systutor.sdk import PluginContext, PluginRegistration\n\n"
         "def register(context: PluginContext) -> PluginRegistration:\n"
         "    return PluginRegistration(\n"
         "        plugin_id='billing',\n"

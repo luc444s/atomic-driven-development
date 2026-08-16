@@ -4,8 +4,8 @@ from datetime import UTC, date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.auth.models import User
 
-from apps.api.app.kernel.auth.models import User
 from plugins.logistics.backend.dto.sessions import (
     SessionHistoryEntryRead,
     SessionStockSummaryRead,

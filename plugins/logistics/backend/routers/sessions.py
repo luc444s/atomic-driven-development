@@ -6,12 +6,12 @@ from typing import Any, NoReturn
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
+from systutor.core.lifecycle import ensure_session_factory
+from systutor.kernel.auth.dependencies import get_current_tenant_context, require_permission
+from systutor.kernel.auth.models import User
+from systutor.kernel.tenants.context import TenantContext
 
-from apps.api.app.core.config import get_settings
-from apps.api.app.core.lifecycle import ensure_session_factory
-from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.tenants.context import TenantContext
+from apps.api.app.config import get_settings
 from plugins.logistics.backend.common import LogisticsActionContext, build_action_context
 from plugins.logistics.backend.dto.sessions import (
     AssignRouteRequest,

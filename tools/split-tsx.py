@@ -44,7 +44,6 @@ import shutil
 import sys
 from pathlib import Path
 
-
 # ── diálogo detect ──────────────────────────────────────────────────
 
 

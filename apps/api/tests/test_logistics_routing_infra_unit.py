@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 
-from apps.api.app.core.config import Settings
+from apps.api.app.config import GasSettings
+
 from plugins.logistics.backend.schemas import (
     RoutingCalculationRequestRead,
     RoutingStopInputRead,
@@ -21,7 +22,7 @@ from plugins.logistics.backend.services.routing.models import (
 )
 
 
-def test_routing_service_disabled_by_default(test_settings: Settings) -> None:
+def test_routing_service_disabled_by_default(test_settings: GasSettings) -> None:
     service = RoutingService(test_settings)
 
     availability = service.availability()
@@ -32,7 +33,7 @@ def test_routing_service_disabled_by_default(test_settings: Settings) -> None:
     assert availability.ready is False
 
 
-def test_routing_service_reports_ready_when_stack_configured(test_settings: Settings) -> None:
+def test_routing_service_reports_ready_when_stack_configured(test_settings: GasSettings) -> None:
     settings = test_settings.model_copy(
         update={
             "logistics_routing_enabled": True,
@@ -109,7 +110,7 @@ class FakeVroomNoEnd:
         return [0, 2, 1]
 
 
-def test_routing_service_calculates_preview_with_fake_providers(test_settings: Settings) -> None:
+def test_routing_service_calculates_preview_with_fake_providers(test_settings: GasSettings) -> None:
     settings = test_settings.model_copy(
         update={
             "logistics_routing_enabled": True,
@@ -146,7 +147,7 @@ def test_routing_service_calculates_preview_with_fake_providers(test_settings: S
     assert osrm.route_calls == 1
 
 
-def test_routing_service_preview_requires_available_stack(test_settings: Settings) -> None:
+def test_routing_service_preview_requires_available_stack(test_settings: GasSettings) -> None:
     service = RoutingService(test_settings)
     request = RoutingCalculationRequest(
         vehicle=RoutingVehicleInput(vehicle_id="veh-1", start_lat=40.0, start_lng=-3.0),
@@ -161,7 +162,7 @@ def test_routing_service_preview_requires_available_stack(test_settings: Setting
         raise AssertionError("Expected routing stack unavailable error")
 
 
-def test_routing_service_accepts_router_read_payloads(test_settings: Settings) -> None:
+def test_routing_service_accepts_router_read_payloads(test_settings: GasSettings) -> None:
     settings = test_settings.model_copy(update={"logistics_routing_enabled": True})
     osrm = FakeOsrm()
     service = RoutingService(settings, osrm=osrm, vroom=FakeVroom())
@@ -187,7 +188,7 @@ def test_routing_service_accepts_router_read_payloads(test_settings: Settings) -
 
 
 def test_routing_service_one_way_route_does_not_force_return_to_origin(
-    test_settings: Settings,
+    test_settings: GasSettings,
 ) -> None:
     settings = test_settings.model_copy(update={"logistics_routing_enabled": True})
     osrm = FakeOsrm()
@@ -210,7 +211,7 @@ def test_routing_service_one_way_route_does_not_force_return_to_origin(
     assert [item.stop_id for item in response.ordered_stops] == ["stop-b", "stop-a"]
 
 
-def test_routing_service_preview_rejects_stop_limit(test_settings: Settings) -> None:
+def test_routing_service_preview_rejects_stop_limit(test_settings: GasSettings) -> None:
     settings = test_settings.model_copy(
         update={
             "logistics_routing_enabled": True,

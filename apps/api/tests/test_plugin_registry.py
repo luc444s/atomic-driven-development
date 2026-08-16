@@ -1,4 +1,4 @@
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from systutor.kernel.plugins.runtime import PluginManifestRegistry
 
 
 def test_runtime_registry_discovers_existing_manifest(app) -> None:

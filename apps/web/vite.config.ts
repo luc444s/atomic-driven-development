@@ -53,7 +53,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
-      "@systutor/sdk/frontend": path.resolve(__dirname, "../../packages/sdk/frontend/index.ts"),
+      "@systutor/sdk/frontend": path.resolve(__dirname, "../../vendor/systutor-core/src/systutor/sdk/frontend/index.ts"),
       ...nodeModulesAliases,
     },
   },

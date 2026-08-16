@@ -7,7 +7,7 @@ from uuid import uuid4
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.api.app.core.config import PROJECT_ROOT
+from apps.api.app.config import PROJECT_ROOT
 from plugins.productos.backend.common import ProductosActionContext, audit_productos_action
 from plugins.productos.backend.models import Product, ProductMedia
 

@@ -29,24 +29,33 @@ La prioridad actual es:
 
 ```text
 apps/
-  api/                Backend FastAPI
-  web/                Placeholder frontend
+  api/                Backend FastAPI (app huesped del kernel)
+  web/                Frontend shell React + Vite
 packages/
-  sdk/                SDK futura para plugins
-  contracts/          Contratos compartidos
   ui/                 Componentes UI compartidos
 plugins/
-  logistics/          Plugin ejemplo inicial
+  logistics/          Plugin de negocio
+  crm/                Plugin de negocio
+  productos/          Plugin de negocio
+  stock/              Plugin de negocio
+  ventas/             Plugin de negocio
+  commerce/           Plugin de negocio
+vendor/
+  systutor-core/      Kernel OSS (submodule git, MIT, ADR 0029)
 tools/
   migrator/           Migrador legacy
   legacy-analyzer/    Analizador del legacy
 docs/
-  adr/                s
+  adr/                Decisiones de arquitectura
   specs/              Especificaciones funcionales
   contracts/          Contratos humanos del sistema
 infra/
   compose/            Documentacion de entorno local
 ```
+
+El kernel vive en `vendor/systutor-core` (repo publico MIT). Los plugins
+importan infraestructura desde `systutor.*`; la config de negocio se resuelve
+en `apps/api/app/config.py` (`GasSettings`). Ver ADR 0029.
 
 ## Backend local
 
@@ -82,11 +91,16 @@ El backend carga automáticamente el `.env` del root del proyecto al resolver `g
 Crear entorno virtual e instalar dependencias:
 
  ```bash
-python3 -m venv .venv
-. .venv/bin/activate
-python3 -m pip install --upgrade pip
-python3 -m pip install -e ".[termux-dev]"
-```
+ python3 -m venv .venv
+ . .venv/bin/activate
+ python3 -m pip install --upgrade pip
+ python3 -m pip install -e ".[termux-dev]"
+ python3 -m pip install -e vendor/systutor-core
+ ```
+
+El submodule del kernel se instala editable para que `systutor.*` apunte al
+checkout de `vendor/systutor-core`. El pin del submodule se actualiza por
+version explicita (ver AGENTS.md).
 
 En Termux, `ruff` se instala por sistema para evitar compilarlo en cada `pip install`:
 

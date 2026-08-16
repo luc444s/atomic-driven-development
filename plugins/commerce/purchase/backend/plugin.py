@@ -1,4 +1,5 @@
-from packages.sdk import PluginContext
+from systutor.sdk import PluginContext
+
 from plugins.commerce.purchase.backend.router import router
 
 COMPRAS_PERMISSIONS = [

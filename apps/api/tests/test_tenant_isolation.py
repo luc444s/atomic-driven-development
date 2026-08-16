@@ -5,24 +5,23 @@ from fastapi import Depends
 from fastapi.testclient import TestClient
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.service import record_audit
-from apps.api.app.kernel.auth.dependencies import require_permission
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import create_access_token, hash_password
-from apps.api.app.kernel.auth.service import get_user_by_id, get_user_for_tenant
-from apps.api.app.kernel.events.service import emit_event, record_event
-from apps.api.app.kernel.permissions.models import Permission, Role, RolePermission, UserRole
-from apps.api.app.kernel.permissions.service import assign_role_to_user, list_user_permissions
-from apps.api.app.kernel.tenants.models import Branch, Tenant
-from apps.api.app.kernel.tenants.service import (
+from systutor.contracts.events import EventContract
+from systutor.kernel.audit.service import record_audit
+from systutor.kernel.auth.dependencies import require_permission
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import create_access_token, hash_password
+from systutor.kernel.auth.service import get_user_by_id, get_user_for_tenant
+from systutor.kernel.events.service import emit_event, record_event
+from systutor.kernel.permissions.models import Permission, Role, RolePermission, UserRole
+from systutor.kernel.permissions.service import assign_role_to_user, list_user_permissions
+from systutor.kernel.tenants.models import Branch, Tenant
+from systutor.kernel.tenants.service import (
     TenantScopeError,
     assign_branch_to_user,
     list_audit_logs_for_tenant,
     list_event_logs_for_tenant,
     list_outbox_events_for_tenant,
 )
-from packages.contracts.events import EventContract
 
 MANAGE_USERS_PERMISSION = "core.user.manage"
 MANAGE_USERS_REQUIREMENT = Depends(require_permission(MANAGE_USERS_PERMISSION))

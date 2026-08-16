@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
+from systutor.core.database import Base
+from systutor.kernel.auth.models import User
+from systutor.kernel.permissions.models import Role, UserRole
 
-from apps.api.app.core.database import Base
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.permissions.models import Role, UserRole
 from plugins.logistics.backend.services.sessions import list_driver_options
 
 

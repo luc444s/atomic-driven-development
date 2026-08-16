@@ -17,8 +17,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
-from apps.api.app.core.database import Base
+from systutor.core.database import Base
 
 
 def new_uuid() -> str:

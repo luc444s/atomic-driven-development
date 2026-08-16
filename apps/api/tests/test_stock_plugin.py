@@ -3,14 +3,14 @@ from __future__ import annotations
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from systutor.api.v1.core.common import CoreActionContext
+from systutor.api.v1.core.services.plugins import set_core_plugin_enabled
+from systutor.core.lifecycle import bootstrap_app_state
+from systutor.kernel.audit.models import AuditLog
+from systutor.kernel.events.models import EventLog
+from systutor.kernel.plugins.persistent import sync_plugin_registry_state
 
-from apps.api.app.api.v1.core.common import CoreActionContext
-from apps.api.app.api.v1.core.services.plugins import set_core_plugin_enabled
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.core.lifecycle import bootstrap_app_state
-from apps.api.app.kernel.audit.models import AuditLog
-from apps.api.app.kernel.events.models import EventLog
-from apps.api.app.kernel.plugins.persistent import sync_plugin_registry_state
 from apps.api.tests.test_logistics_plugin import enable_crm_plugin, enable_logistics_plugin
 from apps.api.tests.test_productos_plugin import enable_productos_plugin
 

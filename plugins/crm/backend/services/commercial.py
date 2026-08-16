@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.auth.models import User
 
-from apps.api.app.kernel.auth.models import User
 from plugins.crm.backend.common import CrmActionContext, audit_crm_action, emit_crm_event
 from plugins.crm.backend.models import (
     CrmCustomer,

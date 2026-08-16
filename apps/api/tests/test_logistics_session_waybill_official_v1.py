@@ -3,8 +3,9 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from types import SimpleNamespace
 
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.tenants.models import Branch, Tenant
+from systutor.kernel.auth.models import User
+from systutor.kernel.tenants.models import Branch, Tenant
+
 from plugins.logistics.backend.common import LogisticsActionContext
 from plugins.logistics.backend.dto.sessions import SessionWaybillTotalsRead
 from plugins.logistics.backend.models import (

@@ -1,0 +1,3 @@
+[submodule "vendor/systutor-core"]
+	path = vendor/systutor-core
+	url = ../systutor-core

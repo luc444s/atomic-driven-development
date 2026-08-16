@@ -1,29 +1,27 @@
 from __future__ import annotations
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.api.deps import get_db_session
+from systutor.kernel.auth.dependencies import get_current_tenant_context, require_permission
+from systutor.kernel.auth.models import User
+from systutor.kernel.tenants.context import TenantContext
 
-from apps.api.app.api.deps import get_db_session
-from apps.api.app.api.v1.core.common import build_action_context
-from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.commerce._shared.stock_connector import StockConnector
 from plugins.commerce.purchase.backend.models import (
     ComPurchaseOrder,
-    ComPurchaseReceipt,
-    ComSupplier,
+    ComSupplierBankAccount,
+    ComSupplierContact,
 )
 from plugins.commerce.purchase.backend.schemas import (
     CancelOrderRequest,
-    PurchaseItemRead,
     PurchaseOrderCreateRequest,
     PurchaseOrderDetailRead,
     PurchaseOrderPageRead,
     PurchaseOrderRead,
     PurchaseOrderUpdateRequest,
-    PurchaseReceiptRead,
     ReceiveOrderRequest,
     SupplierAddressCreateRequest,
     SupplierBankAccountCreateRequest,
@@ -32,8 +30,6 @@ from plugins.commerce.purchase.backend.schemas import (
     SupplierRead,
     SupplierUpdateRequest,
 )
-from plugins.commerce.purchase.backend.models import ComSupplierBankAccount, ComSupplierContact
-import httpx
 from plugins.commerce.purchase.backend.services import addresses, orders, receipts, suppliers
 
 router = APIRouter(prefix="/purchase", tags=["compras"])
@@ -50,7 +46,7 @@ REQUIRE_ORDER_RECEIVE = Depends(require_permission("compras.order.receive"))
 
 
 def _build_stock_connector() -> StockConnector:
-    from apps.api.app.core.config import get_settings
+    from apps.api.app.config import get_settings
     s = get_settings()
     return StockConnector(
         base_url=f"http://localhost:8000/api/v1/plugins/stock",
@@ -59,7 +55,6 @@ def _build_stock_connector() -> StockConnector:
 
 
 def _serialize_order(order: ComPurchaseOrder) -> dict:
-    from plugins.commerce.purchase.backend.services.suppliers import get_supplier
     return {
         "id": order.id,
         "supplier": None,
@@ -329,7 +324,7 @@ def list_tanks(
     product_id: str | None = None,
     tenant_context: TenantContext = TENANT_CONTEXT,
 ) -> list[dict]:
-    from apps.api.app.core.config import get_settings
+    from apps.api.app.config import get_settings
     s = get_settings()
     token = getattr(s, "internal_api_token", "")
     params = {"container_type": "CRYOGENIC_TANK", "limit": "50"}

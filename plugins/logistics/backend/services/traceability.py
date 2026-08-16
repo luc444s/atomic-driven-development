@@ -5,8 +5,8 @@ from datetime import UTC, datetime
 
 from sqlalchemy import desc, select
 from sqlalchemy.orm import Session
+from systutor.kernel.audit.models import AuditLog
 
-from apps.api.app.kernel.audit.models import AuditLog
 from plugins.logistics.backend.models import (
     LogisticsCylinder,
     LogisticsCylinderLabelHistory,

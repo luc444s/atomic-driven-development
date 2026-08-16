@@ -4,14 +4,14 @@ from typing import Never
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
-
-from apps.api.app.api.deps import get_db_session
-from apps.api.app.kernel.auth.dependencies import (
+from systutor.api.deps import get_db_session
+from systutor.kernel.auth.dependencies import (
     get_current_tenant_context,
     require_any_permission,
     require_permission,
 )
-from apps.api.app.kernel.tenants.context import TenantContext
+from systutor.kernel.tenants.context import TenantContext
+
 from plugins.stock.backend.common import audit_stock_action, build_action_context
 from plugins.stock.backend.schemas import (
     StockAdjustRequest,

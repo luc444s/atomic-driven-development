@@ -3,8 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
-
-from apps.api.app.core.pagination import OffsetPageRead
+from systutor.core.pagination import OffsetPageRead
 
 
 class StockBalanceRead(BaseModel):

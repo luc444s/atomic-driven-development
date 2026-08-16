@@ -6,7 +6,7 @@ from datetime import UTC, datetime
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.api.app.core.config import get_settings
+from apps.api.app.config import get_settings
 from plugins.logistics.backend.common import LogisticsActionContext
 from plugins.logistics.backend.models import (
     LogisticsMovement,

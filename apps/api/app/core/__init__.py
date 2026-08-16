@@ -1,1 +1,0 @@
-"""Infraestructura base del backend."""

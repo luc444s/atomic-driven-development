@@ -10,7 +10,6 @@ from plugins.commerce.purchase.backend.models import (
     ComPurchaseOrder,
 )
 
-
 VALID_STATUSES = ("DRAFT", "ORDERED", "PARTIAL", "RECEIVED", "CANCELLED")
 
 

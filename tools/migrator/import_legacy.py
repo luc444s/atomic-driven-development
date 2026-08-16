@@ -23,9 +23,9 @@ BUNDLE = Path.home() / "migracion_legacy" / "export_20260801"
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
-from apps.api.app.core.config import get_settings  # noqa: E402
-from apps.api.app.core.database import build_session_factory  # noqa: E402
+from systutor.core.database import build_session_factory  # noqa: E402
 
+from apps.api.app.config import get_settings  # noqa: E402
 from plugins.crm.backend.models import (  # noqa: E402
     CrmCustomer,
     CrmCustomerAddress,
@@ -35,9 +35,9 @@ from plugins.crm.backend.models import (  # noqa: E402
 from plugins.logistics.backend.models.cylinder import (  # noqa: E402
     LogisticsCylinder,
     LogisticsCylinderRetimbrado,
+    LogisticsCylinderService,
     LogisticsCylinderStateLog,
     LogisticsHydrostaticTest,
-    LogisticsCylinderService,
 )
 from plugins.logistics.backend.models.resources import (  # noqa: E402
     LogisticsDeliveryPoint,

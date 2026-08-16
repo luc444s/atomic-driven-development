@@ -7,7 +7,8 @@
 # Fecha: 2026-08-06 — ver AGENTS.md memoria de sesión.
 # ═══════════════════════════════════════════════════════════════════
 
-from packages.sdk import PluginContext
+from systutor.sdk import PluginContext
+
 from plugins.ventas.cotizacion.backend.router import router
 
 VENTAS_COTIZACION_PERMISSIONS = [

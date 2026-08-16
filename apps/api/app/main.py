@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from systutor.core.errors import register_exception_handlers
+from systutor.core.lifecycle import bootstrap_app_state, lifespan
+from systutor.core.logging import configure_logging
+from systutor.core.request_context import RequestContextMiddleware
 
 from apps.api.app.api.v1.router import api_router
-from apps.api.app.core.config import Settings, get_settings
-from apps.api.app.core.errors import register_exception_handlers
-from apps.api.app.core.lifecycle import bootstrap_app_state, lifespan
-from apps.api.app.core.logging import configure_logging
-from apps.api.app.core.request_context import RequestContextMiddleware
+from apps.api.app.config import get_settings
+from systutor.core.config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:

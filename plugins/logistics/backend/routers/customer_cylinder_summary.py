@@ -4,11 +4,11 @@ from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
+from systutor.api.deps import get_db_session
+from systutor.kernel.auth.dependencies import get_current_tenant_context, require_permission
+from systutor.kernel.auth.models import User
+from systutor.kernel.tenants.context import TenantContext
 
-from apps.api.app.api.deps import get_db_session
-from apps.api.app.kernel.auth.dependencies import get_current_tenant_context, require_permission
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.tenants.context import TenantContext
 from plugins.logistics.backend.customer_cylinder_summary_schemas import (
     CustomerCylinderSummaryRead,
 )

@@ -66,6 +66,6 @@ select = ["E", "F", "I", "B", "UP"]
 "apps/api/migrations/versions/*.py" = ["I001"]
 
 [tool.pyright]
-include = ["apps/api/app", "apps/api/tests", "plugins", "packages"]
+include = ["apps/api/app", "apps/api/tests", "plugins", "packages", "vendor/systutor-core/src"]
 pythonVersion = "3.12"
 typeCheckingMode = "basic"

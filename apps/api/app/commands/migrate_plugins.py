@@ -4,15 +4,14 @@ import argparse
 import sys
 
 from sqlalchemy.orm import Session
-
-from apps.api.app.core.config import Settings
-from apps.api.app.core.database import build_engine, build_session_factory
-from apps.api.app.kernel.plugins.migrations import upgrade_plugin_migrations
-from apps.api.app.kernel.plugins.persistent import (
-    get_plugin_registry_record_by_plugin_id,
+from systutor.core.database import build_engine, build_session_factory
+from systutor.kernel.plugins.migrations import upgrade_plugin_migrations
+from systutor.kernel.plugins.persistent import (
     list_plugin_registry_records,
 )
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from systutor.kernel.plugins.runtime import PluginManifestRegistry
+
+from apps.api.app.config import GasSettings as Settings
 
 
 def run_plugin_migrations(

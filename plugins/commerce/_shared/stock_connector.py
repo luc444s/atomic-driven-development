@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-import httpx
 from typing import Any
+
+import httpx
 
 
 class DuplicateReceiptError(Exception):

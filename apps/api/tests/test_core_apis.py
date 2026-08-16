@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.service import record_audit
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.permissions.models import Role
-from apps.api.app.kernel.tenants.models import Branch, Tenant
+from systutor.kernel.audit.service import record_audit
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import hash_password
+from systutor.kernel.permissions.models import Role
+from systutor.kernel.tenants.models import Branch, Tenant
 
 
 def login(client, email: str, password: str):

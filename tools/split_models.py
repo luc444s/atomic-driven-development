@@ -37,7 +37,6 @@ import shutil
 import sys
 from pathlib import Path
 
-
 # ── auto-detect por prefijo común ───────────────────────────────────
 
 
@@ -135,7 +134,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import Mapped, mapped_column
 
-from apps.api.app.core.database import Base
+from systutor.core.database import Base
 
 
 def new_uuid() -> str:

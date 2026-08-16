@@ -3,7 +3,7 @@
 El actor se registra al importar este módulo. Lanzamiento del worker
 (proceso separado, scheduling externo vía cron/systemd cada hora):
 
-    .venv/bin/dramatiq apps.api.app.kernel.events.tasks plugins.logistics.backend.tasks
+    .venv/bin/dramatiq systutor.kernel.events.tasks plugins.logistics.backend.tasks
 
 La lógica es idempotente y protegida contra ejecución concurrente
 (lock optimista sobre el tracking).
@@ -13,9 +13,10 @@ from __future__ import annotations
 import importlib
 from datetime import UTC, datetime
 
-from apps.api.app.core.config import get_settings
-from apps.api.app.core.database import build_session_factory
-from apps.api.app.kernel.tasks.broker import configure_dramatiq_broker
+from systutor.core.database import build_session_factory
+from systutor.kernel.tasks.broker import configure_dramatiq_broker
+
+from apps.api.app.config import get_settings
 
 settings = get_settings()
 configure_dramatiq_broker(settings)

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.tenants.service import get_branch_for_tenant
 
-from apps.api.app.kernel.tenants.service import get_branch_for_tenant
 from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.common import LogisticsActionContext, audit_logistics_action
 from plugins.logistics.backend.models import (

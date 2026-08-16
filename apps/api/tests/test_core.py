@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from sqlalchemy import text
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.models import AuditLog
-from apps.api.app.kernel.audit.service import record_audit
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.events.models import EventLog
-from apps.api.app.kernel.events.service import record_event
-from apps.api.app.kernel.permissions.models import Role, UserRole
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from systutor.kernel.audit.models import AuditLog
+from systutor.kernel.audit.service import record_audit
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import hash_password
+from systutor.kernel.events.models import EventLog
+from systutor.kernel.events.service import record_event
+from systutor.kernel.permissions.models import Role, UserRole
+from systutor.kernel.plugins.runtime import PluginManifestRegistry
 
 
 def login(client, email: str, password: str):

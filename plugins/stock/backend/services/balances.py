@@ -77,8 +77,7 @@ def _ensure_catalog_balances(
     from uuid import uuid4
 
     from sqlalchemy import and_
-
-    from apps.api.app.kernel.auth.models import User
+    from systutor.kernel.auth.models import User
 
     products = list(db.scalars(select(Product).where(Product.tenant_id == tenant_id)))
     warehouses_q = select(LogisticsWarehouse).where(
@@ -452,8 +451,7 @@ def ensure_balances_for_product(
     from uuid import uuid4
 
     from sqlalchemy import and_
-
-    from apps.api.app.kernel.auth.models import User
+    from systutor.kernel.auth.models import User
 
     warehouses = list(
         db.scalars(

@@ -1,8 +1,6 @@
 """Migración sync→async del router de productos"""
 from __future__ import annotations
 
-import re
-import sys
 from pathlib import Path
 
 SYNC_FILE = Path(__file__).resolve().parent.parent.parent / "plugins/productos/backend/router.py"
@@ -13,13 +11,13 @@ content = SYNC_FILE.read_text()
 
 # Step 1: Replace imports
 content = content.replace(
-    "from apps.api.app.api.deps import get_db_session",
+    "from systutor.api.deps import get_db_session",
     """import asyncio
 from collections.abc import Callable
 from typing import Any
 
-from apps.api.app.api.deps import get_db_session
-from apps.api.app.core.lifecycle import ensure_session_factory"""
+from systutor.api.deps import get_db_session
+from systutor.core.lifecycle import ensure_session_factory"""
 )
 
 # Step 2: Add helpers after DB_SESSION line

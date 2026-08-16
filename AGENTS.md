@@ -122,6 +122,26 @@ Esto elimina el "schema inferno" de tipos duplicados con nombres ligeramente dis
 5. **prohibido el "CRUD inferno"** — si un patron CRUD se repite en dos plugins, abstraer al Core antes del tercero
 6. **prohibido el "schema inferno"** — tipos se generan desde OpenAPI, no se escriben a mano
 
+## Core externo (systutor-core)
+
+El kernel vive en un repo publico MIT (`systutor-core`) montado como submodule
+en `vendor/systutor-core/` (ADR 0029). Reglas:
+
+- Plugins, tools y commands importan infraestructura SOLO desde `systutor.*`
+  (`systutor.kernel`, `systutor.core`, `systutor.api`, `systutor.contracts`,
+  `systutor.sdk`). Prohibido importar `apps.api.app.kernel|core`.
+- Config de negocio: `apps/api/app/config.py` define `GasSettings(Settings)` y
+  registra la factory. Plugins que necesitan settings de negocio importan
+  `get_settings` desde `apps.api.app.config`, nunca desde `systutor.core.config`.
+- `PROJECT_ROOT` del repo gas: `apps.api.app.config.PROJECT_ROOT`. El
+  `PROJECT_ROOT` de `systutor.core.config` apunta al repo del core.
+- Instalar el submodule editable: `pip install -e vendor/systutor-core`.
+- Cambios al kernel se desarrollan en `systutor-core` y se consumen fijando
+  el commit del submodule por version explicita. Nunca editar
+  `vendor/systutor-core` desde este repo.
+- Actualizar submodule: `git submodule update --remote` + commit del nuevo
+  pin cuando el cambio este aprobado.
+
 ## Plugins
 
 Estructura minima: `plugin.json`, `backend/`, `frontend/`, `migrations/`, `README.md`. Todo plugin declara: identidad, version, `api_version`, dependencias, entrypoints, permisos.

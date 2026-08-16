@@ -3,12 +3,12 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
+from systutor.api.v1.core.common import CoreActionContext
+from systutor.api.v1.core.services.plugins import set_core_plugin_enabled
+from systutor.core.lifecycle import bootstrap_app_state
+from systutor.kernel.plugins.persistent import sync_plugin_registry_state
 
-from apps.api.app.api.v1.core.common import CoreActionContext
-from apps.api.app.api.v1.core.services.plugins import set_core_plugin_enabled
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.core.lifecycle import bootstrap_app_state
-from apps.api.app.kernel.plugins.persistent import sync_plugin_registry_state
 
 
 def login(client: TestClient, email: str = "admin@example.com", password: str = "ChangeMe123!"):

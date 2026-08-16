@@ -8,10 +8,10 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import Engine, text
+from systutor.core.config import Settings
+from systutor.core.database import Base, build_engine, build_session_factory
 
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.core.config import Settings
-from apps.api.app.core.database import Base, build_engine, build_session_factory
 from apps.api.app.main import create_app
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -82,9 +82,9 @@ def _setup_stock_env_pg(app: Any) -> dict[str, str]:
         )
         db.commit()
 
-    from apps.api.app.api.v1.core.common import CoreActionContext
-    from apps.api.app.api.v1.core.services.plugins import set_core_plugin_enabled
-    from apps.api.app.kernel.plugins.persistent import sync_plugin_registry_state
+    from systutor.api.v1.core.common import CoreActionContext
+    from systutor.api.v1.core.services.plugins import set_core_plugin_enabled
+    from systutor.kernel.plugins.persistent import sync_plugin_registry_state
 
     for plugin_id in ("crm", "logistics", "productos", "stock"):
         with app.state.session_factory() as db:
@@ -106,7 +106,7 @@ def _setup_stock_env_pg(app: Any) -> dict[str, str]:
             )
             db.commit()
 
-    from apps.api.app.core.lifecycle import bootstrap_app_state
+    from systutor.core.lifecycle import bootstrap_app_state
     bootstrap_app_state(app, app.state.settings)
     return seeded_demo
 

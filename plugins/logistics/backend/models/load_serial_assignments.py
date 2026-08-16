@@ -5,8 +5,7 @@ from uuid import uuid4
 
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
-
-from apps.api.app.core.database import Base
+from systutor.core.database import Base
 
 
 def new_uuid() -> str:

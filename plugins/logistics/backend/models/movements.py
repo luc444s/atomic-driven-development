@@ -13,8 +13,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-
-from apps.api.app.core.database import Base
+from systutor.core.database import Base
 
 
 def new_uuid() -> str:

@@ -3,8 +3,8 @@ from __future__ import annotations
 from datetime import date, datetime, time
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
+from systutor.core.pagination import NumberedPageRead, NumberedPaginationRead
 
-from apps.api.app.core.pagination import NumberedPageRead, NumberedPaginationRead
 from plugins.logistics.backend.services.routing.models import Coordinate
 
 CYLINDER_ENTRY_MODES = (

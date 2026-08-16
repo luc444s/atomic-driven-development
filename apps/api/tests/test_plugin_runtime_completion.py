@@ -7,19 +7,19 @@ from textwrap import dedent
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from systutor.contracts.plugins import PluginManifestContract
+from systutor.core.config import Settings
+from systutor.core.database import Base, build_engine
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import hash_password
+from systutor.kernel.events.bus import EventBus
+from systutor.kernel.events.models import EventLog, EventOutbox
+from systutor.kernel.permissions.models import Permission
+from systutor.kernel.tasks.dispatcher import TaskDispatcher, TaskDispatcherUnavailableError
+from systutor.sdk import PluginContext
 
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.core.config import Settings
-from apps.api.app.core.database import Base, build_engine
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.events.bus import EventBus
-from apps.api.app.kernel.events.models import EventLog, EventOutbox
-from apps.api.app.kernel.permissions.models import Permission
-from apps.api.app.kernel.tasks.dispatcher import TaskDispatcher, TaskDispatcherUnavailableError
 from apps.api.app.main import create_app
-from packages.contracts.plugins import PluginManifestContract
-from packages.sdk import PluginContext
 
 
 def login(client, email: str = "admin@example.com", password: str = "ChangeMe123!"):
@@ -122,8 +122,8 @@ def _write_runtime_plugin(
 
         from fastapi import APIRouter, Depends
 
-        from apps.api.app.kernel.auth.dependencies import require_permission
-        from packages.sdk import PluginContext
+        from systutor.kernel.auth.dependencies import require_permission
+        from systutor.sdk import PluginContext
 
         HOOKS_LOG = Path({str(hooks_log)!r})
         LISTENER_LOG = Path({str(listener_log)!r})
@@ -211,7 +211,7 @@ def _build_plugin_app(
             return f"{task_name}:{payload['plugin_id']}"
 
     monkeypatch.setattr(
-        "apps.api.app.core.lifecycle.build_task_dispatcher",
+        "systutor.core.lifecycle.build_task_dispatcher",
         lambda _settings: FakeTaskDispatcher(),
     )
 
@@ -492,7 +492,7 @@ def test_task_dispatcher_is_mockable_and_fails_explicitly(
             sent_messages.append(message)
 
     monkeypatch.setattr(
-        "apps.api.app.kernel.tasks.dispatcher.importlib.import_module",
+        "systutor.kernel.tasks.dispatcher.importlib.import_module",
         lambda _name: FakeDramatiq,
     )
 

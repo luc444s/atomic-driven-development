@@ -17,7 +17,7 @@ from collections.abc import Callable
 from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session
 
-from apps.api.app.core.config import get_settings
+from apps.api.app.config import get_settings
 from plugins.logistics.backend.services.route_context import build_route_context
 from plugins.logistics.backend.services.session_console import build_session_console_context
 from plugins.logistics.backend.services.sessions import list_vehicle_sessions

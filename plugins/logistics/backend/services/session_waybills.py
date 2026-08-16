@@ -8,9 +8,9 @@ from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.auth.models import User
 
-from apps.api.app.core.config import Settings
-from apps.api.app.kernel.auth.models import User
+from apps.api.app.config import GasSettings as Settings
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,

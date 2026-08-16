@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from packages.contracts.events import EventContract
-from packages.sdk import PluginContext
+from systutor.contracts.events import EventContract
+from systutor.sdk import PluginContext
+
 from plugins.stock.backend.services.balances import ensure_balances_for_product
 
 

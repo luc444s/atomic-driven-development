@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Update LogisticsPage.tsx to use extracted dialog components."""
-import re
 import shutil
 
 path = "plugins/logistics/frontend/LogisticsPage.tsx"

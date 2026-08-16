@@ -9,8 +9,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import xlrd
 from sqlalchemy import text
-from apps.api.app.core.database import build_session_factory
-from apps.api.app.core.config import get_settings
+from systutor.core.database import build_session_factory
+
+from apps.api.app.config import get_settings
 
 XLS_PATH = Path(__file__).resolve().parents[2] / "Contratos" / "Listado de productos y peso de gas. Litros - kg.xls"
 
@@ -49,8 +50,8 @@ def get_or_create_line(db, *, tenant_id: str, code: str, name: str) -> str:
     ).fetchone()
     if row:
         return row[0]
+    from datetime import UTC, datetime
     from uuid import uuid4
-    from datetime import datetime, UTC
     line_id = str(uuid4())
     now = datetime.now(UTC)
     db.execute(
@@ -67,8 +68,8 @@ def get_or_create_unit(db, *, tenant_id: str, code: str, name: str) -> str:
     ).fetchone()
     if row:
         return row[0]
+    from datetime import UTC, datetime
     from uuid import uuid4
-    from datetime import datetime, UTC
     unit_id = str(uuid4())
     now = datetime.now(UTC)
     db.execute(

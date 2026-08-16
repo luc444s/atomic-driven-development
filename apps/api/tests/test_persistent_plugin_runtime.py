@@ -6,10 +6,9 @@ from pathlib import Path
 import pytest
 from sqlalchemy import delete, select, text
 from sqlalchemy.orm import Session
-
-from apps.api.app.core.config import Settings
-from apps.api.app.core.database import Base, build_engine, build_session_factory
-from apps.api.app.kernel.plugins.persistent import (
+from systutor.core.config import Settings
+from systutor.core.database import Base, build_engine, build_session_factory
+from systutor.kernel.plugins.persistent import (
     build_persistent_plugin_runtime,
     downgrade_plugin,
     enable_plugin,
@@ -18,9 +17,10 @@ from apps.api.app.kernel.plugins.persistent import (
     rollback_plugin,
     upgrade_plugin,
 )
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntimeError
+from systutor.kernel.plugins.runtime import PluginManifestRegistry, PluginRuntimeError
+from systutor.sdk import PluginContext
+
 from apps.api.app.main import create_app
-from packages.sdk import PluginContext
 from plugins.logistics.backend import plugin as logistics_plugin
 from plugins.logistics.backend.models import LogisticsMovementType
 
@@ -70,7 +70,7 @@ def _write_plugin(
     (plugin_root / "backend" / "plugin.py").write_text(
         register_body
         or (
-            "from packages.sdk import PluginContext\n\n"
+            "from systutor.sdk import PluginContext\n\n"
             "def register(context: PluginContext) -> None:\n"
             f"    context.register_permissions(['{plugin_id}.sample.read'])\n"
             f"    context.register_events(['{plugin_id}.sample.created'])\n"
@@ -243,7 +243,7 @@ def test_plugin_runtime_marks_failed_plugin(tmp_path: Path, test_settings: Setti
         settings.plugins_dir / "broken",
         plugin_id="broken",
         register_body=(
-            "from packages.sdk import PluginContext\n\n"
+            "from systutor.sdk import PluginContext\n\n"
             "def register(context: PluginContext) -> None:\n"
             "    context.register_permissions(['wrong.sample.read'])\n"
         ),

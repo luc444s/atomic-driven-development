@@ -7,7 +7,7 @@ from hashlib import sha256
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from apps.api.app.core.config import Settings
+from apps.api.app.config import GasSettings as Settings
 from plugins.logistics.backend.models import (
     LogisticsRoute,
     LogisticsRouteCalculation,

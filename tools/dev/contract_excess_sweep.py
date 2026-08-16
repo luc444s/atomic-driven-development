@@ -12,9 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 from sqlalchemy import text
+from systutor.core.database import build_session_factory
 
-from apps.api.app.core.config import get_settings
-from apps.api.app.core.database import build_session_factory
+from apps.api.app.config import get_settings
 from plugins.logistics.backend.services.contracts_excess import sweep_contract_excess
 
 

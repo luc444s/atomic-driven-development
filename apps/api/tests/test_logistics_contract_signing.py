@@ -4,10 +4,10 @@ from datetime import date
 
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from systutor.kernel.documents.models import CoreDocumentVersion
+from systutor.kernel.signatures.models import CoreSignatureEvidence, CoreSignatureSession
 
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.kernel.documents.models import CoreDocumentVersion
-from apps.api.app.kernel.signatures.models import CoreSignatureEvidence, CoreSignatureSession
 from apps.api.tests.test_logistics_plugin import (
     auth_headers,
     create_customer,

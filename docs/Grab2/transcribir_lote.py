@@ -1,11 +1,15 @@
 import sys
+
 sys.path.insert(0, r"D:\Lib\site-packages")
 import sys
+
 sys.path.append(r"D:\Lib\site-packages")
 
 
-import os, math
+import math
+import os
 import traceback
+
 import speech_recognition as sr
 from pydub import AudioSegment
 

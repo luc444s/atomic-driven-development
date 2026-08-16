@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from packages.sdk import PluginContext
+from systutor.sdk import PluginContext
+
 from plugins.productos.backend.router import router
 
 PRODUCTOS_PERMISSIONS = [

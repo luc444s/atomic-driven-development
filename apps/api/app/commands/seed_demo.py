@@ -4,17 +4,18 @@ from collections.abc import Sequence
 
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
+from systutor.core.database import build_session_factory
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import hash_password
+from systutor.kernel.permissions.models import Permission, Role, RolePermission
+from systutor.kernel.permissions.service import assign_role_to_user
+from systutor.kernel.plugins.runtime import LoadedPlugin, PluginManifestRegistry, PluginRuntime
+from systutor.kernel.plugins.service import sync_plugin_registry
+from systutor.kernel.tenants.models import Branch, Tenant
+from systutor.kernel.tenants.service import assign_branch_to_user
 
-from apps.api.app.core.config import Settings, get_settings
-from apps.api.app.core.database import build_session_factory
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.permissions.models import Permission, Role, RolePermission
-from apps.api.app.kernel.permissions.service import assign_role_to_user
-from apps.api.app.kernel.plugins.runtime import LoadedPlugin, PluginManifestRegistry, PluginRuntime
-from apps.api.app.kernel.plugins.service import sync_plugin_registry
-from apps.api.app.kernel.tenants.models import Branch, Tenant
-from apps.api.app.kernel.tenants.service import assign_branch_to_user
+from apps.api.app.config import get_settings
+from systutor.core.config import Settings
 
 BASE_PERMISSIONS = [
     "core.auth.me",
@@ -35,6 +36,10 @@ BASE_PERMISSIONS = [
     "core.permission.manage",
     "core.branches.read",
     "core.branches.manage",
+    "core.documents.read",
+    "core.documents.manage",
+    "core.signatures.read",
+    "core.signatures.manage",
 ]
 
 DRIVER_ROLE_PERMISSIONS = [

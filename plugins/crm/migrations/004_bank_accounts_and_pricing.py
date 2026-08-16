@@ -3,8 +3,8 @@ from __future__ import annotations
 from typing import Any
 
 from sqlalchemy import inspect, text
+from systutor.core.database import Base
 
-from apps.api.app.core.database import Base
 from plugins.crm.backend.models import CrmCustomerBankAccount, CrmCustomerPricingTerm
 
 revision = "0004"

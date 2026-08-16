@@ -4,8 +4,8 @@ import re
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from systutor.kernel.documents.service import build_document_download_url, render_document_pdf
 
-from apps.api.app.kernel.documents.service import build_document_download_url, render_document_pdf
 from plugins.logistics.backend.models.contracts import LogisticsCylinderContract
 from plugins.productos.backend.models import Product
 

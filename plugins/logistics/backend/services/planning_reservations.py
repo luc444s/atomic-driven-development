@@ -5,8 +5,8 @@ from types import SimpleNamespace
 
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
+from systutor.kernel.auth.models import User
 
-from apps.api.app.kernel.auth.models import User
 from plugins.logistics.backend.common import (
     LogisticsActionContext,
     audit_logistics_action,

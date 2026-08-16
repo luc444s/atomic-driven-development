@@ -4,8 +4,7 @@ from datetime import date, datetime
 from decimal import Decimal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
-
-from apps.api.app.core.pagination import OffsetPageRead
+from systutor.core.pagination import OffsetPageRead
 
 
 class DocumentTypeRead(BaseModel):

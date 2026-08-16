@@ -18,7 +18,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@systutor/sdk/frontend": ["../../packages/sdk/frontend/index.ts"]
+      "@systutor/sdk/frontend": ["../../vendor/systutor-core/src/systutor/sdk/frontend/index.ts"]
     }
   },
   "include": ["src"],

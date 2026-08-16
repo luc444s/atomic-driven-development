@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from apps.api.app.core.config import get_settings
+from apps.api.app.config import get_settings
 from plugins.crm.backend.schemas import CustomerListItemRead
 from plugins.crm.backend.services.customers import list_customers
 from plugins.logistics.backend.dto.route_context import RouteContextRead

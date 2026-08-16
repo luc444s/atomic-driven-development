@@ -2,15 +2,14 @@ from __future__ import annotations
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.models import AuditLog
-from apps.api.app.kernel.auth.models import User
-from apps.api.app.kernel.auth.security import hash_password
-from apps.api.app.kernel.events.models import EventLog
-from apps.api.app.kernel.permissions.models import Role, RolePermission
-from apps.api.app.kernel.permissions.service import assign_role_to_user, ensure_permission
-from apps.api.app.kernel.tenants.models import Branch, Tenant
-from apps.api.app.kernel.tenants.service import create_branch_for_tenant
+from systutor.kernel.audit.models import AuditLog
+from systutor.kernel.auth.models import User
+from systutor.kernel.auth.security import hash_password
+from systutor.kernel.events.models import EventLog
+from systutor.kernel.permissions.models import Role, RolePermission
+from systutor.kernel.permissions.service import assign_role_to_user, ensure_permission
+from systutor.kernel.tenants.models import Branch, Tenant
+from systutor.kernel.tenants.service import create_branch_for_tenant
 
 
 def login(client, email: str = "admin@example.com", password: str = "ChangeMe123!"):

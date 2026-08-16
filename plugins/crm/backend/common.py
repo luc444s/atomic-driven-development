@@ -4,11 +4,10 @@ from dataclasses import dataclass
 
 from fastapi import Request
 from sqlalchemy.orm import Session
-
-from apps.api.app.kernel.audit.service import record_audit
-from apps.api.app.kernel.events.service import emit_event
-from apps.api.app.kernel.tenants.context import TenantContext
-from packages.contracts.events import EventContract
+from systutor.contracts.events import EventContract
+from systutor.kernel.audit.service import record_audit
+from systutor.kernel.events.service import emit_event
+from systutor.kernel.tenants.context import TenantContext
 
 
 @dataclass(slots=True)

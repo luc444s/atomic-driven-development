@@ -12,12 +12,12 @@ from datetime import UTC, date, datetime, timedelta
 
 from sqlalchemy import select, text
 from sqlalchemy.orm import Session
+from systutor.core.database import build_engine, build_session_factory
+from systutor.kernel.plugins.persistent import sync_plugin_registry_state
+from systutor.kernel.plugins.runtime import PluginManifestRegistry
 
 from apps.api.app.commands.seed_demo import seed_demo_data
-from apps.api.app.core.config import Settings
-from apps.api.app.core.database import build_engine, build_session_factory
-from apps.api.app.kernel.plugins.persistent import sync_plugin_registry_state
-from apps.api.app.kernel.plugins.runtime import PluginManifestRegistry
+from apps.api.app.config import GasSettings as Settings
 from plugins.crm.backend.models import (
     CrmCustomer,
     CrmCustomerAddress,
@@ -27,11 +27,11 @@ from plugins.crm.backend.models import (
 )
 from plugins.logistics.backend.models import (
     LogisticsContractType,
+    LogisticsCustomerCylinderLedger,
     LogisticsCylinder,
+    LogisticsCylinderContract,
     LogisticsCylinderOwnership,
     LogisticsCylinderStateLog,
-    LogisticsCylinderContract,
-    LogisticsCustomerCylinderLedger,
     LogisticsDeliveryPoint,
     LogisticsLoadPlan,
     LogisticsLoadPlanItem,
@@ -44,7 +44,6 @@ from plugins.logistics.backend.models import (
     LogisticsVehicleSession,
     LogisticsWarehouse,
 )
-from plugins.ventas.cotizacion.backend.models import QuoteDraft, QuoteItem
 from plugins.productos.backend.models import (
     Product,
     ProductAdr,
@@ -57,6 +56,7 @@ from plugins.productos.backend.models import (
     ProductUnit,
 )
 from plugins.stock.backend.models import StockBalance, StockConfig, StockLedger
+from plugins.ventas.cotizacion.backend.models import QuoteDraft, QuoteItem
 
 # ── Utility ──────────────────────────────────────────────────────────
 
@@ -1544,7 +1544,7 @@ def main() -> int:
         plugins_list = [
             r for r in registry._plugins  # noqa: SLF001
         ]
-        from apps.api.app.kernel.plugins.runtime import LoadedPlugin
+        from systutor.kernel.plugins.runtime import LoadedPlugin
         loaded = [
             LoadedPlugin(
                 plugin_id=p.plugin_id, root=p.root,

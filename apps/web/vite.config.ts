@@ -31,7 +31,6 @@ const BARE_DEP_ALIASES = [
   "@tanstack/react-query",
   "leaflet",
   "react-leaflet",
-  "zustand",
   "lucide-react",
   "clsx",
   "tailwind-merge",
@@ -50,19 +49,6 @@ const nodeModulesAliases = Object.fromEntries(
 
 export default defineConfig({
   plugins: [react()],
-  // zustand 5 no declara condiciones "module"/"browser" en su exports map
-  // y bajo pnpm sus re-exports internos (zustand/react, zustand/vanilla)
-  // resuelven a CJS (sin named exports). Se fuerza el prebundle con alias
-  // ESM dentro de esbuild; resolve.alias de vite no aplica dentro de .pnpm.
-  optimizeDeps: {
-    esbuildOptions: {
-      alias: {
-        zustand: path.resolve(__dirname, "./node_modules/zustand/esm/index.mjs"),
-        "zustand/react": path.resolve(__dirname, "./node_modules/zustand/esm/react.mjs"),
-        "zustand/vanilla": path.resolve(__dirname, "./node_modules/zustand/esm/vanilla.mjs"),
-      },
-    },
-  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

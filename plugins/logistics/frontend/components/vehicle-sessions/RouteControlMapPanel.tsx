@@ -1,7 +1,7 @@
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { LocationMap } from "@systutor/shell/ui/location-map";
 
 import type {
   LogisticsDeliveryPoint,

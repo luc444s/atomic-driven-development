@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
+import { Alert } from "@systutor/shell/ui/alert";
 import { getProduct, listAllProducts } from "../../../productos/frontend/api";
 import { LogisticsSection } from "../components/LogisticsSection";
 import {

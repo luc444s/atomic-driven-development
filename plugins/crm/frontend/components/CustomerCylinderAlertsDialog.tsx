@@ -1,5 +1,5 @@
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Alert } from "@systutor/shell/ui/alert";
 import type { CustomerCylinderAlert } from "../../../logistics/frontend/api";
 
 type CustomerCylinderAlertsDialogProps = {

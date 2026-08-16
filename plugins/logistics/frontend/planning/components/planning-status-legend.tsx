@@ -1,4 +1,4 @@
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
+import { Badge } from "@systutor/shell/ui/badge";
 
 const ITEMS = [
   ["PLANNED", "Planificada"],

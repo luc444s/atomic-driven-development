@@ -1,5 +1,5 @@
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { cn } from "../../../../../apps/web/src/shared/ui/cn";
+import { Badge } from "@systutor/shell/ui/badge";
+import { cn } from "@systutor/shell/ui/cn";
 import { VEHICLE_SESSION_STATUS_LABELS } from "../../api";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {

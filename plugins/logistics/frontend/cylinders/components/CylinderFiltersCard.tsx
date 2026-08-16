@@ -1,8 +1,8 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import { Checkbox } from "../../../../../apps/web/src/shared/ui/checkbox";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Checkbox } from "@systutor/shell/ui/checkbox";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
+import { Button } from "@systutor/shell/ui/button";
 
 interface CylinderFiltersCardProps {
   search: string;

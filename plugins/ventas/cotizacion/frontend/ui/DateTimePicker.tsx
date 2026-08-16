@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
+import { Input } from "@systutor/shell/ui/input";
 import { formatDate, resolveDate } from "../../../_shared/frontend/utils/date-resolver";
 
 export interface DateTimePickerProps {

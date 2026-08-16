@@ -1,4 +1,4 @@
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
+import { Alert } from "@systutor/shell/ui/alert";
 
 type Props = {
   reason: string | null;

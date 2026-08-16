@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ReactNode, useState } from "react";
 
-import { Toaster } from "../shared/ui/toast";
+import { Toaster } from "@systutor/shell/ui/toast";
 
 type AppProvidersProps = {
   children: ReactNode;

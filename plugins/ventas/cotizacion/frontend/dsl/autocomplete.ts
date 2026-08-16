@@ -1,5 +1,5 @@
-import type { CompletionProvider, CompletionItem, CompletionContext, SuggestionResult } from "../../../../../apps/web/src/shared/ui/console-editor";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
+import type { CompletionProvider, CompletionItem, CompletionContext, SuggestionResult } from "@systutor/shell/ui/console-editor";
+import { apiRequest } from "@systutor/shell/api/client";
 
 const TOP_LEVEL_COMMANDS: CompletionItem[] = [
   { label: "cotizar", kind: "keyword", detail: "Crear nueva cotización", insertText: "cotizar cliente " },

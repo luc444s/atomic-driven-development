@@ -5,7 +5,7 @@ import { useLogoutAction } from "../../features/auth/useLogoutAction";
 import { useAuthStore } from "../../features/auth/store";
 import { usePluginFrontendRuntime } from "../../features/plugins/runtime";
 import { buildShellSidebarSections } from "../../features/shell/navigation";
-import { ThemeToggle } from "../ui/theme-toggle";
+import { ThemeToggle } from "./theme-toggle";
 
 function ChevronDown({ open }: { open: boolean }) {
   return (

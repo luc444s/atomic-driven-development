@@ -1,5 +1,5 @@
-import { Checkbox, Input, Switch } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Checkbox, Input, Switch } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 import { Field, FormRow } from "../utils/formatters";
 import type { CylinderFormState } from "./cylinder-form-state";
 

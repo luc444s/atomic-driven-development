@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@systutor/shell/ui/card";
 
 import type { SessionHistoryEntry } from "../../api";
 

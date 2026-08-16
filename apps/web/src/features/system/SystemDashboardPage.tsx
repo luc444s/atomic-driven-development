@@ -2,9 +2,9 @@ import { useQuery } from "@tanstack/react-query";
 
 import { usePluginFrontendRuntime } from "../plugins/runtime";
 import { getSystemHealth, getSystemReady } from "./api";
-import { Alert } from "../../shared/ui/alert";
-import { Badge } from "../../shared/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../shared/ui/card";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
 
 export function SystemDashboardPage() {
   const healthQuery = useQuery({

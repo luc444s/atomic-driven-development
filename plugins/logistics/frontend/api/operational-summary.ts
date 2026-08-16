@@ -1,5 +1,5 @@
 import { API_PREFIX } from "./_shared";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 export type BlockingReason = "FAILED_STOP" | "WAYBILL_MISSING" | "NO_ROUTE_ASSIGNED";
 export type AttentionReason = "PARTIAL_STOP" | "OPEN_INCIDENT" | "WAYBILL_OUTDATED";

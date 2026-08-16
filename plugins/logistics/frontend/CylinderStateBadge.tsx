@@ -1,4 +1,4 @@
-import { Badge } from "../../../apps/web/src/shared/ui/badge";
+import { Badge } from "@systutor/shell/ui/badge";
 
 const STATE_CLASSNAMES: Record<string, string> = {
   EN_ALMACEN_VACIO: "border-slate-400 dark:border-slate-600 bg-slate-100 dark:bg-slate-900 text-slate-700 dark:text-slate-100",

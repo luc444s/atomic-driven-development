@@ -1,6 +1,6 @@
-import { apiRequest } from "../../shared/api/client";
-import type { PluginManifest } from "../../shared/api/client";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
+import type { PluginManifest } from "@systutor/shell/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 export type HealthResponse = {
   status: string;

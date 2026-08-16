@@ -1,5 +1,5 @@
-import { Combobox, type ComboboxOption } from "../../../../apps/web/src/shared/ui/combobox";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Combobox, type ComboboxOption } from "@systutor/shell/ui/combobox";
+import { Input } from "@systutor/shell/ui/input";
 
 type FiscalInfoSectionProps = {
   documentType: string;

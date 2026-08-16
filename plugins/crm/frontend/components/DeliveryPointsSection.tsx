@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
 
 type DeliveryPointSummary = {
   id: string;

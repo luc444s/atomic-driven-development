@@ -52,7 +52,7 @@ export function DataCard({ title, description, table }: { title: string; descrip
   );
 }
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
 
 export function Field({ label, children, className }: { label: string; children: any; className?: string }) {
   return (

@@ -12,12 +12,12 @@ import {
 } from "../core-management/api";
 import { usePluginFrontendRuntime } from "../plugins/runtime";
 import { useAuthStore } from "../auth/store";
-import { Alert } from "../../shared/ui/alert";
-import { Badge } from "../../shared/ui/badge";
-import { Button } from "../../shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../shared/ui/card";
-import { DataTable } from "../../shared/ui/data-table";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 export function PluginsPage() {
   const queryClient = useQueryClient();

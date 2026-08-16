@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
 import {
   getRoute,
   listRouteStops,

@@ -3,13 +3,13 @@ import { FormEvent, useState } from "react";
 
 import { createWarehouse, listWarehouses, logisticsKeys, setPrimaryWarehouse, updateWarehouse } from "../api";
 import { LogisticsSection } from "../components/LogisticsSection";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { PaginatedDataTable } from "../../../../apps/web/src/shared/ui/paginated-data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { LocationPicker } from "../../../../apps/web/src/shared/ui/location-picker";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { PaginatedDataTable } from "@systutor/shell/ui/paginated-data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
+import { LocationPicker } from "@systutor/shell/ui/location-picker";
 
 type WarehouseFormState = {
   id?: string;

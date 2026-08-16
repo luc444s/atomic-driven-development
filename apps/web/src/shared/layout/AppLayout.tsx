@@ -6,8 +6,8 @@ import { useLogoutAction } from "../../features/auth/useLogoutAction";
 import { useAuthStore } from "../../features/auth/store";
 import { Sidebar } from "./Sidebar";
 import { ShellHeader } from "./ShellHeader";
-import { Button } from "../ui/button";
-import { ThemeToggle } from "../ui/theme-toggle";
+import { Button } from "@systutor/shell/ui/button";
+import { ThemeToggle } from "./theme-toggle";
 
 export function AppLayout() {
   const token = useAuthStore((state) => state.token);

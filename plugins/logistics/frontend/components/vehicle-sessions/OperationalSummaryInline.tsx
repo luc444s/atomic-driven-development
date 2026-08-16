@@ -1,5 +1,5 @@
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { cn } from "../../../../../apps/web/src/shared/ui/cn";
+import { Badge } from "@systutor/shell/ui/badge";
+import { cn } from "@systutor/shell/ui/cn";
 
 import {
   type SessionOperationalSummary,

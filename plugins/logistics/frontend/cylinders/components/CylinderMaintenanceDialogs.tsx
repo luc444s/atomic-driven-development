@@ -1,6 +1,6 @@
 import type { CustomerBrief } from "../../../../crm/frontend/types";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
-import { ConfirmDialog } from "../../../../../apps/web/src/shared/ui/confirm-dialog";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
 import { HydrotestDialog } from "../dialogs/HydrotestDialog";
 import { PrintLabelDialog } from "../dialogs/PrintLabelDialog";
 import { RetimbradoDialog } from "../dialogs/RetimbradoDialog";

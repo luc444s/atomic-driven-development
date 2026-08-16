@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { Pagination } from "../../../../apps/web/src/shared/ui/pagination";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Input } from "@systutor/shell/ui/input";
+import { Pagination } from "@systutor/shell/ui/pagination";
 import { crmKeys, listCustomers } from "../api";
 import { ModalDetalleCliente } from "../components/ModalDetalleCliente";
 import { ModalNuevoCliente } from "../components/ModalNuevoCliente";

@@ -3,7 +3,7 @@ import { API_PREFIX, withQuery } from "./_shared";
 import { LogisticsOrderItem } from "./orders";
 import { StockBalancePageRead } from "./_shared";
 import { LogisticsMovement } from "./movements";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 export type PlanningStockSummaryItem = {
   product_id: string;

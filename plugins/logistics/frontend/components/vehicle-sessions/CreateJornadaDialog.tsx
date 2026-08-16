@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
+import { Button } from "@systutor/shell/ui/button";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Select } from "@systutor/shell/ui/select";
+import { LocationMap } from "@systutor/shell/ui/location-map";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
 import { listCustomerAddressesByCustomers } from "../../api/delivery-points";

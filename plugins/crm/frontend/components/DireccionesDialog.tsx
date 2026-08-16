@@ -1,9 +1,9 @@
 import { FormEvent } from "react";
 import { AddressSection } from "./AddressSection";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { PaginatedDataTable } from "../../../../apps/web/src/shared/ui/paginated-data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Button } from "@systutor/shell/ui/button";
+import { PaginatedDataTable } from "@systutor/shell/ui/paginated-data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
 import type { CustomerAddressPayload } from "../types";
 
 type DireccionesDialogProps = {

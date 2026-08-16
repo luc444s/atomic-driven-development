@@ -1,8 +1,8 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Button } from "@systutor/shell/ui/button";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 import type { LogisticsVehicle, RoutingCalculationResponse, VehicleSession } from "../../api";
-import { LocationSearch } from "../../../../../apps/web/src/shared/ui/location-search";
+import { LocationSearch } from "@systutor/shell/ui/location-search";
 import { type RouteStopDraft } from "./useRouteBuilder";
 
 type Props = {

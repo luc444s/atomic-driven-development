@@ -1,5 +1,5 @@
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
 
 type Props = {
   open: boolean;

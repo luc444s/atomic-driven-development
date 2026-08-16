@@ -4,7 +4,7 @@ import { Navigate } from "react-router-dom";
 import { usePluginFrontendRuntime } from "./runtime";
 import { useAuthStore } from "../auth/store";
 import { hasRequiredPermissions } from "../shell/permissions";
-import { Alert } from "../../shared/ui/alert";
+import { Alert } from "@systutor/shell/ui/alert";
 
 const EMPTY_PERMISSIONS: string[] = [];
 

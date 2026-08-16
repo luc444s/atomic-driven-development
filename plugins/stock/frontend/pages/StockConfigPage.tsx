@@ -2,12 +2,12 @@ import { useState } from "react";
 
 import type { ProductSearchDialogItem } from "../../../../apps/web/src/components/ProductSearchDialog";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 import { listConfigs, listWarehousesCatalog, stockKeys } from "../api";
 import { ModalConfigStock } from "../components/ModalConfigStock";
 import { StockSection } from "../components/StockSection";

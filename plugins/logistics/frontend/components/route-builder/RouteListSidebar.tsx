@@ -1,4 +1,4 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import type { LogisticsRoute } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 

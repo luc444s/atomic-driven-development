@@ -1,12 +1,12 @@
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
+} from "@systutor/shell/ui/card";
 import type { SessionWaybillState, SessionWaybillVersion } from "../../api";
 import {
   formatWaybillChangeEvent,

@@ -1,4 +1,4 @@
-import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
+import { LocationMap } from "@systutor/shell/ui/location-map";
 import type { LogisticsRouteStop } from "../../api";
 import { DEFAULT_MAP_CENTER } from "./map-defaults";
 

@@ -1,15 +1,15 @@
 import { useEffect, useState } from "react";
 
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
+} from "@systutor/shell/ui/card";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 import type { RouteStopResult } from "../../api";
 import { formatStopOutcomeType, formatStopStatus, STOP_STATUS_BORDER_COLORS } from "./jornada-labels";
 import type { RouteSelectOption } from "./RouteOperationForm";

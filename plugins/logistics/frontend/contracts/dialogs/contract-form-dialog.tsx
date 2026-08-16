@@ -1,10 +1,10 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { FileUpload } from "../../../../../apps/web/src/shared/ui/file-upload";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { FileUpload } from "@systutor/shell/ui/file-upload";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
+import { Alert } from "@systutor/shell/ui/alert";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
 import { ProductSearchDialog } from "../../../../productos/frontend/components/ProductSearchDialog";

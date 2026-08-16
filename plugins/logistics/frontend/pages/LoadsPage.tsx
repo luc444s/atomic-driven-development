@@ -4,12 +4,12 @@ import { FormEvent, useState } from "react";
 import { bulkCreateLoads, confirmLoads, listCylinders, listLoads, listRouteStops, listRoutes, logisticsKeys } from "../api";
 import { LogisticsSection } from "../components/LogisticsSection";
 import { CylinderStateBadge } from "../CylinderStateBadge";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Select } from "../../../../apps/web/src/shared/ui/select";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Select } from "@systutor/shell/ui/select";
+import { toast } from "@systutor/shell/ui/toast";
 import { formatRouteLabel } from "../lib/route-labels";
 
 type LoadFormState = {

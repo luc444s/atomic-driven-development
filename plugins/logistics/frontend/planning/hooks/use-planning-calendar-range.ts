@@ -6,8 +6,8 @@ import {
   isoString,
   startOfMonth,
   startOfWeek,
-} from "../../../../../apps/web/src/shared/ui/resource-calendar/resource-calendar-dates";
-import type { CalendarView } from "../../../../../apps/web/src/shared/ui/resource-calendar/resource-calendar";
+} from "@systutor/shell/ui/resource-calendar/resource-calendar-dates";
+import type { CalendarView } from "@systutor/shell/ui/resource-calendar/resource-calendar";
 
 function buildRange(view: CalendarView, focusDate: Date) {
   if (view === "month") {

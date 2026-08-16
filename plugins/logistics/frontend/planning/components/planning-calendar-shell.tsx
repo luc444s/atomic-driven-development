@@ -1,4 +1,4 @@
-import { ResourceCalendar, type CalendarResource, type CalendarView } from "../../../../../apps/web/src/shared/ui/resource-calendar/resource-calendar";
+import { ResourceCalendar, type CalendarResource, type CalendarView } from "@systutor/shell/ui/resource-calendar/resource-calendar";
 import type { PlanningReservation } from "../../api";
 import { PlanningReservationContent } from "./planning-reservation-content";
 import { mapReservationsToCalendarItems } from "../utils/planning-calendar-mappers";

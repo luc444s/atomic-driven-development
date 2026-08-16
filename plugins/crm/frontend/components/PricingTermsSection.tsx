@@ -1,11 +1,11 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
-import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { Button } from "@systutor/shell/ui/button";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Input } from "@systutor/shell/ui/input";
+import { toast } from "@systutor/shell/ui/toast";
 import {
   createCustomerPricingTerm,
   crmKeys,

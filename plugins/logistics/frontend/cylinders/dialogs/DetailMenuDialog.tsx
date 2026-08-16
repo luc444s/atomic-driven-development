@@ -1,8 +1,8 @@
 // Auto-generado por split-tsx.py (limpiado manualmente)
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
 import type { LogisticsCylinder } from "../../api";
 

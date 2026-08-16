@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import type { ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
+import { apiRequest } from "@systutor/shell/api/client";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Input } from "@systutor/shell/ui/input";
+import type { ComboboxOption } from "@systutor/shell/ui/combobox";
 
 interface ProductSearchItem {
   id: string;

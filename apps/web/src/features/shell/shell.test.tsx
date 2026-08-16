@@ -4,9 +4,9 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { clearClientSession, hasValidTenantContext } from "../auth/session";
 import { useAuthStore } from "../auth/store";
 import { shouldRedirectToLogin } from "../auth/RequireAuth";
-import { ShellHeader } from "../../shared/layout/ShellHeader";
+import { ShellHeader } from "@/shared/layout/ShellHeader";
 import { buildShellSidebarSections } from "./navigation";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 import type { UserProfile } from "../auth/api";
 
 const demoUser: UserProfile = {

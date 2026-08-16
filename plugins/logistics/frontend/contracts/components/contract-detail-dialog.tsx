@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { CorePdfViewer } from "../../../../../apps/web/src/shared/ui/core-pdf-viewer";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Tabs, type Tab } from "../../../../../apps/web/src/shared/ui/tabs";
-import { getApiBaseUrl } from "../../../../../apps/web/src/shared/api/client";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Button } from "@systutor/shell/ui/button";
+import { CorePdfViewer } from "@systutor/shell/ui/core-pdf-viewer";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Tabs, type Tab } from "@systutor/shell/ui/tabs";
+import { getApiBaseUrl } from "@systutor/shell/api/client";
 import { useAuthStore } from "../../../../../apps/web/src/features/auth/store";
 import { ContractStatusBadge } from "./contract-status-badge";
 import { formatDate, formatDateTime } from "../../cylinders/utils/formatters";

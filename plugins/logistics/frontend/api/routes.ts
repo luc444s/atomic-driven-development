@@ -2,7 +2,7 @@
 import { API_PREFIX, withQuery } from "./_shared";
 import { LogisticsAgendaTask } from "./agenda";
 import { RouteAgendaReport } from "./reports";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 export type LogisticsRoute = {
   id: string;

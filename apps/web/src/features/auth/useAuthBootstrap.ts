@@ -5,7 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { getCurrentUser } from "./api";
 import { clearClientSession, hasValidTenantContext } from "./session";
 import { useAuthStore } from "./store";
-import { ApiError } from "../../shared/api/client";
+import { ApiError } from "@systutor/shell/api/client";
 import { getPluginRuntime } from "../system/api";
 
 export function useAuthBootstrap() {

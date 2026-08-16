@@ -1,9 +1,9 @@
 import type { FormEvent } from "react";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Checkbox, Input } from "../../../../../apps/web/src/shared/ui/input";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Checkbox, Input } from "@systutor/shell/ui/input";
 import { Field } from "../utils/formatters";
 import type { CylinderFormState } from "../forms/cylinder-form-state";
 

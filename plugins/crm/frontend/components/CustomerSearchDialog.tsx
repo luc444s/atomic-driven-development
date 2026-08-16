@@ -1,4 +1,4 @@
-import { SearchDialog } from "../../../../apps/web/src/shared/ui/search-dialog";
+import { SearchDialog } from "@systutor/shell/ui/search-dialog";
 import { searchCustomers } from "../api";
 import type { CustomerBrief } from "../types";
 

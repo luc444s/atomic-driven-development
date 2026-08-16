@@ -2,8 +2,8 @@ import { FormEvent, useEffect, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "../../../apps/web/src/lib/react-query";
 import { getMovement, listMovementItems } from "./api/movements";
 
-import { Alert } from "../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import { getProduct } from "../../productos/frontend/api";
 import { getRealWarehouses } from "./api/warehouses";
 import { getCylinderStateLabel } from "./CylinderStateBadge";

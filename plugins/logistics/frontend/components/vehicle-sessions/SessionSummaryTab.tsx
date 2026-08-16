@@ -3,8 +3,8 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
+} from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
 
 import type { StockBalanceItem } from "../../../../stock/frontend/types";
 import type { VehicleSessionDetail } from "../../api";

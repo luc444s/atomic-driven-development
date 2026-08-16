@@ -1,16 +1,16 @@
 import { useState } from "react";
 
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
+} from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Input } from "@systutor/shell/ui/input";
 
 import type { SerializedCylinderSummary, VehicleSessionDetail } from "../../api";
 import { LoadSerialsDialog } from "./LoadSerialsDialog";

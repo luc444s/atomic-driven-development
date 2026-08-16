@@ -1,7 +1,7 @@
 // Auto-generado por split_api.py
 import { BaseCylinderPayload } from "./_shared";
 import { API_PREFIX, withQuery } from "./_shared";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 import { toNullable, toNumberOrNull, toIntegerOrNull } from "../cylinders/utils/formatters";
 import type {
   HydrotestFormState,

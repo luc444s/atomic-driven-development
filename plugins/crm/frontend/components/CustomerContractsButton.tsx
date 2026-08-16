@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
 import { Link } from "../../../../apps/web/src/lib/router";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Badge } from "../../../../apps/web/src/shared/ui/badge";
+import { Button } from "@systutor/shell/ui/button";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Badge } from "@systutor/shell/ui/badge";
 import { listContracts } from "../../../logistics/frontend/api/contracts";
 import type { LogisticsCylinderContract } from "../../../logistics/frontend/api/contracts";
 

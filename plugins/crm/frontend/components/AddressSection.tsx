@@ -1,7 +1,7 @@
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
-import { LocationPicker } from "../../../../apps/web/src/shared/ui/location-picker";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { LocationPicker } from "@systutor/shell/ui/location-picker";
 import type { CustomerAddressPayload } from "../types";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input } from "@systutor/shell/ui/input";
 
 type AddressSectionProps = {
   value: CustomerAddressPayload;

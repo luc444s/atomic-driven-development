@@ -1,5 +1,5 @@
 import { API_PREFIX } from "./_shared";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 import type { LogisticsAssignedRoute, LogisticsRoute, LogisticsRouteStop } from "./routes";
 import type { VehicleSessionDetail, SessionWaybillState, SessionWaybillVersion } from "./sessions";
 import type {

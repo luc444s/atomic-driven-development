@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Combobox,
   type ComboboxOption,
-} from "../../../../../apps/web/src/shared/ui/combobox";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
+} from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import {
   createCylinder,
   listSelectedLoadSerials,

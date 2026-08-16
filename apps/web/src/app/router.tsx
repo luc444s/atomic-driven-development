@@ -10,7 +10,7 @@ import { RolesPage } from "../features/settings/RolesPage";
 import { UsersPage } from "../features/settings/UsersPage";
 import { PluginsPage } from "../features/system/PluginsPage";
 import { SystemDashboardPage } from "../features/system/SystemDashboardPage";
-import { AppLayout } from "../shared/layout/AppLayout";
+import { AppLayout } from "@/shared/layout/AppLayout";
 import { useAuthStore } from "../features/auth/store";
 
 function RootRedirect() {

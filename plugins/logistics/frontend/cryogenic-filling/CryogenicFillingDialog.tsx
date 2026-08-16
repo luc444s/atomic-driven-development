@@ -1,19 +1,19 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 
 import { useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../apps/web/src/shared/ui/card";
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+} from "@systutor/shell/ui/card";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input, Textarea } from "@systutor/shell/ui/input";
+import { toast } from "@systutor/shell/ui/toast";
 import { getProduct, productosKeys } from "../../../productos/frontend/api";
 import type { Product, ProductListItem } from "../../../productos/frontend/types";
 import { listBalances, stockKeys } from "../../../stock/frontend/api";

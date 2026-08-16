@@ -33,7 +33,7 @@ Regla derivada: ninguna vista operativa debe mostrar un identificador crudo si p
 
 1. **Engram** (`mem_context` + `mem_search` con keywords de la tarea) — prioridad sobre cualquier .md
 2. `AGENTS.md`
-3. **`apps/web/src/shared/ui/README.md`** — patrones de formulario y componentes (obligatorio para toda tarea de frontend)
+3. **`vendor/systutor-shell/src/ui/README.md`** — patrones de formulario y componentes (obligatorio para toda tarea de frontend; ADR 0030)
 4. `docs/avances/<modulo>.md` (si existe)
 5. ADR relacionado
 6. Spec de la feature
@@ -48,13 +48,13 @@ Antes de escribir una sola linea de UI, cargar la skill `frontend-ui-identity`. 
 
 - **Labels**: `<label className="block space-y-2 text-sm text-foreground">`, nunca `text-xs` ni `text-muted-foreground`
 - **Sin asteriscos rojos**: el sistema no los usa. Validacion en backend.
-- **Botones**: `<Button>` de `shared/ui/button`. Nunca `<button>` con estilos inline.
-- **Errores**: `<Alert>` de `shared/ui/alert`. Nunca divs rojos raw.
-- **Inputs**: `<Input>`, `<Textarea>`, `<Combobox>`, `<Select>` de `shared/ui/`. Nunca elementos HTML nativos sin wrapper.
+- **Botones**: `<Button>` de `@systutor/shell/ui/button`. Nunca `<button>` con estilos inline.
+- **Errores**: `<Alert>` de `@systutor/shell/ui/alert`. Nunca divs rojos raw.
+- **Inputs**: `<Input>`, `<Textarea>`, `<Combobox>`, `<Select>` de `@systutor/shell/ui/`. Nunca elementos HTML nativos sin wrapper.
 - **Espaciado**: `space-y-4` dentro de secciones, `space-y-6` entre secciones, `flex justify-end gap-3` para fila de botones.
 - **Sin estilos inline**: solo Tailwind utility classes via `className`.
 
-Si un componente no existe en `shared/ui/`, se crea alli primero como generico, luego se usa desde el plugin.
+Si un componente no existe en `@systutor/shell/ui/`, se crea alli primero como generico, luego se usa desde el plugin.
 
 ## ADRs obligatorios (leer antes de decisiones tecnicas)
 
@@ -92,12 +92,12 @@ Ningun archivo >600 lineas (>1000 es punto de friccion). Reglas:
 
 ## Component Minimal
 
-Componentes base (tablas, modales, selects, tooltips, paginacion) en `shared/ui/`, no duplicados en plugins. `shadcn/ui` es fuente de verdad. No crear "variantes por modulo" de un mismo componente — una sola `DataTable` configurable por props. Si no cubre el caso, extender con props, no clonar.
+Componentes base (tablas, modales, selects, tooltips, paginacion) en `@systutor/shell/ui/`, no duplicados en plugins. `shadcn/ui` es fuente de verdad. No crear "variantes por modulo" de un mismo componente — una sola `DataTable` configurable por props. Si no cubre el caso, extender con props, no clonar.
 
 ## Reutilizacion de componentes
 
-Priorizar uso de `shared/ui/`. Si no existe el componente generico:
-1. crearlo primero en `shared/ui/`;
+Priorizar uso de `@systutor/shell/ui/`. Si no existe el componente generico:
+1. crearlo primero en `@systutor/shell/ui/`;
 2. luego usarlo desde el plugin con props/funciones del dominio.
 
 Wrappers de dominio aceptables si solo inyectan defaults sin duplicar logica interna del componente Core.

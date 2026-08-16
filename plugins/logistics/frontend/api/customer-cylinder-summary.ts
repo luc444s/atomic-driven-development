@@ -1,4 +1,4 @@
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 import { API_PREFIX } from "./_shared";
 

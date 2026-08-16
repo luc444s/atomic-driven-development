@@ -1,5 +1,5 @@
 // Auto-generado por split_api.py
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 
 export type BaseCylinderPayload = {

@@ -1,4 +1,4 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import type { QuoteDraftListItem } from "../../../../../plugins/ventas/cotizacion/frontend/api";
 
 interface DraftCardProps {

@@ -1,10 +1,10 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { toast } from "@systutor/shell/ui/toast";
 import { logisticsKeys } from "../../../logistics/frontend/api";
 import {
   createCustomerAddress,

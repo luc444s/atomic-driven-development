@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
+import { apiRequest } from "@systutor/shell/api/client";
+import { Combobox } from "@systutor/shell/ui/combobox";
 
 interface VehicleItem {
   id: string;

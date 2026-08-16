@@ -4,7 +4,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
+} from "@systutor/shell/ui/card";
 import type { RouteStopProgress } from "../../api";
 import { formatStopOutcomeType, formatStopStatus, STOP_STATUS_BORDER_COLORS } from "./jornada-labels";
 import type { RouteSelectOption } from "./RouteOperationForm";

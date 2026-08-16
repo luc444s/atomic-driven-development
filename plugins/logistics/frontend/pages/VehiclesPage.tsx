@@ -4,13 +4,13 @@ import { FormEvent, useState } from "react";
 import { createVehicle, listVehicles, listWarehouses, logisticsKeys, updateVehicle } from "../api";
 import { getRealWarehouses } from "../api/warehouses";
 import { LogisticsSection } from "../components/LogisticsSection";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../apps/web/src/shared/ui/select";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 
 type VehicleFormState = {
   id?: string;

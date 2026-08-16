@@ -1,11 +1,11 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Input } from "@systutor/shell/ui/input";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import {
   createCustomer,
   createCustomerAddress,

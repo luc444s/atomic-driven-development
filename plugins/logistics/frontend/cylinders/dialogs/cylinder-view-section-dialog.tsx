@@ -1,7 +1,7 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent } from "../../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import { CylinderTraceabilityTimeline } from "../../traceability/CylinderTraceabilityTimeline";
 import { formatDate, formatDateTime, InfoBlock } from "../utils/formatters";
 import type { LogisticsHydrostaticTest, LogisticsWarranty } from "../../api";

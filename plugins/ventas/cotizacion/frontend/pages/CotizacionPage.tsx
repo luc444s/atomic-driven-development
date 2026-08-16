@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { ConsoleShell } from "../../../../../apps/web/src/shared/ui/console-shell";
+import { ConsoleShell } from "@systutor/shell/ui/console-shell";
 import { COTIZACION_TOKENS } from "../dsl/tokens";
 import { createCotizacionCompletionProvider } from "../dsl/autocomplete";
 import { executeCotizacion } from "../shared/api";
@@ -11,7 +11,7 @@ import { DraftExplorer } from "../components/DraftExplorer";
 import { CotizacionForm } from "../ui";
 import { useDraftList } from "../shared/hooks/useDraftList";
 import { COTIZACION_HELP, isHelpCommand } from "../dsl/help";
-import type { ConfirmAction } from "../../../../../apps/web/src/shared/confirm";
+import type { ConfirmAction } from "@systutor/shell/confirm";
 import type { QuoteCommand } from "../shared/types/commands";
 
 const MODE_STORAGE_KEY = "cotizacion-mode";

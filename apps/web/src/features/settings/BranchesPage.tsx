@@ -12,13 +12,13 @@ import {
   updateCoreBranch,
 } from "../core-management/api";
 import { useAuthStore } from "../auth/store";
-import { Alert } from "../../shared/ui/alert";
-import { Badge } from "../../shared/ui/badge";
-import { Button } from "../../shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../shared/ui/card";
-import { DataTable } from "../../shared/ui/data-table";
-import { Dialog } from "../../shared/ui/dialog";
-import { Input } from "../../shared/ui/input";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
 
 type BranchFormState = {
   id?: string;

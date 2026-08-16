@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { Skeleton } from "../../../../apps/web/src/shared/ui/skeleton";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Input } from "@systutor/shell/ui/input";
+import { Skeleton } from "@systutor/shell/ui/skeleton";
 import { getCylinderStateLabel } from "../CylinderStateBadge";
 import { getCylinderTraceability, type LogisticsCylinderTraceability, type LogisticsTraceabilityEvent } from "../api/traceability";
 import { formatDateTime } from "../cylinders/utils/formatters";

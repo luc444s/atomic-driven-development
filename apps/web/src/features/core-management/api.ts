@@ -1,7 +1,7 @@
 import type { QueryClient } from "@tanstack/react-query";
 
-import { apiRequest } from "../../shared/api/client";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 export type CoreUser = {
   id: string;

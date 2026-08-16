@@ -1,4 +1,4 @@
-import type { CalendarItem, CalendarResource } from "../../../../../apps/web/src/shared/ui/resource-calendar/resource-calendar";
+import type { CalendarItem, CalendarResource } from "@systutor/shell/ui/resource-calendar/resource-calendar";
 import type { LogisticsVehicle, PlanningReservation } from "../../api";
 
 export function buildCalendarResources(vehicles: LogisticsVehicle[]): CalendarResource[] {

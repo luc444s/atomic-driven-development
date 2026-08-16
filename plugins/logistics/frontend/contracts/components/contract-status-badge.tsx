@@ -1,4 +1,4 @@
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
+import { Badge } from "@systutor/shell/ui/badge";
 
 const STATUS_COLOR: Record<string, string> = {
   DRAFT: "bg-gray-100 text-gray-800",

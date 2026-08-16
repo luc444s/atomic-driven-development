@@ -1,4 +1,4 @@
-import type { TokenProvider } from "../../../../../apps/web/src/shared/ui/console-editor";
+import type { TokenProvider } from "@systutor/shell/ui/console-editor";
 
 const KEYWORDS = [
   "cotizar", "preview", "cliente", "vehiculo", "condicion",

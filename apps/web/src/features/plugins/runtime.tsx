@@ -8,7 +8,7 @@ import type {
 
 import { useAuthStore } from "../auth/store";
 import { hasRequiredPermissions } from "../shell/permissions";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 export type PluginFrontendRoute = PluginRoute;
 export type PluginSidebarEntry = PluginNavigationItem;

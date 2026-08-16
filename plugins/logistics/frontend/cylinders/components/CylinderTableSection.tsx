@@ -1,6 +1,6 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Pagination } from "../../../../../apps/web/src/shared/ui/pagination";
+import { Button } from "@systutor/shell/ui/button";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Pagination } from "@systutor/shell/ui/pagination";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
 import type { LogisticsCylinder } from "../../api";
 

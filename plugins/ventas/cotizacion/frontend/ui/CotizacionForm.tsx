@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Textarea } from "../../../../../apps/web/src/shared/ui/textarea";
+import { Button } from "@systutor/shell/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Textarea } from "@systutor/shell/ui/textarea";
 import { CustomerSelect } from "./CustomerSelect";
 import { ProductLinesEditor } from "./ProductLinesEditor";
 import { DateTimePicker } from "./DateTimePicker";

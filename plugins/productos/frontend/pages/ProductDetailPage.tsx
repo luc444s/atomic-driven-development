@@ -3,15 +3,15 @@ import { ChangeEvent, FormEvent, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { Link, useParams } from "../../../../apps/web/src/lib/router";
 import type { ProductAdr } from "../types";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { DropdownMenu, type DropdownItem } from "../../../../apps/web/src/shared/ui/dropdown-menu";
-import { Checkbox, Input, Switch, Textarea } from "../../../../apps/web/src/shared/ui/input";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { DropdownMenu, type DropdownItem } from "@systutor/shell/ui/dropdown-menu";
+import { Checkbox, Input, Switch, Textarea } from "@systutor/shell/ui/input";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { toast } from "@systutor/shell/ui/toast";
 import {
   createProductAdr,
   createProductBarcode,

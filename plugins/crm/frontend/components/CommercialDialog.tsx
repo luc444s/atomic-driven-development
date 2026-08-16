@@ -1,9 +1,9 @@
 import { FormEvent } from "react";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Combobox } from "../../../../apps/web/src/shared/ui/combobox";
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Button } from "@systutor/shell/ui/button";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
 import type { CustomerCommercialAssignmentPayload } from "../types";
 
 type CommercialDialogProps = {

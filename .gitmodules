@@ -1,3 +1,6 @@
 [submodule "vendor/systutor-core"]
 	path = vendor/systutor-core
 	url = ../systutor-core
+[submodule "vendor/systutor-shell"]
+	path = vendor/systutor-shell
+	url = ../systutor-shell

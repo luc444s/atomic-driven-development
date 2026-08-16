@@ -1,7 +1,8 @@
 import { create } from "zustand";
 
+import { setTokenProvider } from "@systutor/shell/api/client";
 import type { UserProfile } from "./api";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 const TOKEN_KEY = "systutor.access_token";
 
@@ -164,3 +165,5 @@ function isSamePluginRuntimeRecords(
     );
   });
 }
+
+setTokenProvider(() => useAuthStore.getState().token);

@@ -1,7 +1,7 @@
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Button } from "@systutor/shell/ui/button";
+import { Select } from "@systutor/shell/ui/select";
 import type { LogisticsVehicle, LogisticsWarehouse } from "../../api";
-import type { CalendarView } from "../../../../../apps/web/src/shared/ui/resource-calendar/resource-calendar";
+import type { CalendarView } from "@systutor/shell/ui/resource-calendar/resource-calendar";
 
 type Props = {
   view: CalendarView;

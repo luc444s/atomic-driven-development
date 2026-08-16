@@ -1,6 +1,6 @@
 import { type FormEvent, useEffect, useState } from "react";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
 import type { DriverOption, LogisticsRoute, LogisticsVehicle, LogisticsWarehouse, PlanningReservation, PlanningReservationPayload } from "../../api";
 import { PlanningReservationForm, type PlanningReservationFormValues } from "./planning-reservation-form";
 import { fromDateTimeLocalValue, toDateTimeLocalValue } from "../utils/planning-calendar-formatters";

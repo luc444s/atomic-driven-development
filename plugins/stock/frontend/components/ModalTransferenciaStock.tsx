@@ -2,12 +2,12 @@ import { FormEvent, useEffect, useState } from "react";
 
 import { ProductSearchDialog, type ProductSearchDialogItem } from "../../../../apps/web/src/components/ProductSearchDialog";
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Input, Textarea } from "../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../apps/web/src/shared/ui/select";
-import { toast } from "../../../../apps/web/src/shared/ui/toast";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input, Textarea } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
+import { toast } from "@systutor/shell/ui/toast";
 import { listWarehousesCatalog, stockKeys, transferStock } from "../api";
 import type { LogisticsWarehouseOption, StockTransferResult } from "../types";
 

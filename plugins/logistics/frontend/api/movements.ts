@@ -1,7 +1,7 @@
 // Auto-generado por split_api.py
 import { API_PREFIX, withQuery } from "./_shared";
 import { MovementEquipment } from "./equipment";
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 export type LogisticsMovementType = {
   code: string;

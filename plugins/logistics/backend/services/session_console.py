@@ -51,13 +51,13 @@ def build_session_console_context(
             db,
             tenant_id=tenant_id,
             warehouse_id=session.origin_warehouse_id,
-            ensure_catalog=True,
+            ensure_catalog=False,
         ),
         mobile_balances=get_warehouse_balances(
             db,
             tenant_id=tenant_id,
             warehouse_id=session.mobile_warehouse_id,
-            ensure_catalog=True,
+            ensure_catalog=False,
         ),
         origin_serialized=summarize_serialized_cylinders_by_warehouse(
             db,

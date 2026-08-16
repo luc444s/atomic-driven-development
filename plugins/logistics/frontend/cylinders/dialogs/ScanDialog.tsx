@@ -1,9 +1,9 @@
 // Auto-generado por split-tsx.py
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { LocationPicker } from "../../../../../apps/web/src/shared/ui/location-picker";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
+import { Input } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
+import { LocationPicker } from "@systutor/shell/ui/location-picker";
 import { Field } from "../utils/formatters";
 
 interface ScanDialogProps {

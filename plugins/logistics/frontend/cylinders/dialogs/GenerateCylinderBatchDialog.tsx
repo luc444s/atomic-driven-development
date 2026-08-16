@@ -1,12 +1,12 @@
 import { FormEvent, useState } from "react";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent } from "../../../../../apps/web/src/shared/ui/card";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent } from "@systutor/shell/ui/card";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
+import { Alert } from "@systutor/shell/ui/alert";
+import { apiRequest } from "@systutor/shell/api/client";
 
 type GenerateCylinderBatchDialogProps = {
   open: boolean;

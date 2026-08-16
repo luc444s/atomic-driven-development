@@ -1,5 +1,5 @@
 import type { StockBalanceItem } from "../../../../stock/frontend/types";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import type { SessionOperationalSummary, VehicleSessionDetail } from "../../api";
 import { MobileStockInline } from "./MobileStockInline";
 import { OperationalSummaryShell } from "./OperationalSummaryShell";

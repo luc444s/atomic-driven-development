@@ -1,1 +1,1 @@
-export { cn } from "@/shared/ui/cn";
+export { cn } from "@systutor/shell/ui/cn";

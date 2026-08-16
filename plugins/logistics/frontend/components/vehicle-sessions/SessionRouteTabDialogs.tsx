@@ -1,4 +1,4 @@
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import { ProductSearchDialog } from "../../../../productos/frontend/components/ProductSearchDialog";
 import { LoadSerialsDialog } from "./LoadSerialsDialog";
 import { RouteCompositionCard } from "./RouteCompositionCard";

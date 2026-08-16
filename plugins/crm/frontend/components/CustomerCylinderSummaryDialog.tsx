@@ -1,5 +1,5 @@
-import { DataTable } from "../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
 
 import type { CustomerCylinderSummary } from "../../../logistics/frontend/api";
 

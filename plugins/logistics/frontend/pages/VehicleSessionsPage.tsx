@@ -2,11 +2,11 @@ import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
 import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent } from "../../../../apps/web/src/shared/ui/card";
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
-import { Pagination } from "../../../../apps/web/src/shared/ui/pagination";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent } from "@systutor/shell/ui/card";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Pagination } from "@systutor/shell/ui/pagination";
 import {
   updateRouteGpsStart,
   createVehicle,

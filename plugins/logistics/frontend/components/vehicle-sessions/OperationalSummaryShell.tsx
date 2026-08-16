@@ -1,6 +1,6 @@
 import { useState } from "react";
 
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import type { SessionOperationalSummary, VehicleSessionDetail } from "../../api";
 import { OperationalSummaryDetailDialog } from "./OperationalSummaryDetailDialog";
 import { OperationalSummaryInline } from "./OperationalSummaryInline";

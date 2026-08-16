@@ -1,9 +1,9 @@
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Card,
   CardContent,
-} from "../../../../../apps/web/src/shared/ui/card";
+} from "@systutor/shell/ui/card";
 import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import {
   commitRouteOrder,

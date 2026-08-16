@@ -1,4 +1,4 @@
-import { Dialog } from "../../../../apps/web/src/shared/ui/dialog";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import { BankAccountsSection } from "./BankAccountsSection";
 
 type BankAccountsDialogProps = {

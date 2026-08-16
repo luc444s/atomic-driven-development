@@ -1,4 +1,4 @@
-import { Input } from "../../../../apps/web/src/shared/ui/input";
+import { Input } from "@systutor/shell/ui/input";
 
 type ContactSectionProps = {
   email: string;

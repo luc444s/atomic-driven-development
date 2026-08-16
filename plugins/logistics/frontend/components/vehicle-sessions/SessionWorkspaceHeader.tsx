@@ -1,11 +1,11 @@
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
+import { Badge } from "@systutor/shell/ui/badge";
 import {
   Card,
   CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
+} from "@systutor/shell/ui/card";
 
 import { VEHICLE_SESSION_STATUS_LABELS, type VehicleSessionDetail } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";

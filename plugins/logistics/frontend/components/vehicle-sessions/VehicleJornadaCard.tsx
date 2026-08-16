@@ -1,8 +1,8 @@
 import { memo } from "react";
 
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { Card } from "../../../../../apps/web/src/shared/ui/card";
-import { cn } from "../../../../../apps/web/src/shared/ui/cn";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Card } from "@systutor/shell/ui/card";
+import { cn } from "@systutor/shell/ui/cn";
 import { VEHICLE_SESSION_STATUS_LABELS } from "../../api";
 import { VehicleSessionStatusBadge } from "./VehicleSessionStatusBadge";
 import type { VehicleProjectionCard } from "./vehicle-jornadas-projection";

@@ -1,12 +1,12 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Pagination } from "../../../../../apps/web/src/shared/ui/pagination";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Pagination } from "@systutor/shell/ui/pagination";
+import { Button } from "@systutor/shell/ui/button";
+import { Input } from "@systutor/shell/ui/input";
 import { listCotizaciones, type QuoteDraftListItem } from "../../../../../plugins/ventas/cotizacion/frontend/api";
-import type { DataTableColumn } from "../../../../../apps/web/src/shared/ui/data-table";
+import type { DataTableColumn } from "@systutor/shell/ui/data-table";
 
 interface DraftsModalProps {
   open: boolean;

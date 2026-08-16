@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { hasRequiredPermissions } from "../shell/permissions";
 import { buildFrontendPluginRuntime, listFrontendPluginRegistrations } from "./runtime";
-import type { PluginRuntimeRecord } from "../../shared/api/client";
+import type { PluginRuntimeRecord } from "@systutor/shell/api/client";
 
 const enabledLogisticsRecord: PluginRuntimeRecord = {
   id: "plugin-runtime-1",

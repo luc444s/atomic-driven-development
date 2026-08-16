@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import type { ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
+import { apiRequest } from "@systutor/shell/api/client";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Button } from "@systutor/shell/ui/button";
+import { Input } from "@systutor/shell/ui/input";
+import { Alert } from "@systutor/shell/ui/alert";
+import type { ComboboxOption } from "@systutor/shell/ui/combobox";
 
 interface CustomerSearchItem {
   id: string;

@@ -1,10 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import type { CompletionContext, CompletionItem } from "../../../../../apps/web/src/shared/ui/console-editor";
+import type { CompletionContext, CompletionItem } from "@systutor/shell/ui/console-editor";
 import { createCotizacionCompletionProvider } from "./autocomplete";
 
 const requestPaths: string[] = [];
 
-vi.mock("../../../../../apps/web/src/shared/api/client", () => ({
+vi.mock("@systutor/shell/api/client", () => ({
   apiRequest: vi.fn((path: string) => {
     requestPaths.push(path);
     return Promise.resolve([]);

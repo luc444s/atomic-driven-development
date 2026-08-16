@@ -1,11 +1,11 @@
 import { FormEvent, useState } from "react";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
-import { Input } from "../../../../apps/web/src/shared/ui/input";
-import { PaginatedDataTable } from "../../../../apps/web/src/shared/ui/paginated-data-table";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Input } from "@systutor/shell/ui/input";
+import { PaginatedDataTable } from "@systutor/shell/ui/paginated-data-table";
 import {
   createBrand,
   createCategory,

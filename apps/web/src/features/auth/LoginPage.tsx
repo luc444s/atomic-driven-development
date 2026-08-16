@@ -4,11 +4,11 @@ import { Navigate, useLocation, useNavigate } from "react-router-dom";
 
 import { login } from "./api";
 import { useAuthStore } from "./store";
-import { ApiError } from "../../shared/api/client";
-import { Alert } from "../../shared/ui/alert";
-import { Button } from "../../shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../shared/ui/card";
-import { Input } from "../../shared/ui/input";
+import { ApiError } from "@systutor/shell/api/client";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { Input } from "@systutor/shell/ui/input";
 
 type LocationState = {
   from?: {

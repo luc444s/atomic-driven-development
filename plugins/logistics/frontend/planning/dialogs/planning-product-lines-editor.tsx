@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
+import { Button } from "@systutor/shell/ui/button";
 import {
   Combobox,
   type ComboboxOption,
-} from "../../../../../apps/web/src/shared/ui/combobox";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
+} from "@systutor/shell/ui/combobox";
+import { Input } from "@systutor/shell/ui/input";
 import type { PlanningReservationProductLine } from "./planning-load-summary";
 
 type ResolvedProduct = {

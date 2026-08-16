@@ -11,13 +11,13 @@ import {
   receiveOrder,
 } from "../api";
 import type { OrderItemPayload, PurchaseOrder } from "../types";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Alert } from "@systutor/shell/ui/alert";
 import { CommerceSection } from "../../../frontend/components";
 import { SupplierManagementDialog } from "../components/SupplierManagementDialog";
 import { listAllProducts } from "../../../../productos/frontend/api";

@@ -54,6 +54,8 @@ export default defineConfig({
     alias: {
       "@": path.resolve(__dirname, "./src"),
       "@systutor/sdk/frontend": path.resolve(__dirname, "../../vendor/systutor-core/src/systutor/sdk/frontend/index.ts"),
+      "@systutor/shell": path.resolve(__dirname, "../../vendor/systutor-shell/src"),
+      "pdfjs-dist/build/pdf.worker.min.js?url": path.resolve(__dirname, "node_modules/pdfjs-dist/build/pdf.worker.min.js"),
       ...nodeModulesAliases,
     },
   },

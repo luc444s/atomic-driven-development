@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
+import { LocationMap } from "@systutor/shell/ui/location-map";
 import type { RoutingCalculationResponse } from "../../api";
 import { DEFAULT_MAP_CENTER } from "./map-defaults";
 import { type BuilderPhase, type RouteStopDraft } from "./useRouteBuilder";

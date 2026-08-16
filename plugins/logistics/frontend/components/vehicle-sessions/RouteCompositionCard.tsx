@@ -4,7 +4,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "../../../../../apps/web/src/shared/ui/card";
+} from "@systutor/shell/ui/card";
 import type { CurrentComposition } from "../../api";
 
 type Props = {

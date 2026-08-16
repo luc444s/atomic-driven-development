@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { useMutation, useQuery, useQueryClient } from "../../../../apps/web/src/lib/react-query";
-import { ApiError } from "../../../../apps/web/src/shared/api/client";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { ConfirmDialog } from "../../../../apps/web/src/shared/ui/confirm-dialog";
+import { ApiError } from "@systutor/shell/api/client";
+import { Button } from "@systutor/shell/ui/button";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
 import { ProductSearchDialog } from "../../../productos/frontend/components/ProductSearchDialog";
 import {
   cancelSession,

@@ -14,16 +14,16 @@ import {
 } from "../api";
 import type { Supplier } from "../types";
 import { EMPTY_SUPPLIER_FORM, type SupplierFormState } from "../forms/purchase-form-state";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../../../apps/web/src/shared/ui/card";
-import { DataTable } from "../../../../../apps/web/src/shared/ui/data-table";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Input } from "../../../../../apps/web/src/shared/ui/input";
-import { Combobox } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { LocationPicker } from "../../../../../apps/web/src/shared/ui/location-picker";
-import { apiRequest } from "../../../../../apps/web/src/shared/api/client";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { DataTable } from "@systutor/shell/ui/data-table";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input } from "@systutor/shell/ui/input";
+import { Combobox } from "@systutor/shell/ui/combobox";
+import { Select } from "@systutor/shell/ui/select";
+import { Alert } from "@systutor/shell/ui/alert";
+import { LocationPicker } from "@systutor/shell/ui/location-picker";
+import { apiRequest } from "@systutor/shell/api/client";
 
 const CRM_BASE = "/api/v1/plugins/crm";
 

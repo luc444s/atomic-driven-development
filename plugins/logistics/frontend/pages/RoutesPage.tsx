@@ -12,7 +12,7 @@ import { RouteBuilderMap } from "../components/route-builder/RouteBuilderMap";
 import { RouteBuilderPanel } from "../components/route-builder/RouteBuilderPanel";
 import { RouteListSidebar } from "../components/route-builder/RouteListSidebar";
 import { useRouteBuilder } from "../components/route-builder/useRouteBuilder";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
+import { Alert } from "@systutor/shell/ui/alert";
 
 type Props = {
   autoStart?: boolean;

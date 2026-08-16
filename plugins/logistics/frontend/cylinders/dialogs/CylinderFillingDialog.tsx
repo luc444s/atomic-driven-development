@@ -1,10 +1,10 @@
 import type { FormEvent } from "react";
 
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Combobox, type ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Input, Textarea } from "../../../../../apps/web/src/shared/ui/input";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Combobox, type ComboboxOption } from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Input, Textarea } from "@systutor/shell/ui/input";
 import type { LogisticsCylinder } from "../../api";
 import type {
   CylinderFillingFormState,

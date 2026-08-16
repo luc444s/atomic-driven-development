@@ -1,6 +1,6 @@
 import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
 import { API_PREFIX, withQuery } from "./_shared";
-import { apiRequest, getApiBaseUrl } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest, getApiBaseUrl } from "@systutor/shell/api/client";
 
 export type DriverOption = {
   id: string;

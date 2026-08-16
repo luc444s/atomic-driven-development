@@ -1,5 +1,5 @@
-import { SearchDialog } from "../shared/ui/search-dialog";
-import { apiRequest } from "../shared/api/client";
+import { SearchDialog } from "@systutor/shell/ui/search-dialog";
+import { apiRequest } from "@systutor/shell/api/client";
 
 export type ProductSearchDialogItem = {
   id: string;

@@ -2,9 +2,9 @@ import { useState } from "react";
 
 import { useAuthStore } from "../../../../apps/web/src/features/auth/store";
 import { useQuery } from "../../../../apps/web/src/lib/react-query";
-import { Alert } from "../../../../apps/web/src/shared/ui/alert";
-import { Button } from "../../../../apps/web/src/shared/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "../../../../apps/web/src/shared/ui/card";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Button } from "@systutor/shell/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@systutor/shell/ui/card";
 import {
   getCustomerCylinderSummary,
   logisticsKeys,

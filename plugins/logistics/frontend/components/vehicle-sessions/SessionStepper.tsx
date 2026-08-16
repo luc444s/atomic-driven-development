@@ -1,7 +1,7 @@
-import { Alert } from "../../../../../apps/web/src/shared/ui/alert";
-import { Badge } from "../../../../../apps/web/src/shared/ui/badge";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { cn } from "../../../../../apps/web/src/shared/ui/cn";
+import { Alert } from "@systutor/shell/ui/alert";
+import { Badge } from "@systutor/shell/ui/badge";
+import { Button } from "@systutor/shell/ui/button";
+import { cn } from "@systutor/shell/ui/cn";
 import {
   AUTO_ACTION_HINTS,
   MANUAL_ACTION_LABELS,

@@ -1,4 +1,4 @@
-import { Card, CardContent } from "../../../../../apps/web/src/shared/ui/card";
+import { Card, CardContent } from "@systutor/shell/ui/card";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
 
 const SUMMARY_STATES = [

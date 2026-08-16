@@ -1,10 +1,10 @@
 import { Dispatch, SetStateAction, useEffect, useMemo, useState } from "react";
 import { useQuery } from "../../../../../apps/web/src/lib/react-query";
-import { Input, Textarea } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { LocationMap } from "../../../../../apps/web/src/shared/ui/location-map";
-import type { ComboboxOption } from "../../../../../apps/web/src/shared/ui/combobox";
+import { Input, Textarea } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
+import { Button } from "@systutor/shell/ui/button";
+import { LocationMap } from "@systutor/shell/ui/location-map";
+import type { ComboboxOption } from "@systutor/shell/ui/combobox";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
 import { listCustomerAddressesByCustomers } from "../../api/delivery-points";
 import {

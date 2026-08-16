@@ -1,5 +1,5 @@
 import { useCoreMutation } from "../../../../../apps/web/src/lib/use-core-mutation";
-import { toast } from "../../../../../apps/web/src/shared/ui/toast";
+import { toast } from "@systutor/shell/ui/toast";
 import {
   createCylinder,
   fillCylinder,

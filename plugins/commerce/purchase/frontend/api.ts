@@ -1,4 +1,4 @@
-import { apiRequest } from "../../../../apps/web/src/shared/api/client";
+import { apiRequest } from "@systutor/shell/api/client";
 
 function buildQuery(params: Record<string, unknown>) {
   const query = new URLSearchParams();

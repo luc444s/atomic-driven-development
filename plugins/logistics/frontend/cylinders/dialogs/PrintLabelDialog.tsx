@@ -1,8 +1,8 @@
 // Auto-generado por split-tsx.py
-import { Dialog } from "../../../../../apps/web/src/shared/ui/dialog";
-import { Button } from "../../../../../apps/web/src/shared/ui/button";
-import { Input, Textarea } from "../../../../../apps/web/src/shared/ui/input";
-import { Select } from "../../../../../apps/web/src/shared/ui/select";
+import { Dialog } from "@systutor/shell/ui/dialog";
+import { Button } from "@systutor/shell/ui/button";
+import { Input, Textarea } from "@systutor/shell/ui/input";
+import { Select } from "@systutor/shell/ui/select";
 import { Field } from "../utils/formatters";
 
 interface PrintLabelDialogProps {

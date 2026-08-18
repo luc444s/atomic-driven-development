@@ -8,7 +8,7 @@
 
 ## WHAT
 
-<!-- ¿Qué comportamiento observable o verdad estructural cambia? Una sola transición o una sola verdad independiente y falsable. "Preparar para luego" no basta. -->
+<!-- ¿Qué comportamiento observable, verdad estructural o garantía operacional cambia? Una sola transición o una sola verdad independiente y falsable. "Preparar para luego" no basta. -->
 
 ## SCOPE
 
@@ -20,7 +20,7 @@
 
 ## CONTRACT
 
-<!-- Precondiciones, postcondiciones. ¿Qué debe cumplirse? -->
+<!-- Precondiciones, postcondiciones. ¿Qué debe cumplirse y qué verdad nueva queda establecida ahora mismo? -->
 
 ## INVARIANTS
 
@@ -32,7 +32,7 @@ invariants: []
 
 ## VERIFICATION
 
-<!-- ¿Cómo demostramos objetivamente que esta verdad ya existe ahora? Comandos, tests, checks. No delegar prueba real a futuras A.SPEC. -->
+<!-- ¿Cómo demostramos objetivamente que esta verdad ya existe ahora? Comandos, tests, checks. No delegar prueba real a futuras A.SPEC. Incluir checks de composición si esta A.SPEC depende de una capability mayor. -->
 
 ## ROLLBACK
 
@@ -53,6 +53,18 @@ blast_radius:
   direct: []
   indirect: []
   must_not_affect: []
+```
+
+## Composition
+
+<!-- Si esta A.SPEC participa en una capability mayor, declarar dependencias reales y checks del conjunto. No usar esta sección para justificar verdad parcial. -->
+
+```yaml
+composition:
+  requires_aspecs: []
+  must_compose_with: []
+  systemic_invariants: []
+  composition_checks: []
 ```
 
 ## Structural Constraints
@@ -81,8 +93,11 @@ structural_constraints:
 - [ ] Objective satisfied
 - [ ] Scope respected
 - [ ] Contract satisfied
+- [ ] Independent falsable truth exists now
 - [ ] Invariants preserved
 - [ ] Verification passed
+- [ ] Rollback / compensation is honest
+- [ ] Composition checks passed when applicable
 - [ ] No unrelated changes
 - [ ] Structural constraints respected
 - [ ] Traceability established

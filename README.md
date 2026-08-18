@@ -33,6 +33,9 @@ ADD/
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
 └── skills/                   → Habilidades reutilizables de aplicación
     ├── atomizer-python/      → División segura de archivos Python grandes
+    ├── verifier-add/         → Juez mínimo: contrato declarado vs prueba declarada
+    ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
+    ├── ci-wrapper-add/       → Wrapper fino para ejecutar ADD en CI
     ├── gitflow-lite-add/     → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
     └── gitflow-full-add/     → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 ```

@@ -48,6 +48,22 @@ Un ERP gigantesco puede construirse perfectamente:
 
 La arquitectura puede ser enorme. Los cambios siguen siendo pequeños.
 
+## Verdad independiente ahora
+
+ADD no acepta como atómico un cambio cuya verdad dependa de trabajo futuro
+para completar la misma promesa.
+
+Una A.SPEC puede entregar:
+
+- una capacidad observable independiente
+- una propiedad estructural independiente
+- una garantía operacional independiente
+
+Pero debe entregar esa verdad **ahora**, al cerrarse.
+
+"Preparar terreno", "dejar base lista" o "habilitar fase siguiente" NO basta por
+sí solo si no existe un delta falsable e independiente en el sistema actual.
+
 ## ADD no impone arquitectura
 
 ADD no prescribe DDD, microservicios, REST, PostgreSQL ni Clean Architecture.

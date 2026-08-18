@@ -61,6 +61,34 @@ HOST-0009 → Provision SSL
 
 Cada una produce un cambio observable.
 
+### 2.1 Límite contra fragmentación artificial
+
+ADD permite A.SPECs estructurales y A.SPECs con `ROLLBACK` por compensación,
+pero eso NO autoriza dividir una misma promesa en fragmentos preparatorios.
+
+Una A.SPEC solo cuenta como atómica si, al cerrarse, introduce una verdad
+nueva, independiente y falsable en el sistema actual.
+
+Puede ser:
+
+- una transición observable nueva
+- una propiedad estructural nueva
+- una garantía operacional nueva
+
+No basta con:
+
+- "preparar para luego"
+- "dejar base lista"
+- "agregar plumbing"
+- "habilitar fase siguiente"
+
+si la misma promesa todavía depende de trabajo futuro para volverse verdadera.
+
+Test normativo:
+
+> Si la A.SPEC necesita futuras A.SPEC para que su promesa actual sea honesta,
+> NO es atómica.
+
 ## 3. Las 5 propiedades de un Atomic Change
 
 - **A — Atomic**: una responsabilidad observable.
@@ -167,7 +195,70 @@ Una A.SPEC solo puede cerrarse cuando:
 
 Esto elimina el ambiguo "parece que ya funciona".
 
-## 9. Estructura de documentos
+## 9. Rollback en transiciones irreversibles
+
+ADD prefiere cambios reversibles, pero no exige que todo efecto del mundo pueda
+deshacerse físicamente.
+
+Hay A.SPEC válidas con efectos irreversibles:
+
+- enviar un email
+- cobrar un pago
+- emitir una factura fiscal
+- accionar hardware o sistemas externos
+
+En estos casos, `ROLLBACK` NO significa "borrar lo ocurrido". Significa definir
+cómo el sistema controla el daño y evita repetición incorrecta.
+
+`ROLLBACK` debe tomar una o más de estas formas:
+
+- **compensación**: refund, nota de crédito, email correctivo, evento opuesto
+- **contención**: stop, safe-state, lock, aislamiento, operator handoff
+- **no-repetición segura**: idempotencia, deduplicación, consumo único, replay guard
+- **trazabilidad forense**: auditoría, correlation ID, registro inmutable de qué ocurrió
+
+Una A.SPEC irreversible sigue siendo atómica solo si:
+
+- la transición observable está claramente definida
+- las precondiciones son estrictas antes de ejecutar efecto irreversible
+- la verificación demuestra que ocurrió correctamente una sola vez
+- existe compensación, contención o replay protection explícita
+- invariantes siguen siendo evaluables aunque el efecto no pueda deshacerse
+
+Ejemplo honesto:
+
+```text
+ROLLBACK:
+- no aplica reversión física del email enviado
+- compensación: enviar email correctivo
+- no-repetición: idempotency key por evento
+- auditoría: guardar message_id y correlation_id
+```
+
+Ejemplo deshonesto:
+
+```text
+ROLLBACK: deshacer envío de email
+```
+
+Si una A.SPEC irreversible no define control posterior al efecto, falla como
+contrato ADD aunque la operación "funcione".
+
+## 10. Correctitud local vs global
+
+Una A.SPEC puede ser localmente correcta y, aun así, una secuencia de A.SPEC
+ser globalmente incorrecta.
+
+Corolario normativo:
+
+- pasar contrato + invariantes de cada A.SPEC NO implica que la composición total pase
+- una release o capability compuesta MAY requerir checks propios de integración, orden o sistema
+- invariantes sistémicas y propiedades emergentes MUST validarse cuando el cambio dependa de varias A.SPEC
+
+ADD verifica cambios pequeños de forma aislada, pero no asume que la suma de
+cambios correctos sea automáticamente correcta.
+
+## 11. Estructura de documentos
 
 ```
 ADD/
@@ -176,11 +267,11 @@ ADD/
 └── ASPEC-TEMPLATE.md
 ```
 
-## 10. Ley estructural
+## 12. Ley estructural
 
 Además de atomicidad observable, ADD exige coherencia estructural.
 
-### 10.1 Regla primaria
+### 12.1 Regla primaria
 
 Un archivo MUST preservar:
 
@@ -191,7 +282,7 @@ La pregunta correcta no es "¿cuántas líneas tiene?" sino:
 
 > "¿Este archivo sigue haciendo una sola cosa coherente?"
 
-### 10.2 Tamaño como heurística
+### 12.2 Tamaño como heurística
 
 El tamaño del archivo NO es la regla primaria. Es una señal de alerta.
 
@@ -203,7 +294,7 @@ El tamaño del archivo NO es la regla primaria. Es una señal de alerta.
 Estas cifras no fallan una A.SPEC por sí mismas. Solo elevan exigencia de
 justificación estructural.
 
-### 10.3 Archivos de entrypoint
+### 12.3 Archivos de entrypoint
 
 Archivos como `plugin.py`, `register.py`, `main.py`, `router.py` o equivalentes
 MUST actuar principalmente como entrypoint o composition root.
@@ -217,7 +308,7 @@ Pueden:
 No deben convertirse en contenedores de toda la lógica del feature si esa
 lógica puede vivir en módulos vecinos más cohesivos.
 
-### 10.4 Trigger de extracción
+### 12.4 Trigger de extracción
 
 Si una A.SPEC agrega una nueva responsabilidad observable a un archivo ya bajo
 presión estructural (`>400` líneas o múltiples motivos de cambio), la
@@ -226,7 +317,7 @@ implementación MUST hacer una de estas dos cosas:
 1. extraer la nueva responsabilidad a un módulo nuevo
 2. abrir una A.SPEC estructural previa o pareada para separar el archivo
 
-### 10.5 Falla estructural
+### 12.5 Falla estructural
 
 Una A.SPEC falla aunque el comportamiento nuevo funcione si:
 
@@ -235,11 +326,11 @@ Una A.SPEC falla aunque el comportamiento nuevo funcione si:
 - aumenta acoplamiento evitable entre rutas, servicios y acceso a datos
 - deja el archivo con múltiples razones principales de cambio
 
-## 11. Commit y changelog
+## 13. Commit y changelog
 
 ADD exige trazabilidad, no burocracia innecesaria.
 
-### 11.1 Commit obligatorio
+### 13.1 Commit obligatorio
 
 Cada A.SPEC integrada MUST quedar trazable a un commit identificable.
 
@@ -251,14 +342,14 @@ Idealmente:
 El mensaje de commit SHOULD referenciar el identificador de la A.SPEC cuando
 sea posible.
 
-### 11.2 Changelog no obligatorio por defecto
+### 13.2 Changelog no obligatorio por defecto
 
 ADD NO exige changelog por cada commit.
 
 Un changelog es opcional salvo que el proceso del proyecto o la release lo
 requiera explícitamente.
 
-### 11.3 Cuándo sí exigir changelog
+### 13.3 Cuándo sí exigir changelog
 
 Changelog SHOULD existir cuando:
 
@@ -267,7 +358,7 @@ Changelog SHOULD existir cuando:
 - múltiples equipos o agentes necesitan historial resumido
 - el cambio afecta usuarios o integradores externos
 
-### 11.4 Regla mínima
+### 13.4 Regla mínima
 
 La regla mínima de ADD es:
 

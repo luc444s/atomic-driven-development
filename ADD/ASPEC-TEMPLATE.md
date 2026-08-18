@@ -8,7 +8,7 @@
 
 ## WHAT
 
-<!-- ¿Qué comportamiento observable cambia? Una sola transición. -->
+<!-- ¿Qué comportamiento observable o verdad estructural cambia? Una sola transición o una sola verdad independiente y falsable. "Preparar para luego" no basta. -->
 
 ## SCOPE
 
@@ -32,11 +32,11 @@ invariants: []
 
 ## VERIFICATION
 
-<!-- ¿Cómo demostramos objetivamente que funciona? Comandos, tests, checks. -->
+<!-- ¿Cómo demostramos objetivamente que esta verdad ya existe ahora? Comandos, tests, checks. No delegar prueba real a futuras A.SPEC. -->
 
 ## ROLLBACK
 
-<!-- ¿Cómo deshacemos el cambio? -->
+<!-- Si es reversible: ¿cómo lo deshacemos? Si es irreversible: ¿cómo compensamos, contenemos, evitamos replay y auditamos? -->
 
 ## Change Surface
 

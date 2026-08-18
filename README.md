@@ -32,7 +32,9 @@ ADD/
 ├── SPECIFICATION.md          → Definición normativa de cumplir ADD
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
 └── skills/                   → Habilidades reutilizables de aplicación
-    └── atomizer-python/      → División segura de archivos Python grandes
+    ├── atomizer-python/      → División segura de archivos Python grandes
+    ├── gitflow-lite-add/     → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
+    └── gitflow-full-add/     → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 ```
 
 ## Principio central: AAA

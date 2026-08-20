@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_DATA_DIR = Path.home() / ".postgresql"
 DEFAULT_LOG_FILE = DEFAULT_DATA_DIR / "postgres.log"
+LOCAL_POSTGRES_HOSTS = {"127.0.0.1", "localhost"}
 
 
 def read_env_file(env_path: Path) -> dict[str, str]:
@@ -42,6 +43,16 @@ def normalize_postgres_url(database_url: str) -> str:
     return database_url.replace("postgresql+psycopg://", "postgresql://", 1)
 
 
+def parse_database_host_port(database_url: str) -> tuple[str, int]:
+    parsed = urlparse(normalize_postgres_url(database_url))
+    return parsed.hostname or "127.0.0.1", parsed.port or 5432
+
+
+def database_uses_local_postgres(database_url: str) -> bool:
+    host, _ = parse_database_host_port(database_url)
+    return host in LOCAL_POSTGRES_HOSTS
+
+
 def ensure_postgres_cluster() -> None:
     if DEFAULT_DATA_DIR.exists():
         return
@@ -59,11 +70,32 @@ def postgres_running() -> bool:
     return result.returncode == 0
 
 
-def ensure_postgres_started() -> None:
-    ensure_postgres_cluster()
+def postgres_accepting_connections(host: str, port: int) -> bool:
+    result = subprocess.run(
+        ["pg_isready", "-h", host, "-p", str(port)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.returncode == 0
+
+
+def ensure_postgres_started(database_url: str) -> None:
+    if not database_uses_local_postgres(database_url):
+        return
+
+    host, port = parse_database_host_port(database_url)
     if postgres_running():
         return
 
+    if postgres_accepting_connections(host, port):
+        print(
+            f"PostgreSQL ya acepta conexiones en {host}:{port}; "
+            "se reutiliza la instancia existente."
+        )
+        return
+
+    ensure_postgres_cluster()
     DEFAULT_DATA_DIR.mkdir(parents=True, exist_ok=True)
     run_command(
         [
@@ -73,7 +105,7 @@ def ensure_postgres_started() -> None:
             "-l",
             str(DEFAULT_LOG_FILE),
             "-o",
-            "-p 5432 -h 127.0.0.1",
+            f"-p {port} -h {host}",
             "start",
         ]
     )
@@ -84,7 +116,7 @@ def ensure_role_and_database(database_url: str) -> None:
     username = parsed.username or "postgres"
     password = parsed.password or "postgres"
     database = parsed.path.lstrip("/") or "systutor"
-    bootstrap_url = "postgresql://127.0.0.1:5432/postgres"
+    bootstrap_url = parsed._replace(path="/postgres", params="", query="", fragment="").geturl()
 
     role_exists = capture_command(
         [
@@ -231,8 +263,10 @@ def stop_services() -> None:
 
 def print_status(env: dict[str, str]) -> None:
     database_url = normalize_postgres_url(get_database_url(env))
+    host, port = parse_database_host_port(database_url)
     print(f"postgres_data_dir={DEFAULT_DATA_DIR}")
     print(f"postgres_running={postgres_running()}")
+    print(f"postgres_accepting_connections={postgres_accepting_connections(host, port)}")
     print(f"redis_running={redis_running()}")
     print(f"database_url={database_url}")
 
@@ -250,7 +284,7 @@ def main() -> None:
     database_url = get_database_url(env)
 
     if args.command in {"postgres", "backend", "backend-no-reload", "services", "psql"}:
-        ensure_postgres_started()
+        ensure_postgres_started(database_url)
         ensure_role_and_database(database_url)
 
     if args.command in {"backend", "backend-no-reload", "services"}:

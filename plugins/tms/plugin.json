@@ -1,0 +1,18 @@
+{
+  "id": "tms",
+  "name": "TMS",
+  "version": "0.1.0",
+  "api_version": "1",
+  "requires": ["crm", "productos", "stock", "logistics"],
+  "backend_entrypoint": "backend.plugin:register",
+  "frontend_entrypoint": "frontend/register.tsx",
+  "permissions": [
+    "tms.legacy.read",
+    "tms.legacy.link",
+    "tms.stock.write"
+  ],
+  "events": [
+    "tms.legacy.linked"
+  ],
+  "description": "Transport Management System: integracion con legacy via ERP-SYSTUTOR.API (solo lectura + write-back de egresos de stock)"
+}

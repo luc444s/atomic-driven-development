@@ -57,6 +57,9 @@ legacy_report/
 migration_errors*.xlsx
 migration_summary*.xlsx
 
+# Secrets / legacy findings with plaintext credentials
+SYS_GAS2_PLUS_HALLAZGOS.md
+
 # Generated artifacts / local backups
 *.bak
 *.save

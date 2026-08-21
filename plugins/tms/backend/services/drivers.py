@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from sqlalchemy import Select, select
 from sqlalchemy.orm import Session
 from systutor.kernel.auth.models import User
@@ -11,10 +13,30 @@ from systutor.kernel.tenants.service import assign_branch_to_user
 
 _DRIVER_ROLE_NAME = "driver"
 _DRIVER_DOMAIN = "@oxipur.com"
+_DNI_DIRTY_PREFIX = re.compile(r"^D(\d{8}?)\s*-", re.IGNORECASE)
+_DNI_INLINE = re.compile(r"\bD(\d{8})\b", re.IGNORECASE)
 
 
 def driver_email(dni: str) -> str:
     return f"{dni}{_DRIVER_DOMAIN}"
+
+
+def normalize_driver_dni(dnichofer: str, transportista: str = "") -> str:
+    """Resuelve el DNI real del chofer. El legacy guarda nombres sucios:
+    'D44973574-HIRVING...' en Transportista y dnichofer inconsistente (4492/10725/1164).
+    Prioridad: prefijo 'D<8dígitos>' del nombre; fallback dnichofer si tiene 8 dígitos.
+    """
+    if transportista:
+        m = _DNI_DIRTY_PREFIX.search(transportista.strip())
+        if m:
+            return m.group(1)
+        m = _DNI_INLINE.search(transportista.strip())
+        if m:
+            return m.group(1)
+    clean = (dnichofer or "").strip()
+    if re.fullmatch(r"\d{8}", clean):
+        return clean
+    return ""
 
 
 def _get_or_create_driver_role(db: Session, tenant: Tenant) -> Role:

@@ -11,10 +11,20 @@ y los choferes existen como `User` con rol `driver` (seed_drivers).
 
 ## WHAT
 Existe un servicio `sync_salidas_hoy` que, para cada salida legacy del día con `placa` y
-`dnichofer` presentes, resuelve (creando si falta) `LogisticsVehicle` por placa y `User`
-driver por `dnichofer`, y crea/actualiza idempotentemente (1 por vehículo+chofer+fecha) una
+DNI resuelto, resuelve (creando si falta) `LogisticsVehicle` por placa y `User` driver por
+DNI, y crea/actualiza idempotentemente (1 por vehículo+chofer+fecha) una
 `LogisticsVehicleSession` en `DRAFT`. NO crea `LogisticsRouteOperation` (eso se hace siempre
 desde sesión admin). NO toca stock (el stock se altera en legacy en el IC).
+
+Detalles del materialize viva:
+- **DNI por normalización**: el legacy guarda `Transportista` sucio (`D44973574-HIRVING...`).
+  `normalize_driver_dni()` extrae el prefijo `D<8dígitos>` del nombre; fallback `dnichofer`
+  si es 8 dígitos. La salida #42470 con `dnichofer=""` se resuelve a `78839842` por el nombre.
+- **Vehículo**: 3 de la flota real copiados al seed (`TAF-948`, `T3G081`, `RAM/BEI-793`).
+  `ensure_vehicle(placa)` matchea por placa normalizada (sin guiones) o crea.
+- **Warehouse**: `almacen` legacy (1=OXIPUR, 2=REPARTIDOR) ↔ `lg_warehouses.code`.
+- **Sesión**: `create_vehicle_session()` con `opened_at=salida.fecha`, idempotente buscando
+  sesión DRAFT/LOADING misma fecha+vehículo+chofer.
 
 ## SCOPE
 - `ensure_driver_user(dnichofer)` → `User` (reusa `services/drivers.py`).
@@ -123,14 +133,14 @@ structural_constraints:
 - Deployment: rama TMS
 
 ## Definition of Done
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now (E2E real: sesión RAM/BEI-793 DRAFT + driver 78839842)
+- [x] Invariants preserved
+- [x] Verification passed (27 tests + E2E real)
+- [x] Rollback / compensation honest (borrar sesión no afecta legacy/stock)
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

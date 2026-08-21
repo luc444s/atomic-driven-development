@@ -6,6 +6,7 @@ from systutor.kernel.tenants.models import Branch, Tenant
 
 from apps.api.app.config import get_settings
 from plugins.tms.backend.services.drivers import ensure_driver_user
+from plugins.tms.backend.services.vehicles import SEED_PLATES, ensure_vehicle
 
 DRIVERS = [
     {"dni": "46209157", "nombre": "AYRTOM SALDARRIAGA SALDARRIAGA"},
@@ -40,6 +41,10 @@ def main() -> int:
                 full_name=d["nombre"],
             )
             print(f"driver   {d['dni']}  {user.full_name}  ({user.email})")
+
+        for placa in SEED_PLATES:
+            vehicle = ensure_vehicle(db, tenant=tenant, plate=placa, vehicle_type="CAMION")
+            print(f"vehiculo {placa}  ->  {vehicle.id}")
 
         db.commit()
 

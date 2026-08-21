@@ -4,40 +4,49 @@
 Los borradores de jornada deben mantenerse al día con legacy sin intervención manual y sin acoplar el sync a un request HTTP.
 
 ## WHAT
-Existe una tarea periódica que ejecuta `sync_salidas_hoy()` cada 5 minutos, desacoplada del request.
+Existe un daemon OSS (`python -m plugins.tms.backend.commands.run_sync_daemon`) que ejecuta
+`sync_salidas_hoy()` cada 5 minutos, desacoplado del request, en segundo plano permanente
+(`nohup setsid` + log en `logs/tms_sync_daemon.log`).
+
+> Nota de diseño: se eligió un daemon loop propio en lugar de actor Dramatiq periódico porque
+> Dramatiq 1.18 (el exigido por el core, `<2.0`) NO incluye `PeriodicMiddleware`/`periodic`
+> (llegó en 2.x). El actor `@dramatiq.actor(periodic=...)` fallaba al registrarse con
+> "undefined options: periodic".
 
 ## SCOPE
-- Actor Dramatiq periódico (5 min) en `plugins/tms/backend/services/sync.py`, o comando + cron de SO.
-- Manejo de fallos del API legacy (no crashea el worker).
+- `run_scheduler()` en `plugins/tms/backend/services/cron.py` (loop 5 min + try/except).
+- Comando `plugins/tms/backend/commands/run_sync_daemon.py`.
+- Manejo de fallos del API legacy (no crashea el daemon: `logger.exception` + sigue).
 
 ## OUT OF SCOPE
 - La lógica de sync (TMS-002).
 - Reintentos con backoff personalizado (fuera de MVP).
 
 ## CONTRACT
-- La tarea corre cada 5 min mientras el plugin TMS esté habilitado.
-- Ante `LegacyAuthError`/`LegacyTimeoutError`: loggear y retornar sin excepción.
+- La tarea corre cada 5 min mientras el daemon esté vivo.
+- Ante `LegacyAuthError`/`LegacyTimeoutError`: loggear y continuar sin salir del loop.
 
 ## INVARIANTS
 ```yaml
 invariants:
-  - "la tarea no lanza excepción no controlada que mate el worker"
+  - "el daemon no muere por excepciones: try/except en cada corrida"
   - "el intervalo es 5 min, no bajo demanda"
 ```
 
 ## VERIFICATION
-- Correr el actor manualmente → crea borradores en `tms_jornada`.
-- Con el API legacy caído (token malo) → la tarea termina sin error visible en worker.
+- Correr `python -m plugins.tms.backend.commands.run_sync_daemon` → corrida inicial contra
+  API legacy real y log en `logs/tms_sync_daemon.log`.
+- Con el API legacy caído (token malo) → el daemon loggea y continúa (no sale del loop).
 
 ## ROLLBACK
-- Desregistrar el actor / deshabilitar plugin detiene la tarea. Reversible.
+- Detener el proceso daemon (kill) detiene la tarea. Reversible; no afecta BD ni legacy.
 
 ## Change Surface
 ```yaml
 change_surface:
   allowed:
-    - "registrar actor en plugins/tms/backend/services/sync.py"
-    - "configurar beat/cron"
+    - "crear plugins/tms/backend/services/cron.py (run_scheduler)"
+    - "crear plugins/tms/backend/commands/run_sync_daemon.py"
   prohibited:
     - "acoplar sync a un endpoint HTTP"
 ```
@@ -46,7 +55,7 @@ change_surface:
 ```yaml
 blast_radius:
   direct:
-    - "ejecuciones periódicas de red al API legacy"
+    - "ejecuciones periódicas de red al API legacy cada 5 min"
   indirect:
     - "carga de red cada 5 min"
   must_not_affect:
@@ -80,16 +89,16 @@ structural_constraints:
 - Requirement: sync desacoplado cada 5 min
 - Commit: pendiente
 - Deployment: rama TMS
-
 ## Definition of Done
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now (daemon corriendo, corrida real contra API legacy)
+- [x] Invariants preserved
+- [x] Verification passed (daemon lanzado; log `logs/tms_sync_daemon.log`)
+- [x] Rollback / compensation honest (kill del proceso detiene)
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

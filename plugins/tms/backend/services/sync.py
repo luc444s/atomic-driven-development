@@ -8,8 +8,11 @@ from sqlalchemy.orm import Session
 from systutor.kernel.tenants.models import Branch, Tenant
 
 from plugins.logistics.backend.common import LogisticsActionContext
+from plugins.logistics.backend.dto.load_plans import LoadPlanItemUpsert, LoadPlanUpsertRequest
 from plugins.logistics.backend.models import LogisticsVehicleSession, LogisticsWarehouse
+from plugins.logistics.backend.services.load_plans import upsert_load_plan
 from plugins.logistics.backend.services.sessions import create_vehicle_session
+from plugins.productos.backend.models import Product
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.legacy.schemas import SalidaLegacy
 from plugins.tms.backend.models import JornadaTMS
@@ -60,6 +63,59 @@ def _find_live_session(
     return None
 
 
+def _materialize_load_plan(
+    db: Session,
+    *,
+    tenant: Tenant,
+    actor_user_id: str,
+    session: LogisticsVehicleSession,
+    salida: SalidaLegacy,
+) -> bool:
+    warehouse = _resolve_warehouse(db, tenant_id=tenant.id, almacen=salida.almacen)
+    if warehouse is None:
+        return False
+    items = []
+    for item in salida.items:
+        product = db.scalar(
+            select(Product).where(
+                Product.tenant_id == tenant.id,
+                Product.legacy_id == item.cod_producto,
+            )
+        )
+        if product is None:
+            continue
+        quantity = item.pesito if item.pesito and float(item.pesito) > 0 else item.cantidad
+        if not quantity or float(quantity) <= 0:
+            continue
+        items.append(
+            LoadPlanItemUpsert(
+                product_id=product.id,
+                planned_quantity=float(quantity),
+                source_warehouse_id=warehouse.id,
+            )
+        )
+    if not items:
+        return False
+    payload = LoadPlanUpsertRequest(
+        notes=f"Materializado desde salida legacy {salida.cod_movimiento}",
+        items=items,
+    )
+    context = LogisticsActionContext(
+        tenant_id=tenant.id,
+        branch_id=None,
+        actor_user_id=actor_user_id,
+        correlation_id=None,
+        request_id=None,
+    )
+    upsert_load_plan(
+        db,
+        session=session,
+        payload=payload,
+        action_context=context,
+    )
+    return True
+
+
 def _materialize_live_session(
     db: Session,
     *,
@@ -94,6 +150,13 @@ def _materialize_live_session(
         fecha=fecha,
     )
     if existing is not None:
+        _materialize_load_plan(
+            db,
+            tenant=tenant,
+            actor_user_id=actor_user_id,
+            session=existing,
+            salida=salida,
+        )
         return existing
 
     payload = type(
@@ -113,13 +176,21 @@ def _materialize_live_session(
         correlation_id=None,
         request_id=None,
     )
-    return create_vehicle_session(
+    session = create_vehicle_session(
         db,
         tenant_id=tenant.id,
         payload=payload,
         action_context=context,
         opened_at=salida.fecha,
     )
+    _materialize_load_plan(
+        db,
+        tenant=tenant,
+        actor_user_id=actor_user_id,
+        session=session,
+        salida=salida,
+    )
+    return session
 
 
 async def sync_salidas_hoy(
@@ -137,6 +208,14 @@ async def sync_salidas_hoy(
 
     salidas = await client.get_salidas(desde=desde, hasta=hasta, limit=500)
     clientes = {c.id: c for c in await client.get_clientes()}
+
+    for idx, salida in enumerate(salidas):
+        if salida.items:
+            continue
+        try:
+            salidas[idx] = await client.get_salida(salida.cod_movimiento)
+        except Exception:
+            pass
 
     creadas = actualizadas = omitidas = 0
     sesiones = sesiones_omitidas = 0

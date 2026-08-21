@@ -13,9 +13,19 @@ from systutor.kernel.tenants.models import Branch, Tenant
 
 import plugins.tms.backend.models  # noqa: F401  (registra tms_jornada en Base.metadata)
 from plugins.logistics.backend.models import (
+    LogisticsLoadPlan,
+    LogisticsLoadPlanItem,
     LogisticsVehicle,
     LogisticsVehicleSession,
     LogisticsWarehouse,
+)
+from plugins.productos.backend.models import (
+    Product,
+    ProductCategory,
+    ProductCondition,
+    ProductLine,
+    ProductStatus,
+    ProductUnit,
 )
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.models import JornadaTMS
@@ -42,8 +52,10 @@ SALIDA_LIMPIA = {
     "observacion": "",
     "total": 0,
     "tipo_transaccion": "CONTADO",
-    "items": [{"cod_producto": 0, "producto": "", "pesito": 2, "cantidad": 0}],
+    "items": [{"cod_producto": 1868, "producto": "ABRAZADERAS", "pesito": 2, "cantidad": 1}],
 }
+
+LEGACY_PRODUCT_ID = 1868
 
 CLIENTE_4587 = {
     "id": 4587,
@@ -79,8 +91,15 @@ class FakeAsyncClient:
     async def get(self, url: str, headers: dict[str, str] | None = None) -> FakeResponse:
         if url.rstrip("/").endswith("/clientes") or "/clientes?" in url:
             return FakeResponse(200, self._clientes)
+        if "/salidas/" in url and not url.rstrip("/").endswith("/salidas"):
+            cod = int(url.rstrip("/").split("/")[-1])
+            detalle = next((s for s in self._salidas if s["cod_movimiento"] == cod), None)
+            if detalle is None:
+                return FakeResponse(404, {"error": "not_found"})
+            return FakeResponse(200, detalle)
         if "/salidas" in url:
-            return FakeResponse(200, self._salidas)
+            lista = [{k: v for k, v in s.items() if k != "items"} for s in self._salidas]
+            return FakeResponse(200, lista)
         return FakeResponse(404, {"error": "not_found"})
 
 
@@ -128,6 +147,63 @@ def _seed_warehouse(db_session: Session, tenant_id: str) -> None:
     db_session.flush()
 
 
+def _seed_product(db_session: Session, tenant_id: str, legacy_id: int, user_id: str) -> Product:
+    existing = db_session.query(Product).filter_by(
+        tenant_id=tenant_id, legacy_id=legacy_id
+    ).scalar()
+    if existing is not None:
+        return existing
+    db_session.add_all(
+        [
+            ProductStatus(code="ACTIVE", name="Activo", is_active=True),
+            ProductCondition(code="NEW", name="Nuevo", is_active=True),
+        ]
+    )
+    db_session.flush()
+    category = ProductCategory(
+        tenant_id=tenant_id,
+        code="CAT1",
+        name="Categoria Test",
+        is_active=True,
+    )
+    db_session.add(category)
+    db_session.flush()
+    line = ProductLine(
+        tenant_id=tenant_id,
+        code="LIN1",
+        name="Linea Test",
+        category_id=category.id,
+        is_active=True,
+    )
+    db_session.add(line)
+    db_session.flush()
+    unit = ProductUnit(
+        tenant_id=tenant_id,
+        code="KG",
+        name="Kilogramo",
+        is_active=True,
+    )
+    db_session.add(unit)
+    db_session.flush()
+    product = Product(
+        tenant_id=tenant_id,
+        legacy_id=legacy_id,
+        sku=f"P-{legacy_id}",
+        name="Oxigeno 10kg",
+        line_id=line.id,
+        unit_id=unit.id,
+        status_code="ACTIVE",
+        condition_code="NEW",
+        weight_kg=10,
+        is_service=False,
+        is_active=True,
+        created_by=user_id,
+    )
+    db_session.add(product)
+    db_session.flush()
+    return product
+
+
 def test_normalize_driver_dni_resuelve_prefijo_sucio() -> None:
     assert normalize_driver_dni("", "D78839842-ARANGO LLANTOY ALFONSO JORGE") == "78839842"
     assert normalize_driver_dni("4492", "D44973574-HIRVING LEON CALDERON") == "44973574"
@@ -141,6 +217,7 @@ def test_sync_materializa_jornada_viva(
     _make_api(monkeypatch, [SALIDA_LIMPIA], [CLIENTE_4587])
     tenant, branch, user = _seed_context(db_session)
     _seed_warehouse(db_session, tenant.id)
+    _seed_product(db_session, tenant.id, LEGACY_PRODUCT_ID, user.id)
     client = LegacyApiClient("http://legacy.test/api", "tok", timeout_seconds=5)
 
     res = asyncio.run(
@@ -162,6 +239,7 @@ def test_sync_materializa_jornada_viva(
     s = sessions[0]
     assert s.status == "DRAFT"
     assert s.origin_warehouse_id is not None
+    assert s.planned_weight_kg is not None and float(s.planned_weight_kg) > 0
 
     vehicle = db_session.query(LogisticsVehicle).filter_by(tenant_id=tenant.id).all()
     assert any(v.plate == "RAM/BEI-793" for v in vehicle)
@@ -175,6 +253,20 @@ def test_sync_materializa_jornada_viva(
     items = json.loads(snapshot.items)
     assert items[0]["pesito"] == 2.0
 
+    plan = db_session.query(LogisticsLoadPlan).filter_by(session_id=s.id).one()
+    assert plan.status == "DRAFT"
+
+    plan_items = list(
+        db_session.query(
+            LogisticsLoadPlanItem
+        ).filter_by(load_plan_id=plan.id).all()
+    )
+    assert len(plan_items) == 1
+    assert plan_items[0].product_id == _seed_product(
+        db_session, tenant.id, LEGACY_PRODUCT_ID, user.id
+    ).id
+    assert float(plan_items[0].planned_quantity) == 2.0
+
 
 def test_sync_idempotente_sesion_unica(
     db_session: Session, monkeypatch: pytest.MonkeyPatch
@@ -182,6 +274,7 @@ def test_sync_idempotente_sesion_unica(
     _make_api(monkeypatch, [SALIDA_LIMPIA], [CLIENTE_4587])
     tenant, branch, user = _seed_context(db_session)
     _seed_warehouse(db_session, tenant.id)
+    _seed_product(db_session, tenant.id, LEGACY_PRODUCT_ID, user.id)
     client = LegacyApiClient("http://legacy.test/api", "tok", timeout_seconds=5)
 
     asyncio.run(
@@ -200,6 +293,7 @@ def test_sync_idempotente_sesion_unica(
     assert db_session.query(LogisticsVehicleSession).count() == 1
     assert db_session.query(LogisticsVehicle).filter_by(tenant_id=tenant.id).count() == 1
     assert db_session.query(JornadaTMS).count() == 1
+    assert db_session.query(LogisticsLoadPlan).count() == 1
 
 
 def test_sync_sin_placa_no_crea_sesion(
@@ -210,6 +304,7 @@ def test_sync_sin_placa_no_crea_sesion(
     _make_api(monkeypatch, [salida], [CLIENTE_4587])
     tenant, branch, user = _seed_context(db_session)
     _seed_warehouse(db_session, tenant.id)
+    _seed_product(db_session, tenant.id, LEGACY_PRODUCT_ID, user.id)
     client = LegacyApiClient("http://legacy.test/api", "tok", timeout_seconds=5)
 
     res = asyncio.run(
@@ -221,5 +316,6 @@ def test_sync_sin_placa_no_crea_sesion(
 
     assert res["sesiones_vivas"] == 0
     assert db_session.query(LogisticsVehicleSession).count() == 0
+    assert db_session.query(LogisticsLoadPlan).count() == 0
     snapshot = db_session.query(JornadaTMS).one()
     assert snapshot.estado == "pendiente"

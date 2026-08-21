@@ -1,1 +1,1 @@
-export const DEFAULT_MAP_CENTER = { lat: 40.4168, lng: -3.7038 };
+export const DEFAULT_MAP_CENTER = { lat: -8.115994, lng: -79.029858 };

@@ -19,6 +19,7 @@ import {
   type PlanningReservationProductLine,
   summarizePlanningProductLines,
 } from "./planning-load-summary";
+import { DEFAULT_MAP_CENTER } from "../../components/route-builder/map-defaults";
 import {
   PlanningProductLinesEditor,
   type PlanningProductCatalogItem,
@@ -227,7 +228,7 @@ export function PlanningReservationForm({
         <div className="space-y-2 md:col-span-2">
           <span className="block text-sm font-medium text-foreground">Direcciones del cliente (clic para incluir)</span>
           <LocationMap
-            center={gpsMarkers[0]?.position ?? { lat: 37.18, lng: -4.75 }}
+            center={gpsMarkers[0]?.position ?? DEFAULT_MAP_CENTER}
             height={200}
             autoFit
             markers={gpsMarkers.map((marker) => {

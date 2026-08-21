@@ -10,6 +10,7 @@ import { PaginatedDataTable } from "@systutor/shell/ui/paginated-data-table";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
 import { LocationPicker } from "@systutor/shell/ui/location-picker";
+import { DEFAULT_MAP_CENTER } from "../components/route-builder/map-defaults";
 
 type WarehouseFormState = {
   id?: string;
@@ -191,6 +192,7 @@ export function WarehousesPage() {
                 }))
               }
               height={200}
+              defaultCenter={DEFAULT_MAP_CENTER}
             />
             {warehouseForm.formatted_address ? (
               <p className="text-xs text-muted-foreground">{warehouseForm.formatted_address}</p>

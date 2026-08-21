@@ -4,6 +4,7 @@ import { Button } from "@systutor/shell/ui/button";
 import { Input } from "@systutor/shell/ui/input";
 import { Select } from "@systutor/shell/ui/select";
 import { LocationPicker } from "@systutor/shell/ui/location-picker";
+import { DEFAULT_MAP_CENTER } from "../../components/route-builder/map-defaults";
 import { Field } from "../utils/formatters";
 
 interface ScanDialogProps {
@@ -50,6 +51,7 @@ export function ScanDialog({
       value={scanForm.gps_lat && scanForm.gps_lng ? { lat: Number(scanForm.gps_lat), lng: Number(scanForm.gps_lng) } : null}
       onChange={(location) => setScanForm((current) => ({ ...current, gps_lat: location.lat.toString(), gps_lng: location.lng.toString() }))}
       height={500}
+      defaultCenter={DEFAULT_MAP_CENTER}
     />
     <div className="flex justify-end gap-2">
       {fallbackMessage && onOpenRegisterFallback ? (

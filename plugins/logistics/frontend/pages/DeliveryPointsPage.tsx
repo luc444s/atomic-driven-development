@@ -18,6 +18,7 @@ import { DataTable } from "@systutor/shell/ui/data-table";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
 import { LocationPicker } from "@systutor/shell/ui/location-picker";
+import { DEFAULT_MAP_CENTER } from "../components/route-builder/map-defaults";
 import { Select } from "@systutor/shell/ui/select";
 
 type DeliveryPointFormState = {
@@ -248,6 +249,7 @@ export function DeliveryPointsPage() {
               searchPlaceholder="Buscar dirección del punto"
               placeholder="Selecciona la ubicación exacta del punto de entrega"
               height={260}
+              defaultCenter={DEFAULT_MAP_CENTER}
             />
           </div>
           <div className="flex justify-end gap-3">

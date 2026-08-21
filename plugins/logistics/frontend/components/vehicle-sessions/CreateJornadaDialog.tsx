@@ -10,6 +10,7 @@ import { getRealWarehouses } from "../../api/warehouses";
 import type { DriverOption, LogisticsRoute, LogisticsVehicle, LogisticsWarehouse } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 import { formatRouteStatus } from "./jornada-labels";
+import { DEFAULT_MAP_CENTER } from "../route-builder/map-defaults";
 export type JornadaCreateForm = {
   vehicle_id: string;
   driver_id: string;
@@ -217,7 +218,7 @@ export function CreateJornadaDialog({
           <div className="space-y-2">
             <span className="block text-sm font-medium text-foreground">Direcciones del cliente (clic para incluir)</span>
             <LocationMap
-              center={mapMarkers[0]?.position ?? { lat: 37.18, lng: -4.75 }}
+              center={mapMarkers[0]?.position ?? DEFAULT_MAP_CENTER}
               height={240}
               autoFit
               markers={mapMarkers.map((marker) => {

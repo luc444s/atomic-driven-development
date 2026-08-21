@@ -52,7 +52,15 @@ SALIDA_LIMPIA = {
     "observacion": "",
     "total": 0,
     "tipo_transaccion": "CONTADO",
-    "items": [{"cod_producto": 1868, "producto": "ABRAZADERAS", "pesito": 2, "cantidad": 1}],
+    "items": [
+        {
+            "cod_producto": 1868,
+            "producto": "ABRAZADERAS",
+            "pesito": 2,
+            "cantidad": 1,
+            "seriales": ["21k418065"],
+        }
+    ],
 }
 
 LEGACY_PRODUCT_ID = 1868
@@ -266,6 +274,7 @@ def test_sync_materializa_jornada_viva(
         db_session, tenant.id, LEGACY_PRODUCT_ID, user.id
     ).id
     assert float(plan_items[0].planned_quantity) == 2.0
+    assert json.loads(plan_items[0].notes) == {"seriales": ["21k418065"]}
 
 
 def test_sync_idempotente_sesion_unica(

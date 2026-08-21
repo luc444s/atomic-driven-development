@@ -65,6 +65,7 @@ class SalidaItemLegacy(BaseModel):
     producto: str = ""
     pesito: float = 0.0
     cantidad: float = 0.0
+    seriales: list[str] = Field(default_factory=list)
 
 
 class SalidaLegacy(BaseModel):

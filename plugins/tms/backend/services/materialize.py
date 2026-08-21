@@ -41,6 +41,7 @@ def materialize_salida(salida: SalidaLegacy) -> JornadaMaterializada:
                     "producto": item.producto,
                     "pesito": item.pesito,
                     "cantidad": item.cantidad,
+                    "seriales": list(item.seriales),
                 }
                 for item in salida.items
             ],

@@ -92,6 +92,9 @@ def _materialize_load_plan(
                 product_id=product.id,
                 planned_quantity=float(quantity),
                 source_warehouse_id=warehouse.id,
+                notes=json.dumps({"seriales": list(item.seriales)}, ensure_ascii=False)
+                if item.seriales
+                else None,
             )
         )
     if not items:

@@ -15,6 +15,7 @@ from plugins.tms.backend.legacy.schemas import (
     ProductoDetalleLegacy,
     ProductoLegacy,
     PuntoLegacy,
+    SalidaLegacy,
     StockLegacy,
 )
 
@@ -105,6 +106,32 @@ class LegacyApiClient:
     async def registrar_egreso(self, request: EgresoRequest) -> MovimientoLegacyResult:
         data = await self._post_json("/stock/movement", request.model_dump())
         return MovimientoLegacyResult.model_validate(data)
+
+    async def get_salidas(
+        self,
+        *,
+        limit: int = 100,
+        desde: str | None = None,
+        hasta: str | None = None,
+        cliente: int | None = None,
+        almacen: int | None = None,
+    ) -> list[SalidaLegacy]:
+        params: list[str] = [f"limit={limit}"]
+        if desde is not None:
+            params.append(f"desde={desde}")
+        if hasta is not None:
+            params.append(f"hasta={hasta}")
+        if cliente is not None:
+            params.append(f"cliente={cliente}")
+        if almacen is not None:
+            params.append(f"almacen={almacen}")
+        path = f"/salidas?{'&'.join(params)}"
+        data = await self._get_json(path)
+        return [SalidaLegacy.model_validate(item) for item in data]
+
+    async def get_salida(self, cod_movimiento: int) -> SalidaLegacy:
+        data = await self._get_json(f"/salidas/{cod_movimiento}")
+        return SalidaLegacy.model_validate(data)
 
 
 __all__ = ["LegacyApiClient"]

@@ -13,6 +13,7 @@ from plugins.tms.backend.legacy.schemas import (
     LegacyAuthError,
     LegacyBadResponseError,
     LegacyTimeoutError,
+    SalidaLegacy,
 )
 
 
@@ -164,3 +165,74 @@ def test_json_invalido_controla_error(
 
     with pytest.raises(ValueError):
         asyncio.run(client.get_productos())
+
+
+def test_get_salidas_happy_path(client: LegacyApiClient, monkeypatch: pytest.MonkeyPatch) -> None:
+    payload = [
+        {
+            "cod_movimiento": 42468,
+            "fecha": "2026-08-20T08:45:42",
+            "nro_documento": "",
+            "cod_cliente": 4,
+            "cliente": "Movimiento x Inventariado",
+            "almacen": 1,
+            "placa": "",
+            "dnichofer": "",
+            "observacion": "OSS:OSS-TEST",
+            "total": 0,
+            "tipo_transaccion": "CONTADO",
+            "items": [
+                {"cod_producto": 1868, "producto": "ABRAZADERAS", "pesito": 5, "cantidad": 0}
+            ],
+        }
+    ]
+    fake = FakeAsyncClient(FakeResponse(200, payload))
+    _monkeypatch_client(monkeypatch, fake)
+
+    result = asyncio.run(client.get_salidas(limit=10))
+
+    assert len(result) == 1
+    assert isinstance(result[0], SalidaLegacy)
+    assert result[0].cod_movimiento == 42468
+    assert result[0].cliente == "Movimiento x Inventariado"
+    assert result[0].items[0].producto == "ABRAZADERAS"
+    assert result[0].items[0].pesito == 5.0
+    assert fake.last_headers == {"Authorization": "Bearer tok123"}
+
+
+def test_get_salida_detalle_con_items(
+    client: LegacyApiClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    payload = {
+        "cod_movimiento": 42468,
+        "fecha": "2026-08-20T08:45:42",
+        "nro_documento": "",
+        "cod_cliente": 4,
+        "cliente": "Movimiento x Inventariado",
+        "almacen": 1,
+        "placa": "",
+        "dnichofer": "",
+        "observacion": "OSS:OSS-TEST",
+        "total": 0,
+        "tipo_transaccion": "CONTADO",
+        "items": [{"cod_producto": 1868, "producto": "ABRAZADERAS", "pesito": 5, "cantidad": 0}],
+    }
+    fake = FakeAsyncClient(FakeResponse(200, payload))
+    _monkeypatch_client(monkeypatch, fake)
+
+    result = asyncio.run(client.get_salida(42468))
+
+    assert isinstance(result, SalidaLegacy)
+    assert result.cod_movimiento == 42468
+    assert len(result.items) == 1
+    assert result.items[0].cod_producto == 1868
+
+
+def test_get_salida_404_lanza_error(
+    client: LegacyApiClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    fake = FakeAsyncClient(FakeResponse(404, {"error": "not_found"}))
+    _monkeypatch_client(monkeypatch, fake)
+
+    with pytest.raises(LegacyBadResponseError):
+        asyncio.run(client.get_salida(999999))

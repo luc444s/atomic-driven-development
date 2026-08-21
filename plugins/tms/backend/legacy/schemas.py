@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from datetime import datetime
+
 from pydantic import BaseModel, Field
 
 
@@ -56,6 +58,36 @@ class AlmacenLegacy(BaseModel):
 class MovimientoLegacyResult(BaseModel):
     status: str
     cod_movimiento: int = 0
+
+
+class SalidaItemLegacy(BaseModel):
+    cod_producto: int
+    producto: str = ""
+    pesito: float = 0.0
+    cantidad: float = 0.0
+
+
+class SalidaLegacy(BaseModel):
+    cod_movimiento: int
+    fecha: datetime
+    nro_documento: str = ""
+    cod_cliente: int = 0
+    cliente: str = ""
+    almacen: int = 0
+    placa: str = ""
+    dnichofer: str = ""
+    nro_guia: str = ""
+    transportista: str = ""
+    lugar_inicio: str = ""
+    lugar_destino: str = ""
+    dir_inicio: str = ""
+    dir_destino: str = ""
+    empresa_trans: str = ""
+    ruc_empresa: str = ""
+    observacion: str = ""
+    total: float = 0.0
+    tipo_transaccion: str = ""
+    items: list[SalidaItemLegacy] = Field(default_factory=list)
 
 
 class LegacyApiError(RuntimeError):

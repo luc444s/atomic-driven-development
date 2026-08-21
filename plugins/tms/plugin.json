@@ -9,7 +9,9 @@
   "permissions": [
     "tms.legacy.read",
     "tms.legacy.link",
-    "tms.stock.write"
+    "tms.stock.write",
+    "tms.jornada.read",
+    "tms.jornada.edit"
   ],
   "events": [
     "tms.legacy.linked"

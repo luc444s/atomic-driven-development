@@ -29,6 +29,7 @@ export * from "./operational-summary";
 export * from "./route-operations";
 export * from "./route-stop-results";
 export * from "./route-context";
+export * from "./route-control";
 export * from "./session-console";
 export * from "./load-plans";
 export * from "./load-serials";

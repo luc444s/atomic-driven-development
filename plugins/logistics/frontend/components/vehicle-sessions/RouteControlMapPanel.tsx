@@ -80,7 +80,7 @@ export function RouteControlMapPanel({
               label: `${stop.label}${stop.isActive ? " · Activa" : stop.isCurrent ? " · Actual" : ""}`,
             })),
             ...(view.vehiclePosition
-              ? [{ id: "vehicle", position: view.vehiclePosition, label: "Vehículo" }]
+              ? [{ id: "vehicle", position: view.vehiclePosition, label: "🚚", labelVisible: true }]
               : []),
           ]}
           polylines={[

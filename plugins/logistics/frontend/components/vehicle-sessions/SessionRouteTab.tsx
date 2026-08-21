@@ -5,6 +5,7 @@ import {
   CardContent,
 } from "@systutor/shell/ui/card";
 import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
+import { useVehicleTelemetry } from "../../../../../apps/web/src/lib/use-vehicle-telemetry";
 import {
   commitRouteOrder,
   logisticsKeys,
@@ -13,6 +14,7 @@ import {
 } from "../../api";
 import { formatRouteLabel } from "../../lib/route-labels";
 import { RouteContextMapLazy as RouteContextMap } from "../route-builder/RouteContextMapLazy";
+import { RouteControlMapPanel } from "./RouteControlMapPanel";
 import { SessionWaybillCard } from "./SessionWaybillCard";
 import { SessionRouteTabDialogs } from "./SessionRouteTabDialogs";
 import { useSessionRouteTabController } from "./useSessionRouteTabController";
@@ -38,6 +40,7 @@ export function SessionRouteTab({
 }: Props) {
   const controller = useSessionRouteTabController({ open, routeId, sessionId, sessionStatus });
   const queryClient = useQueryClient();
+  const { snapshot: telemetry, start: startTelemetry, stop: stopTelemetry } = useVehicleTelemetry(sessionId);
 
   const stops = controller.stops;
   const stopProgress = controller.routeStopProgress;
@@ -56,6 +59,7 @@ export function SessionRouteTab({
         }
       : null;
   const canRecalculate = Boolean(routeId && routeDetail?.vehicle_id && startPoint && stops.length > 0);
+  const showLiveMap = Boolean(routeId) && ["READY_TO_DEPART", "OUTBOUND", "RETURNING"].includes(sessionStatus);
 
   function buildOptimizePayload() {
     if (!routeId || !routeDetail?.vehicle_id || !startPoint || stops.length === 0) {
@@ -197,7 +201,19 @@ export function SessionRouteTab({
             </CardContent>
           </Card>
 
-          {routeId && stops.length > 0 ? (
+          {showLiveMap ? (
+            <RouteControlMapPanel
+              controlState={controller.controlState}
+              deliveryPoints={controller.deliveryPoints}
+              history={controller.locationHistory}
+              isLoading={controller.isWaybillLoading && !controller.controlState}
+              isControlPending={controller.isControlPending}
+              sessionStatus={sessionStatus}
+              stops={stops}
+              onArrive={controller.onArrive}
+              onDepart={controller.onDepart}
+            />
+          ) : routeId && stops.length > 0 ? (
             <RouteContextMap
               stops={stops}
               startPoint={startPoint}
@@ -207,6 +223,40 @@ export function SessionRouteTab({
               completedStopIds={completedStopIds}
               assignedPolyline={assignedRoute?.polyline ?? null}
             />
+          ) : null}
+
+          {showLiveMap ? (
+            <Card>
+              <CardContent className="space-y-3">
+                {telemetry.error ? <Alert title="Telemetría">{telemetry.error}</Alert> : null}
+                <div className="flex flex-wrap items-center gap-3 text-sm">
+                  <span className="font-medium">Telemetría (navegador):</span>
+                  <span>
+                    {telemetry.status === "running"
+                      ? `Activa · ${telemetry.lastLat ?? "-"}, ${telemetry.lastLng ?? "-"}`
+                      : telemetry.status === "error"
+                        ? "Con errores"
+                        : "Detenida"}
+                  </span>
+                  {telemetry.lastReportedAt ? (
+                    <span className="text-muted-foreground">
+                      Último reporte: {new Date(telemetry.lastReportedAt).toLocaleTimeString()}
+                    </span>
+                  ) : null}
+                </div>
+                <div className="flex justify-end gap-3">
+                  {telemetry.status === "running" ? (
+                    <Button type="button" variant="secondary" onClick={stopTelemetry}>
+                      Detener telemetría
+                    </Button>
+                  ) : (
+                    <Button type="button" onClick={startTelemetry}>
+                      Iniciar telemetría
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
           ) : null}
         </div>
       </div>

@@ -6,8 +6,13 @@ import {
   createRouteIncident,
   emitSessionWaybill,
   getCustomerCylinderSummary,
+  getRouteControlState,
   getSessionRouteContext,
+  getVehicleLocationHistory,
+  listDeliveryPoints,
   openSessionWaybillDocument,
+  postRouteStopArrive,
+  postRouteStopDepart,
   logisticsKeys,
   regenerateSessionWaybill,
   resolveRouteIncident,
@@ -35,6 +40,31 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     queryFn: () => getSessionRouteContext(sessionId),
     enabled: open,
     staleTime: 30 * 1000,
+  });
+
+  const hasAssignedRoute = open && Boolean(routeId);
+  const isOperativeStatus = ["READY_TO_DEPART", "OUTBOUND", "RETURNING"].includes(sessionStatus);
+  const telemetryEnabled = hasAssignedRoute && isOperativeStatus;
+
+  const controlStateQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.routeControlState(sessionId),
+    queryFn: () => getRouteControlState(sessionId),
+    enabled: telemetryEnabled,
+    refetchInterval: 10_000,
+  });
+
+  const locationHistoryQuery = useQuery({
+    queryKey: logisticsKeys.vehicleSessions.locationHistory(sessionId, {}),
+    queryFn: () => getVehicleLocationHistory(sessionId, { limit: 200 }),
+    enabled: telemetryEnabled,
+    refetchInterval: 10_000,
+  });
+
+  const deliveryPointsQuery = useQuery({
+    queryKey: logisticsKeys.all.concat("delivery-points"),
+    queryFn: listDeliveryPoints,
+    enabled: open,
+    staleTime: 60 * 1000,
   });
 
   const uiState = useSessionRouteTabUiState();
@@ -177,6 +207,34 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     },
     onError: (cause) => {
       setError(cause instanceof Error ? cause.message : "No se pudo registrar la incidencia");
+    },
+  });
+
+  const arriveMutation = useMutation({
+    mutationFn: (stopId: string) => postRouteStopArrive(sessionId, stopId),
+    onSuccess: async () => {
+      setError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeControlState(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeContext(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo marcar la llegada");
+    },
+  });
+
+  const departMutation = useMutation({
+    mutationFn: (stopId: string) => postRouteStopDepart(sessionId, stopId),
+    onSuccess: async () => {
+      setError(null);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeControlState(sessionId) }),
+        queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicleSessions.routeContext(sessionId) }),
+      ]);
+    },
+    onError: (cause) => {
+      setError(cause instanceof Error ? cause.message : "No se pudo marcar la salida");
     },
   });
 
@@ -333,6 +391,12 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     error,
     routeId,
     stops,
+    controlState: controlStateQuery.data ?? null,
+    locationHistory: locationHistoryQuery.data ?? [],
+    deliveryPoints: deliveryPointsQuery.data ?? [],
+    isControlPending: arriveMutation.isPending || departMutation.isPending,
+    onArrive: (stopId: string) => arriveMutation.mutate(stopId),
+    onDepart: (stopId: string) => departMutation.mutate(stopId),
     routeDetail: routeContextQuery.data?.route_detail ?? null,
     assignedRoute: routeContextQuery.data?.assigned_route ?? null,
     waybillState,

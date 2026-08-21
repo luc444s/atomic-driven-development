@@ -68,7 +68,7 @@ def get_selected_load_serials(
 @router.get("/{session_id}/load-serials/search", response_model=list[LoadSerialSearchResultRead])
 def get_load_serial_search(
     session_id: str,
-    product_id: str = Query(...),
+    product_id: str | None = Query(default=None),
     query: str = Query(...),
     source_warehouse_id: str | None = Query(default=None),
     selection_context: str | None = Query(default=None),

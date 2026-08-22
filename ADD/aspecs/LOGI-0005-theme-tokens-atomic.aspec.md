@@ -187,7 +187,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: todo el tema (color, tipografia, espaciado, botones, tablas, radios, sombras) configurable por tema en TS, sin editar CSS
-- Commit: (ver hash abajo)
+- Commit: 08b2040 — "LOGI-0005: move all theme aspects to atomic TS tokens (no CSS editing)"
 - Deployment: n/a
 
 ## Definition of Done

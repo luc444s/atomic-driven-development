@@ -83,7 +83,7 @@
     --secondary: 0 0% 92%;
     --secondary-foreground: 0 0% 0%;
     --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 40%;
+    --muted-foreground: 0 0% 48%;
     --accent: 207 56% 92%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 70% 35%;
@@ -93,7 +93,7 @@
     --ring: 209 79% 28%;
     --sidebar: 0 0% 85%;
     --sidebar-foreground: 0 0% 0%;
-    --sidebar-muted: 0 0% 40%;
+    --sidebar-muted: 0 0% 48%;
     --surface: 0 0% 100%;
     --surface-alt: 0 0% 94%;
     --radius: 0;

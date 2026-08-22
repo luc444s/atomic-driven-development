@@ -14,6 +14,7 @@ import { Input } from "@systutor/shell/ui/input";
 
 import type { SerializedCylinderSummary, VehicleSessionDetail } from "../../api";
 import { LoadSerialsDialog } from "./LoadSerialsDialog";
+import { SerialQuickAddDialog } from "./SerialQuickAddDialog";
 
 export type EditableLoadPlanItem = {
   id?: string;
@@ -48,6 +49,7 @@ export function SessionLoadTab({
 }: Props) {
   const isLoadingStep = session.status === "LOADING";
   const [serialItemProductId, setSerialItemProductId] = useState<string | null>(null);
+  const [serialSearchOpen, setSerialSearchOpen] = useState(false);
   const serialItem = loadPlanItems.find((item) => item.product_id === serialItemProductId) ?? null;
   const hasIncompleteSerials = loadPlanItems.some((item) => {
     if (!item.requires_serials) {
@@ -64,6 +66,40 @@ export function SessionLoadTab({
     return !Number.isFinite(quantity) || quantity <= 0;
   });
 
+  function handleInferredSerialSelected(selection: {
+    product_id: string;
+    product_name: string;
+    serial: string;
+  }) {
+    setLoadPlanItems((current) => {
+      const existing = current.find((item) => item.product_id === selection.product_id);
+      if (existing) {
+        return current.map((item) =>
+          item.product_id === selection.product_id
+            ? {
+                ...item,
+                requires_serials: true,
+                selected_serials_count: item.selected_serials_count + 1,
+                serials_complete: true,
+              }
+            : item
+        );
+      }
+      return [
+        ...current,
+        {
+          product_id: selection.product_id,
+          product_name: selection.product_name,
+          planned_quantity: "1",
+          source_warehouse_id: session.origin_warehouse_id,
+          requires_serials: true,
+          selected_serials_count: 1,
+          serials_complete: true,
+        },
+      ];
+    });
+  }
+
   return (
     <div className="space-y-4">
       <Card>
@@ -75,6 +111,9 @@ export function SessionLoadTab({
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setSerialSearchOpen(true)}>
+              Agregar serial
+            </Button>
             <Button variant="secondary" onClick={onOpenProductSearch}>
               Agregar producto
             </Button>
@@ -185,6 +224,13 @@ export function SessionLoadTab({
             )
           )
         }
+      />
+      <SerialQuickAddDialog
+        open={serialSearchOpen}
+        sessionId={session.id}
+        sourceWarehouseId={session.origin_warehouse_id}
+        onClose={() => setSerialSearchOpen(false)}
+        onSelected={handleInferredSerialSelected}
       />
     </div>
   );

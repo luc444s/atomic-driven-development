@@ -23,6 +23,8 @@ export type LoadSerialSearchResult = {
   serial: string;
   availability_status: string;
   context_label: string | null;
+  product_id: string | null;
+  product_name: string | null;
 };
 
 export type LoadSerialSelectionContext = "LOAD_PLAN" | "ROUTE_PICKUP" | "ROUTE_DELIVERY";
@@ -41,17 +43,19 @@ export function listSelectedLoadSerials(
 export function searchLoadSerials(
   sessionId: string,
   payload: {
-    product_id: string;
+    product_id?: string | null;
     query: string;
     source_warehouse_id?: string | null;
     selection_context?: LoadSerialSelectionContext;
   }
 ) {
   const query = new URLSearchParams({
-    product_id: payload.product_id,
     query: payload.query,
     selection_context: payload.selection_context ?? "LOAD_PLAN",
   });
+  if (payload.product_id) {
+    query.set("product_id", payload.product_id);
+  }
   if (payload.source_warehouse_id) {
     query.set("source_warehouse_id", payload.source_warehouse_id);
   }
@@ -63,7 +67,7 @@ export function searchLoadSerials(
 export function selectLoadSerial(
   sessionId: string,
   payload: {
-    product_id: string;
+    product_id?: string | null;
     source_warehouse_id?: string | null;
     selection_context?: LoadSerialSelectionContext;
     serial: string;

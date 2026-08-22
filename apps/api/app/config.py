@@ -29,6 +29,8 @@ class GasSettings(Settings):
     logistics_waybill_issuer_legal_name: str | None = None
     logistics_waybill_issuer_address_line: str | None = None
     logistics_waybill_issuer_postal_city_line: str | None = None
+    legacy_api_base_url: str | None = None
+    legacy_api_token: str | None = None
     plugins_dir: Path = Field(default_factory=lambda: PROJECT_ROOT / "plugins")
 
 
@@ -77,6 +79,8 @@ def get_settings() -> GasSettings:
             "SYSTUTOR_LOGISTICS_WAYBILL_ISSUER_POSTAL_CITY_LINE"
         )
         or None,
+        legacy_api_base_url=os.getenv("SYSTUTOR_LEGACY_API_BASE_URL") or None,
+        legacy_api_token=os.getenv("SYSTUTOR_LEGACY_API_TOKEN") or None,
     )
 
 

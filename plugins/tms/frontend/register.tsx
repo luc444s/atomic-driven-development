@@ -2,7 +2,7 @@ import type { PluginFrontendContext, PluginFrontendRegistration } from "@systuto
 
 export function registerPlugin(_ctx: PluginFrontendContext): PluginFrontendRegistration {
   return {
-    pluginId: "stock",
+    pluginId: "tms",
     routes: [],
     navigation: [],
     widgets: [],

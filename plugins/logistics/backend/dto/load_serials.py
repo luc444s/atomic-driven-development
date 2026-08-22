@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class LoadSerialSelectRequest(BaseModel):
-    product_id: str
+    product_id: str | None = None
     source_warehouse_id: str | None = None
     selection_context: str | None = None
     serial: str = Field(min_length=1, max_length=150)
@@ -38,3 +38,5 @@ class LoadSerialSearchResultRead(BaseModel):
     serial: str
     availability_status: str
     context_label: str | None = None
+    product_id: str | None = None
+    product_name: str | None = None

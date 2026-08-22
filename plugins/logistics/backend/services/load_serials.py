@@ -22,6 +22,7 @@ from plugins.logistics.backend.schemas import CylinderTransitionRequest
 from plugins.logistics.backend.services.cylinder_location import cylinder_is_at_warehouse
 from plugins.logistics.backend.services.cylinders import transition_cylinder
 from plugins.logistics.backend.services.state_machine import StateTransitionError
+from plugins.productos.backend.models import Product
 
 ACTIVE_ASSIGNMENT_STATUSES = {"SELECTED", "CONFIRMED"}
 COMPATIBLE_CYLINDER_STATES = {"LLENADO_OK", "EN_ALMACEN_VACIO"}
@@ -78,6 +79,22 @@ def _build_assignment_read(assignment: LogisticsLoadSerialAssignment) -> LoadSer
 
 def _product_matches_cylinder(cylinder: LogisticsCylinder, *, product_id: str) -> bool:
     return cylinder.product_id == product_id or cylinder.gas_group_id == product_id
+
+
+def _resolve_cylinder_product_id(
+    cylinder: LogisticsCylinder, *, product_id: str | None
+) -> str | None:
+    """Resuelve el producto de un cilindro.
+
+    Si el consumidor pasa `product_id` explícito, valida que el cilindro le corresponda.
+    Si no viene, infiere el producto del cilindro (serial-first).
+    """
+    if product_id is not None:
+        if not _product_matches_cylinder(cylinder, product_id=product_id):
+            raise ValueError("El serial no corresponde al producto seleccionado")
+        return product_id
+    resolved = cylinder.product_id or cylinder.gas_group_id
+    return resolved
 
 
 def _warehouse_matches_cylinder(
@@ -229,7 +246,7 @@ def search_load_serial_candidates(
     db: Session,
     *,
     session: LogisticsVehicleSession,
-    product_id: str,
+    product_id: str | None,
     source_warehouse_id: str | None,
     selection_context: str | None,
     query: str,
@@ -282,9 +299,34 @@ def search_load_serial_candidates(
                 LogisticsLoadSerialAssignment.assignment_status.in_(ACTIVE_ASSIGNMENT_STATUSES),
             )
         )
-        if not _product_matches_cylinder(cylinder, product_id=product_id):
+        if product_id is not None and not _product_matches_cylinder(
+            cylinder, product_id=product_id
+        ):
+            # Compat previo: search con product_id que no corresponde → resultado UNAVAILABLE,
+            # no error duro (contrato search preservado).
             availability_status = "UNAVAILABLE"
             context_label = "Corresponde a otro producto"
+            results.append(
+                LoadSerialSearchResultRead(
+                    cylinder_id=cylinder.id,
+                    serial=cylinder.serial,
+                    availability_status=availability_status,
+                    context_label=context_label,
+                    product_id=None,
+                    product_name=None,
+                )
+            )
+            continue
+        resolved_product_id = cylinder.product_id or cylinder.gas_group_id
+        resolved_product_name = None
+        if resolved_product_id is not None:
+            product = db.scalar(
+                select(Product).where(Product.id == resolved_product_id)
+            )
+            resolved_product_name = product.name if product is not None else None
+        if resolved_product_id is None:
+            availability_status = "UNAVAILABLE"
+            context_label = "Sin producto asociado"
         elif context == SELECTION_CONTEXT_ROUTE_DELIVERY:
             # En ruta de entrega: primero verificar que el cilindro esté físicamente en el vehículo
             if cylinder.current_state not in ROUTE_DELIVERY_COMPATIBLE_CYLINDER_STATES:
@@ -342,6 +384,8 @@ def search_load_serial_candidates(
                 serial=cylinder.serial,
                 availability_status=availability_status,
                 context_label=context_label,
+                product_id=resolved_product_id,
+                product_name=resolved_product_name,
             )
         )
     return results
@@ -412,7 +456,7 @@ def select_load_serial(
     db: Session,
     *,
     session: LogisticsVehicleSession,
-    product_id: str,
+    product_id: str | None,
     source_warehouse_id: str | None,
     selection_context: str | None,
     serial: str,
@@ -428,8 +472,10 @@ def select_load_serial(
         raise LookupError("Serial no encontrado")
     if not cylinder.is_active:
         raise ValueError("El cilindro no está activo")
-    if not _product_matches_cylinder(cylinder, product_id=product_id):
-        raise ValueError("El serial no corresponde al producto seleccionado")
+
+    resolved_product_id = _resolve_cylinder_product_id(cylinder, product_id=product_id)
+    if resolved_product_id is None:
+        raise ValueError("El serial no tiene un producto asociado")
 
     active_assignment = _active_assignment_for_cylinder(db, cylinder_id=cylinder.id)
     if context == SELECTION_CONTEXT_ROUTE_DELIVERY:
@@ -452,7 +498,7 @@ def select_load_serial(
             .where(
                 LogisticsLoadSerialAssignment.cylinder_id == cylinder.id,
                 LogisticsLoadSerialAssignment.session_id == session.id,
-                LogisticsLoadSerialAssignment.product_id == product_id,
+                LogisticsLoadSerialAssignment.product_id == resolved_product_id,
                 LogisticsLoadSerialAssignment.assignment_status.in_(
                     {"CONFIRMED", DELIVERY_SELECTED_STATUS}
                 ),
@@ -480,7 +526,7 @@ def select_load_serial(
                 entity_type="vehicle_session",
                 entity_id=session.id,
                 details={
-                    "product_id": product_id,
+                    "product_id": resolved_product_id,
                     "cylinder_id": cylinder.id,
                     "serial": cylinder.serial,
                     "previous_status": "CONFIRMED",
@@ -498,7 +544,7 @@ def select_load_serial(
     if active_assignment is not None:
         if (
             active_assignment.session_id == session.id
-            and active_assignment.product_id == product_id
+            and active_assignment.product_id == resolved_product_id
         ):
             return _build_assignment_read(active_assignment)
         raise ValueError("El cilindro ya está ocupado por otra jornada")
@@ -521,7 +567,7 @@ def select_load_serial(
     assignment = LogisticsLoadSerialAssignment(
         tenant_id=session.tenant_id,
         session_id=session.id,
-        product_id=product_id,
+        product_id=resolved_product_id,
         cylinder_id=cylinder.id,
         cylinder_serial=cylinder.serial,
         assignment_status="SELECTED",

@@ -144,9 +144,13 @@
 
   .retro aside nav,
   .retro aside nav * {
-    margin-top: 0 !important;
-    margin-bottom: 0 !important;
+    margin-top: 1px !important;
+    margin-bottom: 1px !important;
     gap: 0 !important;
+  }
+
+  .retro aside nav [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 1px !important;
   }
 
   /* Titulos de modulo: pequenos, negrita, mayusculas (estilo SAP) */

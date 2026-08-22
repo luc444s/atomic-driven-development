@@ -1,8 +1,8 @@
-# A.SPEC LOGI-0007 — Retro: +15px de margen en cards principales y modales
+# A.SPEC LOGI-0007 — Retro: +margen en cards principales y modales
 
-> Cambio ya implementado y verificado. En el tema `retro` se aumenta el
-> espaciado de las cards principales y los modales para que no se sientan
-> tan juntos. Solo afecta `retro`; light/dark quedan igual.
+> **ROLLED BACK.** El ajuste de espaciado en `retro` (cards/modales) fue
+> revertido a los valores base de `LOGI-0006` (`cardPadding: 6px`,
+> `sectionPadding: 3px`). El archivo `retro.ts` quedó en su versión base.
 
 ## WHY
 
@@ -111,8 +111,8 @@ structural_constraints:
 
 ## Traceability
 
-- Requirement: +5px margen en cards y modales, solo retro (sidebar intacto)
-- Commit: 860c396 — "LOGI-0007: reduce retro card/modal spacing to +5px (sidebar untouched)"
+- Requirement: +margen en cards y modales, solo retro
+- Commit: ROLLED BACK (retro.ts en valores base de LOGI-0006: cardPadding 6px, sectionPadding 3px)
 - Deployment: n/a
 
 ## Definition of Done

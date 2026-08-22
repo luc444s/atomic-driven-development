@@ -504,7 +504,7 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
       title="Detalle de cliente"
       description="Información general del cliente, envases en posesión y acceso a secciones administrativas."
       onClose={onClose}
-      maxWidthClassName="max-w-[1200px]"
+      maxWidthClassName="max-w-[1000px]"
     >
       <div className="max-h-[85vh] overflow-y-auto">{content}</div>
     </Dialog>

@@ -7,16 +7,19 @@
 ## WHY
 
 El usuario indicó que en modo `retro` las cards principales y los modales se
-sienten "muy juntos" (muy comprimidos). El retro usa `cardPadding: 6px` y
-`sectionPadding: 3px` (muy denso). Se pide +15px de margen en cards y modales,
-solo para retro.
+sientan "muy juntos" (muy comprimidos). El retro usa `cardPadding: 6px` y
+`sectionPadding: 3px` (muy denso). Se pidió +15px, pero resultó excesivo; se
+ajusta a **+5px**, solo para retro.
 
 ## WHAT
 
 En `apps/web/src/features/theme/tokens/retro.ts`:
-- `cardPadding`: `"6px"` → `"21px"` (+15px a las cards `.card`).
-- `sectionPadding`: `"3px"` → `"18px"` (+15px a `p-4`/`p-5`/`p-6`, incluye el
+- `cardPadding`: `"6px"` → `"11px"` (+5px a las cards `.card`).
+- `sectionPadding`: `"3px"` → `"8px"` (+5px a `p-4`/`p-5`/`p-6`, incluye el
   contenido y footer de los modales `Dialog` que usan `p-5`).
+
+Nota: `cardPadding`/`sectionPadding` NO afectan el sidebar (`aside` usa
+`aside nav`, no `.card` ni `p-*`). El sidebar de retro queda igual.
 
 ## SCOPE
 
@@ -45,9 +48,10 @@ invariants:
 ## VERIFICATION
 
 - tsc: sin errores nuevos.
-- `buildThemeStylesheet()` para retro incluye `.retro .card { padding: 21px !important; }`
-  y `.retro [class*="p-5"] { padding: 18px !important; }`.
+- `buildThemeStylesheet()` para retro incluye `.retro .card { padding: 11px !important; }`
+  y `.retro [class*="p-5"] { padding: 8px !important; }`.
 - light/dark: sin `!important` en cards/modales (sin cambio).
+- Sidebar de retro: sin cambio (no usa `.card` ni `p-*`).
 
 ## ROLLBACK
 
@@ -108,7 +112,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: +15px margen en cards y modales, solo retro
-- Commit: pendiente
+- Commit: 25c2253 — "LOGI-0007: retro +15px margin on cards and modales"
 - Deployment: n/a
 
 ## Definition of Done

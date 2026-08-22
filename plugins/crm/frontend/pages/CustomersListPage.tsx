@@ -71,19 +71,10 @@ export function CustomersListPage() {
               { key: "country", header: "País", render: (row) => row.country_code },
               { key: "phone", header: "Teléfono", render: (row) => row.phone ?? "-" },
               { key: "status", header: "Activo", render: (row) => (row.is_active ? "Sí" : "No") },
-              {
-                key: "actions",
-                header: "Acciones",
-                render: (row) => (
-                  <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => { setEditId(row.id); setShowNew(true); }}>Editar</Button>
-                    <Button variant="secondary" onClick={() => setDetailId(row.id)}>Ver</Button>
-                  </div>
-                ),
-              },
             ]}
             rows={customersQuery.data?.items ?? []}
             rowKey={(row) => row.id}
+            onRowDoubleClick={(row) => setDetailId(row.id)}
             emptyMessage="Aún no hay clientes registrados."
           />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

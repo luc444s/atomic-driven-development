@@ -111,8 +111,8 @@ structural_constraints:
 
 ## Traceability
 
-- Requirement: +15px margen en cards y modales, solo retro
-- Commit: 25c2253 — "LOGI-0007: retro +15px margin on cards and modales"
+- Requirement: +5px margen en cards y modales, solo retro (sidebar intacto)
+- Commit: 860c396 — "LOGI-0007: reduce retro card/modal spacing to +5px (sidebar untouched)"
 - Deployment: n/a
 
 ## Definition of Done

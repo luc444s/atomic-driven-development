@@ -79,6 +79,39 @@ def _ensure_catalog_balances(
     from sqlalchemy import and_
     from systutor.kernel.auth.models import User
 
+    # Guarda de estado estable: si el tenant ya tiene balances y los almacenes
+    # consultados ya estan cubiertos, no re-barre catalogo x almacenes en cada
+    # listado. La materializacion de productos nuevos la cubre el evento
+    # product.created -> ensure_balances_for_product.
+    existing_any = db.scalar(
+        select(StockBalance.id).where(StockBalance.tenant_id == tenant_id).limit(1)
+    )
+    if existing_any is not None:
+        covered = set(
+            db.scalars(
+                select(StockBalance.warehouse_id)
+                .where(StockBalance.tenant_id == tenant_id)
+                .distinct()
+            )
+        )
+        if warehouse_id is not None:
+            requested = {warehouse_id}
+        elif allowed_warehouse_ids:
+            requested = set(allowed_warehouse_ids)
+        else:
+            requested = set(
+                db.scalars(
+                    select(LogisticsWarehouse.id).where(
+                        and_(
+                            LogisticsWarehouse.tenant_id == tenant_id,
+                            LogisticsWarehouse.is_active.is_(True),
+                        )
+                    )
+                )
+            )
+        if requested and requested <= covered:
+            return
+
     products = list(db.scalars(select(Product).where(Product.tenant_id == tenant_id)))
     warehouses_q = select(LogisticsWarehouse).where(
         and_(

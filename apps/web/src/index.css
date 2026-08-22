@@ -171,7 +171,7 @@
 
   /* Subitems: indentados para jerarquia tipo arbol SAP */
   .retro aside nav a.pl-6 {
-    padding-left: 18px !important;
+    padding-left: 28px !important;
     border-left: 2px solid hsl(var(--border));
   }
 

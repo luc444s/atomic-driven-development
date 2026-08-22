@@ -103,7 +103,7 @@
   /* Fuente SAP: Arimo (clon de Arial, garantizado) en todo el arbol retro.
      Geist es variable/moderna y Tahoma no existe en el dispositivo. */
   html.retro {
-    font-size: 13px;
+    font-size: 14px;
   }
 
   .retro,

@@ -81,9 +81,6 @@ export function CreateVehicleFromJornadaDialog({
           />
         </label>
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
           <Button type="submit" disabled={isPending}>
             Guardar vehículo
           </Button>

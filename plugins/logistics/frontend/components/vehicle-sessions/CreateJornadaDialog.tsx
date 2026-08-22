@@ -7,9 +7,7 @@ import { useQuery } from "../../../../../apps/web/src/lib/react-query";
 import { CustomerSearchDialog } from "../../../../crm/frontend/components/CustomerSearchDialog";
 import { listCustomerAddressesByCustomers } from "../../api/delivery-points";
 import { getRealWarehouses } from "../../api/warehouses";
-import type { DriverOption, LogisticsRoute, LogisticsVehicle, LogisticsWarehouse } from "../../api";
-import { formatRouteLabel } from "../../lib/route-labels";
-import { formatRouteStatus } from "./jornada-labels";
+import type { DriverOption, LogisticsVehicle, LogisticsWarehouse } from "../../api";
 import { DEFAULT_MAP_CENTER } from "../route-builder/map-defaults";
 export type JornadaCreateForm = {
   vehicle_id: string;
@@ -29,12 +27,9 @@ type Props = {
   vehicles: LogisticsVehicle[];
   drivers: DriverOption[];
   warehouses: LogisticsWarehouse[];
-  routes: LogisticsRoute[];
   isPending: boolean;
   onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
   onOpenCreateVehicle: () => void;
-  onOpenCreateRoute: () => void;
-  setRouteVehicle: (vehicleId: string) => void;
   fixedVehicleId?: string | null;
 };
 
@@ -46,12 +41,9 @@ export function CreateJornadaDialog({
   vehicles,
   drivers,
   warehouses,
-  routes,
   isPending,
   onSubmit,
   onOpenCreateVehicle,
-  onOpenCreateRoute,
-  setRouteVehicle,
   fixedVehicleId,
 }: Props) {
   const originWarehouses = getRealWarehouses(warehouses);
@@ -150,7 +142,6 @@ export function CreateJornadaDialog({
                 value={form.vehicle_id}
                 onChange={(value) => {
                   setForm((current) => ({ ...current, vehicle_id: value }));
-                  setRouteVehicle(value);
                 }}
                 options={vehicles.map((vehicle) => ({ value: vehicle.id, label: vehicle.plate }))}
               />
@@ -269,46 +260,8 @@ export function CreateJornadaDialog({
               La ruta se creará automáticamente con el inicio del almacén y las {form.address_ids.length} dirección(es) seleccionada(s).
             </p>
           </div>
-        ) : (
-          <label className="block space-y-2 text-sm text-foreground">
-            <span>Ruta</span>
-            {routes.length > 0 ? (
-              <div className="space-y-2">
-                <Select
-                  value={form.route_id}
-                  onChange={(value) => setForm((current) => ({ ...current, route_id: value }))}
-                  placeholder="Seleccionar ruta"
-                  options={routes.map((route) => ({
-                    value: route.id,
-                    label:
-                      formatRouteLabel(route) === route.route_date
-                        ? `${route.route_date} · ${formatRouteStatus(route.status)}`
-                        : formatRouteLabel(route),
-                  }))}
-                />
-                <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
-                  Crear ruta
-                </Button>
-              </div>
-            ) : (
-              <div className="rounded-lg border border-dashed border-border p-4 text-center">
-                <p className="text-sm text-muted-foreground">No hay rutas disponibles.</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Agrega clientes y selecciona sus puntos en el mapa para generar la ruta automáticamente.
-                </p>
-                <div className="mt-2">
-                  <Button type="button" variant="secondary" onClick={onOpenCreateRoute}>
-                    Crear ruta manual
-                  </Button>
-                </div>
-              </div>
-            )}
-          </label>
-        )}
+        ) : null}
         <div className="flex justify-end gap-3">
-          <Button type="button" variant="secondary" onClick={onClose}>
-            Cancelar
-          </Button>
           <Button type="submit" disabled={isPending}>
             {isPending ? "Creando jornada..." : "Crear jornada"}
           </Button>

@@ -8,13 +8,11 @@ import { Card, CardContent } from "@systutor/shell/ui/card";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Pagination } from "@systutor/shell/ui/pagination";
 import {
-  updateRouteGpsStart,
   createVehicle,
   createVehicleSession,
   createVehicleSessionWithRoute,
   listPlanningReservations,
   listDriverOptions,
-  listRoutes,
   listVehicleSessions,
   listVehicles,
   listWarehouses,
@@ -22,10 +20,6 @@ import {
   planningKeys,
 } from "../api";
 import { CreateJornadaDialog, type JornadaCreateForm } from "../components/vehicle-sessions/CreateJornadaDialog";
-import {
-  CreateRouteFromJornadaDialog,
-  type JornadaRouteForm,
-} from "../components/vehicle-sessions/CreateRouteFromJornadaDialog";
 import {
   CreateVehicleFromJornadaDialog,
   type JornadaVehicleForm,
@@ -37,7 +31,6 @@ import {
   type VehicleProjectionCard,
 } from "../components/vehicle-sessions/vehicle-jornadas-projection";
 import { LogisticsSection } from "../components/LogisticsSection";
-import { RoutesPage } from "./RoutesPage";
 import { VehicleSessionDetailPage } from "./VehicleSessionDetailPage";
 import { WarehousesPage } from "./WarehousesPage";
 
@@ -60,29 +53,18 @@ const EMPTY_VEHICLE_FORM: JornadaVehicleForm = {
   warehouse_id: "",
 };
 
-const EMPTY_ROUTE_FORM: JornadaRouteForm = {
-  route_date: "",
-  vehicle_id: "",
-  notes: "",
-};
-
 export function VehicleSessionsPage() {
   const queryClient = useQueryClient();
   const permissions = useAuthStore((state) => state.permissions);
   const [isOpen, setIsOpen] = useState(false);
   const [isVehicleOpen, setIsVehicleOpen] = useState(false);
-  const [isRouteOpen, setIsRouteOpen] = useState(false);
-  const [isRoutesLibraryOpen, setIsRoutesLibraryOpen] = useState(false);
-  const [routesAutoStart, setRoutesAutoStart] = useState(false);
   const [isWarehousesOpen, setIsWarehousesOpen] = useState(false);
   const [openSessionId, setOpenSessionId] = useState<string | null>(null);
   const [openVehicleId, setOpenVehicleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [vehicleError, setVehicleError] = useState<string | null>(null);
-  const [routeError, setRouteError] = useState<string | null>(null);
   const [formState, setFormState] = useState(EMPTY_FORM);
   const [vehicleForm, setVehicleForm] = useState(EMPTY_VEHICLE_FORM);
-  const [routeForm, setRouteForm] = useState(EMPTY_ROUTE_FORM);
   const [fixedVehicleId, setFixedVehicleId] = useState<string | null>(null);
   const [sessionsPage, setSessionsPage] = useState(1);
 
@@ -103,11 +85,6 @@ export function VehicleSessionsPage() {
     queryKey: logisticsKeys.warehouses(),
     queryFn: listWarehouses,
     staleTime: 10 * 60 * 1000,
-  });
-  const routesQuery = useQuery({
-    queryKey: logisticsKeys.routes.list({}),
-    queryFn: () => listRoutes({}),
-    staleTime: 2 * 60 * 1000,
   });
   const plannedReservationsQuery = useQuery({
     queryKey: planningKeys.reservations.list({ start: "now" }),
@@ -175,33 +152,9 @@ export function VehicleSessionsPage() {
         vehicle_id: vehicle.id,
         origin_warehouse_id: current.origin_warehouse_id || vehicle.warehouse_id || "",
       }));
-      setRouteForm((current) => ({ ...current, vehicle_id: vehicle.id }));
       await queryClient.invalidateQueries({ queryKey: logisticsKeys.vehicles() });
     },
   });
-
-  const createRouteMutation = useMutation({
-    mutationFn: () =>
-      createRoute({
-        route_date: routeForm.route_date,
-        vehicle_id: routeForm.vehicle_id || null,
-        origin_label: routeForm.notes.includes("→") ? routeForm.notes.split("→", 2)[0]?.trim() || null : null,
-        destination_label: routeForm.notes.includes("→") ? routeForm.notes.split("→", 2)[1]?.trim() || null : null,
-        notes: routeForm.notes || null,
-      }),
-    onSuccess: async (route) => {
-      setIsRouteOpen(false);
-      setRouteForm(EMPTY_ROUTE_FORM);
-      setRouteError(null);
-      setFormState((current) => ({ ...current, route_id: route.id }));
-      await queryClient.invalidateQueries({ queryKey: logisticsKeys.routes.all() });
-    },
-  });
-
-  const routeMap = useMemo(
-    () => new Map((routesQuery.data ?? []).map((route) => [route.id, route])),
-    [routesQuery.data]
-  );
 
   const vehicleCards = useMemo(
     () => buildVehicleProjectionCards(vehiclesQuery.data ?? [], sessionsQuery.data?.items ?? []),
@@ -254,16 +207,6 @@ export function VehicleSessionsPage() {
     }
   }
 
-  async function onSubmitRoute(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setRouteError(null);
-    try {
-      await createRouteMutation.mutateAsync();
-    } catch (cause) {
-      setRouteError(cause instanceof Error ? cause.message : "No se pudo crear la ruta.");
-    }
-  }
-
   function openCreateJornadaFromVehicle(vehicleId: string) {
     setOpenVehicleId(null);
     window.setTimeout(() => {
@@ -288,10 +231,6 @@ export function VehicleSessionsPage() {
         vehicleId != null
           ? (vehiclesQuery.data?.find((vehicle) => vehicle.id === vehicleId)?.warehouse_id ?? "")
           : "",
-    }));
-    setRouteForm((current) => ({
-      ...EMPTY_ROUTE_FORM,
-      vehicle_id: vehicleId ?? current.vehicle_id,
     }));
     setIsOpen(true);
   }
@@ -359,15 +298,10 @@ export function VehicleSessionsPage() {
         vehicles={vehiclesQuery.data ?? []}
         drivers={driversQuery.data ?? []}
         warehouses={warehousesQuery.data ?? []}
-        routes={routesQuery.data ?? []}
         isPending={createMutation.isPending}
         onSubmit={onSubmit}
         onOpenCreateVehicle={() => setIsVehicleOpen(true)}
-        onOpenCreateRoute={() => {}}
         fixedVehicleId={fixedVehicleId}
-        setRouteVehicle={(vehicleId) =>
-          setRouteForm((current) => ({ ...current, vehicle_id: vehicleId }))
-        }
       />
 
       <CreateVehicleFromJornadaDialog
@@ -382,20 +316,6 @@ export function VehicleSessionsPage() {
         error={vehicleError}
         isPending={createVehicleMutation.isPending}
         onSubmit={onSubmitVehicle}
-      />
-
-      <CreateRouteFromJornadaDialog
-        open={isRouteOpen}
-        onClose={() => {
-          setIsRouteOpen(false);
-          setRouteForm(EMPTY_ROUTE_FORM);
-        }}
-        form={routeForm}
-        setForm={setRouteForm}
-        vehicles={vehiclesQuery.data ?? []}
-        error={routeError}
-        isPending={createRouteMutation.isPending}
-        onSubmit={onSubmitRoute}
       />
 
       <Dialog

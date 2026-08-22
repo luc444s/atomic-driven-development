@@ -114,7 +114,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: modo oscuro gris casi negro, no azul
-- Commit: pendiente
+- Commit: b1b124c — "LOGI-0004: dark theme to neutral near-black gray (no blue)"
 - Deployment: n/a
 
 ## Definition of Done
@@ -129,4 +129,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit b1b124c)

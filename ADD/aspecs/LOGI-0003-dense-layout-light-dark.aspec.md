@@ -121,7 +121,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: layout denso también en light y dark (sin heredar color/fuente SAP de retro)
-- Commit: pendiente
+- Commit: 5e166a1 — "LOGI-0003: apply dense layout to light and dark themes"
 - Deployment: n/a
 
 ## Definition of Done
@@ -136,4 +136,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit 5e166a1)

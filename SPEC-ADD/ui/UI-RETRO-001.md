@@ -138,8 +138,26 @@ structural_constraints:
 ## Traceability
 
 - Requirement: "UI retro estilo SAP GUI clásico, seleccionable"
-- Commit: UI-RETRO-001 (index.css .retro + store + toggle 3 estados)
-- Deployment: main (tema disponible en el toggle)
+- Deployment: main (tema disponible en el toggle `Retro (SAP)`)
+
+### Commits del cambio UI-RETRO-001
+
+| Commit | Cambio |
+|--------|--------|
+| `43f162f` | Tema retro base: `.retro` en index.css, store `Theme` + `"retro"`, toggle 3 estados |
+| `9c9d898` | Pulido: fuente Tahoma, esquinas 0, sin sombras, sidebar/tablas densas |
+| `91f44bb` | Sidebar: mata tracking/uppercase, comprime gaps |
+| `8cd20a7` | Comprime espaciado de cards/modales (space-y/padding) |
+| `5fba1ff` | Fuente retro garantizada (Arimo webfont) + nítida sin suavizado |
+| `7e4f821` | Normaliza jerarquía sidebar (root 13px, títulos módulo negrita/mayús) |
+| `497879c` | Subitems sidebar indentados (jerarquía árbol SAP) |
+| `a0f2af0` | Aumenta indent subitems (28px) |
+| `27ece3c` | Margen sidebar mínimo no nulo (1px) |
+| `2000377` | Root retro 14px (menos zoom bajo, más legible) |
+| `a2380cd` | Zoom general retro 1.05 (luego revertido a 1 en `18c3316`) |
+| `18c3316` | Zoom general en 1 (sin escala) |
+
+Relacionado (layout, no tema): `03d16dc` crm detalle cliente ancho 1000px.
 
 ## Definition of Done
 

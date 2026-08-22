@@ -68,6 +68,77 @@
     --card-shadow: 0 0 0 0 transparent;
   }
 
+  /* Tema retro estilo SAP GUI clasico (ECC "Enjoy") */
+  .retro {
+    color-scheme: light;
+    --background: 0 0% 89%;
+    --foreground: 0 0% 0%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 0%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 0%;
+    --primary: 209 79% 28%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 92%;
+    --secondary-foreground: 0 0% 0%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 207 56% 92%;
+    --accent-foreground: 0 0% 0%;
+    --destructive: 0 70% 35%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 65%;
+    --input: 0 0% 50%;
+    --ring: 209 79% 28%;
+    --sidebar: 0 0% 85%;
+    --sidebar-foreground: 0 0% 0%;
+    --sidebar-muted: 0 0% 40%;
+    --surface: 0 0% 100%;
+    --surface-alt: 0 0% 94%;
+    --radius: 0;
+    --card-shadow: 0 0 0 0 transparent;
+  }
+
+  .retro body {
+    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
+    font-size: 12px;
+  }
+
+  /* Barra de titulo tipo SAP: header superior azul con texto blanco */
+  .retro header {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .retro header .text-foreground,
+  .retro header .text-muted-foreground {
+    color: hsl(var(--primary-foreground));
+  }
+
+  /* Grid de tablas denso estilo ALV */
+  .retro table {
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  .retro th {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+    border: 1px solid hsl(var(--border));
+    padding: 3px 6px;
+    text-align: left;
+  }
+
+  .retro td {
+    border: 1px solid hsl(var(--border));
+    padding: 3px 6px;
+  }
+
+  .retro tbody tr:nth-child(even) {
+    background: hsl(207 56% 96%);
+  }
+
   body {
     @apply m-0 min-w-[320px] min-h-screen font-sans;
     color: hsl(var(--foreground));

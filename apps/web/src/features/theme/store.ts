@@ -2,23 +2,22 @@ import { create } from "zustand";
 
 const STORAGE_KEY = "systutor.theme";
 
-type Theme = "dark" | "light";
+type Theme = "dark" | "light" | "retro";
+
+const THEME_ORDER: Theme[] = ["dark", "light", "retro"];
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
+  if (stored === "light" || stored === "dark" || stored === "retro") return stored;
   return "dark";
 }
 
 function applyTheme(theme: Theme) {
   if (typeof window === "undefined") return;
   const root = document.documentElement;
-  if (theme === "light") {
-    root.classList.remove("dark");
-  } else {
-    root.classList.add("dark");
-  }
+  root.classList.toggle("dark", theme === "dark");
+  root.classList.toggle("retro", theme === "retro");
 }
 
 type ThemeState = {
@@ -41,7 +40,8 @@ export const useThemeStore = create<ThemeState>((set) => {
     },
     toggleTheme: () => {
       set((state) => {
-        const next = state.theme === "dark" ? "light" : "dark";
+        const idx = THEME_ORDER.indexOf(state.theme);
+        const next = THEME_ORDER[(idx + 1) % THEME_ORDER.length];
         applyTheme(next);
         if (typeof window !== "undefined") {
           window.localStorage.setItem(STORAGE_KEY, next);

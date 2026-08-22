@@ -191,7 +191,7 @@ export function CreateCylinderDialog({
     <Dialog
       open={open}
       title="Nuevo envase"
-      maxWidthClassName="max-w-[1600px]"
+      maxWidthClassName="max-w-[600px]"
       onClose={() => onOpenChange(false)}
     >
       <form className="space-y-4" onSubmit={handleSubmit}>

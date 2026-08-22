@@ -107,7 +107,8 @@ structural_constraints:
 ## Traceability
 
 - Requirement: ancho fijo 600px para modal Seleccionar cliente en Nueva Jornada
-- Commit: pendiente
+- Commit main: 675cf81 — "LOGI-0002: set 600px width on Seleccionar cliente modal in Nueva Jornada"
+- Commit shell (submodule systutor-shell): df798d2 — "ui: expose maxWidthClassName on SearchDialog (default max-w-4xl)"
 - Deployment: n/a
 
 ## Definition of Done
@@ -122,4 +123,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit 675cf81 + shell df798d2)

@@ -145,13 +145,13 @@
 
   .retro aside nav,
   .retro aside nav * {
-    margin-top: 1px !important;
-    margin-bottom: 1px !important;
+    margin-top: 0.5px !important;
+    margin-bottom: 0.5px !important;
     gap: 0 !important;
   }
 
   .retro aside nav [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 1px !important;
+    margin-top: 0.5px !important;
   }
 
   /* Titulos de modulo: pequenos, negrita, mayusculas (estilo SAP) */
@@ -166,7 +166,7 @@
 
   /* Subitems (todos los links bajo un modulo): indentados para jerarquia SAP */
   .retro aside nav a {
-    padding: 2px 6px 2px 28px !important;
+    padding: 1px 6px 1px 28px !important;
     border-left: 2px solid hsl(var(--border));
     border-radius: 0 !important;
     font-size: 11px !important;

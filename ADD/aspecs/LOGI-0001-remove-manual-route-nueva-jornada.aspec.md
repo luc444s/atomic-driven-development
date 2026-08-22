@@ -145,7 +145,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: limpieza de ruta manual muerta + botón cancelar redundante en modal Nueva jornada
-- Commit: pendiente (no commiteado aún; cambios en working tree)
+- Commit: dedd8c5 — "LOGI-0001: remove manual route + redundant cancel from Nueva Jornada"
 - Deployment: n/a
 
 ## Definition of Done
@@ -160,4 +160,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit dedd8c5)

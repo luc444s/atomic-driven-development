@@ -164,9 +164,10 @@
     letter-spacing: normal !important;
   }
 
-  /* Items: mismo tamano, peso normal */
+  /* Subitems (todos los links bajo un modulo): indentados para jerarquia SAP */
   .retro aside nav a {
-    padding: 2px 6px !important;
+    padding: 2px 6px 2px 28px !important;
+    border-left: 2px solid hsl(var(--border));
     border-radius: 0 !important;
     font-size: 11px !important;
     font-weight: 400 !important;
@@ -174,13 +175,7 @@
     letter-spacing: normal !important;
   }
 
-  /* Subitems: indentados para jerarquia tipo arbol SAP */
-  .retro aside nav a.pl-6 {
-    padding-left: 28px !important;
-    border-left: 2px solid hsl(var(--border));
-  }
-
-  .retro aside nav a.pl-6:hover {
+  .retro aside nav a:hover {
     border-left-color: hsl(var(--primary));
   }
 

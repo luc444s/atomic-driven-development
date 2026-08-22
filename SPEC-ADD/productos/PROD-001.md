@@ -121,7 +121,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: "en productos desaparece Acciones; doble-click entra al detalle"
-- Commit: (pendiente)
+- Commit: PROD-001 (787bda8) + data-table shell (ebb06eb, submódulo)
 - Deployment: main
 
 ## Definition of Done

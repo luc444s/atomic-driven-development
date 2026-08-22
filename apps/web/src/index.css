@@ -109,10 +109,11 @@
     font-family: Tahoma, "Segoe UI", Arial, sans-serif !important;
   }
 
-  /* Matar esquinas redondas y sombras modernas */
+  /* Matar esquinas redondas, sombras y tracking modernos */
   .retro * {
     border-radius: 0 !important;
     box-shadow: none !important;
+    letter-spacing: normal !important;
   }
 
   /* Barra de titulo tipo SAP: header superior azul con texto blanco */
@@ -127,15 +128,24 @@
     color: hsl(var(--primary-foreground));
   }
 
-  /* Sidebar denso estilo SAP: items cuadrados, activo azul */
+  /* Sidebar denso estilo SAP: items cuadrados, activo azul, sin gaps ni tracking */
   .retro aside {
     background: hsl(var(--sidebar));
   }
 
-  .retro aside nav a,
-  .retro aside nav button {
+  .retro aside nav,
+  .retro aside nav * {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    gap: 0 !important;
+  }
+
+  .retro aside nav button,
+  .retro aside nav a {
     padding: 2px 6px !important;
     border-radius: 0 !important;
+    text-transform: none !important;
+    letter-spacing: normal !important;
   }
 
   .retro aside nav a.bg-accent {

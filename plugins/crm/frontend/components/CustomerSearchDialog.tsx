@@ -7,6 +7,7 @@ type CustomerSearchDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSelect: (customer: CustomerBrief) => void;
   title?: string;
+  maxWidthClassName?: string;
 };
 
 export function CustomerSearchDialog({
@@ -14,12 +15,14 @@ export function CustomerSearchDialog({
   onOpenChange,
   onSelect,
   title = "Seleccionar cliente",
+  maxWidthClassName,
 }: CustomerSearchDialogProps) {
   return (
     <SearchDialog<CustomerBrief>
       open={open}
       onOpenChange={onOpenChange}
       title={title}
+      maxWidthClassName={maxWidthClassName}
       placeholder="GLP Norte, 20123456789, ventas@..."
       fetchFn={searchCustomers}
       onSelect={onSelect}

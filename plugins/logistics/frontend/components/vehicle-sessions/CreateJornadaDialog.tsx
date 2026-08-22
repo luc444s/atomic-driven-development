@@ -202,6 +202,7 @@ export function CreateJornadaDialog({
             open={isCustomerSearchOpen}
             onOpenChange={setIsCustomerSearchOpen}
             onSelect={toggleCustomer}
+            maxWidthClassName="max-w-[600px]"
           />
         </div>
 

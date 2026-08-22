@@ -100,9 +100,96 @@
     --card-shadow: 0 0 0 0 transparent;
   }
 
+  /* ===== Layout denso compartido (light / dark / retro) ===== */
+  html {
+    font-size: 14px;
+  }
+
+  /* Sidebar densa: jerarquia clara, sin gaps ni tracking */
+  aside {
+    background: hsl(var(--sidebar));
+  }
+
+  aside > div.mb-8 {
+    margin-bottom: 8px !important;
+  }
+
+  aside nav,
+  aside nav * {
+    margin-top: 0.5px !important;
+    margin-bottom: 0.5px !important;
+    gap: 0 !important;
+  }
+
+  aside nav [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 0.5px !important;
+  }
+
+  aside nav button {
+    padding: 3px 6px !important;
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: normal !important;
+  }
+
+  aside nav a {
+    padding: 1px 6px 1px 28px !important;
+    border-left: 2px solid hsl(var(--border));
+    font-size: 11px !important;
+    font-weight: 400 !important;
+    letter-spacing: normal !important;
+  }
+
+  aside nav a:hover {
+    border-left-color: hsl(var(--primary));
+  }
+
+  /* Tablas densas estilo ALV */
+  table {
+    border-collapse: collapse;
+    margin: 0 !important;
+    font-size: 12px;
+  }
+
+  th {
+    border: 1px solid hsl(var(--border));
+    padding: 2px 5px;
+    text-align: left;
+  }
+
+  td {
+    border: 1px solid hsl(var(--border));
+    padding: 2px 5px;
+  }
+
+  tbody tr:nth-child(even) {
+    background: hsl(var(--surface-alt));
+  }
+
+  /* Tarjetas/secciones sin padding moderno excesivo */
+  .card {
+    padding: 6px !important;
+  }
+
+  /* Comprimir ritmo vertical/horizontal y padding de cards/modales */
+  [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2px !important;
+  }
+
+  [class*="space-x"] > :not([hidden]) ~ :not([hidden]) {
+    margin-left: 2px !important;
+  }
+
+  [class*="p-6"],
+  [class*="p-5"],
+  [class*="p-4"] {
+    padding: 3px !important;
+  }
+
+  /* ===== Solo retro: color / fuente / forma SAP GUI ===== */
   /* Fuente antigua: PT Sans (humanista, look 90s/tecnico). Ni Times ni moderna. */
   html.retro {
-    font-size: 14px;
     zoom: 1;
   }
 
@@ -114,7 +201,7 @@
     text-rendering: optimizeSpeed !important;
   }
 
-  /* Matar esquinas redondas, sombras y tracking modernos */
+  /* Matar esquinas redondas y sombras en retro */
   .retro * {
     border-radius: 0 !important;
     box-shadow: none !important;
@@ -133,49 +220,13 @@
     color: hsl(var(--primary-foreground));
   }
 
-  /* Sidebar denso estilo SAP: jerarquia clara, activo azul, sin gaps ni tracking */
-  .retro aside {
-    background: hsl(var(--sidebar));
-  }
-
-  .retro aside > div.mb-8 {
-    margin-bottom: 8px !important;
-  }
-
-  .retro aside nav,
-  .retro aside nav * {
-    margin-top: 0.5px !important;
-    margin-bottom: 0.5px !important;
-    gap: 0 !important;
-  }
-
-  .retro aside nav [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 0.5px !important;
-  }
-
-  /* Titulos de modulo: pequenos, negrita, mayusculas (estilo SAP) */
   .retro aside nav button {
-    padding: 3px 6px !important;
     border-radius: 0 !important;
-    font-size: 11px !important;
-    font-weight: 700 !important;
-    text-transform: uppercase !important;
-    letter-spacing: normal !important;
   }
 
-  /* Subitems (todos los links bajo un modulo): indentados para jerarquia SAP */
   .retro aside nav a {
-    padding: 1px 6px 1px 28px !important;
-    border-left: 2px solid hsl(var(--border));
     border-radius: 0 !important;
-    font-size: 11px !important;
-    font-weight: 400 !important;
     text-transform: none !important;
-    letter-spacing: normal !important;
-  }
-
-  .retro aside nav a:hover {
-    border-left-color: hsl(var(--primary));
   }
 
   .retro aside nav a.bg-accent {
@@ -183,49 +234,14 @@
     color: hsl(var(--primary-foreground)) !important;
   }
 
-  /* Grid de tablas denso estilo ALV */
-  .retro table {
-    border-collapse: collapse;
-    margin: 0 !important;
-    font-size: 12px;
-  }
-
-  .retro th {
-    background: hsl(var(--primary));
-    color: hsl(var(--primary-foreground));
-    border: 1px solid hsl(var(--border));
-    padding: 2px 5px;
-    text-align: left;
-  }
-
-  .retro td {
-    border: 1px solid hsl(var(--border));
-    padding: 2px 5px;
-  }
-
-  .retro tbody tr:nth-child(even) {
-    background: hsl(207 56% 96%);
-  }
-
-  /* Tarjetas/secciones sin padding moderno excesivo */
   .retro .card,
   .retro [class*="rounded"] {
     padding: 6px !important;
   }
 
-  /* Comprimir ritmo vertical/horizontal y padding de cards/modales */
-  .retro [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
-    margin-top: 2px !important;
-  }
-
-  .retro [class*="space-x"] > :not([hidden]) ~ :not([hidden]) {
-    margin-left: 2px !important;
-  }
-
-  .retro [class*="p-6"],
-  .retro [class*="p-5"],
-  .retro [class*="p-4"] {
-    padding: 3px !important;
+  .retro th {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
   }
 
   body {

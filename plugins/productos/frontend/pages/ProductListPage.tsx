@@ -78,19 +78,10 @@ export function ProductListPage() {
               { key: "brand", header: "Marca", render: (row) => row.brand_name ?? "-" },
               { key: "condition", header: "Condición", render: (row) => row.condition_code },
               { key: "active", header: "Activo", render: (row) => (row.is_active ? "Sí" : "No") },
-              {
-                key: "actions",
-                header: "Acciones",
-                render: (row) => (
-                  <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => { setEditId(row.id); setShowNew(true); }}>Editar</Button>
-                    <Button variant="secondary" onClick={() => setDetailId(row.id)}>Detalle</Button>
-                  </div>
-                ),
-              },
             ]}
             rows={productsQuery.data?.items ?? []}
             rowKey={(row) => row.id}
+            onRowDoubleClick={(row) => setDetailId(row.id)}
             emptyMessage="Aún no hay productos registrados."
           />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

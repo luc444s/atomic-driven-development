@@ -136,7 +136,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: un archivo fisico por tema (atomicidad de edicion/review/rollback)
-- Commit: (ver hash abajo)
+- Commit: 889786a — "LOGI-0006: split theme tokens into one file per theme"
 - Deployment: n/a
 
 ## Definition of Done

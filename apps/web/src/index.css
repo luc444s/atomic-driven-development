@@ -104,6 +104,7 @@
      Geist es variable/moderna y Tahoma no existe en el dispositivo. */
   html.retro {
     font-size: 14px;
+    zoom: 1.05;
   }
 
   .retro,

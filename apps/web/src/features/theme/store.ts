@@ -1,5 +1,7 @@
 import { create } from "zustand";
 
+import { injectThemeTokens } from "./apply-tokens";
+
 const STORAGE_KEY = "systutor.theme";
 
 type Theme = "dark" | "light" | "retro";
@@ -27,6 +29,7 @@ type ThemeState = {
 };
 
 export const useThemeStore = create<ThemeState>((set) => {
+  injectThemeTokens();
   const initial = getInitialTheme();
   applyTheme(initial);
   return {

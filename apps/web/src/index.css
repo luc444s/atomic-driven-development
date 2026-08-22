@@ -1,5 +1,5 @@
 @import "@fontsource-variable/geist";
-@import url("https://fonts.googleapis.com/css2?family=Arimo:wght@400;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Tinos:ital,wght@0,400;0,700;1,400&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -100,8 +100,8 @@
     --card-shadow: 0 0 0 0 transparent;
   }
 
-  /* Fuente SAP: Arimo (clon de Arial, garantizado) en todo el arbol retro.
-     Geist es variable/moderna y Tahoma no existe en el dispositivo. */
+  /* Fuente SAP: Tinos (serif clase Times) para look antiguo sin llegar a
+     terminal. Geist/Arimo son modernas; Tahoma no existe en el dispositivo. */
   html.retro {
     font-size: 14px;
     zoom: 1;
@@ -109,7 +109,7 @@
 
   .retro,
   .retro * {
-    font-family: "Arimo", Tahoma, "Segoe UI", Arial, sans-serif !important;
+    font-family: "Tinos", "Times New Roman", Georgia, serif !important;
     font-smooth: never !important;
     -webkit-font-smoothing: none !important;
     text-rendering: optimizeSpeed !important;

@@ -1,4 +1,3 @@
-import { Button } from "@systutor/shell/ui/button";
 import { DataTable } from "@systutor/shell/ui/data-table";
 import { Pagination } from "@systutor/shell/ui/pagination";
 import { CylinderStateBadge } from "../../CylinderStateBadge";
@@ -96,20 +95,10 @@ export function CylinderTableSection({
               </span>
             ),
           },
-          {
-            key: "actions",
-            header: "Acciones",
-            render: (row) => (
-              <div className="flex gap-2">
-                <Button variant="secondary" onClick={() => onOpenDetail(row)}>
-                  Ver ficha
-                </Button>
-              </div>
-            ),
-          },
         ]}
         rows={rows}
         rowKey={(row) => row.id}
+        onRowDoubleClick={(row) => onOpenDetail(row)}
         emptyMessage="Aún no hay envases registrados."
       />
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

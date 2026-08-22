@@ -182,41 +182,16 @@ export function StockBalancePage() {
               { key: "quantity", header: "Cantidad", render: (row) => row.quantity },
               { key: "limits", header: "Mín / Máx", render: (row) => `${row.min_quantity ?? "-"} / ${row.max_quantity ?? "-"}` },
               { key: "alert", header: "Alerta", render: (row) => (row.is_below_min ? "Bajo mínimo" : "OK") },
-              {
-                key: "actions",
-                header: "Acciones",
-                render: (row) => (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        setDetailSelection({
-                          productId: row.product_id,
-                          warehouseId: row.warehouse_id,
-                          product: toProductSelection(row),
-                        })
-                      }
-                    >
-                      Detalle
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() =>
-                        setAdjustSelection({
-                          productId: row.product_id,
-                          warehouseId: row.warehouse_id,
-                          product: toProductSelection(row),
-                        })
-                      }
-                    >
-                      Ajustar
-                    </Button>
-                  </div>
-                ),
-              },
             ]}
             rows={balancesQuery.data?.items ?? []}
             rowKey={(row) => `${row.product_id}:${row.warehouse_id}`}
+            onRowDoubleClick={(row) =>
+              setDetailSelection({
+                productId: row.product_id,
+                warehouseId: row.warehouse_id,
+                product: toProductSelection(row),
+              })
+            }
             emptyMessage="Aún no hay balances materializados."
           />
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

@@ -169,6 +169,16 @@
     letter-spacing: normal !important;
   }
 
+  /* Subitems: indentados para jerarquia tipo arbol SAP */
+  .retro aside nav a.pl-6 {
+    padding-left: 18px !important;
+    border-left: 2px solid hsl(var(--border));
+  }
+
+  .retro aside nav a.pl-6:hover {
+    border-left-color: hsl(var(--primary));
+  }
+
   .retro aside nav a.bg-accent {
     background: hsl(var(--primary)) !important;
     color: hsl(var(--primary-foreground)) !important;

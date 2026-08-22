@@ -4,51 +4,31 @@ import asyncio
 import logging
 from datetime import timedelta
 
-from sqlalchemy import select
-from systutor.core.database import build_session_factory
-from systutor.kernel.auth.models import User
-from systutor.kernel.tenants.models import Branch, Tenant
-
-from apps.api.app.config import get_settings
+from plugins.tms.backend import ports
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.services.sync import sync_salidas_hoy
 
 logger = logging.getLogger("tms.cron")
 
 
-def _resolver_contexto(db):
-    settings = get_settings()
-    tenant = db.scalar(select(Tenant).where(Tenant.slug == settings.seed_demo_tenant_slug))
-    branch = None
-    actor = None
-    if tenant is not None:
-        branch = db.scalar(
-            select(Branch).where(
-                Branch.tenant_id == tenant.id,
-                Branch.code == settings.seed_demo_branch_code,
-            )
-        )
-        actor = db.scalar(select(User).where(User.email == settings.seed_admin_email))
-    return tenant, branch, actor
-
-
 def sync_salidas_hoy_once() -> dict:
-    settings = get_settings()
-    session_factory = build_session_factory(settings)
+    p = ports.get_ports()
+    settings = p.get_settings()
+    session_factory = p.session_factory()
     client = LegacyApiClient(
         settings.legacy_api_base_url,
         settings.legacy_api_token,
         timeout_seconds=60,
     )
     with session_factory() as db:
-        tenant, branch, actor = _resolver_contexto(db)
+        ctx = p.resolve_sync_context(db)
         result = asyncio.run(
             sync_salidas_hoy(
                 db,
                 client,
-                tenant=tenant,
-                branch=branch,
-                actor_user_id=actor.id if actor is not None else None,
+                tenant_id=ctx.tenant.id if ctx.tenant else None,
+                branch_id=ctx.branch.id if ctx.branch else None,
+                actor_user_id=ctx.actor_user_id,
             )
         )
         db.commit()

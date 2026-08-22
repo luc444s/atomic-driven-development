@@ -4,13 +4,7 @@ import asyncio
 import re
 from dataclasses import dataclass, field
 
-from sqlalchemy import Select, select
-from sqlalchemy.orm import Session
-from systutor.kernel.tenants.models import Branch, Tenant
-
-from plugins.crm.backend.models import CrmCustomer, CrmCustomerAddress
-from plugins.logistics.backend.models import LogisticsWarehouse
-from plugins.productos.backend.models import Product, ProductLine, ProductUnit
+from plugins.tms.backend import ports
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.legacy.schemas import (
     AlmacenLegacy,
@@ -41,8 +35,8 @@ _GAS_LINE_NAMES = {
 
 @dataclass(slots=True)
 class LinkContext:
-    tenant: Tenant
-    branch: Branch
+    tenant_id: str
+    branch_id: str
     actor_user_id: str
 
 
@@ -65,33 +59,13 @@ def _document_parts(cliente: ClienteLegacy) -> tuple[str, str] | None:
     return None
 
 
-def _customer_select_doc(
-    db: Session, tenant_id: str, doc_type: str, doc_number: str
-) -> CrmCustomer | None:
-    stmt: Select[tuple[CrmCustomer]] = select(CrmCustomer).where(
-        CrmCustomer.tenant_id == tenant_id,
-        CrmCustomer.document_type_code == doc_type,
-        CrmCustomer.document_number == doc_number,
-    )
-    return db.scalar(stmt)
-
-
-def _customer_select_external(
-    db: Session, tenant_id: str, external_code: str
-) -> CrmCustomer | None:
-    stmt: Select[tuple[CrmCustomer]] = select(CrmCustomer).where(
-        CrmCustomer.tenant_id == tenant_id,
-        CrmCustomer.external_code == external_code,
-    )
-    return db.scalar(stmt)
-
-
 def link_clientes(
-    db: Session,
+    db,
     clientes: list[ClienteLegacy],
     ctx: LinkContext,
     client: LegacyApiClient,
 ) -> LinkSummary:
+    p = ports.get_ports()
     summary = LinkSummary()
 
     async def _fetch_puntos(cliente_id: int) -> list[PuntoLegacy]:
@@ -103,11 +77,14 @@ def link_clientes(
     async def _fetch_all() -> dict[int, list[PuntoLegacy]]:
         semaphore = asyncio.Semaphore(PUNTOS_CONCURRENCY)
 
-        async def _bounded(cliente_id: int) -> list[PuntoLegacy]:
+        def _bounded(cliente_id: int) -> "asyncio.Future[list[PuntoLegacy]]":
+            return asyncio.ensure_future(_guarded(cliente_id))
+
+        async def _guarded(cliente_id: int) -> list[PuntoLegacy]:
             async with semaphore:
                 return await _fetch_puntos(cliente_id)
 
-        tasks = [asyncio.ensure_future(_bounded(c.id)) for c in clientes]
+        tasks = [_bounded(c.id) for c in clientes]
         results = await asyncio.gather(*tasks)
         return {c.id: results[i] for i, c in enumerate(clientes)}
 
@@ -115,92 +92,83 @@ def link_clientes(
 
     for cliente in clientes:
         doc = _document_parts(cliente)
-        customer: CrmCustomer | None = None
+        customer = None
         if doc is not None:
-            customer = _customer_select_doc(db, ctx.tenant.id, doc[0], doc[1])
+            customer = p.find_customer_by_doc(
+                db, tenant_id=ctx.tenant_id, doc_type=doc[0], doc_number=doc[1]
+            )
         if customer is None:
-            customer = _customer_select_external(db, ctx.tenant.id, f"LEG-{cliente.id}")
+            customer = p.find_customer_by_external(
+                db, tenant_id=ctx.tenant_id, external_code=f"LEG-{cliente.id}"
+            )
 
         if customer is None:
             doc_type, doc_number = doc if doc is not None else ("OTRO", str(cliente.id))
-            customer = CrmCustomer(
-                tenant_id=ctx.tenant.id,
-                external_code=f"LEG-{cliente.id}",
-                legal_name=(cliente.nombre or "Sin asignar")[:200],
-                commercial_name=None,
-                document_type_code=doc_type,
-                document_number=doc_number[:30],
-                country_code="PE",
-                email=(cliente.email or None),
-                phone=(cliente.telefono or None),
-                is_active=True,
-                created_by=ctx.actor_user_id,
+            customer_id = p.create_customer(
+                db,
+                ports.CustomerUpsert(
+                    tenant_id=ctx.tenant_id,
+                    external_code=f"LEG-{cliente.id}",
+                    legal_name=(cliente.nombre or "Sin asignar")[:200],
+                    document_type_code=doc_type,
+                    document_number=doc_number[:30],
+                    email=cliente.email or None,
+                    phone=cliente.telefono or None,
+                    created_by=ctx.actor_user_id,
+                ),
             )
-            db.add(customer)
-            db.flush()
             summary.created += 1
         else:
-            customer.legal_name = (cliente.nombre or "Sin asignar")[:200]
-            customer.external_code = customer.external_code or f"LEG-{cliente.id}"
-            if not customer.email and cliente.email:
-                customer.email = cliente.email
-            if not customer.phone and cliente.telefono:
-                customer.phone = cliente.telefono
-            db.add(customer)
+            customer_id = customer.id
+            p.patch_customer(
+                db,
+                customer_id,
+                ports.CustomerPatch(
+                    legal_name=(cliente.nombre or "Sin asignar")[:200],
+                    email=cliente.email or None,
+                    phone=cliente.telefono or None,
+                    external_code_fallback=f"LEG-{cliente.id}",
+                ),
+            )
             summary.updated += 1
 
-        if cliente.direccion and customer.fiscal_address_id is None:
-            address = _ensure_address(db, ctx, customer.id, cliente.direccion)
-            customer.fiscal_address_id = address.id
-            db.add(customer)
+        if cliente.direccion and customer is not None and customer.fiscal_address_id is None:
+            address_id = p.ensure_customer_address(
+                db,
+                ports.AddressSpec(
+                    tenant_id=ctx.tenant_id,
+                    customer_id=customer_id,
+                    line1=cliente.direccion,
+                ),
+            )
+            p.set_fiscal_address(db, customer_id=customer_id, address_id=address_id)
 
         for punto in puntos_map.get(cliente.id, []):
             if punto.direccion:
-                _ensure_address(db, ctx, customer.id, punto.direccion)
+                p.ensure_customer_address(
+                    db,
+                    ports.AddressSpec(
+                        tenant_id=ctx.tenant_id,
+                        customer_id=customer_id,
+                        line1=punto.direccion,
+                    ),
+                )
 
     db.commit()
     return summary
 
 
-def _ensure_address(
-    db: Session,
-    ctx: LinkContext,
-    customer_id: str,
-    direccion: str,
-) -> CrmCustomerAddress:
-    line1 = (direccion or "Sin direccion")[:200]
-    stmt: Select[tuple[CrmCustomerAddress]] = select(CrmCustomerAddress).where(
-        CrmCustomerAddress.tenant_id == ctx.tenant.id,
-        CrmCustomerAddress.customer_id == customer_id,
-        CrmCustomerAddress.line1 == line1,
-    )
-    existing = db.scalar(stmt)
-    if existing is not None:
-        return existing
-    address = CrmCustomerAddress(
-        tenant_id=ctx.tenant.id,
-        customer_id=customer_id,
-        address_type="DELIVERY",
-        line1=line1,
-        country_code="PE",
-    )
-    db.add(address)
-    db.flush()
-    return address
-
-
 def link_productos(
-    db: Session,
+    db,
     productos: list[ProductoLegacy],
     ctx: LinkContext,
     client: LegacyApiClient,
 ) -> LinkSummary:
+    p = ports.get_ports()
     summary = LinkSummary()
     line_cache = _ensure_lines(db, ctx, productos)
     unit_cache = _ensure_units(db, ctx, productos)
-    used_skus: set[str] = set(
-        db.scalars(select(Product.sku).where(Product.tenant_id == ctx.tenant.id)).all()
-    )
+    used_skus: set[str] = p.used_skus(db, tenant_id=ctx.tenant_id)
 
     def _unique_sku(producto: ProductoLegacy) -> str:
         nro = (producto.nro or "").strip()
@@ -230,29 +198,27 @@ def link_productos(
             async with semaphore:
                 return await _fetch_detalle(producto_id)
 
-        tasks = [asyncio.ensure_future(_bounded(p.id)) for p in productos]
+        tasks = [asyncio.ensure_future(_bounded(pr.id)) for pr in productos]
         results = await asyncio.gather(*tasks)
         return {
-            p.id: resultado
-            for i, p in enumerate(productos)
+            pr.id: resultado
+            for i, pr in enumerate(productos)
             if (resultado := results[i]) is not None
         }
 
     detalles = asyncio.run(_fetch_all())
 
     for producto in productos:
-        stmt: Select[tuple[Product]] = select(Product).where(
-            Product.tenant_id == ctx.tenant.id,
-            Product.legacy_id == producto.id,
+        existing = p.existing_product_by_legacy(
+            db, tenant_id=ctx.tenant_id, legacy_id=producto.id
         )
-        existing = db.scalar(stmt)
+        sku: str
         if existing is None:
             sku = _unique_sku(producto)
-            stmt_sku: Select[tuple[Product]] = select(Product).where(
-                Product.tenant_id == ctx.tenant.id,
-                Product.sku == sku,
-            )
-            existing = db.scalar(stmt_sku)
+            existing_id = p.existing_product_by_sku(db, tenant_id=ctx.tenant_id, sku=sku)
+        else:
+            existing_id = existing.id
+            sku = ""
 
         line_id = line_cache.get(producto.linea)
         unit_id = unit_cache.get(producto.unidad)
@@ -266,35 +232,40 @@ def link_productos(
             if (producto.linea_nombre or "").strip().upper() in _GAS_LINE_NAMES
             else "PRODUCTO"
         )
+        weight = detalle.peso_kg if detalle and detalle.peso_kg > 0 else None
+        volume = detalle.m3 if detalle and detalle.m3 > 0 else None
+        name = (producto.nombre or "Sin asignar")[:200]
 
-        if existing is None:
-            product = Product(
-                tenant_id=ctx.tenant.id,
-                legacy_id=producto.id,
-                sku=sku,
-                name=(producto.nombre or "Sin asignar")[:200],
-                line_id=line_id,
-                unit_id=unit_id,
-                status_code="ACTIVO",
-                condition_code=condition,
-                weight_kg=detalle.peso_kg if detalle and detalle.peso_kg > 0 else None,
-                content_m3=detalle.m3 if detalle and detalle.m3 > 0 else None,
-                country_code="PE",
-                is_active=True,
-                created_by=ctx.actor_user_id,
+        if existing_id is None:
+            p.create_product(
+                db,
+                ports.ProductUpsert(
+                    tenant_id=ctx.tenant_id,
+                    legacy_id=producto.id,
+                    sku=sku,
+                    name=name,
+                    line_id=line_id,
+                    unit_id=unit_id,
+                    condition_code=condition,
+                    weight_kg=weight,
+                    content_m3=volume,
+                    created_by=ctx.actor_user_id,
+                ),
             )
-            db.add(product)
             summary.created += 1
         else:
-            existing.legacy_id = existing.legacy_id or producto.id
-            existing.name = (producto.nombre or "Sin asignar")[:200]
-            existing.line_id = line_id
-            existing.unit_id = unit_id
-            if existing.weight_kg is None and detalle is not None and detalle.peso_kg > 0:
-                existing.weight_kg = detalle.peso_kg
-            if existing.content_m3 is None and detalle is not None and detalle.m3 > 0:
-                existing.content_m3 = detalle.m3
-            db.add(existing)
+            p.patch_product(
+                db,
+                existing_id,
+                ports.ProductPatch(
+                    legacy_id=producto.id,
+                    name=name,
+                    line_id=line_id,
+                    unit_id=unit_id,
+                    weight_kg=weight,
+                    content_m3=volume,
+                ),
+            )
             summary.updated += 1
 
     db.commit()
@@ -302,91 +273,73 @@ def link_productos(
 
 
 def _ensure_lines(
-    db: Session,
+    db,
     ctx: LinkContext,
     productos: list[ProductoLegacy],
 ) -> dict[int, str]:
+    p = ports.get_ports()
     cache: dict[int, str] = {}
     for producto in productos:
         if producto.linea in cache:
             continue
         code = f"LEG-L{producto.linea}"
         name = producto.linea_nombre if producto.linea != 0 else "Sin linea"
-        stmt: Select[tuple[ProductLine]] = select(ProductLine).where(
-            ProductLine.tenant_id == ctx.tenant.id,
-            ProductLine.code == code,
-        )
-        line = db.scalar(stmt)
-        if line is None:
-            line = ProductLine(
-                tenant_id=ctx.tenant.id,
+        cache[producto.linea] = p.ensure_product_line(
+            db,
+            ports.LineSpec(
+                tenant_id=ctx.tenant_id,
                 code=code,
                 name=(name or f"Linea {producto.linea}")[:100],
-            )
-            db.add(line)
-            db.flush()
-        cache[producto.linea] = line.id
+            ),
+        )
     db.commit()
     return cache
 
 
 def _ensure_units(
-    db: Session,
+    db,
     ctx: LinkContext,
     productos: list[ProductoLegacy],
 ) -> dict[int, str]:
+    p = ports.get_ports()
     cache: dict[int, str] = {}
     for producto in productos:
         if producto.unidad in cache:
             continue
         code = f"LEG-U{producto.unidad}"
         name = producto.unidad_nombre if producto.unidad != 0 else "Sin unidad"
-        stmt: Select[tuple[ProductUnit]] = select(ProductUnit).where(
-            ProductUnit.tenant_id == ctx.tenant.id,
-            ProductUnit.code == code,
-        )
-        unit = db.scalar(stmt)
-        if unit is None:
-            unit = ProductUnit(
-                tenant_id=ctx.tenant.id,
+        cache[producto.unidad] = p.ensure_product_unit(
+            db,
+            ports.UnitSpec(
+                tenant_id=ctx.tenant_id,
                 code=code,
                 name=(name or f"Unidad {producto.unidad}")[:50],
-            )
-            db.add(unit)
-            db.flush()
-        cache[producto.unidad] = unit.id
+            ),
+        )
     db.commit()
     return cache
 
 
 def link_almacenes(
-    db: Session,
+    db,
     almacenes: list[AlmacenLegacy],
     ctx: LinkContext,
 ) -> LinkSummary:
+    p = ports.get_ports()
     summary = LinkSummary()
     for almacen in almacenes:
         code = str(almacen.cod)
-        stmt: Select[tuple[LogisticsWarehouse]] = select(LogisticsWarehouse).where(
-            LogisticsWarehouse.tenant_id == ctx.tenant.id,
-            LogisticsWarehouse.code == code,
+        result = p.upsert_warehouse(
+            db,
+            tenant_id=ctx.tenant_id,
+            branch_id=ctx.branch_id,
+            code=code,
+            name=(almacen.descripcion or f"Almacen {code}"),
+            is_primary=almacen.cod == 1,
         )
-        warehouse = db.scalar(stmt)
-        if warehouse is None:
-            warehouse = LogisticsWarehouse(
-                tenant_id=ctx.tenant.id,
-                branch_id=ctx.branch.id,
-                code=code,
-                name=(almacen.descripcion or f"Almacen {code}")[:100],
-                warehouse_type="FIXED",
-                is_primary=almacen.cod == 1,
-                is_active=True,
-            )
-            db.add(warehouse)
+        if result.created:
             summary.created += 1
         else:
-            warehouse.name = (almacen.descripcion or warehouse.name)[:100]
-            db.add(warehouse)
             summary.updated += 1
     db.commit()
     return summary

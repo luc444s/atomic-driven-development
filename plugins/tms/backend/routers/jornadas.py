@@ -6,12 +6,11 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from systutor.api.deps import get_db_session
-from systutor.kernel.auth.dependencies import require_permission
 
+from plugins.tms.backend import ports
 from plugins.tms.backend.models import JornadaTMS
 
-DB_SESSION = Depends(get_db_session)
+DB_SESSION = Depends(ports.db_session)
 
 router = APIRouter(prefix="/tms/jornadas", tags=["tms"])
 
@@ -60,7 +59,7 @@ def list_jornadas(
     limit: int = 50,
     offset: int = 0,
     db: Session = DB_SESSION,
-    _: None = Depends(require_permission("tms.jornada.read")),
+    _: None = Depends(ports.permission_dependency("tms.jornada.read")),
 ) -> dict[str, Any]:
     q = db.query(JornadaTMS)
     if estado:
@@ -74,7 +73,7 @@ def list_jornadas(
 def get_jornada(
     jornada_id: int,
     db: Session = DB_SESSION,
-    _: None = Depends(require_permission("tms.jornada.read")),
+    _: None = Depends(ports.permission_dependency("tms.jornada.read")),
 ) -> dict[str, Any]:
     jornada = db.get(JornadaTMS, jornada_id)
     if jornada is None:
@@ -87,7 +86,7 @@ def edit_jornada(
     jornada_id: int,
     payload: JornadaPatchRequest,
     db: Session = DB_SESSION,
-    _: None = Depends(require_permission("tms.jornada.edit")),
+    _: None = Depends(ports.permission_dependency("tms.jornada.edit")),
 ) -> dict[str, Any]:
     jornada = db.get(JornadaTMS, jornada_id)
     if jornada is None:

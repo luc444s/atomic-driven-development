@@ -3,15 +3,18 @@ from __future__ import annotations
 from datetime import UTC, date, datetime
 
 from sqlalchemy import Date, DateTime, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
-from systutor.core.database import Base
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+
+
+class TmsBase(DeclarativeBase):
+    """Base declarativa propia del plugin — sin dependencia del host."""
 
 
 def utc_now() -> datetime:
     return datetime.now(UTC)
 
 
-class JornadaTMS(Base):
+class JornadaTMS(TmsBase):
     __tablename__ = "tms_jornada"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)

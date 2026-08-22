@@ -1,103 +1,53 @@
-from __future__ import annotations
-
-import argparse
 import asyncio
-import sys
 
 from sqlalchemy import select
-from systutor.core.database import build_session_factory
-from systutor.kernel.auth.models import User
-from systutor.kernel.tenants.models import Branch, Tenant
 
-from apps.api.app.config import get_settings
+from plugins.tms.backend import ports
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.services.link_legacy import (
     LinkContext,
-    LinkSummary,
     link_almacenes,
     link_clientes,
     link_productos,
 )
-
-
-def _resolve_context(db, settings) -> LinkContext:
-    stmt = select(Tenant).where(Tenant.slug == settings.seed_demo_tenant_slug)
-    tenant = db.scalar(stmt)
-    if tenant is None:
-        raise RuntimeError(
-            f"No existe tenant '{settings.seed_demo_tenant_slug}'. Correr seed_demo primero."
-        )
-
-    stmt_branch = select(Branch).where(
-        Branch.tenant_id == tenant.id,
-        Branch.code == settings.seed_demo_branch_code,
-    )
-    branch = db.scalar(stmt_branch)
-    if branch is None:
-        raise RuntimeError(f"No existe branch '{settings.seed_demo_branch_code}'.")
-
-    stmt_user = select(User).where(User.email == settings.seed_admin_email)
-    actor = db.scalar(stmt_user)
-    if actor is None:
-        raise RuntimeError(f"No existe usuario '{settings.seed_admin_email}'.")
-
-    return LinkContext(tenant=tenant, branch=branch, actor_user_id=actor.id)
-
-
-def _print_summary(label: str, summary: LinkSummary) -> None:
-    print(
-        f"[{label}] creados={summary.created} actualizados={summary.updated} "
-        f"omitidos={summary.skipped} errores={summary.errors}"
-    )
+from plugins.tms.backend.services.vehicles import SEED_PLATES, ensure_vehicle
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Enlaza datos legacy (ERP-SYSTUTOR.API) con OSS (clientes, productos, almacenes). "
-            "Stock NO se enlaza: legacy es dueño del stock (decision de desacople)."
-        )
-    )
-    parser.add_argument("--all", action="store_true", help="sincronizar todos los dominios")
-    parser.add_argument("--clientes", action="store_true")
-    parser.add_argument("--productos", action="store_true")
-    parser.add_argument("--almacenes", action="store_true")
-    args = parser.parse_args()
-
-    if not any([args.all, args.clientes, args.productos, args.almacenes]):
-        parser.print_help()
-        return 1
-
-    settings = get_settings()
-    if not settings.legacy_api_base_url or not settings.legacy_api_token:
-        print("Falta SYSTUTOR_LEGACY_API_BASE_URL o SYSTUTOR_LEGACY_API_TOKEN en .env")
-        return 1
-
+    p = ports.get_ports()
+    settings = p.get_settings()
+    session_factory = p.session_factory()
     client = LegacyApiClient(settings.legacy_api_base_url, settings.legacy_api_token)
-    session_factory = build_session_factory(settings)
 
     with session_factory() as db:
-        ctx = _resolve_context(db, settings)
-        print(f"Tenant: {ctx.tenant.name} ({ctx.tenant.id})")
+        ctx_view = p.resolve_sync_context(db)
+        if ctx_view.tenant is None:
+            print("Tenant demo no encontrado")
+            return 1
+        ctx = LinkContext(
+            tenant_id=ctx_view.tenant.id,
+            branch_id=ctx_view.branch.id if ctx_view.branch else "",
+            actor_user_id=ctx_view.actor_user_id or "",
+        )
 
-        if args.all or args.almacenes:
-            almacenes = asyncio.run(client.get_almacenes())
-            summary = link_almacenes(db, almacenes, ctx)
-            _print_summary("almacenes", summary)
+        clientes = asyncio.run(client.get_clientes())
+        s1 = link_clientes(db, clientes, ctx, client)
+        print(f"clientes -> {s1}")
 
-        if args.all or args.clientes:
-            clientes = asyncio.run(client.get_clientes())
-            summary = link_clientes(db, clientes, ctx, client)
-            _print_summary("clientes", summary)
+        productos = asyncio.run(client.get_productos())
+        s2 = link_productos(db, productos, ctx, client)
+        print(f"productos -> {s2}")
 
-        if args.all or args.productos:
-            productos = asyncio.run(client.get_productos())
-            summary = link_productos(db, productos, ctx, client)
-            _print_summary("productos", summary)
+        almacenes = asyncio.run(client.get_almacenes())
+        s3 = link_almacenes(db, almacenes, ctx)
+        print(f"almacenes -> {s3}")
 
-    print("Link legacy completado.")
+        for plate in SEED_PLATES:
+            vehicle_id = ensure_vehicle(db, tenant_id=ctx.tenant_id, plate=plate)
+            print(f"vehiculo {plate} -> {vehicle_id}")
+        db.commit()
     return 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    raise SystemExit(main())

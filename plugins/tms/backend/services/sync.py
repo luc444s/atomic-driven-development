@@ -3,22 +3,12 @@ from __future__ import annotations
 import json
 from datetime import date, datetime
 
-from sqlalchemy import select
-from sqlalchemy.orm import Session
-from systutor.kernel.tenants.models import Branch, Tenant
-
-from plugins.logistics.backend.common import LogisticsActionContext
-from plugins.logistics.backend.dto.load_plans import LoadPlanItemUpsert, LoadPlanUpsertRequest
-from plugins.logistics.backend.models import LogisticsVehicleSession, LogisticsWarehouse
-from plugins.logistics.backend.services.load_plans import upsert_load_plan
-from plugins.logistics.backend.services.sessions import create_vehicle_session
-from plugins.productos.backend.models import Product
+from plugins.tms.backend import ports
 from plugins.tms.backend.legacy.client import LegacyApiClient
 from plugins.tms.backend.legacy.schemas import SalidaLegacy
 from plugins.tms.backend.models import JornadaTMS
-from plugins.tms.backend.services.drivers import ensure_driver_user, normalize_driver_dni
+from plugins.tms.backend.services.drivers import normalize_driver_dni
 from plugins.tms.backend.services.materialize import materialize_salida
-from plugins.tms.backend.services.vehicles import ensure_vehicle
 
 
 def _estado_para(salida: SalidaLegacy) -> str:
@@ -28,70 +18,31 @@ def _estado_para(salida: SalidaLegacy) -> str:
     return "draft" if (placa and chofer) else "pendiente"
 
 
-def _resolve_warehouse(
-    db: Session, *, tenant_id: str, almacen: int
-) -> LogisticsWarehouse | None:
-    return db.scalar(
-        select(LogisticsWarehouse).where(
-            LogisticsWarehouse.tenant_id == tenant_id,
-            LogisticsWarehouse.code == str(almacen),
-        )
-    )
-
-
-def _find_live_session(
-    db: Session,
+def _materialize_load_plan(
+    db,
     *,
     tenant_id: str,
-    vehicle_id: str,
-    driver_id: str,
-    fecha: date,
-) -> LogisticsVehicleSession | None:
-    sessions = list(
-        db.scalars(
-            select(LogisticsVehicleSession).where(
-                LogisticsVehicleSession.tenant_id == tenant_id,
-                LogisticsVehicleSession.vehicle_id == vehicle_id,
-                LogisticsVehicleSession.driver_id == driver_id,
-                LogisticsVehicleSession.status.in_(["DRAFT", "LOADING"]),
-            )
-        ).all()
-    )
-    for s in sessions:
-        if s.opened_at.date() == fecha:
-            return s
-    return None
-
-
-def _materialize_load_plan(
-    db: Session,
-    *,
-    tenant: Tenant,
     actor_user_id: str,
-    session: LogisticsVehicleSession,
+    session_id: str,
+    warehouse_id: str,
     salida: SalidaLegacy,
 ) -> bool:
-    warehouse = _resolve_warehouse(db, tenant_id=tenant.id, almacen=salida.almacen)
-    if warehouse is None:
-        return False
+    p = ports.get_ports()
     items = []
     for item in salida.items:
-        product = db.scalar(
-            select(Product).where(
-                Product.tenant_id == tenant.id,
-                Product.legacy_id == item.cod_producto,
-            )
+        product_id = p.find_product_id_by_legacy(
+            db, tenant_id=tenant_id, legacy_id=item.cod_producto
         )
-        if product is None:
+        if product_id is None:
             continue
         quantity = item.pesito if item.pesito and float(item.pesito) > 0 else item.cantidad
         if not quantity or float(quantity) <= 0:
             continue
         items.append(
-            LoadPlanItemUpsert(
-                product_id=product.id,
+            ports.LoadPlanItemSpec(
+                product_id=product_id,
                 planned_quantity=float(quantity),
-                source_warehouse_id=warehouse.id,
+                source_warehouse_id=warehouse_id,
                 notes=json.dumps({"seriales": list(item.seriales)}, ensure_ascii=False)
                 if item.seriales
                 else None,
@@ -99,110 +50,91 @@ def _materialize_load_plan(
         )
     if not items:
         return False
-    payload = LoadPlanUpsertRequest(
+    return p.upsert_load_plan_items(
+        db,
+        session_id=session_id,
+        tenant_id=tenant_id,
+        actor_user_id=actor_user_id,
         notes=f"Materializado desde salida legacy {salida.cod_movimiento}",
         items=items,
     )
-    context = LogisticsActionContext(
-        tenant_id=tenant.id,
-        branch_id=None,
-        actor_user_id=actor_user_id,
-        correlation_id=None,
-        request_id=None,
-    )
-    upsert_load_plan(
-        db,
-        session=session,
-        payload=payload,
-        action_context=context,
-    )
-    return True
 
 
 def _materialize_live_session(
-    db: Session,
+    db,
     *,
-    tenant: Tenant,
-    branch: Branch | None,
+    tenant_id: str,
+    branch_id: str | None,
     actor_user_id: str,
     salida: SalidaLegacy,
-) -> LogisticsVehicleSession | None:
+):
+    p = ports.get_ports()
     placa = salida.placa.strip()
     dni = normalize_driver_dni(salida.dnichofer, salida.transportista)
     if not placa or not dni:
         return None
 
     fecha = salida.fecha.date()
-    vehicle = ensure_vehicle(db, tenant=tenant, plate=placa, vehicle_type="CAMION")
-    driver = ensure_driver_user(
+    vehicle_id = p.ensure_vehicle(db, tenant_id=tenant_id, plate=placa, vehicle_type="CAMION")
+    driver_id = p.ensure_driver(
         db,
-        tenant=tenant,
-        branch=branch,
+        tenant_id=tenant_id,
+        branch_id=branch_id,
         dni=dni,
         full_name=salida.transportista or f"Conductor {dni}",
     )
-    warehouse = _resolve_warehouse(db, tenant_id=tenant.id, almacen=salida.almacen)
-    if warehouse is None:
+    warehouse_id = p.find_warehouse_id(db, tenant_id=tenant_id, code=str(salida.almacen))
+    if warehouse_id is None:
         return None
 
-    existing = _find_live_session(
+    existing_id = p.find_live_session_id(
         db,
-        tenant_id=tenant.id,
-        vehicle_id=vehicle.id,
-        driver_id=driver.id,
+        tenant_id=tenant_id,
+        vehicle_id=vehicle_id,
+        driver_id=driver_id,
         fecha=fecha,
     )
-    if existing is not None:
+    if existing_id is not None:
         _materialize_load_plan(
             db,
-            tenant=tenant,
+            tenant_id=tenant_id,
             actor_user_id=actor_user_id,
-            session=existing,
+            session_id=existing_id,
+            warehouse_id=warehouse_id,
             salida=salida,
         )
-        return existing
+        return existing_id
 
-    payload = type(
-        "LiveSessionPayload",
-        (),
-        {
-            "vehicle_id": vehicle.id,
-            "driver_id": driver.id,
-            "origin_warehouse_id": warehouse.id,
-            "route_id": None,
-        },
-    )()
-    context = LogisticsActionContext(
-        tenant_id=tenant.id,
-        branch_id=branch.id if branch is not None else None,
-        actor_user_id=actor_user_id,
-        correlation_id=None,
-        request_id=None,
-    )
-    session = create_vehicle_session(
+    session_id = p.create_live_session(
         db,
-        tenant_id=tenant.id,
-        payload=payload,
-        action_context=context,
-        opened_at=salida.fecha,
+        ports.LiveSessionSpec(
+            tenant_id=tenant_id,
+            vehicle_id=vehicle_id,
+            driver_id=driver_id,
+            origin_warehouse_id=warehouse_id,
+            branch_id=branch_id,
+            actor_user_id=actor_user_id,
+            opened_at=salida.fecha,
+        ),
     )
     _materialize_load_plan(
         db,
-        tenant=tenant,
+        tenant_id=tenant_id,
         actor_user_id=actor_user_id,
-        session=session,
+        session_id=session_id,
+        warehouse_id=warehouse_id,
         salida=salida,
     )
-    return session
+    return session_id
 
 
 async def sync_salidas_hoy(
-    db: Session,
+    db,
     client: LegacyApiClient,
     hoy: date | None = None,
     *,
-    tenant: Tenant | None = None,
-    branch: Branch | None = None,
+    tenant_id: str | None = None,
+    branch_id: str | None = None,
     actor_user_id: str | None = None,
 ) -> dict:
     hoy = hoy or date.today()
@@ -234,16 +166,16 @@ async def sync_salidas_hoy(
             [i.model_dump() for i in salida.items], ensure_ascii=False
         )
 
-        if tenant is not None and actor_user_id:
+        if tenant_id is not None and actor_user_id:
             if placa and chofer:
-                session = _materialize_live_session(
+                session_id = _materialize_live_session(
                     db,
-                    tenant=tenant,
-                    branch=branch,
+                    tenant_id=tenant_id,
+                    branch_id=branch_id,
                     actor_user_id=actor_user_id,
                     salida=salida,
                 )
-                if session is not None:
+                if session_id is not None:
                     sesiones += 1
             else:
                 sesiones_omitidas += 1
@@ -289,7 +221,7 @@ async def sync_salidas_hoy(
 
     db.flush()
     res = {"creadas": creadas, "actualizadas": actualizadas, "omitidas": omitidas}
-    if tenant is not None:
+    if tenant_id is not None:
         res["sesiones_vivas"] = sesiones
         res["sesiones_omitidas"] = sesiones_omitidas
     return res

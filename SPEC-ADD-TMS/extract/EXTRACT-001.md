@@ -19,14 +19,20 @@ del plugin en un checkout aislado del monorepo debe pasar.
 ## SCOPE
 
 - Reemplazar `systutor.sdk.PluginContext` por un puerto mínimo definido en el
-  propio plugin (`plugins/tms/backend/ports.py`) con adaptador en el host.
+  propio plugin (`plugins/tms/backend/ports.py`) con adaptador en el host
+  (`plugins/tms/backend/host_adapter.py`). Ambos archivos son LA FRONTERA:
+  únicos módulos del plugin autorizados a importar artefactos externos.
 - Definir contrato tipado propio para los datos que TMS consume de
   crm/productos/stock/logistics (DTOs locales, alimentados vía API REST o
   adaptador inyectado).
-- Mover los 6 tests `apps/api/tests/test_tms*.py` → `plugins/tms/tests/`,
-  autónomos (fixtures propios, sin conftest del core).
+- Mover 5 suites `apps/api/tests/test_tms*.py` → `plugins/tms/tests/`,
+  autónomas (fixtures propias + puertos falsos, sin conftest del core).
+  Excepción honesta: `test_tms012_serial_first.py` permanece en
+  `apps/api/tests/` — es un test de integración logistics+TMS, no puede ser
+  autónomo sin romper su valor.
 - Frontend stub deja de importar `@systutor/sdk/frontend`; define su tipo de
   registro localmente.
+- Base declarativa propia (`TmsBase`) para el modelo JornadaTMS.
 
 ## OUT OF SCOPE
 
@@ -60,10 +66,12 @@ invariants:
 ## VERIFICATION
 
 ```bash
-grep -rn "from systutor\|@systutor" plugins/tms/ | grep -v ports.py | wc -l   # = 0
-pytest plugins/tms/tests -q                                                    # verde
-pytest apps/api/tests/test_tms* -q                                             # verde (host)
-uvicorn app.main:app & curl -s localhost:8000/api/plugins | grep tms           # registrado
+grep -rn "from systutor\|@systutor\|from apps\." plugins/tms/ \
+  | grep -v "ports.py\|host_adapter.py" | wc -l                    # = 0
+pytest plugins/tms/tests -q                                        # verde (autónoma)
+pytest apps/api/tests/test_tms012_serial_first.py -q               # verde (host)
+# Smoke: app host arranca con TMS habilitado ->
+GET /api/v1/plugins/tms/tms/jornadas responde 401 (ruta registrada)
 ```
 
 ## ROLLBACK

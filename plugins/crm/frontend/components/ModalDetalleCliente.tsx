@@ -308,14 +308,6 @@ export function ModalDetalleCliente({ open, customerId, onClose, onEditCustomer,
                   </button>
                   <button
                     type="button"
-                    onClick={() => { window.location.href = `/app/logistics/movements?customerId=${customerId}`; }}
-                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
-                  >
-                    <p className="text-sm font-medium text-foreground">Movimientos</p>
-                    <p className="mt-1 text-xs text-muted-foreground">Historial de movimientos de envases.</p>
-                  </button>
-                  <button
-                    type="button"
                     onClick={() => setIsAddressesOpen(true)}
                     className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
                   >

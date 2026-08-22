@@ -6,7 +6,6 @@ import type {
 import { AgendaPage } from "./pages/AgendaPage";
 import { CylindersPage } from "./pages/CylindersPage";
 import { LoadsPage } from "./pages/LoadsPage";
-import { MovementsPage } from "./pages/MovementsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PlanningPage } from "./pages/PlanningPage";
 import { ReceptionPage } from "./pages/ReceptionPage";
@@ -45,12 +44,6 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         title: "Carga",
         component: LoadsPage,
         requiredPermissions: ["logistics.load.manage"],
-      },
-      {
-        path: "logistics/movements",
-        title: "Movimientos",
-        component: MovementsPage,
-        requiredPermissions: ["logistics.movement.read"],
       },
       {
         path: "logistics/planning",

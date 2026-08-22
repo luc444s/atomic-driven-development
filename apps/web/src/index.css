@@ -183,6 +183,21 @@
     padding: 6px !important;
   }
 
+  /* Comprimir ritmo vertical/horizontal y padding de cards/modales */
+  .retro [class*="space-y"] > :not([hidden]) ~ :not([hidden]) {
+    margin-top: 2px !important;
+  }
+
+  .retro [class*="space-x"] > :not([hidden]) ~ :not([hidden]) {
+    margin-left: 2px !important;
+  }
+
+  .retro [class*="p-6"],
+  .retro [class*="p-5"],
+  .retro [class*="p-4"] {
+    padding: 3px !important;
+  }
+
   body {
     @apply m-0 min-w-[320px] min-h-screen font-sans;
     color: hsl(var(--foreground));

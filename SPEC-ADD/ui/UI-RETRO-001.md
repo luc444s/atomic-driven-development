@@ -16,6 +16,14 @@ acotados bajo la clase `.retro` para vender el look (barra de título azul,
 tablas grid). La clase `retro` se aplica en `document.documentElement`, igual
 que `.dark`. El `ThemeToggle` pasa a ser un selector de 3 estados.
 
+Overrides retro (globales, solo bajo `.retro`):
+- Fuente Tahoma forzada en todo el árbol (`font-sans` de Geist es moderno).
+- `border-radius: 0` y `box-shadow: none` en todos los elementos (esquinas y
+  elevación modernas eliminadas).
+- `html.retro` con `font-size: 11px` para comprimir espaciados (densidad SAP).
+- Sidebar: items cuadrados y compactos, activo en azul SAP.
+- Tablas: márgenes 0, celdas apretadas, header azul, filas alternadas.
+
 Verdad nueva falsable ahora: con `data`/clase `retro` activa, la app renderiza
 con paleta gris/Azul-SAP, `--radius: 0` (botones y tarjetas cuadrados), fuente
 Tahoma 12px y la cabecera superior en azul con texto blanco; los temas light y

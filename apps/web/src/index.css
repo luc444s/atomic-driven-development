@@ -99,9 +99,20 @@
     --card-shadow: 0 0 0 0 transparent;
   }
 
-  .retro body {
-    font-family: Tahoma, "Segoe UI", Arial, sans-serif;
-    font-size: 12px;
+  /* Fuente SAP (Geist es moderna): forzar Tahoma en todo el arbol retro */
+  html.retro {
+    font-size: 11px;
+  }
+
+  .retro,
+  .retro * {
+    font-family: Tahoma, "Segoe UI", Arial, sans-serif !important;
+  }
+
+  /* Matar esquinas redondas y sombras modernas */
+  .retro * {
+    border-radius: 0 !important;
+    box-shadow: none !important;
   }
 
   /* Barra de titulo tipo SAP: header superior azul con texto blanco */
@@ -116,9 +127,26 @@
     color: hsl(var(--primary-foreground));
   }
 
+  /* Sidebar denso estilo SAP: items cuadrados, activo azul */
+  .retro aside {
+    background: hsl(var(--sidebar));
+  }
+
+  .retro aside nav a,
+  .retro aside nav button {
+    padding: 2px 6px !important;
+    border-radius: 0 !important;
+  }
+
+  .retro aside nav a.bg-accent {
+    background: hsl(var(--primary)) !important;
+    color: hsl(var(--primary-foreground)) !important;
+  }
+
   /* Grid de tablas denso estilo ALV */
   .retro table {
     border-collapse: collapse;
+    margin: 0 !important;
     font-size: 12px;
   }
 
@@ -126,17 +154,23 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
     border: 1px solid hsl(var(--border));
-    padding: 3px 6px;
+    padding: 2px 5px;
     text-align: left;
   }
 
   .retro td {
     border: 1px solid hsl(var(--border));
-    padding: 3px 6px;
+    padding: 2px 5px;
   }
 
   .retro tbody tr:nth-child(even) {
     background: hsl(207 56% 96%);
+  }
+
+  /* Tarjetas/secciones sin padding moderno excesivo */
+  .retro .card,
+  .retro [class*="rounded"] {
+    padding: 6px !important;
   }
 
   body {

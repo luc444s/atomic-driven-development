@@ -55,6 +55,22 @@ invariants:
   - logistics/stock/crm/productos del host sin cambios
 ```
 
+## IMPLEMENTATION NOTES (decisión de carga)
+
+El loader de plugins del host está hardcodeado en `vendor/systutor-core`
+(`systutor.core.lifecycle` → `PluginManifestRegistry(plugins_dir).discover()`),
+que el change surface PROHÍBE editar. Decidido (**opción "Ambos"**):
+
+- Mecanismo funcional: el paquete `systutor-tms` declara el entrypoint
+  `systutor.plugins` → `plugins.tms:PLUGIN_ROOT`. El host crea un symlink
+  `<plugins_dir>/tms -> PLUGIN_ROOT` en startup (sin tocar el kernel), así el
+  loader por directorio existente lo descubre.
+- Fidelidad de spec: el entrypoint `systutor.plugins` queda declarado en
+  `pyproject.toml` para un loader nativo futuro; el descubrimiento por
+  directorio se conserva ("además de").
+- `apps/api/app/plugins.py::ensure_installed_plugins` (host) + llamada en
+  `apps/api/app/main.py::create_app` antes de `bootstrap_app_state`.
+
 ## VERIFICATION
 
 ```bash
@@ -133,19 +149,21 @@ structural_constraints:
 ## Traceability
 
 - Requirement: "TMS crecerá como repo independiente, plugin instalable, repo con gh"
-- Commit: (pendiente)
-- Deployment: tag v0.1.0 en systutor-tms + host instalando paquete
+- Repo: https://github.com/luc444s/systutor-tms (privado, historial de plugins/tms preservado vía git filter-repo)
+- Tag: v0.1.0 (pusheado)
+- Commit host (monorepo): EXTRACT-002 host loader entrypoint + symlink (apps/api/app/plugins.py, apps/api/app/main.py)
+- Deployment: tag v0.1.0 en systutor-tms + host instalando paquete (`pip install git+https://github.com/luc444s/systutor-tms@v0.1.0`)
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

@@ -8,12 +8,14 @@ from systutor.core.request_context import RequestContextMiddleware
 from apps.api.app import user_categories  # noqa: F401
 from apps.api.app.api.v1.router import api_router
 from apps.api.app.config import get_settings
+from apps.api.app.plugins import ensure_installed_plugins
 from systutor.core.config import Settings
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     effective_settings = settings or get_settings()
     configure_logging(effective_settings.log_level)
+    ensure_installed_plugins(effective_settings.plugins_dir)
 
     app = FastAPI(
         title=effective_settings.app_name,

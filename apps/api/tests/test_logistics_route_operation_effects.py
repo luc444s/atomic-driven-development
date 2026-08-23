@@ -91,10 +91,29 @@ def _create_outbound_session_context(
     )
     assert stock_seed.status_code == 201, stock_seed.text
 
-    driver_id = client.get(
+    # El catalogo de conductores lista usuarios activos con rol "driver".
+    # Se crea uno via API antes de consumir el catalogo (patron _first_driver_id).
+    driver_create = client.post(
+        "/api/v1/core/users",
+        headers=headers,
+        json={
+            "name": f"Driver {sku}",
+            "email": f"driver.{sku.lower()}@example.com",
+            "password": "ChangeMe123!",
+            "branch_id": None,
+            "category": "driver",
+            "role_ids": [],
+            "warehouse_ids": [],
+        },
+    )
+    assert driver_create.status_code == 201, driver_create.text
+    drivers_response = client.get(
         "/api/v1/plugins/logistics/vehicle-sessions/drivers/catalog",
         headers=headers,
-    ).json()[0]["id"]
+    )
+    assert drivers_response.status_code == 200, drivers_response.text
+    assert drivers_response.json(), "drivers catalog vacio tras crear conductor"
+    driver_id = drivers_response.json()[0]["id"]
     session = client.post(
         "/api/v1/plugins/logistics/vehicle-sessions",
         headers=headers,

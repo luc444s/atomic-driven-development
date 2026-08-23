@@ -96,7 +96,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: investigación fallos suite logística (feature content_kg derivado)
-- Commit: pendiente
+- Commit: 7823ab9
 
 ## Definition of Done
 

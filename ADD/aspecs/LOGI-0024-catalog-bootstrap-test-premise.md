@@ -105,7 +105,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: investigación fallos suite logística (premisa bootstrap falsa, decisión B1)
-- Commit: pendiente
+- Commit: 7823ab9
 
 ## Definition of Done
 

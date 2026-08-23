@@ -157,7 +157,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: investigación fallos suite logística (gap real pickup); revisión speccer (verdict ACCEPT_ONE con revisiones)
-- Commit: pendiente
+- Commit: b5192f0
 
 ## Definition of Done
 

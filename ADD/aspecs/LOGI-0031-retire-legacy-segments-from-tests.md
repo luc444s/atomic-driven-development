@@ -109,7 +109,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: remoción del flujo legacy (LOGI-0030); usuario confirma "todo vive en jornadas"
-- Commit: pendiente
+- Commit: 7823ab9
 
 ## Definition of Done
 

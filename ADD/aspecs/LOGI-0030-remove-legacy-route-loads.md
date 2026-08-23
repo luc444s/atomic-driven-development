@@ -148,7 +148,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: usuario confirma flujo legacy sin uso; roto desde migration 035
-- Commit: pendiente
+- Commit: 5791898
 
 ## Definition of Done
 

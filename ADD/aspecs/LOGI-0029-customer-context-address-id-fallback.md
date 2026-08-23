@@ -106,7 +106,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: crash destapado por LOGI-0022 durante ejecución (falla de composición LOGI-0017 × contextos manuales)
-- Commit: pendiente
+- Commit: 36e9361
 
 ## Definition of Done
 

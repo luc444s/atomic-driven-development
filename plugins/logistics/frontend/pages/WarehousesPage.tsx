@@ -88,8 +88,8 @@ export function WarehousesPage() {
     >
       {error ? <Alert title="No se pudo completar la acción">{error}</Alert> : null}
 
-      <div className="grid gap-6 xl:grid-cols-[1.4fr,1fr]">
-        <Card>
+      <div className="flex justify-center">
+        <Card className="w-full max-w-[640px]">
           <CardHeader>
             <CardTitle>Almacenes</CardTitle>
             <CardDescription>Ubicaciones activas para salida, ingreso y control de envases.</CardDescription>

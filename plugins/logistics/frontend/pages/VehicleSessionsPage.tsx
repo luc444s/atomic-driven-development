@@ -351,9 +351,9 @@ export function VehicleSessionsPage() {
         title="Almacenes"
         description="Superficie secundaria de almacenes y zonas accesible desde Jornadas."
         onClose={() => setIsWarehousesOpen(false)}
-        maxWidthClassName="max-w-[1500px]"
+        maxWidthClassName="max-w-[700px]"
       >
-        <div className="h-[70vh] overflow-y-auto">
+        <div className="min-h-[400px] overflow-y-auto">
           <WarehousesPage />
         </div>
       </Dialog>

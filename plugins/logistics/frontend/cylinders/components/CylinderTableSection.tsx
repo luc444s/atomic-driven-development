@@ -44,12 +44,7 @@ export function CylinderTableSection({
                 >
                   {row.serial}
                 </button>
-                <p className="text-xs text-muted-foreground">
-                  {row.description || "Sin descripción"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {row.barcode2 || row.barcode1 || "Sin barcode"}
-                </p>
+
               </div>
             ),
           },
@@ -62,9 +57,6 @@ export function CylinderTableSection({
                   {productById.get(row.product_id ?? "") ||
                     gasById.get(row.gas_group_id ?? "") ||
                     "Sin gas"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {brandById.get(row.brand_id ?? "") || "Sin marca"}
                 </p>
               </div>
             ),

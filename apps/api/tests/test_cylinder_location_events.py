@@ -72,7 +72,7 @@ def test_cylinder_events_endpoint(
     assert cylinder_response.status_code == 201, cylinder_response.text
     cylinder = cylinder_response.json()
 
-    # Verificar que el endpoint de eventos responde (sin eventos aún)
+    # El alta registra un evento WAREHOUSE_IN (trazabilidad de ubicaciones).
     events_response = client.get(
         f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/events",
         headers=headers,
@@ -80,13 +80,15 @@ def test_cylinder_events_endpoint(
     assert events_response.status_code == 200, events_response.text
     events = events_response.json()
     assert isinstance(events, list)
+    warehouse_in = [e for e in events if e["event_type"] == "WAREHOUSE_IN"]
+    assert warehouse_in, "alta de cilindro deberia registrar WAREHOUSE_IN"
 
-    # Verificar que el endpoint de ubicación responde (sin ubicación aún)
+    # La ubicacion inicial del cilindro es el almacen de alta.
     location_response = client.get(
         f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/location",
         headers=headers,
     )
     assert location_response.status_code == 200, location_response.text
     location = location_response.json()
-    assert location["location_type"] is None
-    assert location["location_id"] is None
+    assert location["location_type"] == "WAREHOUSE"
+    assert location["location_id"] == warehouse["id"]

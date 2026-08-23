@@ -1,25 +1,27 @@
 import { create } from "zustand";
 
 import { injectThemeTokens } from "./apply-tokens";
+import { THEME_NAMES, type ThemeName } from "./tokens";
 
 const STORAGE_KEY = "systutor.theme";
 
-type Theme = "dark" | "light" | "retro";
+type Theme = ThemeName;
 
-const THEME_ORDER: Theme[] = ["dark", "light", "retro"];
+const THEME_ORDER: Theme[] = [...THEME_NAMES];
 
 function getInitialTheme(): Theme {
   if (typeof window === "undefined") return "dark";
-  const stored = window.localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark" || stored === "retro") return stored;
+  const stored = window.localStorage.getItem(STORAGE_KEY) as Theme | null;
+  if (stored && (THEME_NAMES as string[]).includes(stored)) return stored;
   return "dark";
 }
 
 function applyTheme(theme: Theme) {
   if (typeof window === "undefined") return;
   const root = document.documentElement;
-  root.classList.toggle("dark", theme === "dark");
-  root.classList.toggle("retro", theme === "retro");
+  THEME_NAMES.forEach((name) => {
+    root.classList.toggle(name, name !== "light" && name === theme);
+  });
 }
 
 type ThemeState = {

@@ -1,9 +1,13 @@
 import { useThemeStore } from "../../features/theme/store";
+import { THEME_NAMES } from "../../features/theme/tokens";
 
 const THEME_LABELS: Record<string, string> = {
   dark: "Oscuro",
   light: "Claro",
   retro: "Retro (SAP)",
+  catpuccin_mocha: "Catppuccin Mocha",
+  nord: "Nord",
+  nord_dark: "Nord Dark",
 };
 
 export function ThemeToggle() {
@@ -18,9 +22,9 @@ export function ThemeToggle() {
         onChange={(e) => setTheme(e.target.value as typeof theme)}
         className="rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground"
       >
-        {Object.entries(THEME_LABELS).map(([value, label]) => (
+        {THEME_NAMES.map((value) => (
           <option key={value} value={value}>
-            {label}
+            {THEME_LABELS[value] ?? value}
           </option>
         ))}
       </select>

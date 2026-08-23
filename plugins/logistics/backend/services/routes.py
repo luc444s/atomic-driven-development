@@ -15,23 +15,17 @@ from plugins.logistics.backend.common import (
 from plugins.logistics.backend.models import (
     LogisticsAgendaTask,
     LogisticsDeliveryPoint,
-    LogisticsLoad,
     LogisticsRoute,
     LogisticsRouteStop,
     LogisticsRouteWeekday,
 )
 from plugins.logistics.backend.schemas import (
-    CylinderTransitionRequest,
-    LoadBulkCreateRequest,
-    LoadCreateRequest,
     RouteCreateRequest,
     RouteStopCreateRequest,
     RouteStopUpdateRequest,
     RouteUpdateRequest,
 )
-from plugins.logistics.backend.services.cylinders import get_cylinder, transition_cylinder
 from plugins.logistics.backend.services.extensions import (
-    validate_route_weight_limit,
     validate_vehicle_for_route,
 )
 
@@ -334,146 +328,6 @@ def delete_route_stop(
         sync_route_labels(db, route=route)
 
 
-def list_loads(db: Session, *, route_id: str) -> list[LogisticsLoad]:
-    return list(
-        db.scalars(
-            select(LogisticsLoad)
-            .where(LogisticsLoad.route_id == route_id)
-            .order_by(LogisticsLoad.created_at.asc())
-        ).all()
-    )
-
-
-def create_load(
-    db: Session,
-    *,
-    route: LogisticsRoute,
-    payload: LoadCreateRequest,
-    action_context: LogisticsActionContext,
-) -> LogisticsLoad:
-    validate_route_weight_limit(db, route=route, cylinder_id=payload.cylinder_id)
-    load = LogisticsLoad(
-        route_id=route.id,
-        cylinder_id=payload.cylinder_id,
-        stop_id=payload.stop_id,
-        notes=payload.notes,
-    )
-    db.add(load)
-    db.flush()
-    audit_logistics_action(
-        db,
-        context=action_context,
-        action="load.assign",
-        entity_type="load",
-        entity_id=load.id,
-        details={"route_id": route.id, "cylinder_id": load.cylinder_id},
-    )
-    emit_logistics_event(
-        db,
-        context=action_context,
-        event_name="logistics.load.assigned",
-        entity_type="load",
-        entity_id=load.id,
-        payload={"route_id": route.id, "cylinder_id": load.cylinder_id, "stop_id": load.stop_id},
-    )
-    return load
-
-
-def bulk_create_loads(
-    db: Session,
-    *,
-    route: LogisticsRoute,
-    payload: LoadBulkCreateRequest,
-    action_context: LogisticsActionContext,
-) -> list[LogisticsLoad]:
-    loads = []
-    for cylinder_id in payload.cylinder_ids:
-        validate_route_weight_limit(db, route=route, cylinder_id=cylinder_id)
-        loads.append(
-            create_load(
-                db,
-                route=route,
-                payload=LoadCreateRequest(
-                    route_id=route.id,
-                    cylinder_id=cylinder_id,
-                    stop_id=payload.stop_id,
-                    notes=payload.notes,
-                ),
-                action_context=action_context,
-            )
-        )
-    return loads
-
-
-def get_load(db: Session, *, route_id: str, load_id: str) -> LogisticsLoad | None:
-    return db.scalar(
-        select(LogisticsLoad).where(
-            LogisticsLoad.id == load_id,
-            LogisticsLoad.route_id == route_id,
-        )
-    )
-
-
-def get_load_by_id(db: Session, *, load_id: str) -> LogisticsLoad | None:
-    return db.scalar(select(LogisticsLoad).where(LogisticsLoad.id == load_id))
-
-
-def delete_load(
-    db: Session, *, load: LogisticsLoad, action_context: LogisticsActionContext
-) -> None:
-    audit_logistics_action(
-        db,
-        context=action_context,
-        action="load.remove",
-        entity_type="load",
-        entity_id=load.id,
-        details={"route_id": load.route_id, "cylinder_id": load.cylinder_id},
-    )
-    db.delete(load)
-
-
-def confirm_loads(
-    db: Session,
-    *,
-    tenant_id: str,
-    route: LogisticsRoute,
-    action_context: LogisticsActionContext,
-) -> list[LogisticsLoad]:
-    now = datetime.now(UTC)
-    loads = list_loads(db, route_id=route.id)
-    for load in loads:
-        if load.status == "CARGADO":
-            continue
-        load.status = "CARGADO"
-        load.loaded_at = now
-        db.add(load)
-        cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=load.cylinder_id)
-        if cylinder is not None and cylinder.current_state != "CARGA_EN_VEHICULO":
-            transition_cylinder(
-                db,
-                tenant_id=tenant_id,
-                cylinder_id=load.cylinder_id,
-                payload=CylinderTransitionRequest(
-                    to_state="CARGA_EN_VEHICULO",
-                    origin="LOAD_CONFIRM",
-                    notes=f"Route {route.id}",
-                ),
-                action_context=action_context,
-            )
-    route.status = "EN_CARGA"
-    db.add(route)
-    db.flush()
-    emit_logistics_event(
-        db,
-        context=action_context,
-        event_name="logistics.load.prepared",
-        entity_type="route",
-        entity_id=route.id,
-        payload={"route_id": route.id, "cylinders_count": len(loads)},
-    )
-    return loads
-
-
 def start_route(
     db: Session,
     *,
@@ -483,20 +337,6 @@ def start_route(
 ) -> LogisticsRoute:
     route.status = "EN_RUTA"
     db.add(route)
-    for load in list_loads(db, route_id=route.id):
-        cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=load.cylinder_id)
-        if cylinder is not None and cylinder.current_state == "CARGA_EN_VEHICULO":
-            transition_cylinder(
-                db,
-                tenant_id=tenant_id,
-                cylinder_id=load.cylinder_id,
-                payload=CylinderTransitionRequest(
-                    to_state="EN_RUTA",
-                    origin="ROUTE_START",
-                    notes=f"Route {route.id}",
-                ),
-                action_context=action_context,
-            )
     db.flush()
     emit_logistics_event(
         db,
@@ -573,38 +413,6 @@ def deliver_route_stop(
     db.add(stop)
     route.status = "EN_RUTA"
     db.add(route)
-
-    loads = list(
-        db.scalars(
-            select(LogisticsLoad).where(
-                LogisticsLoad.route_id == route.id,
-                LogisticsLoad.stop_id == stop.id,
-            )
-        ).all()
-    )
-    for load in loads:
-        load.status = "DESCARGADO"
-        load.unloaded_at = now
-        db.add(load)
-        cylinder = get_cylinder(db, tenant_id=tenant_id, cylinder_id=load.cylinder_id)
-        if cylinder is not None and cylinder.current_state == "EN_RUTA":
-            transition_cylinder(
-                db,
-                tenant_id=tenant_id,
-                cylinder_id=load.cylinder_id,
-                payload=CylinderTransitionRequest(
-                    to_state="EN_CLIENTE_LLENO",
-                    customer_id=(
-                        delivery_point.customer_id if delivery_point is not None else None
-                    ),
-                    customer_name=(
-                        delivery_point.customer_name if delivery_point is not None else None
-                    ),
-                    origin="STOP_DELIVERED",
-                    notes=f"Stop {stop.id}",
-                ),
-                action_context=action_context,
-            )
     db.flush()
     return stop
 

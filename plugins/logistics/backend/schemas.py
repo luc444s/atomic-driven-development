@@ -827,39 +827,6 @@ class RouteStopUpdateRequest(BaseModel):
     notes: str | None = None
 
 
-class LoadRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: str
-    route_id: str
-    cylinder_id: str
-    stop_id: str | None
-    status: str
-    loaded_at: datetime | None
-    unloaded_at: datetime | None
-    notes: str | None
-    created_at: datetime
-    updated_at: datetime
-
-
-class LoadCreateRequest(BaseModel):
-    route_id: str
-    cylinder_id: str
-    stop_id: str | None = None
-    notes: str | None = None
-
-
-class LoadBulkCreateRequest(BaseModel):
-    route_id: str
-    cylinder_ids: list[str]
-    stop_id: str | None = None
-    notes: str | None = None
-
-
-class LoadConfirmRequest(BaseModel):
-    route_id: str
-
-
 class MovementTypeRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -1738,13 +1705,6 @@ class RouteWeekdayUpdateRequest(BaseModel):
     weekdays: list[int] = Field(default_factory=list)
 
 
-class LoadWeightSummaryRead(BaseModel):
-    route_id: str
-    weight_limit_kg: float
-    total_weight_kg: float
-    exceeds_limit: bool
-
-
 class AdrProductConfigRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -1860,21 +1820,6 @@ class DispatchTicketRead(WaybillRead):
 
 class TransferAlbaranRead(WaybillRead):
     pass
-
-
-class LoadSummaryItemRead(BaseModel):
-    cylinder_id: str
-    serial: str | None
-    state: str | None
-    weight_kg: float | None
-
-
-class LoadSummaryReportRead(BaseModel):
-    route_id: str
-    driver_id: str
-    vehicle_id: str | None
-    total_weight_kg: float
-    items: list[LoadSummaryItemRead]
 
 
 class ContractStatus(str):

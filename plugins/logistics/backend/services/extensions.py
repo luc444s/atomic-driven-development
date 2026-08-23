@@ -15,7 +15,6 @@ from plugins.logistics.backend.models import (
     LogisticsCylinderStateLog,
     LogisticsDriverParameter,
     LogisticsEquipment,
-    LogisticsLoad,
     LogisticsMovement,
     LogisticsMovementEquipment,
     LogisticsRoute,
@@ -35,7 +34,6 @@ from plugins.logistics.backend.schemas import (
     DriverParameterRead,
     DriverParametersUpsertRequest,
     EquipmentCreateRequest,
-    LoadWeightSummaryRead,
     MovementEquipmentAssignRequest,
     MovementEquipmentReturnRequest,
     ProductContentRead,
@@ -670,41 +668,6 @@ def _get_product_default_weight(db: Session, cylinder: LogisticsCylinder) -> flo
     if product is not None and product.weight_kg is not None:
         return float(product.weight_kg)
     return None
-
-
-def build_load_weight_summary(db: Session, *, route: LogisticsRoute) -> LoadWeightSummaryRead:
-    total_weight = 0.0
-    for load in db.scalars(select(LogisticsLoad).where(LogisticsLoad.route_id == route.id)).all():
-        cylinder = db.scalar(
-            select(LogisticsCylinder).where(LogisticsCylinder.id == load.cylinder_id)
-        )
-        total_weight += _cylinder_weight(cylinder, db)
-    vehicle = (
-        db.scalar(select(LogisticsVehicle).where(LogisticsVehicle.id == route.vehicle_id))
-        if route.vehicle_id
-        else None
-    )
-    limit = 5000.0
-    if vehicle is not None:
-        limit = float(vehicle.useful_load or vehicle.capacity_weight or 5000)
-    return LoadWeightSummaryRead(
-        route_id=route.id,
-        weight_limit_kg=limit,
-        total_weight_kg=total_weight,
-        exceeds_limit=total_weight > limit,
-    )
-
-
-def validate_route_weight_limit(
-    db: Session,
-    *,
-    route: LogisticsRoute,
-    cylinder_id: str,
-) -> None:
-    summary = build_load_weight_summary(db, route=route)
-    cylinder = db.scalar(select(LogisticsCylinder).where(LogisticsCylinder.id == cylinder_id))
-    if summary.total_weight_kg + _cylinder_weight(cylinder, db) > summary.weight_limit_kg:
-        raise ValueError("La carga de la ruta excede el límite de peso configurado")
 
 
 def get_adr_product_config(

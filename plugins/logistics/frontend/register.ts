@@ -5,7 +5,6 @@ import type {
 
 import { AgendaPage } from "./pages/AgendaPage";
 import { CylindersPage } from "./pages/CylindersPage";
-import { LoadsPage } from "./pages/LoadsPage";
 import { OrdersPage } from "./pages/OrdersPage";
 import { PlanningPage } from "./pages/PlanningPage";
 import { ReceptionPage } from "./pages/ReceptionPage";
@@ -38,12 +37,6 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         title: "Rutas",
         component: RoutesPage,
         requiredPermissions: ["logistics.route.read"],
-      },
-      {
-        path: "logistics/loads",
-        title: "Carga",
-        component: LoadsPage,
-        requiredPermissions: ["logistics.load.manage"],
       },
       {
         path: "logistics/planning",

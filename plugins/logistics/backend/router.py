@@ -39,12 +39,6 @@ from plugins.logistics.backend.schemas import (
     EquipmentCreateRequest,
     EquipmentRead,
     IncidentReasonRead,
-    LoadBulkCreateRequest,
-    LoadConfirmRequest,
-    LoadCreateRequest,
-    LoadRead,
-    LoadSummaryReportRead,
-    LoadWeightSummaryRead,
     MovementCancelRequest,
     MovementCreateRequest,
     MovementEquipmentAssignRequest,
@@ -123,7 +117,6 @@ from plugins.logistics.backend.services.dispatch import (
 from plugins.logistics.backend.services.documents import (
     build_adr_points_summary,
     build_dispatch_ticket,
-    build_load_summary,
     build_route_agenda_report,
     build_transfer_albaran,
     build_waybill,
@@ -131,7 +124,6 @@ from plugins.logistics.backend.services.documents import (
 )
 from plugins.logistics.backend.services.extensions import (
     assign_equipment_to_movement,
-    build_load_weight_summary,
     create_adr_incompatibility,
     create_equipment,
     delete_adr_incompatibility,
@@ -205,21 +197,15 @@ from plugins.logistics.backend.services.resources import (
     update_warehouse,
 )
 from plugins.logistics.backend.services.routes import (
-    bulk_create_loads,
     cancel_route,
     complete_route,
-    confirm_loads,
     create_agenda_tasks_from_route,
-    create_load,
     create_route,
     create_route_stop,
-    delete_load,
     delete_route_stop,
     deliver_route_stop,
-    get_load_by_id,
     get_route,
     get_route_stop,
-    list_loads,
     list_route_stops,
     list_routes,
     start_route,
@@ -243,7 +229,6 @@ REQUIRE_ORDER_CREATE = Depends(require_permission("logistics.order.create"))
 REQUIRE_ORDER_MANAGE = Depends(require_permission("logistics.order.manage"))
 REQUIRE_ROUTE_READ = Depends(require_permission("logistics.route.read"))
 REQUIRE_ROUTE_MANAGE = Depends(require_permission("logistics.route.manage"))
-REQUIRE_LOAD_MANAGE = Depends(require_permission("logistics.load.manage"))
 REQUIRE_MOVEMENT_READ = Depends(require_permission("logistics.movement.read"))
 REQUIRE_MOVEMENT_CREATE = Depends(require_permission("logistics.movement.create"))
 REQUIRE_MOVEMENT_CONFIRM = Depends(require_permission("logistics.movement.confirm"))
@@ -869,120 +854,6 @@ def create_route_agenda_tasks_endpoint(
     )
     db.commit()
     return [AgendaTaskRead.model_validate(item) for item in tasks]
-
-
-@router.get("/loads", response_model=list[LoadRead])
-def get_loads(
-    route_id: str = Query(...),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> list[LoadRead]:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
-    if route is None:
-        raise _not_found("Route")
-    return [LoadRead.model_validate(item) for item in list_loads(db, route_id=route_id)]
-
-
-@router.post("/loads", response_model=LoadRead, status_code=status.HTTP_201_CREATED)
-def create_load_endpoint(
-    payload: LoadCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> LoadRead:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=payload.route_id)
-    if route is None:
-        raise _not_found("Route")
-    try:
-        load = create_load(
-            db,
-            route=route,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return LoadRead.model_validate(load)
-
-
-@router.post("/loads/bulk", response_model=list[LoadRead], status_code=status.HTTP_201_CREATED)
-def bulk_create_load_endpoint(
-    payload: LoadBulkCreateRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> list[LoadRead]:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=payload.route_id)
-    if route is None:
-        raise _not_found("Route")
-    try:
-        loads = bulk_create_loads(
-            db,
-            route=route,
-            payload=payload,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except IntegrityError as exc:
-        db.rollback()
-        raise _conflict(exc) from exc
-    except Exception as exc:
-        db.rollback()
-        _raise_service_error(exc)
-    return [LoadRead.model_validate(item) for item in loads]
-
-
-@router.delete("/loads/{load_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_load_endpoint(
-    load_id: str,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> None:
-    load = get_load_by_id(db, load_id=load_id)
-    if load is None:
-        raise _not_found("Load")
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=load.route_id)
-    if route is None:
-        raise _not_found("Route")
-    delete_load(db, load=load, action_context=build_action_context(request, tenant_context))
-    db.commit()
-
-
-@router.post("/loads/confirm", response_model=list[LoadRead])
-def confirm_loads_endpoint(
-    payload: LoadConfirmRequest,
-    request: Request,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> list[LoadRead]:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=payload.route_id)
-    if route is None:
-        raise _not_found("Route")
-    try:
-        loads = confirm_loads(
-            db,
-            tenant_id=tenant_context.current_tenant_id,
-            route=route,
-            action_context=build_action_context(request, tenant_context),
-        )
-        db.commit()
-    except (IntegrityError, StateTransitionError) as exc:
-        db.rollback()
-        if isinstance(exc, IntegrityError):
-            raise _conflict(exc) from exc
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
-    return [LoadRead.model_validate(item) for item in loads]
 
 
 @router.get("/movements", response_model=list[MovementRead])
@@ -1858,19 +1729,6 @@ def get_transfer_albaran_report_endpoint(
     return build_transfer_albaran(db, movement=movement)
 
 
-@router.get("/reports/load-summary/{route_id}", response_model=LoadSummaryReportRead)
-def get_load_summary_report_endpoint(
-    route_id: str,
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_ROUTE_READ,
-) -> LoadSummaryReportRead:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
-    if route is None:
-        raise _not_found("Route")
-    return build_load_summary(db, route=route)
-
-
 @router.get("/reports/adr-summary/{movement_id}", response_model=AdrPointsSummaryRead)
 def get_adr_summary_report_endpoint(
     movement_id: str,
@@ -2304,19 +2162,6 @@ def patch_route_weekly_schedule_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-
-
-@router.get("/loads/weight-summary", response_model=LoadWeightSummaryRead)
-def get_load_weight_summary_endpoint(
-    route_id: str = Query(...),
-    db: Session = DB_SESSION,
-    tenant_context: TenantContext = TENANT_CONTEXT,
-    _: User = REQUIRE_LOAD_MANAGE,
-) -> LoadWeightSummaryRead:
-    route = get_route(db, tenant_id=tenant_context.current_tenant_id, route_id=route_id)
-    if route is None:
-        raise _not_found("Route")
-    return build_load_weight_summary(db, route=route)
 
 
 @router.get("/adr/product-config/{product_id}", response_model=AdrProductConfigRead | None)

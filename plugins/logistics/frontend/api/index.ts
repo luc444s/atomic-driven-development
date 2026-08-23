@@ -12,7 +12,6 @@ export * from "./vehicles";
 export * from "./delivery-points";
 export * from "./orders";
 export * from "./routes";
-export * from "./loads";
 export * from "./movements";
 export * from "./agenda";
 export * from "./planning";

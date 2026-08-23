@@ -9,7 +9,6 @@ from plugins.logistics.backend.models import (
     LogisticsAdrProductConfig,
     LogisticsCylinder,
     LogisticsDeliveryPoint,
-    LogisticsLoad,
     LogisticsMovement,
     LogisticsMovementItem,
     LogisticsRoute,
@@ -21,8 +20,6 @@ from plugins.logistics.backend.schemas import (
     AdrPointsItemRead,
     AdrPointsSummaryRead,
     DispatchTicketRead,
-    LoadSummaryItemRead,
-    LoadSummaryReportRead,
     RouteAgendaReportRead,
     RouteAgendaReportStopRead,
     TransferAlbaranRead,
@@ -200,34 +197,6 @@ def build_dispatch_ticket(db: Session, *, movement: LogisticsMovement) -> Dispat
 
 def build_transfer_albaran(db: Session, *, movement: LogisticsMovement) -> TransferAlbaranRead:
     return TransferAlbaranRead(**build_waybill(db, movement=movement).model_dump())
-
-
-def build_load_summary(db: Session, *, route: LogisticsRoute) -> LoadSummaryReportRead:
-    items: list[LoadSummaryItemRead] = []
-    total_weight = 0.0
-    for load in db.scalars(select(LogisticsLoad).where(LogisticsLoad.route_id == route.id)).all():
-        cylinder = db.scalar(
-            select(LogisticsCylinder).where(LogisticsCylinder.id == load.cylinder_id)
-        )
-        weight = None
-        if cylinder is not None:
-            weight = float(cylinder.weight_current or cylinder.weight_origin or 0)
-            total_weight += weight or 0
-        items.append(
-            LoadSummaryItemRead(
-                cylinder_id=load.cylinder_id,
-                serial=cylinder.serial if cylinder is not None else None,
-                state=cylinder.current_state if cylinder is not None else None,
-                weight_kg=weight,
-            )
-        )
-    return LoadSummaryReportRead(
-        route_id=route.id,
-        driver_id=route.driver_id,
-        vehicle_id=route.vehicle_id,
-        total_weight_kg=total_weight,
-        items=items,
-    )
 
 
 def build_adr_points_summary(db: Session, *, movement: LogisticsMovement) -> AdrPointsSummaryRead:

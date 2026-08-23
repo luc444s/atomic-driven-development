@@ -210,6 +210,8 @@ export function SessionRouteTab({
               isControlPending={controller.isControlPending}
               sessionStatus={sessionStatus}
               stops={stops}
+              assignedPolyline={assignedRoute?.polyline ?? null}
+              startPoint={startPoint}
               onArrive={controller.onArrive}
               onDepart={controller.onDepart}
             />

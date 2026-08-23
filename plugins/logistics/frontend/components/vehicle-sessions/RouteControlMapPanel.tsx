@@ -19,6 +19,8 @@ type Props = {
   isControlPending: boolean;
   sessionStatus: string;
   stops: LogisticsRouteStop[];
+  assignedPolyline?: string | null;
+  startPoint?: { lat: number; lng: number; label?: string | null } | null;
   onArrive: (stopId: string) => void;
   onDepart: (stopId: string) => void;
 };
@@ -31,10 +33,12 @@ export function RouteControlMapPanel({
   isControlPending,
   sessionStatus,
   stops,
+  assignedPolyline,
+  startPoint,
   onArrive,
   onDepart,
 }: Props) {
-  const view = buildRouteControlMapView({ stops, deliveryPoints, controlState, history });
+  const view = buildRouteControlMapView({ stops, deliveryPoints, controlState, history, assignedPolyline, startPoint });
   const canControl = ["OUTBOUND", "RETURNING"].includes(sessionStatus);
   const currentStopId = controlState?.current_stop_id ?? null;
   const activeStopId = controlState?.active_stop_id ?? null;
@@ -73,7 +77,11 @@ export function RouteControlMapPanel({
           center={view.center}
           zoom={view.zoom}
           height={360}
+          autoFit
           markers={[
+            ...(view.startPoint
+              ? [{ id: "origin", position: view.startPoint.position, label: view.startPoint.label, color: "origin" as const, labelVisible: true }]
+              : []),
             ...view.stops.map((stop) => ({
               id: stop.id,
               position: stop.position,
@@ -84,7 +92,10 @@ export function RouteControlMapPanel({
               : []),
           ]}
           polylines={[
-            ...(view.plannedPath.length > 1
+            ...(view.assignedPath.length > 1
+              ? [{ id: "assigned", points: view.assignedPath, color: "#2563eb", weight: 5 }]
+              : []),
+            ...(view.assignedPath.length <= 1 && view.plannedPath.length > 1
               ? [{ id: "planned", points: view.plannedPath, color: "#2563eb", dashArray: "8 6" }]
               : []),
             ...(view.traveledPath.length > 1

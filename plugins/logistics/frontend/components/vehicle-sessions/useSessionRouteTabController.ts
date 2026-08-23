@@ -343,6 +343,11 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
   const correctionIncident = routeIncidents.find((incident) => incident.id === uiState.correctionIncidentId) ?? null;
   const correctionContext = buildCorrectionContext(correctionIncident, stopOptions, routeOperationOptions);
 
+  const selectedStop = stops.find((s) => s.id === uiState.routeStopId) ?? null;
+  const stopAddressLabel = selectedStop?.delivery_point_id
+    ? (deliveryPointsQuery.data ?? []).find((dp) => dp.id === selectedStop.delivery_point_id)?.address ?? null
+    : null;
+
   async function submitFastSerial() {
     const serial = uiState.fastSerialInput.trim();
     if (!serial) return;
@@ -418,6 +423,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
         product_id: p.product_id ?? "",
         product_name: p.product_name,
         quantity: p.at_customer,
+        address_label: p.address_label ?? null,
       })),
     correctionContext,
     stopOptions,
@@ -427,6 +433,7 @@ export function useSessionRouteTabController({ open, routeId, sessionId, session
     operationOptions,
     incidentOptions,
     directionOptions,
+    stopAddressLabel,
     isSubmittingRouteEvent: createAndConfirmMutation.isPending,
     isCreatingIncident: createIncidentMutation.isPending,
     isResolvingIncident: resolveIncidentMutation.isPending,

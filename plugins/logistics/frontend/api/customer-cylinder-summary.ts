@@ -27,6 +27,8 @@ export type CustomerCylinderProductSummary = {
   pipeline: CustomerCylinderPipeline;
   lost: number;
   deviation: number;
+  customer_address_id: string | null;
+  address_label: string | null;
   by_condition: Record<string, CustomerCylinderConditionSummary>;
 };
 

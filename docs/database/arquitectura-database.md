@@ -167,7 +167,7 @@ El subdominio más grande de Logistics:
 
 ```
 lg_cylinder_states          → catálogo de estados (18 estados: CREADO_VACIO, EN_ALMACEN_VACIO, LLENADO_OK, etc.)
-lg_state_transitions        → transiciones permitidas entre estados (31 transiciones)
+lg_state_transitions        → transiciones permitidas entre estados (35 transiciones)
 lg_cylinders                → ficha maestra del cilindro (44 columnas)
   ├── lg_cylinder_state_log     → trazabilidad de cambios de estado (origen, motivo, metadata JSON)
   ├── lg_cylinder_ownership     → custodia/posesión (quién tiene el cilindro y desde cuándo)

@@ -6,6 +6,7 @@ from datetime import datetime
 from sqlalchemy import distinct, func, select
 from sqlalchemy.orm import Session
 
+from plugins.crm.backend.models import CrmCustomerAddress
 from plugins.crm.backend.services.customers import require_customer
 from plugins.logistics.backend.customer_cylinder_summary_schemas import (
     CustomerCylinderAlertRead,
@@ -36,6 +37,23 @@ AT_CUSTOMER_STATES = {"EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"}
 LOSS_INACTIVITY_DAYS_DEFAULT = 90
 MISSING_PRODUCT_NAME = "Sin tipo de envase"
 UNSPECIFIED_CONDITION = "UNSPECIFIED"
+NO_SPECIFIC_ADDRESS_LABEL = "sin dirección específica"
+
+
+def format_customer_address_label(
+    *,
+    label: str | None,
+    formatted_address: str | None,
+    line1: str | None,
+    city: str | None,
+) -> str | None:
+    if formatted_address:
+        return formatted_address
+    if label:
+        return label
+    if line1:
+        return ", ".join(part for part in (line1, city) if part)
+    return None
 
 
 @dataclass
@@ -390,6 +408,95 @@ def _cylinder_events_at_customer(
     return {row.cylinder_id for row in rows}
 
 
+def _customer_event_address_map(
+    db: Session,
+    *,
+    cylinder_ids: set[str],
+) -> dict[str, tuple[datetime, str, str | None]]:
+    """Último evento CUSTOMER_* por cilindro con customer_address_id y label.
+
+    Resuelve la dirección trazable (LOGI-0017) en una sola query batch con
+    outerjoin a crm_customer_addresses para evitar N+1.
+    """
+    if not cylinder_ids:
+        return {}
+    from sqlalchemy import and_
+
+    sub = (
+        select(
+            LogisticsCylinderEvent.cylinder_id,
+            func.max(LogisticsCylinderEvent.occurred_at).label("max_occurred"),
+        )
+        .where(
+            LogisticsCylinderEvent.cylinder_id.in_(cylinder_ids),
+            LogisticsCylinderEvent.event_type.in_(("CUSTOMER_DELIVERY", "CUSTOMER_PICKUP")),
+        )
+        .group_by(LogisticsCylinderEvent.cylinder_id)
+    ).subquery()
+
+    stmt = (
+        select(
+            LogisticsCylinderEvent.cylinder_id,
+            LogisticsCylinderEvent.occurred_at,
+            LogisticsCylinderEvent.customer_address_id,
+            CrmCustomerAddress.label,
+            CrmCustomerAddress.formatted_address,
+            CrmCustomerAddress.line1,
+            CrmCustomerAddress.city,
+        )
+        .join(
+            sub,
+            and_(
+                LogisticsCylinderEvent.cylinder_id == sub.c.cylinder_id,
+                LogisticsCylinderEvent.occurred_at == sub.c.max_occurred,
+            ),
+        )
+        .outerjoin(
+            CrmCustomerAddress,
+            CrmCustomerAddress.id == LogisticsCylinderEvent.customer_address_id,
+        )
+    )
+
+    result: dict[str, tuple[datetime, str, str | None]] = {}
+    for row in db.execute(stmt).all():
+        address_id = row[2]
+        if address_id is None:
+            continue
+        result[row.cylinder_id] = (
+            row.occurred_at,
+            address_id,
+            format_customer_address_label(
+                label=row[3],
+                formatted_address=row[4],
+                line1=row[5],
+                city=row[6],
+            ),
+        )
+    return result
+
+
+def _record_product_address(
+    product_addresses: dict[str, tuple[datetime, str, str | None]],
+    product: ProductAccumulator,
+    event_address: tuple[datetime, str, str | None],
+) -> None:
+    key = _product_key(product.product_id, product.product_name)
+    current = product_addresses.get(key)
+    if current is None or event_address[0] > current[0]:
+        product_addresses[key] = event_address
+
+
+def _product_address_fields(
+    product_addresses: dict[str, tuple[datetime, str, str | None]],
+    product: ProductAccumulator,
+) -> tuple[str | None, str | None]:
+    entry = product_addresses.get(_product_key(product.product_id, product.product_name))
+    if entry is None:
+        return None, None
+    _, address_id, label = entry
+    return address_id, label or NO_SPECIFIC_ADDRESS_LABEL
+
+
 def get_customer_cylinder_summary(
     db: Session,
     *,
@@ -463,6 +570,8 @@ def get_customer_cylinder_summary(
     events_at_customer = _cylinder_events_at_customer(
         db, tenant_id=tenant_id, customer_id=customer_id
     )
+    event_addresses = _customer_event_address_map(db, cylinder_ids=candidate_ids)
+    product_addresses: dict[str, tuple[datetime, str, str | None]] = {}
 
     for cylinder_id in candidate_ids:
         ownership = latest_ownerships.get(cylinder_id)
@@ -480,12 +589,18 @@ def get_customer_cylinder_summary(
         if cylinder_id in events_at_customer:
             product.at_customer += 1
             condition_bucket.at_customer += 1
+            event_address = event_addresses.get(cylinder_id)
+            if event_address is not None:
+                _record_product_address(product_addresses, product, event_address)
             continue
 
         if state in AT_CUSTOMER_STATES:
             if ownership is not None and ownership.customer_id == customer_id:
                 product.at_customer += 1
                 condition_bucket.at_customer += 1
+                event_address = event_addresses.get(cylinder_id)
+                if event_address is not None:
+                    _record_product_address(product_addresses, product, event_address)
             else:
                 product.at_customer_unknown += 1
             continue
@@ -637,6 +752,8 @@ def get_customer_cylinder_summary(
                 ),
                 lost=product.lost,
                 deviation=product.deviation,
+                customer_address_id=_product_address_fields(product_addresses, product)[0],
+                address_label=_product_address_fields(product_addresses, product)[1],
                 by_condition={
                     code: CustomerCylinderConditionSummaryRead(
                         assigned=condition.assigned,

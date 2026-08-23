@@ -45,6 +45,7 @@ export function SessionRouteTabDialogs({ controller }: Props) {
           correctionContext={controller.correctionContext}
           composition={controller.composition?.product_lines ?? []}
           customerCylinders={controller.customerCylinders ?? []}
+          stopAddressLabel={controller.stopAddressLabel ?? null}
           fastSerialInput={controller.fastSerialInput}
           fastSerialError={controller.fastSerialError}
           isPending={controller.isSubmittingRouteEvent}

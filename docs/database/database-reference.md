@@ -1999,7 +1999,7 @@ Columnas: 7 | FKs: 1 | Filas: 0
 ---
 
 ### `lg_state_transitions`
-Columnas: 6 | FKs: 2 | Filas: 3
+Columnas: 6 | FKs: 2 | Filas: 35
 
 | Columna | Tipo | Nullable | Default | Notas |
 |---------|------|----------|---------|-------|

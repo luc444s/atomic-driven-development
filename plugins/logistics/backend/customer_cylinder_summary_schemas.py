@@ -28,6 +28,8 @@ class CustomerCylinderProductSummaryRead(BaseModel):
     pipeline: CustomerCylinderPipelineRead = Field(default_factory=CustomerCylinderPipelineRead)
     lost: int = 0
     deviation: int = 0
+    customer_address_id: str | None = None
+    address_label: str | None = None
     by_condition: dict[str, CustomerCylinderConditionSummaryRead] = Field(default_factory=dict)
 
 

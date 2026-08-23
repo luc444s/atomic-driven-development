@@ -164,6 +164,9 @@ class LogisticsCylinderEvent(Base):
     customer_id: Mapped[str | None] = mapped_column(
         ForeignKey("crm_customers.id"), nullable=True, index=True
     )
+    customer_address_id: Mapped[str | None] = mapped_column(
+        ForeignKey("crm_customer_addresses.id"), nullable=True, index=True
+    )
     source_type: Mapped[str] = mapped_column(String(30), nullable=False)
     source_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
     occurred_at: Mapped[datetime] = mapped_column(

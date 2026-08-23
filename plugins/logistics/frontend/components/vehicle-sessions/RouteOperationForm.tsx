@@ -36,6 +36,7 @@ type CompositionLine = {
   product_id: string;
   product_name: string;
   quantity: number;
+  address_label?: string | null;
 };
 
 type Props = {
@@ -55,6 +56,7 @@ type Props = {
   correctionContext: RouteCorrectionContext | null;
   composition: CompositionLine[];
   customerCylinders: CompositionLine[];
+  stopAddressLabel: string | null;
   fastSerialInput: string;
   fastSerialError: string | null;
   isPending: boolean;
@@ -93,6 +95,7 @@ export function RouteOperationForm({
   correctionContext,
   composition,
   customerCylinders,
+  stopAddressLabel,
   fastSerialInput,
   fastSerialError,
   isPending,
@@ -167,6 +170,12 @@ export function RouteOperationForm({
                 <p className="mb-3 text-sm font-medium text-foreground">Contexto operativo</p>
                 <p className="text-sm text-muted-foreground">
                   La operación queda vinculada a la parada seleccionada. El cliente se deriva automáticamente desde ese punto de entrega.
+                </p>
+                <p className="mt-2 text-sm text-foreground">
+                  Dirección:{" "}
+                  <span className={stopAddressLabel ? "font-medium" : "text-muted-foreground"}>
+                    {stopAddressLabel ?? "sin dirección específica"}
+                  </span>
                 </p>
               </div>
             ) : (
@@ -405,6 +414,11 @@ export function RouteOperationForm({
                         >
                           <span className="text-xs font-medium text-foreground">{line.product_name}</span>
                           <span className="text-xs text-muted-foreground">{line.quantity} en cliente</span>
+                          {line.address_label ? (
+                            <span className="text-xs text-foreground">{line.address_label}</span>
+                          ) : (
+                            <span className="text-xs text-muted-foreground">sin dirección específica</span>
+                          )}
                         </button>
                       ))}
                     </div>

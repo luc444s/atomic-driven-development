@@ -1491,6 +1491,7 @@ def record_cylinder_event(
     warehouse_id: str | None,
     session_id: str | None,
     customer_id: str | None,
+    customer_address_id: str | None = None,
     source_type: str,
     source_id: str | None,
     occurred_at: datetime,
@@ -1530,6 +1531,7 @@ def record_cylinder_event(
         warehouse_id=warehouse_id,
         session_id=session_id,
         customer_id=customer_id,
+        customer_address_id=customer_address_id,
         source_type=source_type,
         source_id=source_id,
         occurred_at=occurred_at,
@@ -1603,6 +1605,11 @@ def list_cylinders_at_customers(
     """Devuelve cilindros actualmente en posesión de clientes usando lg_cylinder_events."""
     from sqlalchemy import and_
 
+    from plugins.crm.backend.models import CrmCustomerAddress
+    from plugins.logistics.backend.services.customer_cylinder_summary import (
+        format_customer_address_label,
+    )
+
     sub = (
         select(
             LogisticsCylinderEvent.cylinder_id,
@@ -1640,8 +1647,17 @@ def list_cylinders_at_customers(
                 latest_events.c.cylinder_id,
                 latest_events.c.customer_id,
                 latest_events.c.location_id,
+                latest_events.c.customer_address_id,
+                CrmCustomerAddress.label,
+                CrmCustomerAddress.formatted_address,
+                CrmCustomerAddress.line1,
+                CrmCustomerAddress.city,
                 LogisticsCylinder.serial,
                 LogisticsCylinder.current_state,
+            )
+            .outerjoin(
+                CrmCustomerAddress,
+                CrmCustomerAddress.id == latest_events.c.customer_address_id,
             )
             .join(
                 LogisticsCylinder,
@@ -1657,6 +1673,13 @@ def list_cylinders_at_customers(
             "serial": r.serial,
             "customer_id": r.customer_id,
             "current_state": r.current_state,
+            "customer_address_id": r.customer_address_id,
+            "address_label": format_customer_address_label(
+                label=r.label,
+                formatted_address=r.formatted_address,
+                line1=r.line1,
+                city=r.city,
+            ),
         }
         for r in results
     ]

@@ -89,7 +89,7 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 | Tabla | Propósito | Columnas clave |
 |---|---|---|
 | `lg_cylinder_states` | Catálogo de estados (18) | `code` (PK), `is_final`, `description` |
-| `lg_state_transitions` | Transiciones permitidas (31) | `from_state`, `to_state`, `requires_adr`, `requires_hydrotest` |
+| `lg_state_transitions` | Transiciones permitidas (35) | `from_state`, `to_state`, `requires_adr`, `requires_hydrotest` |
 | `lg_cylinders` | Entidad principal de envase | `serial` (único x tenant), `current_state` (FK), `barcode1`, `barcode2`, `gas_group_id`, `content_kg`, `condition`, `brand_id`, `adr_*` (9 campos), `last_hydrotest_date`, `next_hydrotest_date`, `weight_origin`, `weight_current`, `is_active` |
 | `lg_cylinder_state_log` | Trazabilidad de cambios de estado | `cylinder_id`, `from_state`, `to_state`, `movement_id`, `origin`, `reason_code`, `metadata_json` (JSON) |
 
@@ -303,7 +303,7 @@ Documentar el estado actual del módulo logistics (`plugins/logistics/`) frente 
 - Esa referencia describe el presente técnico, no el destino final del dominio de productos.
 - `SPEC 0014` documenta trabajo pendiente y no iniciado; cuando se retome, debe rebastarse contra ADR 0015 y SPEC 0015 de `productos` antes de implementarse.
 
-### Máquina de estados: 18 estados, 31 transiciones
+### Máquina de estados: 18 estados, 35 transiciones
 
 #### Estados finales (bloqueados)
 `BLOQUEADO`, `OBSERVADO`, `DE_BAJA`, `PERDIDO`

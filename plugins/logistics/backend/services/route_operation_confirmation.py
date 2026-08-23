@@ -14,6 +14,7 @@ from plugins.logistics.backend.models import (
     LogisticsMovementItem,
     LogisticsRouteOperation,
     LogisticsRouteOperationItem,
+    LogisticsRouteStop,
     LogisticsVehicleSession,
 )
 from plugins.logistics.backend.schemas import CylinderTransitionRequest, MovementCreateRequest
@@ -296,6 +297,26 @@ def _append_customer_possession_from_movement(
         )
 
 
+def _resolve_customer_address_id_from_stop(
+    db: Session, *, route_stop_id: str | None
+) -> str | None:
+    if route_stop_id is None:
+        return None
+    stop = db.scalar(
+        select(LogisticsRouteStop).where(LogisticsRouteStop.id == route_stop_id)
+    )
+    if stop is None or stop.delivery_point_id is None:
+        return None
+    delivery_point = db.scalar(
+        select(LogisticsDeliveryPoint).where(
+            LogisticsDeliveryPoint.id == stop.delivery_point_id
+        )
+    )
+    if delivery_point is None:
+        return None
+    return delivery_point.address_id
+
+
 def _record_delivery_cylinder_events(
     db: Session,
     *,
@@ -304,6 +325,7 @@ def _record_delivery_cylinder_events(
     movement: LogisticsMovement,
     items: list[LogisticsRouteOperationItem],
     customer_id: str | None,
+    customer_address_id: str | None = None,
     action_context: LogisticsActionContext,
 ) -> None:
     if customer_id is None:
@@ -327,6 +349,7 @@ def _record_delivery_cylinder_events(
             warehouse_id=None,
             session_id=session.id,
             customer_id=customer_id,
+            customer_address_id=customer_address_id,
             source_type="ROUTE_OPERATION",
             source_id=movement.id,
             occurred_at=datetime.now(UTC),
@@ -363,6 +386,7 @@ def _record_pickup_cylinder_events(
     session: LogisticsVehicleSession,
     movement: LogisticsMovement,
     customer_id: str | None,
+    customer_address_id: str | None = None,
     action_context: LogisticsActionContext,
 ) -> None:
     if customer_id is None:
@@ -385,6 +409,7 @@ def _record_pickup_cylinder_events(
             warehouse_id=None,
             session_id=session.id,
             customer_id=None,
+            customer_address_id=customer_address_id,
             source_type="ROUTE_OPERATION",
             source_id=movement.id,
             occurred_at=now,
@@ -426,6 +451,9 @@ def _record_physical_pickup_events(
 
     from plugins.logistics.backend.services.cylinders import record_cylinder_event
 
+    customer_address_id = _resolve_customer_address_id_from_stop(
+        db, route_stop_id=operation.route_stop_id
+    )
     now = datetime.now(UTC)
     for item in items:
         if not _item_is_serialized(db, session=session, item=item):
@@ -447,6 +475,7 @@ def _record_physical_pickup_events(
                 warehouse_id=None,
                 session_id=session.id,
                 customer_id=customer_id,
+                customer_address_id=customer_address_id,
                 source_type="ROUTE_OPERATION",
                 source_id=operation.id,
                 occurred_at=now,
@@ -685,6 +714,8 @@ def confirm_route_operation_effects(
     movement_ids: list[str] = []
     movement_types: list[str] = []
     out_movement: LogisticsMovement | None = None
+    customer_id = delivery_point.customer_id if delivery_point is not None else None
+    customer_address_id = delivery_point.address_id if delivery_point is not None else None
 
     if out_items:
         out_payload = _build_movement_payload(
@@ -726,7 +757,8 @@ def confirm_route_operation_effects(
             session=session,
             movement=out_movement,
             items=out_items,
-            customer_id=delivery_point.customer_id if delivery_point is not None else None,
+            customer_id=customer_id,
+            customer_address_id=customer_address_id,
             action_context=action_context,
         )
 
@@ -792,7 +824,8 @@ def confirm_route_operation_effects(
             tenant_id=session.tenant_id,
             session=session,
             movement=in_movement,
-            customer_id=delivery_point.customer_id if delivery_point is not None else None,
+            customer_id=customer_id,
+            customer_address_id=customer_address_id,
             action_context=action_context,
         )
 

@@ -130,7 +130,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: diagnóstico 15+ fallos pre-existentes en suite logística (sesión 2026-08-23)
-- Commit: pendiente
+- Commit: 138ab3d
 - Deployment: N/A (tests)
 
 ## Definition of Done

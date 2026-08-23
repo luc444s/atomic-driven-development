@@ -146,7 +146,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: refinación trazabilidad cilindro por dirección de cliente (opción A: auto desde delivery_point)
-- Commit: pendiente (sin commit aún; agregar hash al integrar)
+- Commit: cdc2291 (junto a LOGI-0018)
 - Deployment: pendiente (migración 056 se aplica vía migrate_plugins)
 
 ## Definition of Done

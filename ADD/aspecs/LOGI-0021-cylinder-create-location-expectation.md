@@ -112,7 +112,7 @@ structural_constraints:
 ## Traceability
 
 - Requirement: diagnóstico fallos pre-existentes suite logística (causa 3)
-- Commit: pendiente
+- Commit: e17986c
 - Deployment: N/A (tests)
 
 ## Definition of Done

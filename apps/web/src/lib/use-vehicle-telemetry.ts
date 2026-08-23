@@ -97,6 +97,14 @@ export function useVehicleTelemetry(
       setError("Este navegador no soporta geolocalización");
       return;
     }
+    if (typeof window !== "undefined" && !window.isSecureContext) {
+      setStatus("error");
+      setError(
+        "La geolocalización requiere origen seguro (HTTPS o localhost). " +
+          "Accedé vía HTTPS o habilitá el flag unsafely-treat-insecure-origin-as-secure."
+      );
+      return;
+    }
     if (watchIdRef.current !== null) {
       return;
     }

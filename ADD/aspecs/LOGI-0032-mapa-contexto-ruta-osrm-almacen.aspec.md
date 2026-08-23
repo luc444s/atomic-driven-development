@@ -33,8 +33,9 @@ Una sola transición observable: el "Mapa de contexto" de una jornada activa mue
   `startPoint`; decodifica polyline; fallback a `stop.gps_coordinates`; incluye marcador
   de origen en `plannedPath`.
 - `RouteControlMapPanel.tsx`: nuevas props `assignedPolyline` / `startPoint`; dibuja
-  polylines (asignada sólida, fallback punteada, recorrida verde) y marcador origen;
-  `autoFit` para encuadrar todos los markers.
+  polylines (asignada sólida, fallback punteada, recorrida verde) y marcador origen.
+  La vista (centro/zoom) se deriva determinísticamente del bounding box de la ruta —
+  NO usa `autoFit`, para que la telemetría no haga zoom/pan en cada update.
 - `SessionRouteTab.tsx`: pasa `assignedRoute?.polyline` y `startPoint` al panel.
 - `route-polyline.ts` (nuevo): util compartido `decodePolyline` (Google precision-5).
 

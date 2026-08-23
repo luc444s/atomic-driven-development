@@ -53,6 +53,30 @@ function getStopCoordinates(stop: LogisticsRouteStop): LatLng | null {
   return { lat: coords.lat, lng: coords.lng };
 }
 
+/**
+ * Centro y zoom estables derivados del bounding box de la geometría.
+ * Depende solo de la forma de la ruta (constante durante la jornada),
+ * nunca de telemetría — evita que el mapa haga zoom con cada update.
+ */
+function fitRouteView(points: LatLng[]): { center: LatLng; zoom: number } | null {
+  if (!points.length) {
+    return null;
+  }
+  const lats = points.map((p) => p.lat);
+  const lngs = points.map((p) => p.lng);
+  const minLat = Math.min(...lats);
+  const maxLat = Math.max(...lats);
+  const minLng = Math.min(...lngs);
+  const maxLng = Math.max(...lngs);
+  const center = { lat: (minLat + maxLat) / 2, lng: (minLng + maxLng) / 2 };
+  const midLatRad = (center.lat * Math.PI) / 180;
+  const spanLat = maxLat - minLat || 0.01;
+  const spanLng = (maxLng - minLng || 0.01) * Math.cos(midLatRad);
+  const spanDeg = Math.max(spanLat, spanLng);
+  const zoom = Math.min(16, Math.max(3, Math.floor(Math.log2(360 / spanDeg))));
+  return { center, zoom };
+}
+
 export function buildRouteControlMapView(args: {
   stops: LogisticsRouteStop[];
   deliveryPoints: LogisticsDeliveryPoint[];
@@ -103,8 +127,13 @@ export function buildRouteControlMapView(args: {
   const vehiclePosition = args.controlState?.last_lat != null && args.controlState?.last_lng != null
     ? { lat: args.controlState.last_lat, lng: args.controlState.last_lng }
     : lastHistoryPoint;
-  const center = vehiclePosition ?? assignedPath[0] ?? plannedPath[0] ?? DEFAULT_CENTER;
-  const zoom = 12;
+
+  // Vista estable: encuadre derivado solo de la geometría de la ruta.
+  // La posición del vehículo se dibuja como marker pero NUNCA mueve la vista,
+  // así la telemetría no hace zoom/pan con cada update.
+  const fit = fitRouteView(assignedPath.length > 1 ? assignedPath : plannedPath);
+  const center = fit?.center ?? vehiclePosition ?? DEFAULT_CENTER;
+  const zoom = fit?.zoom ?? 12;
 
   return {
     center,

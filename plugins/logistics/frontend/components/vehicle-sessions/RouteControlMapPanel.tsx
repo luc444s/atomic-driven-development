@@ -77,7 +77,6 @@ export function RouteControlMapPanel({
           center={view.center}
           zoom={view.zoom}
           height={360}
-          autoFit
           markers={[
             ...(view.startPoint
               ? [{ id: "origin", position: view.startPoint.position, label: view.startPoint.label, color: "origin" as const, labelVisible: true }]

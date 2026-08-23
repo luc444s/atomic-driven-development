@@ -596,6 +596,32 @@ def transition_cylinder(
         )
     )
 
+    # Corrección manual hacia estados de cliente: registrar el evento
+    # espejo de ubicación para que current_state y la trazabilidad
+    # (lg_cylinder_events) no se contradigan. Atómico con el cambio de
+    # estado: si falla, la excepción propaga y no hay commit.
+    if transition.to_state in ("EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO") and payload.customer_id:
+        try:
+            record_cylinder_event(
+                db,
+                cylinder_id=cylinder.id,
+                tenant_id=tenant_id,
+                event_type="CUSTOMER_DELIVERY",
+                location_type="CUSTOMER",
+                location_id=payload.customer_id,
+                warehouse_id=None,
+                session_id=None,
+                customer_id=payload.customer_id,
+                source_type="MANUAL_TRANSITION",
+                source_id=None,
+                occurred_at=datetime.now(UTC),
+                action_context=action_context,
+            )
+        except ValueError as exc:
+            raise StateTransitionError(
+                f"No se pudo registrar la trazabilidad de la transición manual: {exc}"
+            ) from exc
+
     audit_logistics_action(
         db,
         context=action_context,
@@ -1474,9 +1500,12 @@ _LOCATION_DEFINING_EVENTS = {
 
 _VALID_TRANSITIONS: dict[str | None, set[str]] = {
     None: {"WAREHOUSE_IN"},
-    "WAREHOUSE": {"VEHICLE_LOAD"},
+    # CUSTOMER_DELIVERY desde WAREHOUSE/CUSTOMER: la corrección manual
+    # (transition endpoint) ocurre fuera del flujo vehículo→cliente y
+    # puede reiterarse entre estados cliente. Ver LOGI-0023.
+    "WAREHOUSE": {"VEHICLE_LOAD", "CUSTOMER_DELIVERY"},
     "VEHICLE": {"CUSTOMER_DELIVERY", "WAREHOUSE_IN"},
-    "CUSTOMER": {"CUSTOMER_PICKUP", "VEHICLE_LOAD", "WAREHOUSE_IN"},
+    "CUSTOMER": {"CUSTOMER_PICKUP", "CUSTOMER_DELIVERY", "VEHICLE_LOAD", "WAREHOUSE_IN"},
 }
 
 

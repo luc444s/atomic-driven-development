@@ -17,6 +17,7 @@ from systutor.kernel.plugins.persistent import (
 
 from apps.api.app.commands.seed_demo import seed_demo_data
 from apps.api.tests.test_productos_plugin import enable_productos_plugin
+from plugins.logistics.backend.common import LogisticsActionContext
 from plugins.logistics.backend.models import (
     LogisticsAgendaTaskType,
     LogisticsCylinder,
@@ -32,6 +33,7 @@ from plugins.logistics.backend.services.catalog import (
     STATE_DEFINITIONS,
     TRANSITION_DEFINITIONS,
 )
+from plugins.logistics.backend.services.cylinders import record_cylinder_event
 
 
 def login(client: TestClient, email: str = "admin@example.com", password: str = "ChangeMe123!"):
@@ -556,6 +558,13 @@ def test_logistics_cylinder_medical_filter_and_traceability(app) -> None:
 
 
 def test_bootstrap_restores_missing_logistics_transition_catalog(app) -> None:
+    # La garantia real vive en ensure_logistics_catalogs (hooks
+    # on_install/on_enable del plugin); bootstrap_app_state no re-ejecuta
+    # hooks de plugins ya habilitados.
+    from plugins.logistics.backend.services.catalog_bootstrap import (
+        ensure_logistics_catalogs,
+    )
+
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
@@ -581,9 +590,9 @@ def test_bootstrap_restores_missing_logistics_transition_catalog(app) -> None:
         )
         assert transition is None
 
-    bootstrap_app_state(app, app.state.settings)
+        ensure_logistics_catalogs(db)
+        db.commit()
 
-    with app.state.session_factory() as db:
         transition = db.scalar(
             select(LogisticsStateTransition).where(
                 LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
@@ -592,6 +601,31 @@ def test_bootstrap_restores_missing_logistics_transition_catalog(app) -> None:
         )
         assert transition is not None
         assert transition.description == "Recojo desde cliente"
+
+        total = len(
+            list(
+                db.scalars(
+                    select(LogisticsStateTransition).where(
+                        LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
+                        LogisticsStateTransition.to_state == "EN_RUTA",
+                    )
+                ).all()
+            )
+        )
+        ensure_logistics_catalogs(db)
+        db.commit()
+        total_after = len(
+            list(
+                db.scalars(
+                    select(LogisticsStateTransition).where(
+                        LogisticsStateTransition.from_state == "EN_CLIENTE_VACIO",
+                        LogisticsStateTransition.to_state == "EN_RUTA",
+                    )
+                ).all()
+            )
+        )
+        assert total == 1
+        assert total_after == 1
 
 
 def test_logistics_create_cylinder_empty_from_customer_entry(app) -> None:
@@ -748,7 +782,7 @@ def test_logistics_create_cylinder_full_from_supplier_adjusts_stock(app) -> None
         assert balance_response.json()["quantity"] == 10
 
 
-def test_logistics_create_cylinder_full_from_supplier_allows_minimal_route_create_without_content(app) -> None:
+def test_logistics_create_cylinder_full_from_supplier_derives_gas_stock_without_content(app) -> None:
     with app.state.session_factory() as db:
         seeded_demo = seed_demo_data(
             db, app.state.settings, app.state.plugin_runtime.list_results()
@@ -806,7 +840,9 @@ def test_logistics_create_cylinder_full_from_supplier_allows_minimal_route_creat
             headers=headers,
         )
         assert balance_response.status_code == 200, balance_response.text
-        assert balance_response.json()["quantity"] == 0
+        # Sin content_kg explicito, _resolve_initial_content_kg deriva el
+        # gas del weight_kg del producto (10 kg) y registra stock de gas.
+        assert balance_response.json()["quantity"] == 10.0
 
 
 def test_logistics_create_cylinder_entry_requires_resolved_active_warehouse(app) -> None:
@@ -836,7 +872,8 @@ def test_logistics_create_cylinder_entry_requires_resolved_active_warehouse(app)
             },
         )
         assert response.status_code == 400, response.text
-        assert "almacen activo unico" in response.json()["detail"]
+        assert "almacen principal" in response.json()["detail"]
+        assert "FIXED" in response.json()["detail"]
 
 
 def test_logistics_plugin_operations_flow(app) -> None:
@@ -865,14 +902,6 @@ def test_logistics_plugin_operations_flow(app) -> None:
         assert warehouse_response.status_code == 201, warehouse_response.text
         warehouse = warehouse_response.json()
 
-        zone_response = client.post(
-            "/api/v1/plugins/logistics/zones",
-            headers=headers,
-            json={"name": "Zona Centro", "code": "CENTRO"},
-        )
-        assert zone_response.status_code == 201, zone_response.text
-        zone = zone_response.json()
-
         vehicle_response = client.post(
             "/api/v1/plugins/logistics/vehicles",
             headers=headers,
@@ -893,7 +922,6 @@ def test_logistics_plugin_operations_flow(app) -> None:
                 "customer_id": customer["id"],
                 "contact_name": "Ana Lopez",
                 "address": "Calle 1 #123",
-                "zone_id": zone["id"],
                 "is_primary": True,
             },
         )
@@ -980,26 +1008,8 @@ def test_logistics_plugin_operations_flow(app) -> None:
         assert second_stop_response.status_code == 201, second_stop_response.text
         assert second_stop_response.json()["stop_order"] == 2
 
-        bulk_load_response = client.post(
-            "/api/v1/plugins/logistics/loads/bulk",
-            headers=headers,
-            json={"route_id": route["id"], "cylinder_ids": [cylinder["id"]], "stop_id": stop["id"]},
-        )
-        assert bulk_load_response.status_code == 201, bulk_load_response.text
-
-        confirm_load_response = client.post(
-            "/api/v1/plugins/logistics/loads/confirm",
-            headers=headers,
-            json={"route_id": route["id"]},
-        )
-        assert confirm_load_response.status_code == 200, confirm_load_response.text
-        assert confirm_load_response.json()[0]["status"] == "CARGADO"
-
-        cylinder_after_load = client.get(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}",
-            headers=headers,
-        ).json()
-        assert cylinder_after_load["current_state"] == "CARGA_EN_VEHICULO"
+        # Flujo legacy de carga-por-ruta removido (LOGI-0030).
+        # La carga operativa vive en vehicle-sessions (load-plan).
 
         agenda_from_route_response = client.post(
             f"/api/v1/plugins/logistics/routes/{route['id']}/agenda-tasks",
@@ -1014,12 +1024,6 @@ def test_logistics_plugin_operations_flow(app) -> None:
         )
         assert route_start_response.status_code == 200, route_start_response.text
 
-        cylinder_on_route = client.get(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}",
-            headers=headers,
-        ).json()
-        assert cylinder_on_route["current_state"] == "EN_RUTA"
-
         deliver_response = client.post(
             f"/api/v1/plugins/logistics/routes/{route['id']}/stops/{stop['id']}/deliver",
             headers=headers,
@@ -1027,21 +1031,27 @@ def test_logistics_plugin_operations_flow(app) -> None:
         assert deliver_response.status_code == 200, deliver_response.text
         assert deliver_response.json()["status"] == "ENTREGADO"
 
-        delivered_cylinder = client.get(
+        # El cilindro permanece en almacén: sin carga legacy no hay
+        # transición automática a EN_RUTA/EN_CLIENTE_LLENO.
+        cylinder_after_route = client.get(
             f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}",
             headers=headers,
         ).json()
-        assert delivered_cylinder["current_state"] == "EN_CLIENTE_LLENO"
+        assert cylinder_after_route["current_state"] == "LLENADO_OK"
 
-        client.post(
-            f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
-            headers=headers,
-            json={
-                "to_state": "EN_CLIENTE_VACIO",
-                "customer_id": customer["id"],
-                "origin": "CLIENTE",
-            },
-        )
+        # Entrega + vaciado en cliente via transiciones manuales
+        # (equivalente operativo del flujo de jornada).
+        for to_state in ("EN_CLIENTE_LLENO", "EN_CLIENTE_VACIO"):
+            move = client.post(
+                f"/api/v1/plugins/logistics/cylinders/{cylinder['id']}/transition",
+                headers=headers,
+                json={
+                    "to_state": to_state,
+                    "customer_id": customer["id"],
+                    "origin": "CLIENTE",
+                },
+            )
+            assert move.status_code == 200, move.text
 
         movement_response = client.post(
             "/api/v1/plugins/logistics/movements",
@@ -1358,11 +1368,6 @@ def test_logistics_plugin_spec_0014_flow(app) -> None:
             headers=headers,
             json={"name": "Planta Central", "code": "PC", "address": "Av. Central 100"},
         ).json()
-        zone = client.post(
-            "/api/v1/plugins/logistics/zones",
-            headers=headers,
-            json={"name": "Zona Norte", "code": "ZNORTE"},
-        ).json()
         vehicle = client.post(
             "/api/v1/plugins/logistics/vehicles",
             headers=headers,
@@ -1381,7 +1386,6 @@ def test_logistics_plugin_spec_0014_flow(app) -> None:
                 "customer_id": customer["id"],
                 "contact_name": "Jose Perez",
                 "address": "Calle Norte 123",
-                "zone_id": zone["id"],
                 "warehouse_id": warehouse["id"],
                 "is_primary": True,
             },
@@ -1701,32 +1705,13 @@ def test_logistics_plugin_spec_0014_flow(app) -> None:
         assert cylinder_weight.status_code == 200, cylinder_weight.text
         assert cylinder_weight.json()["tara_weight_kg"] == 12.5
 
-        load = client.post(
-            "/api/v1/plugins/logistics/loads",
-            headers=headers,
-            json={"route_id": route["id"], "cylinder_id": cylinder["id"], "stop_id": stop["id"]},
-        )
-        assert load.status_code == 201, load.text
-
-        load_weight = client.get(
-            "/api/v1/plugins/logistics/loads/weight-summary",
-            headers=headers,
-            params={"route_id": route["id"]},
-        )
-        assert load_weight.status_code == 200, load_weight.text
-        assert load_weight.json()["total_weight_kg"] >= 22.5
+        # Endpoints /loads* y /reports/load-summary removidos (LOGI-0030).
 
         route_agenda_report = client.get(
             f"/api/v1/plugins/logistics/reports/route-agenda/{route['id']}",
             headers=headers,
         )
         assert route_agenda_report.status_code == 200, route_agenda_report.text
-
-        load_summary_report = client.get(
-            f"/api/v1/plugins/logistics/reports/load-summary/{route['id']}",
-            headers=headers,
-        )
-        assert load_summary_report.status_code == 200, load_summary_report.text
 
         product_content = client.get(
             f"/api/v1/plugins/logistics/products/{product['id']}/content",
@@ -1953,6 +1938,30 @@ def test_logistics_serialized_cylinder_summary_by_warehouse(app) -> None:
             )
             db.add(movement_cylinder)
             db.flush()
+            # Modelo de verdad vigente: para estados no-transito la
+            # ubicacion viene del ultimo evento (WAREHOUSE_IN), no del
+            # movement. Ver LOGI-0028.
+            record_cylinder_event(
+                db,
+                cylinder_id=movement_cylinder.id,
+                tenant_id=seeded_demo["tenant_id"],
+                event_type="WAREHOUSE_IN",
+                location_type="WAREHOUSE",
+                location_id=warehouse["id"],
+                warehouse_id=warehouse["id"],
+                session_id=None,
+                customer_id=None,
+                source_type="SEED",
+                source_id=None,
+                occurred_at=datetime.now(UTC),
+                action_context=LogisticsActionContext(
+                    tenant_id=seeded_demo["tenant_id"],
+                    branch_id=seeded_demo["branch_id"],
+                    actor_user_id=seeded_demo["user_id"],
+                    correlation_id=None,
+                    request_id=None,
+                ),
+            )
             movement = LogisticsMovement(
                 tenant_id=seeded_demo["tenant_id"],
                 branch_id=seeded_demo["branch_id"],

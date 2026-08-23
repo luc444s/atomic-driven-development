@@ -454,7 +454,7 @@ def test_confirm_route_event_customer_emergency_is_idempotent_and_creates_incide
     session = ctx["session"]
 
     payload = {
-        "context_type": "CUSTOMER_EMERGENCY",
+        "context_type": "CUSTOMER",
         "customer_id": customer["id"],
         "operation_type": "DELIVERY",
         "notes": "Entrega de emergencia sin parada",
@@ -480,7 +480,7 @@ def test_confirm_route_event_customer_emergency_is_idempotent_and_creates_incide
     first_payload = first.json()
     assert first_payload["status"] == "CONFIRMED"
     assert first_payload["route_stop_id"] is None
-    assert first_payload["context_type"] == "CUSTOMER_EMERGENCY"
+    assert first_payload["context_type"] == "CUSTOMER"
     assert first_payload["customer_id"] == customer["id"]
 
     second = client.post(

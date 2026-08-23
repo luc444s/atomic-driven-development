@@ -152,7 +152,7 @@ structural_constraints:
 
 - Requirement: reporte del usuario — "la línea no debe ser recta, debe ser la ruta
   asignada; falta la ubicación del almacén" (vehículo RAM/BEI-793).
-- Commit: pendente de integración (ver mensaje LOGI-0032).
+- Commit: `9282688` — LOGI-0032: mapa de contexto de jornada dibuja ruta OSRM asignada y almacen origen
 - Deployment: frontend Vite dev / build web; sin backend deploy.
 
 ## Definition of Done
@@ -167,4 +167,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit `9282688`)

@@ -223,6 +223,7 @@ def _resolve_operation_context(
                 customer_id=customer.id,
                 customer_name=customer_name_snapshot,
                 address=None,
+                address_id=None,
             ),
             "context_type": resolved_context_type,
             "customer_id": customer.id,
@@ -569,6 +570,7 @@ def _delivery_point_for_operation(
             customer_id=operation.customer_id,
             customer_name=operation.customer_name_snapshot,
             address=None,
+            address_id=None,
         )
     return None
 

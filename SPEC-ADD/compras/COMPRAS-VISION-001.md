@@ -16,11 +16,11 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 5 | Orden de compra | ✅ | CRUD + items (pre-002, endurecido en 002) |
 | 6 | Ciclo de vida | ✅ | COMPRAS-002 |
 | 7 | Aprobación | 🟡 | confirm en un paso; políticas diferidas |
-| 8 | Preparación de envases | ❌ | COMPRAS-005 |
-| 9 | Despacho por serial | ❌ | COMPRAS-005 |
-| 10 | Motivo de envío | ❌ | COMPRAS-005 |
-| 11 | Custodia del proveedor | ❌ | COMPRAS-005 |
-| 12 | Control de permanencia | ❌ | post-005 |
+| 8 | Preparación de envases | ✅ | COMPRAS-005 |
+| 9 | Despacho por serial | ✅ | COMPRAS-005 |
+| 10 | Motivo de envío | ✅ | service_type por serial (COMPRAS-005) |
+| 11 | Custodia del proveedor | ✅ | estado derivado EN_CUSTODIA (COMPRAS-005) |
+| 12 | Control de permanencia | 🟡 | days_out + filtro days_gt (COMPRAS-005); alertas automáticas pendientes |
 | 13 | Recepción desde proveedor | 🟡 | receipts básicos sin vínculo a despacho |
 | 14 | Recepción parcial | 🟡 | received_qty soporta parciales; sin conciliación serial |
 | 15 | Conciliación por serial | ❌ | |
@@ -40,7 +40,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 29 | Proveedores | ✅ | CRUD + catálogo/detalle UI (COMPRAS-004) |
 | 30 | Evaluación de proveedores | 🔮 | |
 | 31 | Integración planificación | ❌ | |
-| 32 | Integración Logistics | ❌ | 005 leerá identidad de cilindro; escritura posterior |
+| 32 | Integración Logistics | 🟡 | lectura de lg_cylinders ✓ (005); escritura/movimientos pendientes |
 | 33 | Integración Inventario | ✅ | connector trazable |
 | 34 | Integración Productos | ✅ | catálogo maestro único |
 | 35 | Integración Finanzas | ❌ | |
@@ -48,7 +48,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 37 | Multiempresa y sucursales | ✅ | tenant_id en todas las operaciones |
 | 38 | Permisos operativos | 🟡 | 6 permisos básicos |
 | 39 | Dashboard operativo | ❌ | |
-| 40 | Consultas esenciales | 🟡 | por orden ✓; por cilindro/proveedor tras 005 |
+| 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
 | 41 | Reportes | ❌ | |
 | 42 | Flujo principal llenado | ❌ | núcleo 005+006 |
 | 43 | Flujo recepción parcial | 🟡 | |

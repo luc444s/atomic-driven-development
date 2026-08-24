@@ -196,18 +196,18 @@ structural_constraints:
 - Requirement: plan aprobado por usuario ("esta excelente") tras diseño de
   custodia derivada, frontera logística read-only y subdominio dentro de
   compras; VISION §8-12, §32, §40, §42.
-- Commit: pendiente.
+- Commit: `7c332d0` (spec) · `02668d8` (implementación).
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

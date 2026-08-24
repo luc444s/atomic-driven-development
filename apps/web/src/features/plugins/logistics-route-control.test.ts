@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { buildRouteControlMapView } from "../../../../../plugins/logistics/frontend/components/vehicle-sessions/route-control-view";
 
 describe("buildRouteControlMapView", () => {
-  it("uses vehicle position as center and resolves planned stops from delivery point coordinates", () => {
+  it("derives a stable center/zoom from the route bbox and resolves stops from delivery point coordinates", () => {
     const view = buildRouteControlMapView({
       stops: [
         { id: "stop-1", route_id: "route-1", delivery_point_id: "dp-1", stop_order: 1, scheduled_time: null, status: "PENDIENTE", arrival_time: null, departure_time: null, gps_coordinates: null, customer_id: null, customer_name_snapshot: null, notes: null, created_at: "", updated_at: "" },
@@ -38,11 +38,31 @@ describe("buildRouteControlMapView", () => {
       history: [],
     });
 
-    expect(view.center).toEqual({ lat: -12.15, lng: -77.15 });
+    // LOGI-0032: el centro/zoom sale del bounding box de la ruta (estable);
+    // la posición del vehículo se dibuja como marker pero NO mueve la vista.
+    expect(view.center.lat).toBeCloseTo(-12.15, 6);
+    expect(view.center.lng).toBeCloseTo(-77.15, 6);
+    expect(view.zoom).toBe(11);
+    expect(view.vehiclePosition).toEqual({ lat: -12.15, lng: -77.15 });
     expect(view.plannedPath).toEqual([
       { lat: -12.1, lng: -77.1 },
       { lat: -12.2, lng: -77.2 },
     ]);
     expect(view.stops[0]?.isActive).toBe(true);
+  });
+
+  it("falls back to stop gps_coordinates when the stop has no delivery point", () => {
+    const view = buildRouteControlMapView({
+      stops: [
+        { id: "stop-1", route_id: "route-1", delivery_point_id: null, stop_order: 1, scheduled_time: null, status: "PENDIENTE", arrival_time: null, departure_time: null, gps_coordinates: { lat: -8.06, lng: -79.06 }, customer_id: null, customer_name_snapshot: "Cliente sin DP", notes: null, created_at: "", updated_at: "" },
+      ],
+      deliveryPoints: [],
+      controlState: null,
+      history: [],
+    });
+
+    expect(view.stops).toHaveLength(1);
+    expect(view.stops[0]?.position).toEqual({ lat: -8.06, lng: -79.06 });
+    expect(view.stops[0]?.label).toContain("Cliente sin DP");
   });
 });

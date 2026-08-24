@@ -20,7 +20,6 @@ import { Combobox } from "@systutor/shell/ui/combobox";
 import { Badge } from "@systutor/shell/ui/badge";
 import { Alert } from "@systutor/shell/ui/alert";
 import { CommerceSection } from "../../../frontend/components";
-import { SupplierManagementDialog } from "../components/SupplierManagementDialog";
 import { listAllProducts } from "../../../../productos/frontend/api";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -48,7 +47,6 @@ export function PurchaseOrdersPage() {
   const [error, setError] = useState<string | null>(null);
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
-  const [isSuppliersOpen, setIsSuppliersOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrder | null>(null);
 
   const [createForm, setCreateForm] = useState<{
@@ -125,13 +123,11 @@ export function PurchaseOrdersPage() {
 
   return (
     <>
-      <SupplierManagementDialog open={isSuppliersOpen} onClose={() => { setIsSuppliersOpen(false); setError(null); }} />
       <CommerceSection
         title="Órdenes de compra"
         description="Gestiona órdenes a proveedores, confirma pedidos y recepciona mercadería contra almacenes."
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setIsSuppliersOpen(true)}>Proveedores</Button>
             <Button onClick={() => { setCreateForm({ supplier_id: "", items: [], notes: "" }); setError(null); setIsCreateOpen(true); }}>Nueva orden</Button>
           </div>
         }

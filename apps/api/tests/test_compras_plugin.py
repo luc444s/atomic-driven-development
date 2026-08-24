@@ -226,7 +226,7 @@ def test_compras_order_receive(app) -> None:
 
         # Receive partial
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             detail_before = client.get(
@@ -305,7 +305,7 @@ def test_compras_order_receive_full_marks_received(app) -> None:
         item_id = detail["items"][0]["id"]
 
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             receive_resp = client.post(
@@ -361,7 +361,7 @@ def test_compras_order_receive_excess_quantity_rejected(app) -> None:
         item_id = detail["items"][0]["id"]
 
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             receive_resp = client.post(
@@ -406,7 +406,7 @@ def test_compras_cannot_receive_draft_order(app) -> None:
         detail = client.get(f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers).json()
 
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             receive_resp = client.post(
@@ -501,7 +501,7 @@ def test_compras_cancel_blocked_when_received_qty_positive(app) -> None:
         client.post(f"/api/v1/plugins/compras/purchase/orders/{order_id}/confirm", headers=headers)
 
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             detail = client.get(
@@ -560,7 +560,7 @@ def test_compras_every_transition_writes_audit_event(app) -> None:
         assert detail_events() == [("DRAFT", "ORDERED")]
 
         with patch(
-            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
             return_value=fake_stock,
         ):
             detail = client.get(

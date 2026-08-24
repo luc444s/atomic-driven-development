@@ -12,7 +12,7 @@ import {
   receiveOrder,
 } from "../api";
 import { SuppliersCatalogModal } from "../components/SuppliersCatalogModal";
-import { listWarehouses, getRealWarehouses } from "../../../logistics/frontend/api/warehouses";
+import { listWarehouses, getRealWarehouses } from "../../../../logistics/frontend/api/warehouses";
 import type { OrderItemPayload, PurchaseOrder } from "../types";
 import { Button } from "@systutor/shell/ui/button";
 import { DataTable } from "@systutor/shell/ui/data-table";

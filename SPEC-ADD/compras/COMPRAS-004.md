@@ -177,18 +177,18 @@ structural_constraints:
   confirmación "exactamente las mismas características".
 - Referencia de patrón: plugins/crm/frontend/pages/CustomersListPage.tsx +
   components/ModalDetalleCliente.tsx.
-- Commit: pendiente.
+- Commit: `8e49ca8` (spec) · `2ed1d7e` (implementación)
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

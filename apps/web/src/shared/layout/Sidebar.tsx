@@ -49,7 +49,6 @@ export function Sidebar() {
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-sidebar-foreground">SYSTUTOR</h1>
           </div>
-        <ThemeToggle />
       </div>
 
       <nav className="space-y-5">
@@ -134,6 +133,9 @@ export function Sidebar() {
         })}
       </nav>
 
+      <div className="mt-auto border-t border-border pt-3">
+        <ThemeToggle />
+      </div>
    </aside>
   );
 }

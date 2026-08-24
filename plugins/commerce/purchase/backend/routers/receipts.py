@@ -12,6 +12,7 @@ from plugins.commerce.purchase.backend.routers.common import (
     REQUIRE_ORDER_RECEIVE,
     TENANT_CONTEXT,
     _build_stock_connector,
+    _internal_token,
 )
 from plugins.commerce.purchase.backend.routers.orders import _serialize_order
 from plugins.commerce.purchase.backend.services import orders, receipts
@@ -60,10 +61,8 @@ def list_tanks(
     tenant_context: TenantContext = TENANT_CONTEXT,
 ) -> list[dict]:
     del tenant_context
-    from apps.api.app.config import get_settings
 
-    s = get_settings()
-    token = getattr(s, "internal_api_token", "")
+    token = _internal_token()
     params: dict[str, str] = {"container_type": "CRYOGENIC_TANK", "limit": "50"}
     if product_id:
         params["product_id"] = product_id

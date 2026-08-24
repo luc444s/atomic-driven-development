@@ -31,6 +31,11 @@ class GasSettings(Settings):
     logistics_waybill_issuer_postal_city_line: str | None = None
     legacy_api_base_url: str | None = None
     legacy_api_token: str | None = None
+    # Credenciales de usuario interno para llamadas servidor-a-servidor entre
+    # plugins vía REST (ej: compras → stock purchase-in). Deben existir como
+    # User reales con los permisos necesarios.
+    internal_user_email: str = "admin@example.com"
+    internal_user_password: str = "ChangeMe123!"
     plugins_dir: Path = Field(default_factory=lambda: PROJECT_ROOT / "plugins")
 
 

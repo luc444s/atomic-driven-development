@@ -9,15 +9,20 @@ type AppProvidersProps = {
 
 export function AppProviders({ children }: AppProvidersProps) {
   const [queryClient] = useState(
-    () =>
-      new QueryClient({
+    () => {
+      const client = new QueryClient({
         defaultOptions: {
           queries: {
             refetchOnWindowFocus: false,
             retry: false,
           },
         },
-      })
+      });
+      if (import.meta.env.DEV) {
+        (window as unknown as Record<string, unknown>).__queryClient = client;
+      }
+      return client;
+    }
   );
 
   return (

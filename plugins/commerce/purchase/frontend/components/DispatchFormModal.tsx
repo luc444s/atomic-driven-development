@@ -27,7 +27,7 @@ export function DispatchFormModal({ open, onClose }: Props) {
 
   const suppliersQuery = useQuery({
     queryKey: ["compras", "suppliers"],
-    queryFn: listSuppliers,
+    queryFn: () => listSuppliers(),
     enabled: open,
   });
 

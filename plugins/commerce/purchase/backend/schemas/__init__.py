@@ -1,3 +1,12 @@
+from plugins.commerce.purchase.backend.schemas.dispatches import (
+    CustodyEntryRead,
+    CustodySummaryRow,
+    DispatchCylinderInput,
+    DispatchCylinderRead,
+    DispatchCreateRequest,
+    DispatchPageRead,
+    DispatchRead,
+)
 from plugins.commerce.purchase.backend.schemas.orders import (
     CancelOrderRequest,
     CloseOrderRequest,
@@ -29,6 +38,13 @@ from plugins.commerce.purchase.backend.schemas.suppliers import (
 __all__ = [
     "CancelOrderRequest",
     "CloseOrderRequest",
+    "CustodyEntryRead",
+    "CustodySummaryRow",
+    "DispatchCylinderInput",
+    "DispatchCylinderRead",
+    "DispatchCreateRequest",
+    "DispatchPageRead",
+    "DispatchRead",
     "PurchaseItemCreateRequest",
     "PurchaseItemRead",
     "PurchaseOrderCreateRequest",

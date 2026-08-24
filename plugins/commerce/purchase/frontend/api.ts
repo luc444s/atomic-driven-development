@@ -140,3 +140,34 @@ export function receiveOrder(id: string, payload: ReceiveOrderPayload) {
     body: JSON.stringify(payload),
   });
 }
+
+// ── Dispatches ──
+
+export function listDispatches(params: Record<string, unknown> = {}) {
+  return apiRequest<import("./types").DispatchPage>(`${BASE}/dispatches${buildQuery(params)}`);
+}
+
+export function getDispatch(id: string) {
+  return apiRequest<import("./types").Dispatch>(`${BASE}/dispatches/${id}`);
+}
+
+export function createDispatch(payload: Record<string, unknown>) {
+  return apiRequest<import("./types").Dispatch>(`${BASE}/dispatches`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function confirmDispatch(id: string) {
+  return apiRequest<import("./types").Dispatch>(`${BASE}/dispatches/${id}/confirm`, { method: "POST" });
+}
+
+export function cancelDispatch(id: string) {
+  return apiRequest<import("./types").Dispatch>(`${BASE}/dispatches/${id}/cancel`, { method: "POST" });
+}
+
+export function listSupplierCustody(supplierId: string, params: Record<string, unknown> = {}) {
+  return apiRequest<import("./types").CustodyEntry[]>(
+    `${BASE}/dispatches/suppliers/${supplierId}/custody${buildQuery(params)}`
+  );
+}

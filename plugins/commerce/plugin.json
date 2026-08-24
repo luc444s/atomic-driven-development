@@ -14,7 +14,9 @@
     "compras.order.read",
     "compras.order.create",
     "compras.order.manage",
-    "compras.order.receive"
+    "compras.order.receive",
+    "compras.dispatch.read",
+    "compras.dispatch.manage"
   ],
   "events": [
     "compras.order.created",

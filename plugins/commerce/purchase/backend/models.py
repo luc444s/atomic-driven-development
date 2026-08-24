@@ -212,3 +212,53 @@ class ComPurchaseReceipt(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     order: Mapped[ComPurchaseOrder] = relationship(back_populates="receipts")
+
+
+class ComDispatch(Base):
+    __tablename__ = "com_dispatches"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    supplier_id: Mapped[str] = mapped_column(
+        ForeignKey("com_suppliers.id"), nullable=False, index=True
+    )
+    order_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_purchase_orders.id"), nullable=True, index=True
+    )
+    warehouse_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    dispatch_date: Mapped[date] = mapped_column(Date, nullable=False)
+    carrier: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    vehicle_plate: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    driver_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PREPARADO")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
+    )
+
+    cylinders: Mapped[list["ComDispatchCylinder"]] = relationship(
+        back_populates="dispatch", cascade="all, delete-orphan"
+    )
+
+
+class ComDispatchCylinder(Base):
+    __tablename__ = "com_dispatch_cylinders"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    dispatch_id: Mapped[str] = mapped_column(
+        ForeignKey("com_dispatches.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    cylinder_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_cylinders.id"), nullable=False, index=True
+    )
+    product_id: Mapped[str | None] = mapped_column(String(36), nullable=True)
+    service_type: Mapped[str] = mapped_column(String(30), nullable=False, default="LLENADO")
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="PENDIENTE")
+    returned_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+    dispatch: Mapped[ComDispatch] = relationship(back_populates="cylinders")

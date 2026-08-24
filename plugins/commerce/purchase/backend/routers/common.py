@@ -17,6 +17,8 @@ REQUIRE_ORDER_READ = Depends(require_permission("compras.order.read"))
 REQUIRE_ORDER_CREATE = Depends(require_permission("compras.order.create"))
 REQUIRE_ORDER_MANAGE = Depends(require_permission("compras.order.manage"))
 REQUIRE_ORDER_RECEIVE = Depends(require_permission("compras.order.receive"))
+REQUIRE_DISPATCH_READ = Depends(require_permission("compras.dispatch.read"))
+REQUIRE_DISPATCH_MANAGE = Depends(require_permission("compras.dispatch.manage"))
 
 
 def _build_stock_connector() -> StockConnector:

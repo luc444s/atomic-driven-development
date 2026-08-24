@@ -136,3 +136,56 @@ export type ReceiveOrderPayload = {
   notes?: string | null;
   tank_id?: string | null;
 };
+
+export type DispatchCylinder = {
+  id: string;
+  cylinder_id: string;
+  serial: string | null;
+  product_id: string | null;
+  service_type: string;
+  status: string;
+  returned_at: string | null;
+  notes: string | null;
+};
+
+export type Dispatch = {
+  id: string;
+  supplier_id: string;
+  supplier_name: string | null;
+  order_id: string | null;
+  warehouse_id: string | null;
+  dispatch_date: string;
+  carrier: string | null;
+  vehicle_plate: string | null;
+  driver_name: string | null;
+  status: string;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+  cylinders: DispatchCylinder[];
+};
+
+export type DispatchPage = {
+  items: Dispatch[];
+  total: number;
+  limit: number;
+  offset: number;
+};
+
+export type CustodyEntry = {
+  dispatch_id: string;
+  dispatch_date: string;
+  cylinder_id: string;
+  serial: string | null;
+  product_id: string | null;
+  service_type: string;
+  days_out: number;
+  order_id: string | null;
+};
+
+export type CustodySummaryRow = {
+  supplier_id: string;
+  supplier_name: string | null;
+  total_cylinders: number;
+  oldest_days_out: number;
+};

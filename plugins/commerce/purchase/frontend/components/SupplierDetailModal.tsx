@@ -1,10 +1,11 @@
-import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
+import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
 import {
   addSupplierAddress,
   addSupplierBankAccount,
   addSupplierContact,
   disableSupplier,
+  listSupplierCustody,
   removeSupplierAddress,
   removeSupplierBankAccount,
   removeSupplierContact,
@@ -122,17 +123,7 @@ export function SupplierDetailModal({ open, supplier, onClose, onEdit }: Props) 
               </CardContent>
             </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Envases en custodia</CardTitle>
-                <CardDescription>Cilindros propios actualmente en poder de este proveedor.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">
-                  Sin envases en custodia todavía. Esta sección se activará con el despacho de cilindros a proveedor.
-                </p>
-              </CardContent>
-            </Card>
+            <CustodyCard supplierId={detail.id} />
           </div>
         </div>
       </Dialog>
@@ -396,5 +387,41 @@ function SupplierBanksDialog({ open, supplier, onClose, onError }: SectionProps)
         />
       </div>
     </Dialog>
+  );
+}
+
+function CustodyCard({ supplierId }: { supplierId: string }) {
+  const custodyQuery = useQuery({
+    queryKey: ["compras", "custody", supplierId],
+    queryFn: () => listSupplierCustody(supplierId),
+  });
+  const entries = custodyQuery.data ?? [];
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Envases en custodia</CardTitle>
+        <CardDescription>Cilindros propios actualmente en poder de este proveedor.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {entries.length === 0 ? (
+          <p className="text-sm text-muted-foreground">Sin envases en custodia todavía.</p>
+        ) : (
+          entries.map((e) => (
+            <div key={`${e.dispatch_id}-${e.cylinder_id}`} className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
+              <div className="min-w-0">
+                <p className="font-medium text-foreground">{e.serial ?? e.cylinder_id}</p>
+                <p className="text-xs text-muted-foreground">
+                  {e.service_type} · orden: {e.order_id ? e.order_id.slice(0, 8) : "sin orden"}
+                </p>
+              </div>
+              <span className="whitespace-nowrap rounded-full border border-warning/30 bg-warning/10 px-2 py-0.5 text-xs font-medium text-warning">
+                {e.days_out} {e.days_out === 1 ? "día" : "días"} fuera
+              </span>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
   );
 }

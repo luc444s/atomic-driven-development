@@ -9,6 +9,8 @@ COMPRAS_PERMISSIONS = [
     "compras.order.create",
     "compras.order.manage",
     "compras.order.receive",
+    "compras.dispatch.read",
+    "compras.dispatch.manage",
 ]
 
 COMPRAS_EVENTS = [

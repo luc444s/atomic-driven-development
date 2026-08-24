@@ -96,17 +96,24 @@ invariants:
 
 ## VERIFICATION
 
+> Juzgado con Verifier-ADD: veredicto inicial `GAP`; se cierran los huecos
+> agregando las pruebas marcadas.
+
 - Backend: extender `apps/api/tests/test_compras_plugin.py`:
-  - `test_order_close_requires_reason_and_terminal_state`
-  - `test_cancel_blocked_when_received_qty_positive`
-  - `test_every_transition_writes_audit_event`
-  - `test_generic_status_setter_removed` (import falla → AttributeError)
-  - Tests existentes de lifecycle/receive deben seguir pasando sin cambios.
-- Migración: correr plugin runtime y verificar tabla
-  `com_purchase_order_events` creada; downgrade la elimina.
-- Frontend: `npx tsc --noEmit` limpio; manual: orden DRAFT muestra
-  Confirmar/Cancelar; ORDERED muestra Cerrar (deshabilitado hasta RECEIVED/PARTIAL);
-  dialog de cierre exige motivo.
+  - `test_order_close_requires_reason_and_terminal_state` (cláusula 1)
+  - `test_cancel_blocked_when_received_qty_positive` (cláusula 2)
+  - `test_every_transition_writes_audit_event` (cláusulas 3 y 6)
+  - `test_generic_status_setter_removed` (cláusula 5)
+  - `test_order_detail_includes_event_history` (cláusula 4)
+  - `test_receive_on_closed_order_fails_400` (composición C3)
+  - Tests existentes de lifecycle/receive deben seguir pasando sin cambios
+    (invariantes I1/I2/I4).
+- Migración: comando verificable —
+  `psql ... -c "\\d com_purchase_order_events"` tras levantar el plugin muestra
+  la tabla; `downgrade` seguido del mismo comando confirma que desaparece.
+- Frontend: `cd apps/web && npx tsc --noEmit` limpio; manual: orden DRAFT
+  muestra Confirmar/Cancelar; ORDERED muestra Cerrar (deshabilitado hasta
+  RECEIVED/PARTIAL); dialog de cierre exige motivo.
 
 ## ROLLBACK
 

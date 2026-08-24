@@ -9,10 +9,10 @@ import { listContracts } from "../../../logistics/frontend/api/contracts";
 import type { LogisticsCylinderContract } from "../../../logistics/frontend/api/contracts";
 
 const STATUS_COLOR: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-800",
-  ACTIVE: "bg-green-100 text-green-800",
-  TERMINATED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-yellow-100 text-yellow-800",
+  DRAFT: "border-border bg-muted text-muted-foreground",
+  ACTIVE: "border-success/30 bg-success/10 text-success",
+  TERMINATED: "border-destructive/30 bg-destructive/10 text-destructive",
+  CANCELLED: "border-warning/30 bg-warning/10 text-warning",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -92,7 +92,7 @@ export function CustomerContractsButton({ customerId }: CustomerContractsButtonP
                   key: "status",
                   header: "Estado",
                   render: (row) => (
-                    <Badge className={STATUS_COLOR[row.status] || "bg-gray-100 text-gray-800"}>
+                    <Badge className={STATUS_COLOR[row.status] || "border-border bg-muted text-muted-foreground"}>
                       {STATUS_LABEL[row.status] || row.status}
                     </Badge>
                   ),

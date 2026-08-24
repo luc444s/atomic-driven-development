@@ -18,6 +18,8 @@ const PALETTE_KEYS = [
   "accentForeground",
   "destructive",
   "destructiveForeground",
+  "success",
+  "warning",
   "border",
   "input",
   "ring",

@@ -18,6 +18,8 @@ export const retro: ThemeTokens = {
   accentForeground: "0 0% 0%",
   destructive: "0 70% 35%",
   destructiveForeground: "0 0% 100%",
+  success: "145 30% 38%",
+  warning: "30 60% 45%",
   border: "0 0% 65%",
   input: "0 0% 50%",
   ring: "209 79% 28%",

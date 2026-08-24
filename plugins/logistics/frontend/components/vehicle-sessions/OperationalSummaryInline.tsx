@@ -20,10 +20,10 @@ function SummaryToneBadge({ label, tone }: { label: string; tone: "healthy" | "a
   return (
     <Badge
       className={cn(
-        tone === "healthy" && "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
-        tone === "attention" && "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200",
-        tone === "blocked" && "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200",
-        tone === "neutral" && "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-200"
+        tone === "healthy" && "border-success/30 bg-success/10 text-success",
+        tone === "attention" && "border-warning/30 bg-warning/10 text-warning",
+        tone === "blocked" && "border-destructive/30 bg-destructive/10 text-destructive",
+        tone === "neutral" && "border-border bg-muted text-muted-foreground"
       )}
     >
       {label}

@@ -1,7 +1,13 @@
 import { defineConfig, searchForWorkspaceRoot } from "vite";
 import react from "@vitejs/plugin-react";
+import basicSsl from "@vitejs/plugin-basic-ssl";
 import os from "os";
 import path from "path";
+
+// HTTPS opcional en dev: VITE_DEV_HTTPS=1 habilita cert autofirmado.
+// Necesario para APIs de navegador que exigen origen seguro (geolocalización
+// en telemetría) cuando se accede por IP de LAN en lugar de localhost.
+const devHttps = process.env.VITE_DEV_HTTPS === "1";
 
 function resolveLanHost() {
   for (const addresses of Object.values(os.networkInterfaces())) {
@@ -48,7 +54,7 @@ const nodeModulesAliases = Object.fromEntries(
 );
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), ...(devHttps ? [basicSsl()] : [])],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -61,6 +67,7 @@ export default defineConfig({
     port: devPort,
     host: true,
     strictPort: true,
+    ...(devHttps ? { https: {} } : {}),
     hmr: hmrHost
       ? {
           host: hmrHost,

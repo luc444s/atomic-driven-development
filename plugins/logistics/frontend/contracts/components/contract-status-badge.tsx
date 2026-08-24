@@ -1,12 +1,12 @@
 import { Badge } from "@systutor/shell/ui/badge";
 
 const STATUS_COLOR: Record<string, string> = {
-  DRAFT: "bg-gray-100 text-gray-800",
-  PENDING_SIGNATURE: "bg-amber-100 text-amber-800",
-  ACTIVE: "bg-green-100 text-green-800",
-  EXPIRED: "bg-red-100 text-red-800",
-  CANCELLED: "bg-yellow-100 text-yellow-800",
-  TERMINATED: "bg-red-100 text-red-800",
+  DRAFT: "border-border bg-muted text-muted-foreground",
+  PENDING_SIGNATURE: "border-warning/30 bg-warning/10 text-warning",
+  ACTIVE: "border-success/30 bg-success/10 text-success",
+  EXPIRED: "border-destructive/30 bg-destructive/10 text-destructive",
+  CANCELLED: "border-destructive/30 bg-destructive/10 text-destructive",
+  TERMINATED: "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,7 +20,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 export function ContractStatusBadge({ status }: { status: string }) {
   return (
-    <Badge className={STATUS_COLOR[status] || "bg-gray-100 text-gray-800"}>
+    <Badge className={STATUS_COLOR[status] || "border-border bg-muted text-muted-foreground"}>
       {STATUS_LABEL[status] || status}
     </Badge>
   );

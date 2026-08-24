@@ -23,21 +23,21 @@ export const VehicleJornadaCard = memo(function VehicleJornadaCard({
   const totalAdr = card.active_session?.current_stock?.total_adr_points ?? 0;
   const cardToneClass =
     semanticStatus === "LOADING"
-      ? "border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/10"
+      ? "border-warning/30 bg-warning/5 hover:bg-warning/10"
       : semanticStatus === "READY_TO_DEPART"
-        ? "border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/10"
+        ? "border-primary/30 bg-primary/5 hover:bg-primary/10"
         : semanticStatus === "OUTBOUND"
-          ? "border-emerald-500/30 bg-emerald-500/5 hover:bg-emerald-500/10"
+          ? "border-success/30 bg-success/5 hover:bg-success/10"
           : semanticStatus === "RETURNING"
-            ? "border-violet-500/30 bg-violet-500/5 hover:bg-violet-500/10"
+            ? "border-accent/30 bg-accent/5 hover:bg-accent/10"
             : semanticStatus === "AWAITING_RECONCILIATION"
-              ? "border-orange-500/30 bg-orange-500/5 hover:bg-orange-500/10"
+              ? "border-warning/30 bg-warning/5 hover:bg-warning/10"
               : semanticStatus === "CLOSED"
-                ? "border-emerald-500/20 bg-emerald-500/5 hover:bg-emerald-500/10"
+                ? "border-success/20 bg-success/5 hover:bg-success/10"
                 : semanticStatus === "CANCELLED"
-                  ? "border-rose-500/30 bg-rose-500/5 hover:bg-rose-500/10"
+                  ? "border-destructive/30 bg-destructive/5 hover:bg-destructive/10"
                   : semanticStatus === "DRAFT"
-                    ? "border-slate-500/30 bg-slate-500/5 hover:bg-slate-500/10"
+                    ? "border-muted bg-muted/5 hover:bg-muted/10"
                     : "border-border bg-card hover:border-border/80 hover:bg-accent/20";
 
   return (
@@ -55,7 +55,7 @@ export const VehicleJornadaCard = memo(function VehicleJornadaCard({
           {card.active_session ? (
             <VehicleSessionStatusBadge status={card.active_session.status} />
           ) : (
-            <Badge className="border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-200">
+            <Badge className="border-border bg-muted text-muted-foreground">
               Sin activa
             </Badge>
           )}
@@ -68,8 +68,8 @@ export const VehicleJornadaCard = memo(function VehicleJornadaCard({
         </p>
         <p className="truncate text-[11px] text-muted-foreground">{activeLabel}</p>
         {totalAdr > 0 ? (
-          <div className="rounded-md border border-rose-500/30 bg-rose-500/10 px-2 py-1">
-            <p className="text-[11px] font-semibold uppercase tracking-wider text-rose-600 dark:text-rose-400">
+          <div className="rounded-md border border-destructive/30 bg-destructive/10 px-2 py-1">
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-destructive">
               ADR {totalAdr} pts
             </p>
           </div>

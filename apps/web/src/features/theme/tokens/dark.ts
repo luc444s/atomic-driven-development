@@ -18,6 +18,8 @@ export const dark: ThemeTokens = {
   accentForeground: "0 0% 90%",
   destructive: "0 63% 31%",
   destructiveForeground: "0 0% 90%",
+  success: "142 69% 55%",
+  warning: "38 92% 58%",
   border: "0 0% 16%",
   input: "0 0% 22%",
   ring: "187 85% 53%",

@@ -7,6 +7,7 @@ reverse geocoding por el servidor y devuelven el resultado estructurado.
 from __future__ import annotations
 
 import json
+import os
 import urllib.parse
 import urllib.request
 from typing import Any
@@ -17,6 +18,9 @@ router = APIRouter(prefix="/geocode", tags=["geocode"])
 
 NOMINATIM_BASE = "https://nominatim.openstreetmap.org"
 TIMEOUT_SECONDS = 10
+# Restringe búsqueda a países operativos (evita resultados de España en
+# consultas en español). Vacío = búsqueda mundial.
+DEFAULT_COUNTRY_CODES = os.getenv("SYSTUTOR_GEOCODE_COUNTRIES", "pe")
 HEADERS = {
     "User-Agent": "systutor-oss/1.0 (logistics)",
     "Accept-Language": "es",
@@ -54,8 +58,12 @@ def reverse_geocode(
 def search_geocode(
     q: str = Query(..., min_length=2),
     limit: int = Query(default=5, ge=1, le=10),
+    countries: str = Query(default="", description="Códigos ISO separados por coma; vacío usa el default"),
 ) -> list[dict[str, Any]]:
+    codes = (countries or DEFAULT_COUNTRY_CODES).strip().lower()
     url = f"{NOMINATIM_BASE}/search?format=json&limit={limit}&q={urllib.parse.quote(q)}"
+    if codes:
+        url += f"&countrycodes={urllib.parse.quote(codes)}"
     data = _fetch(url)
     if not isinstance(data, list):
         return []

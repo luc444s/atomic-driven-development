@@ -18,6 +18,8 @@ export const nord: ThemeTokens = {
   accentForeground: "219 3% 88%",
   destructive: "354 23% 56%",
   destructiveForeground: "220 16% 22%",
+  success: "91 27% 65%",
+  warning: "40 71% 73%",
   border: "220 16% 36%",
   input: "220 16% 36%",
   ring: "193 16% 67%",

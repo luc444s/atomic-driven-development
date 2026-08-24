@@ -18,6 +18,8 @@ export const light: ThemeTokens = {
   accentForeground: "222 47% 11%",
   destructive: "0 60% 50%",
   destructiveForeground: "0 0% 100%",
+  success: "142 71% 38%",
+  warning: "32 95% 40%",
   border: "0 0% 75%",
   input: "0 0% 50%",
   ring: "187 85% 43%",

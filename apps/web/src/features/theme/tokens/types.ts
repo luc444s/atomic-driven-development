@@ -19,6 +19,8 @@ export type ThemeTokens = {
   accentForeground: string;
   destructive: string;
   destructiveForeground: string;
+  success: string;
+  warning: string;
   border: string;
   input: string;
   ring: string;

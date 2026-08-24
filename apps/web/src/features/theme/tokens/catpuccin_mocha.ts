@@ -18,6 +18,8 @@ export const catpuccin_mocha: ThemeTokens = {
   accentForeground: "226 8% 88%",
   destructive: "343 26% 75%",
   destructiveForeground: "240 21% 15%",
+  success: "105 48% 72%",
+  warning: "40 79% 78%",
   border: "234 13% 31%",
   input: "234 13% 31%",
   ring: "267 19% 81%",

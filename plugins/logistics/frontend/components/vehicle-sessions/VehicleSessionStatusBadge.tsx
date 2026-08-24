@@ -4,21 +4,21 @@ import { VEHICLE_SESSION_STATUS_LABELS } from "../../api";
 
 const STATUS_BADGE_CLASSES: Record<string, string> = {
   DRAFT:
-    "border-slate-500/30 bg-slate-500/10 text-slate-700 dark:text-slate-200",
+    "border-border bg-muted text-muted-foreground",
   LOADING:
-    "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-200",
+    "border-warning/30 bg-warning/10 text-warning",
   READY_TO_DEPART:
-    "border-sky-500/30 bg-sky-500/10 text-sky-700 dark:text-sky-200",
+    "border-primary/30 bg-primary/10 text-primary",
   OUTBOUND:
-    "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+    "border-success/30 bg-success/10 text-success",
   RETURNING:
-    "border-violet-500/30 bg-violet-500/10 text-violet-700 dark:text-violet-200",
+    "border-accent/30 bg-accent/10 text-accent-foreground",
   AWAITING_RECONCILIATION:
-    "border-orange-500/30 bg-orange-500/10 text-orange-700 dark:text-orange-200",
+    "border-warning/30 bg-warning/10 text-warning",
   CLOSED:
-    "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-200",
+    "border-success/30 bg-success/10 text-success",
   CANCELLED:
-    "border-rose-500/30 bg-rose-500/10 text-rose-700 dark:text-rose-200",
+    "border-destructive/30 bg-destructive/10 text-destructive",
 };
 
 export function VehicleSessionStatusBadge({ status }: { status: string }) {

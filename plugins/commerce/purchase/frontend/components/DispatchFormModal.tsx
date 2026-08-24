@@ -151,74 +151,63 @@ type QuickAddProps = {
   onAdded: (row: CylRow) => void;
 };
 
-/** Alta rápida de seriales al estilo jornadas: buscar, elegir, queda agregado
- * y el modal sigue abierto para cargar el siguiente. */
+/** Alta rápida de seriales al estilo jornadas: combobox de texto clásico,
+ * elegís el cilindro y queda agregado sin cerrar para cargar el siguiente. */
 function QuickAddSerialDialog({ open, onClose, onAdded }: QuickAddProps) {
-  const [search, setSearch] = useState("");
   const [lastAdded, setLastAdded] = useState<string | null>(null);
   const [dupError, setDupError] = useState<string | null>(null);
 
-  const searchQuery = useQuery({
-    queryKey: ["compras", "dispatch-cylinders", search],
-    queryFn: () => listCylindersWithFilters({ search, per_page: 20 }),
-    enabled: open && search.trim().length >= 2,
+  const cylindersQuery = useQuery({
+    queryKey: ["compras", "dispatch-cylinders"],
+    queryFn: () => listCylindersWithFilters({ per_page: 200 }),
+    enabled: open,
   });
 
-  const resultados = (searchQuery.data?.items ?? []).map(c => ({
-    id: c.id,
-    serial: c.serial,
-    descripcion: c.description ?? "",
-    product_id: c.product_id,
+  const opciones = (cylindersQuery.data?.items ?? []).map(c => ({
+    value: c.id,
+    label: `${c.serial}${c.description ? ` · ${c.description}` : ""}`,
   }));
 
-  function agregar(r: (typeof resultados)[number]) {
-    onAdded({ cylinder_id: r.id, serial: r.serial, product_id: r.product_id ?? "", service_type: "LLENADO" });
-    setLastAdded(r.serial);
+  function elegir(value: string) {
+    if (!value) return;
+    const c = (cylindersQuery.data?.items ?? []).find(x => x.id === value);
+    if (!c) return;
+    onAdded({
+      cylinder_id: c.id,
+      serial: c.serial,
+      product_id: c.product_id ?? "",
+      service_type: "LLENADO",
+    });
+    setLastAdded(c.serial);
     setDupError(null);
-    setSearch("");
   }
 
   return (
     <Dialog
       open={open}
       title="Agregar seriales"
-      description="Buscá por serial o descripción y elegí el cilindro. Queda agregado y podés seguir cargando."
+      description="Elegí un cilindro del buscador. Queda agregado y podés seguir cargando."
       onClose={onClose}
       maxWidthClassName="max-w-xl"
     >
       <div className="space-y-3">
-        <Input
-          autoFocus
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Buscar por serial o descripción..."
-        />
-
         {dupError ? <Alert title="Duplicado">{dupError}</Alert> : null}
         {lastAdded ? (
           <p className="text-xs font-medium text-success">✓ {lastAdded} agregado — seguí cargando el siguiente.</p>
         ) : null}
 
-        {search.trim().length >= 2 ? (
-          <div className="max-h-72 space-y-1 overflow-y-auto">
-            {resultados.map(r => (
-              <button
-                key={r.id}
-                type="button"
-                onClick={() => agregar(r)}
-                className="w-full rounded-md border border-border bg-surface px-3 py-2 text-left transition hover:border-ring hover:bg-surface-alt"
-              >
-                <p className="font-medium text-foreground">{r.serial}</p>
-                {r.descripcion ? <p className="text-xs text-muted-foreground">{r.descripcion}</p> : null}
-              </button>
-            ))}
-            {resultados.length === 0 && !searchQuery.isFetching ? (
-              <p className="py-2 text-sm text-muted-foreground">Sin resultados.</p>
-            ) : null}
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Escribí al menos 2 caracteres para buscar.</p>
-        )}
+        <Combobox
+          key={lastAdded ?? "vacio"}
+          value=""
+          onChange={elegir}
+          options={opciones}
+          placeholder="Seleccionar cilindro..."
+          searchPlaceholder="Buscar por serial o descripción..."
+        />
+
+        {cylindersQuery.data ? (
+          <p className="text-xs text-muted-foreground">{opciones.length} cilindros disponibles</p>
+        ) : null}
 
         <div className="flex justify-end">
           <Button type="button" variant="secondary" onClick={onClose}>Listo</Button>

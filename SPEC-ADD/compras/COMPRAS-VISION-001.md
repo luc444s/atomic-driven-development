@@ -5,6 +5,59 @@
 > (COMPRAS-002..N). Toda implementación del módulo debe trazarse a una sección
 > de este documento.
 
+## Estado de implementación (se actualiza al cerrar cada A.SPEC)
+
+Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
+
+| § | Sección | Estado | Vía |
+|---|---------|--------|-----|
+| 3 | Tipos de compra | ❌ | solo mercancía tradicional hoy |
+| 4 | Solicitud de compra | ❌ | |
+| 5 | Orden de compra | ✅ | CRUD + items (pre-002, endurecido en 002) |
+| 6 | Ciclo de vida | ✅ | COMPRAS-002 |
+| 7 | Aprobación | 🟡 | confirm en un paso; políticas diferidas |
+| 8 | Preparación de envases | ❌ | COMPRAS-005 |
+| 9 | Despacho por serial | ❌ | COMPRAS-005 |
+| 10 | Motivo de envío | ❌ | COMPRAS-005 |
+| 11 | Custodia del proveedor | ❌ | COMPRAS-005 |
+| 12 | Control de permanencia | ❌ | post-005 |
+| 13 | Recepción desde proveedor | 🟡 | receipts básicos sin vínculo a despacho |
+| 14 | Recepción parcial | 🟡 | received_qty soporta parciales; sin conciliación serial |
+| 15 | Conciliación por serial | ❌ | |
+| 16 | Conciliación física | ❌ | |
+| 17 | Recepción comercial | 🟡 | cantidades sí; aceptadas/rechazadas no |
+| 18 | Recepción con diferencias | ❌ | incidencias |
+| 19 | Servicios realizados | ❌ | |
+| 20 | PH y retimbrado | ❌ | |
+| 21 | Recepción en almacén | ✅ | stock_connector en receipts (orden→recepción→ledger) |
+| 22 | Costos | 🟡 | unit_cost por item; costos adicionales no |
+| 23 | Factura del proveedor | ❌ | |
+| 24 | Conciliación tres vías | ❌ | |
+| 25 | Reclamaciones | ❌ | |
+| 26 | Devoluciones | ❌ | |
+| 27 | Cancelaciones | ✅ | regla received_qty=0 (COMPRAS-002) |
+| 28 | Cierre | ✅ | close administrativo con motivo (COMPRAS-002) |
+| 29 | Proveedores | ✅ | CRUD + catálogo/detalle UI (COMPRAS-004) |
+| 30 | Evaluación de proveedores | 🔮 | |
+| 31 | Integración planificación | ❌ | |
+| 32 | Integración Logistics | ❌ | 005 leerá identidad de cilindro; escritura posterior |
+| 33 | Integración Inventario | ✅ | connector trazable |
+| 34 | Integración Productos | ✅ | catálogo maestro único |
+| 35 | Integración Finanzas | ❌ | |
+| 36 | Trazabilidad | 🟡 | eventos de orden ✓; auditoría general pendiente |
+| 37 | Multiempresa y sucursales | ✅ | tenant_id en todas las operaciones |
+| 38 | Permisos operativos | 🟡 | 6 permisos básicos |
+| 39 | Dashboard operativo | ❌ | |
+| 40 | Consultas esenciales | 🟡 | por orden ✓; por cilindro/proveedor tras 005 |
+| 41 | Reportes | ❌ | |
+| 42 | Flujo principal llenado | ❌ | núcleo 005+006 |
+| 43 | Flujo recepción parcial | 🟡 | |
+| 44 | Flujo servicio técnico | ❌ | |
+| 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |
+| 46 | Objetivo operativo final | — | meta global |
+
+---
+
 ## 1. Propósito
 
 El módulo de Compras administra el proceso mediante el cual una empresa solicita, autoriza, ordena, recibe y concilia bienes o servicios adquiridos a proveedores.

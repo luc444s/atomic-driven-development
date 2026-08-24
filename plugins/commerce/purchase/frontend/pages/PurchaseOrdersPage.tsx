@@ -12,6 +12,7 @@ import {
   receiveOrder,
 } from "../api";
 import { SuppliersCatalogModal } from "../components/SuppliersCatalogModal";
+import { listWarehouses, getRealWarehouses } from "../../../logistics/frontend/api/warehouses";
 import type { OrderItemPayload, PurchaseOrder } from "../types";
 import { Button } from "@systutor/shell/ui/button";
 import { DataTable } from "@systutor/shell/ui/data-table";
@@ -99,6 +100,15 @@ export function PurchaseOrdersPage() {
     enabled: isReceiveOpen && Boolean(receiveProductId),
   });
   const tankOptions = (tanksQuery.data ?? []).map(t => ({ value: t.id, label: `${t.serial} · ${t.description} (${t.content_kg?.toFixed(1) ?? 0} kg)` }));
+
+  const warehousesQuery = useQuery({
+    queryKey: ["logistics", "warehouses"],
+    queryFn: listWarehouses,
+  });
+  const warehouseOptions = getRealWarehouses(warehousesQuery.data ?? []).map(w => ({
+    value: w.id,
+    label: `${w.code} · ${w.name}`,
+  }));
 
   function openReceiveDialog(orderId: string) {
     getOrder(orderId).then((detail) => {
@@ -195,7 +205,7 @@ export function PurchaseOrdersPage() {
 
         <Dialog open={isReceiveOpen} title="Recepcionar mercadería" description="Selecciona almacén y confirma cantidades." onClose={() => { setIsReceiveOpen(false); setSelectedOrder(null); }}>
           <form className="space-y-4" onSubmit={(e: FormEvent) => { e.preventDefault(); receiveMut.mutate(); }}>
-            <label className="block space-y-2 text-sm text-foreground"><span>Almacén ID</span><Input value={receiveForm.warehouse_id} onChange={(e) => setReceiveForm(p => ({ ...p, warehouse_id: e.target.value }))} placeholder="ID del almacén" /></label>
+            <label className="block space-y-2 text-sm text-foreground"><span>Almacén destino *</span><Combobox value={receiveForm.warehouse_id} onChange={(v) => setReceiveForm(p => ({ ...p, warehouse_id: v }))} options={warehouseOptions} placeholder="Seleccionar almacén" searchPlaceholder="Buscar almacén" /></label>
             {tankOptions.length > 0 ? (
               <label className="block space-y-2 text-sm text-foreground">
                 <span>Tanque criogénico destino</span>

@@ -163,18 +163,22 @@ structural_constraints:
 - Requirement: instrucción del usuario — "cuidado con el schema inferno y el
   route giant, desde ahora conviene dividir" (tras COMPRAS-002).
 - ADD doctrine: SPECIFICATION.md §12 (ley estructural), §12.4 (trigger extracción).
-- Commit: pendiente.
+- Commit: `9526b9c` (spec) · `ebebffa` (implementación).
+- Enmienda documentada: el mock de tests `_build_stock_connector` apuntaba al
+  módulo monolítico; al moverse la función junto a su endpoint el target pasa a
+  `routers.receipts._build_stock_connector`. Ajuste mecánico de referencia
+  interna, sin cambio de comportamiento (suite 11/11 en ambos sentidos).
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

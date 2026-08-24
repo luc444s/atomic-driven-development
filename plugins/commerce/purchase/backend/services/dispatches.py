@@ -334,6 +334,7 @@ def register_return(
         if notes:
             item.notes = notes
         db.add(item)
+    db.flush()
 
     remaining = db.scalar(
         select(func.count(ComDispatchCylinder.id)).where(

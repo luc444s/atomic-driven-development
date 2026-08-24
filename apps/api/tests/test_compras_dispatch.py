@@ -231,7 +231,7 @@ def _crear_y_confirmar(client, headers, supplier_id, cylinder_id):
     client.post(
         f"/api/v1/plugins/compras/purchase/dispatches/{d['id']}/confirm", headers=headers
     )
-    return d["id"]
+    return d
 
 
 def test_return_marks_serials_devuelto_and_keeps_others_in_custody(app) -> None:
@@ -263,13 +263,15 @@ def test_return_marks_serials_devuelto_and_keeps_others_in_custody(app) -> None:
 def test_return_rejects_foreign_or_already_returned_serial(app) -> None:
     client, headers, supplier_id, cyls = _setup(app)
     _crear_y_confirmar(client, headers, supplier_id, cyls[0])
-
-    # Serial ajeno al despacho
     foreign = client.post(
         "/api/v1/plugins/compras/purchase/dispatches",
         headers=headers,
         json={"supplier_id": supplier_id, "cylinders": [{"cylinder_id": cyls[1]}]},
     ).json()
+    client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/confirm",
+        headers=headers,
+    )
 
     ret = client.post(
         f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/return",
@@ -296,7 +298,8 @@ def test_return_rejects_foreign_or_already_returned_serial(app) -> None:
         json={"cylinders": [{"cylinder_id": cyls[1]}]},
     )
     assert again.status_code == 400
-    assert "ya devueltos" in again.json()["detail"]
+    # O bien por serial ya devuelto, o porque el despacho ya está RETORNADO
+    assert "devueltos" in again.json()["detail"] or "RETORNADO" in again.json()["detail"]
 
 
 def test_all_returned_moves_dispatch_to_retornado(app) -> None:

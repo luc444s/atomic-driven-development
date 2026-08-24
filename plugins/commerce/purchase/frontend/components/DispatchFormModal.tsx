@@ -4,6 +4,7 @@ import { createDispatch, listSuppliers, listTanks } from "../api";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
+import { Combobox } from "@systutor/shell/ui/combobox";
 import { Alert } from "@systutor/shell/ui/alert";
 
 type Props = {
@@ -74,17 +75,13 @@ export function DispatchFormModal({ open, onClose }: Props) {
         >
           <label className="block space-y-2 text-sm text-foreground">
             <span>Proveedor *</span>
-            <select
-              className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+            <Combobox
               value={supplierId}
-              onChange={(e) => setSupplierId(e.target.value)}
-              required
-            >
-              <option value="">Seleccionar proveedor</option>
-              {supplierOptions.map(o => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </select>
+              onChange={setSupplierId}
+              options={supplierOptions}
+              placeholder="Seleccionar proveedor"
+              searchPlaceholder="Buscar proveedor"
+            />
           </label>
           <label className="block space-y-2 text-sm text-foreground">
             <span>Orden de compra asociada (opcional)</span>
@@ -107,13 +104,12 @@ export function DispatchFormModal({ open, onClose }: Props) {
                   placeholder="ID del cilindro"
                   required
                 />
-                <select
-                  className="rounded-md border border-border bg-surface px-2 py-2 text-sm"
+                <Combobox
                   value={row.service_type}
-                  onChange={(e) => updateCyl(i, "service_type", e.target.value)}
-                >
-                  {SERVICE_TYPES.map(s => <option key={s} value={s}>{s}</option>)}
-                </select>
+                  onChange={(v) => updateCyl(i, "service_type", v)}
+                  options={SERVICE_TYPES.map(s => ({ value: s, label: s }))}
+                  placeholder="Servicio"
+                />
                 <Button type="button" variant="secondary" size="sm" onClick={() => removeCyl(i)}>x</Button>
               </div>
             ))}

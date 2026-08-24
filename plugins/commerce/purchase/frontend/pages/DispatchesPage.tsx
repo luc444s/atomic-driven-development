@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@syst
 import { DataTable } from "@systutor/shell/ui/data-table";
 import { Alert } from "@systutor/shell/ui/alert";
 import { Badge } from "@systutor/shell/ui/badge";
+import { Combobox } from "@systutor/shell/ui/combobox";
 import { DispatchFormModal } from "../components/DispatchFormModal";
 
 const STATUS_BADGE: Record<string, string> = {
@@ -60,16 +61,19 @@ export function DispatchesPage() {
             </div>
             <Button onClick={() => setFormOpen(true)}>Nuevo despacho</Button>
           </div>
-          <select
-            className="max-w-xs rounded-md border border-border bg-surface px-3 py-2 text-sm"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="">Todos los estados</option>
-            <option value="PREPARADO">Preparado</option>
-            <option value="DESPACHADO">Despachado</option>
-            <option value="CANCELADO">Cancelado</option>
-          </select>
+          <div className="max-w-xs">
+            <Combobox
+              value={statusFilter}
+              onChange={setStatusFilter}
+              options={[
+                { value: "", label: "Todos los estados" },
+                { value: "PREPARADO", label: "Preparado" },
+                { value: "DESPACHADO", label: "Despachado" },
+                { value: "CANCELADO", label: "Cancelado" },
+              ]}
+              placeholder="Filtrar por estado"
+            />
+          </div>
         </CardHeader>
         <CardContent className="space-y-3">
           {error ? <Alert title="Error">{error}</Alert> : null}

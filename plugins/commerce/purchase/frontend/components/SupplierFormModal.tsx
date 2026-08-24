@@ -218,8 +218,7 @@ export function SupplierFormModal({ open, supplier, onClose }: Props) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-3">
-            <Button type="button" variant="secondary" onClick={onClose}>Cancelar</Button>
+          <div className="flex justify-end">
             <Button type="submit" disabled={saveMut.isPending}>
               {form.id ? "Actualizar" : "Guardar proveedor"}
             </Button>

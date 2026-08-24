@@ -214,12 +214,16 @@ export function PurchaseOrdersPage() {
               </label>
             ) : null}
             <div className="space-y-2"><span className="text-sm text-foreground">Items a recibir</span>
-              {receiveForm.items.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <span className="text-sm flex-1">Item {item.purchase_item_id.slice(0, 8)}...</span>
-                  <Input className="w-24" value={item.quantity || ""} onChange={(e) => { const items = [...receiveForm.items]; items[i] = { ...items[i], quantity: Number(e.target.value) || 0 }; setReceiveForm(p => ({ ...p, items })); }} />
-                </div>
-              ))}
+              {receiveForm.items.map((item, i) => {
+                const orderItem = selectedOrder?.items.find(oi => oi.id === item.purchase_item_id);
+                const product = productsQuery.data?.find(p => p.id === orderItem?.product_id);
+                return (
+                  <div key={i} className="flex items-center gap-2">
+                    <span className="text-sm flex-1">{product ? `${product.sku} · ${product.name}` : `Producto ${orderItem?.product_id?.slice(0, 8) ?? "desconocido"}`}</span>
+                    <Input className="w-24" value={item.quantity || ""} onChange={(e) => { const items = [...receiveForm.items]; items[i] = { ...items[i], quantity: Number(e.target.value) || 0 }; setReceiveForm(p => ({ ...p, items })); }} />
+                  </div>
+                );
+              })}
             </div>
             <label className="block space-y-2 text-sm text-foreground"><span>Notas</span><Input value={receiveForm.notes} onChange={(e) => setReceiveForm(p => ({ ...p, notes: e.target.value }))} /></label>
             <div className="flex justify-end gap-3">

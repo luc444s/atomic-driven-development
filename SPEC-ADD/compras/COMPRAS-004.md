@@ -180,6 +180,10 @@ structural_constraints:
 - Commit: `8e49ca8` (spec) · `2ed1d7e` (implementación) · `a9188b1` (detalle 1:1
   con tiles + dialogs de sección, feedback del usuario) · `3ad49d5` (quita
   Cancelar redundante en formulario)
+- Enmienda post-implementación (feedback usuario, `700c56b`): el catálogo de
+  proveedores NO es la vista principal — Compras aterriza en Órdenes de compra
+  y Proveedores vive en un modal invocado por botón (SuppliersCatalogModal),
+  conservando detalle/formulario nuevos. pages/SuppliersPage.tsx eliminada.
 - Estado: **DONE** — DoD completo; verificación: tsc limpio, suite frontend
   sin fallos nuevos vs baseline, SupplierManagementDialog eliminado (0 refs).
 

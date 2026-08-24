@@ -170,6 +170,16 @@ class PurchaseOrderRead(BaseModel):
 class PurchaseOrderDetailRead(PurchaseOrderRead):
     items: list[PurchaseItemRead]
     receipts: list[PurchaseReceiptRead]
+    events: list["PurchaseOrderEventRead"] = []
+
+
+class PurchaseOrderEventRead(BaseModel):
+    id: str
+    from_status: str | None
+    to_status: str
+    reason: str | None
+    user_id: str | None
+    created_at: datetime
 
 
 class PurchaseOrderPageRead(BaseModel):
@@ -195,6 +205,10 @@ class ReceiveOrderRequest(BaseModel):
 
 class CancelOrderRequest(BaseModel):
     reason: str | None = None
+
+
+class CloseOrderRequest(BaseModel):
+    reason: str = Field(min_length=1)
 
 
 class SupplierAddressCreateRequest(BaseModel):

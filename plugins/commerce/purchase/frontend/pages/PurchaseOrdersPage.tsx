@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import { FormEvent, useMemo, useState } from "react";
 import {
+  closeOrder,
   confirmOrder,
   cancelOrder,
   createOrder,
@@ -23,11 +24,21 @@ import { SupplierManagementDialog } from "../components/SupplierManagementDialog
 import { listAllProducts } from "../../../../productos/frontend/api";
 
 const STATUS_BADGE: Record<string, string> = {
-  DRAFT: "bg-muted text-muted-foreground",
-  ORDERED: "bg-blue-100 text-blue-800",
-  PARTIAL: "bg-yellow-100 text-yellow-800",
-  RECEIVED: "bg-green-100 text-green-800",
-  CANCELLED: "bg-red-100 text-red-800",
+  DRAFT: "border-border bg-muted text-muted-foreground",
+  ORDERED: "border-primary/30 bg-primary/10 text-primary",
+  PARTIAL: "border-warning/30 bg-warning/10 text-warning",
+  RECEIVED: "border-success/30 bg-success/10 text-success",
+  CLOSED: "border-border bg-secondary text-secondary-foreground",
+  CANCELLED: "border-destructive/30 bg-destructive/10 text-destructive",
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  DRAFT: "Borrador",
+  ORDERED: "Ordenada",
+  PARTIAL: "Parcial",
+  RECEIVED: "Recibida",
+  CLOSED: "Cerrada",
+  CANCELLED: "Cancelada",
 };
 
 export function PurchaseOrdersPage() {
@@ -66,8 +77,15 @@ export function PurchaseOrdersPage() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setIsCreateOpen(false); setCreateForm({ supplier_id: "", items: [], notes: "" }); setError(null); },
     onError: (err) => setError(err instanceof Error ? err.message : "Error al crear orden"),
   });
-  const confirmMut = useMutation({ mutationFn: (id: string) => confirmOrder(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }) });
-  const cancelMut = useMutation({ mutationFn: (id: string) => cancelOrder(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }) });
+  const confirmMut = useMutation({ mutationFn: (id: string) => confirmOrder(id), onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }), onError: (err) => setError(err instanceof Error ? err.message : "Error al confirmar") });
+  const cancelMut = useMutation({ mutationFn: (id: string) => cancelOrder(id), onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setError(null); }, onError: (err) => setError(err instanceof Error ? err.message : "Error al cancelar") });
+  const [closeOrderId, setCloseOrderId] = useState<string | null>(null);
+  const [closeReason, setCloseReason] = useState("");
+  const closeMut = useMutation({
+    mutationFn: () => closeOrderId ? closeOrder(closeOrderId, closeReason) : Promise.reject("No order"),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setCloseOrderId(null); setCloseReason(""); setError(null); },
+    onError: (err) => setError(err instanceof Error ? err.message : "Error al cerrar"),
+  });
   const receiveMut = useMutation({
     mutationFn: () => selectedOrder ? receiveOrder(selectedOrder.id, { warehouse_id: receiveForm.warehouse_id, items: receiveForm.items, notes: receiveForm.notes || null, tank_id: receiveForm.tank_id || null }) : Promise.reject("No order"),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setIsReceiveOpen(false); setSelectedOrder(null); setError(null); },
@@ -130,13 +148,14 @@ export function PurchaseOrdersPage() {
         <DataTable
           columns={[
             { key: "supplier", header: "Proveedor", render: (row) => row.supplier?.name ?? "-" },
-            { key: "status", header: "Estado", render: (row) => <Badge className={STATUS_BADGE[row.status] ?? ""}>{row.status}</Badge> },
+            { key: "status", header: "Estado", render: (row) => <Badge className={STATUS_BADGE[row.status] ?? ""}>{STATUS_LABEL[row.status] ?? row.status}</Badge> },
             { key: "date", header: "Fecha", render: (row) => row.order_date },
             { key: "actions", header: "Acciones", render: (row) => (
               <div className="flex gap-2">
                 {row.status === "DRAFT" ? <Button variant="secondary" onClick={() => confirmMut.mutate(row.id)}>Confirmar</Button> : null}
                 {(row.status === "ORDERED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => openReceiveDialog(row.id)}>Recepcionar</Button> : null}
-                {(row.status === "DRAFT" || row.status === "ORDERED") ? <Button variant="secondary" onClick={() => cancelMut.mutate(row.id)}>Cancelar</Button> : null}
+                {(row.status === "RECEIVED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => { setCloseOrderId(row.id); setCloseReason(""); }}>Cerrar</Button> : null}
+                {(row.status === "DRAFT" || row.status === "ORDERED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => cancelMut.mutate(row.id)}>Cancelar</Button> : null}
               </div>
             )},
           ]}
@@ -197,6 +216,28 @@ export function PurchaseOrdersPage() {
             <div className="flex justify-end gap-3">
               <Button type="button" variant="secondary" onClick={() => { setIsReceiveOpen(false); setSelectedOrder(null); }}>Cancelar</Button>
               <Button type="submit" disabled={receiveMut.isPending}>{receiveMut.isPending ? "Recepcionando..." : "Recepcionar"}</Button>
+            </div>
+          </form>
+        </Dialog>
+
+        <Dialog open={closeOrderId !== null} title="Cerrar orden administrativamente" description="El cierre registra diferencias aceptadas. Requiere motivo y es irreversible." onClose={() => { setCloseOrderId(null); setCloseReason(""); }}>
+          <form onSubmit={(e) => { e.preventDefault(); if (closeReason.trim()) closeMut.mutate(); }}>
+            <div className="space-y-3">
+              <label className="block space-y-1 text-sm">
+                <span className="text-muted-foreground">Motivo del cierre *</span>
+                <textarea
+                  className="w-full rounded-md border border-border bg-surface px-3 py-2 text-sm"
+                  rows={3}
+                  value={closeReason}
+                  onChange={(e) => setCloseReason(e.target.value)}
+                  placeholder="Ej: saldo pendiente aceptado por proveedor incumplido"
+                  required
+                />
+              </label>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="secondary" onClick={() => { setCloseOrderId(null); setCloseReason(""); }}>Cancelar</Button>
+                <Button type="submit" disabled={!closeReason.trim() || closeMut.isPending}>Cerrar orden</Button>
+              </div>
             </div>
           </form>
         </Dialog>

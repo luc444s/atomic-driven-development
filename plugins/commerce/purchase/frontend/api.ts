@@ -120,8 +120,18 @@ export function confirmOrder(id: string) {
   return apiRequest<PurchaseOrder>(`${BASE}/orders/${id}/confirm`, { method: "POST" });
 }
 
-export function cancelOrder(id: string) {
-  return apiRequest<PurchaseOrder>(`${BASE}/orders/${id}/cancel`, { method: "POST" });
+export function cancelOrder(id: string, reason?: string) {
+  return apiRequest<PurchaseOrder>(`${BASE}/orders/${id}/cancel`, {
+    method: "POST",
+    body: JSON.stringify(reason ? { reason } : {}),
+  });
+}
+
+export function closeOrder(id: string, reason: string) {
+  return apiRequest<PurchaseOrder>(`${BASE}/orders/${id}/close`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
+  });
 }
 
 export function receiveOrder(id: string, payload: ReceiveOrderPayload) {

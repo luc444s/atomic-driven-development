@@ -11,6 +11,7 @@ from plugins.commerce.purchase.backend.models import (
     ComPurchaseOrder,
     ComPurchaseReceipt,
 )
+from plugins.commerce.purchase.backend.services import orders
 from plugins.logistics.backend.models.cylinder import LogisticsCylinder
 
 
@@ -106,8 +107,13 @@ def receive_order(
     db.add(receipt)
 
     all_received = all(float(item.received_qty) >= float(item.quantity) for item in order.items)
-    order.status = "RECEIVED" if all_received else "PARTIAL"
-    db.add(order)
-    db.flush()
+    target = "RECEIVED" if all_received else "PARTIAL"
+    orders.transition(
+        db,
+        order=order,
+        target=target,
+        user_id=created_by,
+        reason="AUTO_RECEIPT",
+    )
 
     return order

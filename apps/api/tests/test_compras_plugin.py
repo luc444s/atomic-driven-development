@@ -418,3 +418,212 @@ def test_compras_cannot_receive_draft_order(app) -> None:
                 },
             )
             assert receive_resp.status_code == 400
+
+
+# ── COMPRAS-002: ciclo de vida completo con auditoría ──
+
+def test_compras_order_close_requires_reason_and_terminal_state(app) -> None:
+    with app.state.session_factory() as db:
+        seeded = seed_demo_data(db, app.state.settings, app.state.plugin_runtime.list_results())
+    enable_compras_plugin(app, seeded)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+
+        supplier_id = client.post(
+            "/api/v1/plugins/compras/purchase/suppliers",
+            headers=headers,
+            json={"name": "Supplier Close Test"},
+        ).json()["id"]
+
+        order_id = client.post(
+            "/api/v1/plugins/compras/purchase/orders",
+            headers=headers,
+            json={
+                "supplier_id": supplier_id,
+                "items": [{"product_id": "prod-close", "quantity": 3, "unit_cost": 10.0}],
+            },
+        ).json()["id"]
+        client.post(f"/api/v1/plugins/compras/purchase/orders/{order_id}/confirm", headers=headers)
+
+        # Cierre sin motivo → 422 (validación de schema)
+        no_reason = client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/close",
+            headers=headers,
+            json={"reason": ""},
+        )
+        assert no_reason.status_code == 422, no_reason.text
+
+        # Cierre con motivo desde ORDERED → CLOSED (§28)
+        close_resp = client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/close",
+            headers=headers,
+            json={"reason": "cierre administrativo de prueba"},
+        )
+        assert close_resp.status_code == 200, close_resp.text
+        assert close_resp.json()["status"] == "CLOSED"
+
+        # CLOSED es terminal: close/cancel/confirm/receive deben fallar
+        again = client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/close",
+            headers=headers,
+            json={"reason": "otro"},
+        )
+        assert again.status_code == 400
+        cancel_again = client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/cancel", headers=headers
+        )
+        assert cancel_again.status_code == 400
+
+
+def test_compras_cancel_blocked_when_received_qty_positive(app) -> None:
+    with app.state.session_factory() as db:
+        seeded = seed_demo_data(db, app.state.settings, app.state.plugin_runtime.list_results())
+    enable_compras_plugin(app, seeded)
+
+    fake_stock = FakeStockConnector()
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        supplier_id = client.post(
+            "/api/v1/plugins/compras/purchase/suppliers",
+            headers=headers,
+            json={"name": "Supplier Cancel Guard"},
+        ).json()["id"]
+        order_id = client.post(
+            "/api/v1/plugins/compras/purchase/orders",
+            headers=headers,
+            json={
+                "supplier_id": supplier_id,
+                "items": [{"product_id": "prod-cancel", "quantity": 10, "unit_cost": 5.0}],
+            },
+        ).json()["id"]
+        client.post(f"/api/v1/plugins/compras/purchase/orders/{order_id}/confirm", headers=headers)
+
+        with patch(
+            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            return_value=fake_stock,
+        ):
+            detail = client.get(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+            ).json()
+            client.post(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}/receive",
+                headers=headers,
+                json={
+                    "warehouse_id": "wh-test",
+                    "items": [{"purchase_item_id": detail["items"][0]["id"], "quantity": 4}],
+                },
+            )
+
+        # §27: cancelación prohibida con cantidades recibidas
+        cancel_resp = client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/cancel", headers=headers
+        )
+        assert cancel_resp.status_code == 400, cancel_resp.text
+        assert "recepcionadas" in cancel_resp.json()["detail"]
+
+
+def test_compras_every_transition_writes_audit_event(app) -> None:
+    with app.state.session_factory() as db:
+        seeded = seed_demo_data(db, app.state.settings, app.state.plugin_runtime.list_results())
+    enable_compras_plugin(app, seeded)
+
+    fake_stock = FakeStockConnector()
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        supplier_id = client.post(
+            "/api/v1/plugins/compras/purchase/suppliers",
+            headers=headers,
+            json={"name": "Supplier Audit"},
+        ).json()["id"]
+        order_id = client.post(
+            "/api/v1/plugins/compras/purchase/orders",
+            headers=headers,
+            json={
+                "supplier_id": supplier_id,
+                "items": [{"product_id": "prod-audit", "quantity": 2, "unit_cost": 1.0}],
+            },
+        ).json()["id"]
+
+        def detail_events():
+            detail = client.get(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+            ).json()
+            return [(e["from_status"], e["to_status"]) for e in detail["events"]]
+
+        # Orden nueva sin transiciones aún: sin eventos (creación no es transición)
+        assert detail_events() == []
+
+        client.post(f"/api/v1/plugins/compras/purchase/orders/{order_id}/confirm", headers=headers)
+        assert detail_events() == [("DRAFT", "ORDERED")]
+
+        with patch(
+            "plugins.commerce.purchase.backend.router._build_stock_connector",
+            return_value=fake_stock,
+        ):
+            detail = client.get(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+            ).json()
+            client.post(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}/receive",
+                headers=headers,
+                json={
+                    "warehouse_id": "wh-test",
+                    "items": [{"purchase_item_id": detail["items"][0]["id"], "quantity": 1}],
+                },
+            )
+        events = detail_events()
+        assert ("ORDERED", "PARTIAL") in events  # AUTO_RECEIPT pasa por transition()
+        partial_event = next(
+            e for e in client.get(
+                f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+            ).json()["events"]
+            if e["to_status"] == "PARTIAL"
+        )
+        assert partial_event["reason"] == "AUTO_RECEIPT"
+
+        client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/close",
+            headers=headers,
+            json={"reason": "aceptado"},
+        )
+        assert detail_events()[-1] == ("PARTIAL", "CLOSED")
+
+
+def test_compras_order_detail_includes_event_history(app) -> None:
+    with app.state.session_factory() as db:
+        seeded = seed_demo_data(db, app.state.settings, app.state.plugin_runtime.list_results())
+    enable_compras_plugin(app, seeded)
+
+    with TestClient(app) as client:
+        headers = auth_headers(client)
+        supplier_id = client.post(
+            "/api/v1/plugins/compras/purchase/suppliers",
+            headers=headers,
+            json={"name": "Supplier History"},
+        ).json()["id"]
+        order_id = client.post(
+            "/api/v1/plugins/compras/purchase/orders",
+            headers=headers,
+            json={
+                "supplier_id": supplier_id,
+                "items": [{"product_id": "prod-hist", "quantity": 1, "unit_cost": 9.0}],
+            },
+        ).json()["id"]
+        client.post(f"/api/v1/plugins/compras/purchase/orders/{order_id}/confirm", headers=headers)
+
+        detail = client.get(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+        ).json()
+        assert isinstance(detail["events"], list) and len(detail["events"]) >= 1
+        event = detail["events"][0]
+        for field in ("id", "from_status", "to_status", "reason", "user_id", "created_at"):
+            assert field in event
+
+
+def test_compras_generic_status_setter_removed() -> None:
+    from plugins.commerce.purchase.backend.services import orders as orders_service
+
+    assert not hasattr(orders_service, "update_order_status")

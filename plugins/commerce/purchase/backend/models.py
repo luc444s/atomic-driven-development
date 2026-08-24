@@ -159,7 +159,26 @@ class ComPurchaseOrder(Base):
     receipts: Mapped[list[ComPurchaseReceipt]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )
+    events: Mapped[list["ComPurchaseOrderEvent"]] = relationship(
+        back_populates="order", cascade="all, delete-orphan"
+    )
     supplier: Mapped[ComSupplier] = relationship(back_populates="orders")
+
+
+class ComPurchaseOrderEvent(Base):
+    __tablename__ = "com_purchase_order_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    order_id: Mapped[str] = mapped_column(
+        ForeignKey("com_purchase_orders.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+    order: Mapped[ComPurchaseOrder] = relationship(back_populates="events")
 
 
 class ComPurchaseItem(Base):

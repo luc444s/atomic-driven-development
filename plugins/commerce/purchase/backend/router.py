@@ -17,6 +17,7 @@ from plugins.commerce.purchase.backend.models import (
 )
 from plugins.commerce.purchase.backend.schemas import (
     CancelOrderRequest,
+    CloseOrderRequest,
     PurchaseOrderCreateRequest,
     PurchaseOrderDetailRead,
     PurchaseOrderPageRead,
@@ -89,6 +90,20 @@ def _serialize_order_detail(db: Session, order: ComPurchaseOrder) -> dict:
             "created_at": r.created_at,
         }
         for r in order.receipts  # type: ignore[attr-defined]
+    ]
+    result["events"] = [
+        {
+            "id": e.id,
+            "from_status": e.from_status,
+            "to_status": e.to_status,
+            "reason": e.reason,
+            "user_id": e.user_id,
+            "created_at": e.created_at,
+        }
+        for e in sorted(
+            order.events,  # type: ignore[attr-defined]
+            key=lambda ev: ev.created_at,
+        )
     ]
     return result
 
@@ -460,7 +475,10 @@ def confirm_order(
     item = orders.get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
-    item = orders.confirm_order(db, order=item)
+    try:
+        item = orders.confirm_order(db, order=item, user_id=tenant_context.current_user_id)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     return PurchaseOrderRead.model_validate(_serialize_order(item))
 
@@ -479,7 +497,42 @@ def cancel_order(
     item = orders.get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
     if item is None:
         raise HTTPException(status_code=404, detail="Orden no encontrada")
-    item = orders.cancel_order(db, order=item)
+    try:
+        item = orders.cancel_order(
+            db,
+            order=item,
+            user_id=tenant_context.current_user_id,
+            reason=payload.reason if payload else None,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    return PurchaseOrderRead.model_validate(_serialize_order(item))
+
+
+@router.post(
+    "/orders/{order_id}/close",
+    response_model=PurchaseOrderRead,
+    dependencies=[REQUIRE_ORDER_MANAGE],
+)
+def close_order(
+    order_id: str,
+    payload: CloseOrderRequest,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+) -> PurchaseOrderRead:
+    item = orders.get_order(db, tenant_id=tenant_context.current_tenant_id, order_id=order_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Orden no encontrada")
+    try:
+        item = orders.close_order(
+            db,
+            order=item,
+            user_id=tenant_context.current_user_id,
+            reason=payload.reason,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()
     return PurchaseOrderRead.model_validate(_serialize_order(item))
 

@@ -8,20 +8,71 @@ from sqlalchemy.orm import Session
 from plugins.commerce.purchase.backend.models import (
     ComPurchaseItem,
     ComPurchaseOrder,
+    ComPurchaseOrderEvent,
 )
 
-VALID_STATUSES = ("DRAFT", "ORDERED", "PARTIAL", "RECEIVED", "CANCELLED")
+VALID_STATUSES = ("DRAFT", "ORDERED", "PARTIAL", "RECEIVED", "CLOSED", "CANCELLED")
+
+# Matriz de transiciones válidas (COMPRAS-002). PARTIAL/RECEIVED solo se
+# alcanzan vía recepción (services/receipts.py pasa por transition()).
+TRANSITIONS: dict[str, set[str]] = {
+    "DRAFT": {"ORDERED", "CANCELLED"},
+    "ORDERED": {"PARTIAL", "RECEIVED", "CANCELLED", "CLOSED"},
+    "PARTIAL": {"RECEIVED", "CANCELLED", "CLOSED"},
+    "RECEIVED": {"CLOSED"},
+    "CLOSED": set(),
+    "CANCELLED": set(),
+}
 
 
 def _validate_status_transition(current: str, target: str) -> None:
-    transitions = {
-        "DRAFT": {"ORDERED", "CANCELLED"},
-        "ORDERED": {"PARTIAL", "RECEIVED", "CANCELLED"},
-        "PARTIAL": {"RECEIVED"},
-    }
-    allowed = transitions.get(current, set())
+    allowed = TRANSITIONS.get(current, set())
     if target not in allowed:
         raise ValueError(f"No se puede pasar de {current} a {target}")
+
+
+def transition(
+    db: Session,
+    *,
+    order: ComPurchaseOrder,
+    target: str,
+    user_id: str | None = None,
+    reason: str | None = None,
+) -> ComPurchaseOrder:
+    """Única puerta de mutación de status (COMPRAS-002).
+
+    Valida la matriz de transiciones, aplica reglas de negocio por destino y
+    registra un evento de auditoría. Ningún otro código debe asignar
+    order.status directamente.
+    """
+    if target not in VALID_STATUSES:
+        raise ValueError(f"Estado desconocido: {target}")
+    _validate_status_transition(order.status, target)
+
+    if target == "ORDERED":
+        if not order.items:
+            raise ValueError("No se puede confirmar una orden sin items")
+    if target == "CANCELLED":
+        received = any(float(item.received_qty) > 0 for item in order.items)
+        if received:
+            raise ValueError(
+                "No se puede cancelar una orden con cantidades ya recepcionadas"
+            )
+    if target == "CLOSED" and not (reason and reason.strip()):
+        raise ValueError("El cierre administrativo requiere un motivo")
+
+    event = ComPurchaseOrderEvent(
+        order_id=order.id,
+        from_status=order.status,
+        to_status=target,
+        reason=reason,
+        user_id=user_id,
+    )
+    db.add(event)
+    order.status = target
+    db.add(order)
+    db.flush()
+    return order
 
 
 def _base_query(tenant_id: str, status: str | None = None, supplier_id: str | None = None):
@@ -134,26 +185,27 @@ def update_order(
     return order
 
 
-def confirm_order(db: Session, *, order: ComPurchaseOrder) -> ComPurchaseOrder:
-    _validate_status_transition(order.status, "ORDERED")
-    order.status = "ORDERED"
-    db.add(order)
-    db.flush()
-    return order
-
-
-def cancel_order(db: Session, *, order: ComPurchaseOrder) -> ComPurchaseOrder:
-    _validate_status_transition(order.status, "CANCELLED")
-    order.status = "CANCELLED"
-    db.add(order)
-    db.flush()
-    return order
-
-
-def update_order_status(
-    db: Session, *, order: ComPurchaseOrder, status: str
+def confirm_order(
+    db: Session, *, order: ComPurchaseOrder, user_id: str | None = None
 ) -> ComPurchaseOrder:
-    order.status = status
-    db.add(order)
-    db.flush()
-    return order
+    return transition(db, order=order, target="ORDERED", user_id=user_id)
+
+
+def cancel_order(
+    db: Session,
+    *,
+    order: ComPurchaseOrder,
+    user_id: str | None = None,
+    reason: str | None = None,
+) -> ComPurchaseOrder:
+    return transition(db, order=order, target="CANCELLED", user_id=user_id, reason=reason)
+
+
+def close_order(
+    db: Session,
+    *,
+    order: ComPurchaseOrder,
+    user_id: str | None = None,
+    reason: str,
+) -> ComPurchaseOrder:
+    return transition(db, order=order, target="CLOSED", user_id=user_id, reason=reason)

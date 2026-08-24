@@ -44,9 +44,9 @@ Verdad estructural falsable ahora:
 
 ## SCOPE
 
-- `apps/web/src/features/theme/tokens/*.ts` (6 temas + `types.ts` + `index.ts`)
-- `apps/web/src/features/theme/apply-tokens.ts`
-- `apps/web/src/features/theme/store.ts`
+- `vendor/systutor-themes/src/tokens/*.ts (repo aparte @systutor/themes)` (6 temas + `types.ts` + `index.ts`)
+- `vendor/systutor-themes/src/apply-tokens.ts`
+- `vendor/systutor-themes/src/store.ts`
 - `apps/web/tailwind.config.ts` (mapeo colores → CSS vars)
 
 ## OUT OF SCOPE
@@ -176,3 +176,9 @@ structural_constraints:
 - [x] No unrelated changes
 - [x] Structural constraints respected
 - [x] Traceability established (commit `6d2284b`)
+
+---
+
+> **Enmienda**: el sistema se extrajo a repo aparte `github.com/luc444s/systutor-themes`
+> (submodule vendor/systutor-themes, MIT). Consumo via alias `@systutor/themes`;
+> zustand es dependencia propia del paquete. Commit: `65b2423`.

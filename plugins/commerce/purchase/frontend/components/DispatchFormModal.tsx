@@ -163,10 +163,14 @@ function QuickAddSerialDialog({ open, onClose, onAdded }: QuickAddProps) {
     enabled: open,
   });
 
-  const opciones = (cylindersQuery.data?.items ?? []).map(c => ({
-    value: c.id,
-    label: `${c.serial}${c.description ? ` · ${c.description}` : ""}`,
-  }));
+  const opciones = (cylindersQuery.data?.items ?? [])
+    // No se ofrecen cilindros no disponibles: en ruta, bloqueados, de baja o
+    // perdidos (§8 VISION-001). El backend re-valida al crear/confirmar.
+    .filter(c => !["EN_RUTA", "BLOQUEADO", "DE_BAJA", "PERDIDO"].includes(c.current_state))
+    .map(c => ({
+      value: c.id,
+      label: `${c.serial}${c.description ? ` · ${c.description}` : ""}`,
+    }));
 
   function elegir(value: string) {
     if (!value) return;

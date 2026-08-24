@@ -7,7 +7,7 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
-> Última actualización: COMPRAS-005 (despacho por serial + custodia).
+> Última actualización: COMPRAS-007 (retorno por serial + cierre de custodia + vínculo jornadas).
 
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 
@@ -23,9 +23,9 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 10 | Motivo de envío | ✅ | service_type por serial (COMPRAS-005) |
 | 11 | Custodia del proveedor | ✅ | estado derivado EN_CUSTODIA (COMPRAS-005) |
 | 12 | Control de permanencia | 🟡 | days_out + filtro days_gt (COMPRAS-005); alertas automáticas pendientes |
-| 13 | Recepción desde proveedor | 🟡 | receipts básicos sin vínculo a despacho |
-| 14 | Recepción parcial | 🟡 | received_qty soporta parciales; sin conciliación serial |
-| 15 | Conciliación por serial | ❌ | |
+| 13 | Recepción desde proveedor | 🟡 | receipts ✓ + retorno por serial ✓ (007); vínculo receipt↔despacho pendiente |
+| 14 | Recepción parcial | ✅ | retorno parcial por serial ilimitado (COMPRAS-007) |
+| 15 | Conciliación por serial | ✅ | /return concilia seriales vs despacho (COMPRAS-007) |
 | 16 | Conciliación física | ❌ | |
 | 17 | Recepción comercial | 🟡 | cantidades sí; aceptadas/rechazadas no |
 | 18 | Recepción con diferencias | ❌ | incidencias |
@@ -36,13 +36,13 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 23 | Factura del proveedor | ❌ | |
 | 24 | Conciliación tres vías | ❌ | |
 | 25 | Reclamaciones | ❌ | |
-| 26 | Devoluciones | ❌ | |
+| 26 | Devoluciones | 🟡 | retorno de envases ✓; devolución de mercadería ❌ |
 | 27 | Cancelaciones | ✅ | regla received_qty=0 (COMPRAS-002) |
 | 28 | Cierre | ✅ | close administrativo con motivo (COMPRAS-002) |
 | 29 | Proveedores | ✅ | CRUD + catálogo/detalle UI (COMPRAS-004) |
 | 30 | Evaluación de proveedores | 🔮 | |
 | 31 | Integración planificación | ❌ | |
-| 32 | Integración Logistics | 🟡 | lectura de lg_cylinders ✓ (005); escritura/movimientos pendientes |
+| 32 | Integración Logistics | 🟡 | lectura ✓ + vínculo opcional a jornadas ✓ (007); escritura/movimientos pendientes |
 | 33 | Integración Inventario | ✅ | connector trazable |
 | 34 | Integración Productos | ✅ | catálogo maestro único |
 | 35 | Integración Finanzas | ❌ | |
@@ -52,9 +52,9 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 39 | Dashboard operativo | ❌ | |
 | 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
 | 41 | Reportes | ❌ | |
-| 42 | Flujo principal llenado | 🟡 | pasos 1-11 ✓ (necesidad→orden→despacho→custodia, 002+005); retorno/conciliación en 006 |
-| 43 | Flujo recepción parcial | 🟡 | |
-| 44 | Flujo servicio técnico | 🟡 | pasos 1-5 ✓ (service_type por serial + custodia, 005); resultado técnico y cierre en 006+ |
+| 42 | Flujo principal llenado | 🟡 | pasos 1-17 ✓ (002+005+007); cantidades comerciales/costos/cierre en specs futuras |
+| 43 | Flujo recepción parcial | ✅ | retornos parciales ilimitados, saldo visible (COMPRAS-007) |
+| 44 | Flujo servicio técnico | 🟡 | pasos 1-7 ✓ (+retorno 007); actualización técnica e historial pendiente |
 | 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |
 | 46 | Objetivo operativo final | — | meta global |
 

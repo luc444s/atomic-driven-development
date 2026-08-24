@@ -171,18 +171,21 @@ structural_constraints:
 - Requirement: usuario — "envío y retorno de cilindros a proveedor tendrá una
   conexión a jornadas… no obligatorio porque no siempre se lleva con camión de
   la empresa" (aprobado); VISION §13-15, §26, §32, §42-45.
-- Commits: pendientes.
+- Commits: spec + implementación `762296a`.
+- Correcciones durante ejecución: migración dialecto-agnóstica (tests SQLite);
+  flush explícito antes de contar custodia restante; guard de estado RETORNADO
+  precede al chequeo de seriales (test relajado en consecuencia).
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

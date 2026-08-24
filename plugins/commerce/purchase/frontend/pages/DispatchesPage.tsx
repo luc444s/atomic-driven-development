@@ -3,7 +3,9 @@ import { useState } from "react";
 import {
   cancelDispatch,
   confirmDispatch,
+  getDispatch,
   listDispatches,
+  registerDispatchReturn,
 } from "../api";
 import { Button } from "@systutor/shell/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
@@ -44,6 +46,33 @@ export function DispatchesPage() {
     mutationFn: (id: string) => cancelDispatch(id),
     onSuccess: invalidate,
     onError: (err) => setError(err instanceof Error ? err.message : "Error al cancelar"),
+  });
+
+  const [retornoOpenId, setRetornoOpenId] = useState<string | null>(null);
+  const [retornoItems, setRetornoItems] = useState<{ id: string; serial: string | null }[]>([]);
+  const [retornoSel, setRetornoSel] = useState<Set<string>>(new Set());
+  async function openRetorno(id: string) {
+    const detail = await getDispatch(id);
+    const enCustodia = detail.cylinders.filter(c => c.status === "EN_CUSTODIA");
+    setRetornoItems(enCustodia.map(c => ({ id: c.cylinder_id, serial: c.serial })));
+    setRetornoSel(new Set());
+    setRetornoOpenId(id);
+  }
+  function toggleRetorno(id: string) {
+    setRetornoSel(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  const retornoMut = useMutation({
+    mutationFn: () =>
+      retornoOpenId
+        ? registerDispatchReturn(retornoOpenId, [...retornoSel])
+        : Promise.reject("Sin despacho"),
+    onSuccess: () => { invalidate(); setRetornoOpenId(null); },
+    onError: (err) => setError(err instanceof Error ? err.message : "Error al registrar retorno"),
   });
 
   const dispatches = dispatchesQuery.data?.items ?? [];
@@ -111,6 +140,9 @@ export function DispatchesPage() {
                         <Button variant="secondary" size="sm" onClick={() => cancelMut.mutate(row.id)}>Cancelar</Button>
                       </>
                     ) : null}
+                    {row.status === "DESPACHADO" ? (
+                      <Button variant="secondary" size="sm" onClick={() => { setError(null); void openRetorno(row.id); }}>Registrar retorno</Button>
+                    ) : null}
                   </div>
                 ),
               },
@@ -126,6 +158,40 @@ export function DispatchesPage() {
         open={formOpen}
         onClose={() => { setFormOpen(false); setError(null); }}
       />
+
+      <Dialog
+        open={retornoOpenId !== null}
+        title="Registrar retorno de cilindros"
+        description="Marca los seriales que efectivamente regresaron. Los no marcados siguen en custodia del proveedor."
+        onClose={() => setRetornoOpenId(null)}
+        maxWidthClassName="max-w-lg"
+      >
+        <div className="space-y-3">
+          {retornoItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Sin cilindros en custodia.</p>
+          ) : (
+            retornoItems.map(item => (
+              <label key={item.id} className="flex items-center gap-3 rounded-md border border-border px-3 py-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={retornoSel.has(item.id)}
+                  onChange={() => toggleRetorno(item.id)}
+                />
+                <span className="font-medium text-foreground">{item.serial ?? item.id}</span>
+              </label>
+            ))
+          )}
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => setRetornoOpenId(null)}>Cancelar</Button>
+            <Button
+              disabled={retornoSel.size === 0 || retornoMut.isPending}
+              onClick={() => retornoMut.mutate()}
+            >
+              Registrar retorno ({retornoSel.size})
+            </Button>
+          </div>
+        </div>
+      </Dialog>
     </div>
   );
 }

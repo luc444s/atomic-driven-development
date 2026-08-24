@@ -218,3 +218,149 @@ def test_custody_listing_with_days_out_and_summary(app) -> None:
         headers=headers,
     ).json()
     assert strict == []
+
+
+# ── COMPRAS-007: retorno por serial + vínculo opcional a jornadas ──
+
+def _crear_y_confirmar(client, headers, supplier_id, cylinder_id):
+    d = client.post(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        json={"supplier_id": supplier_id, "cylinders": [{"cylinder_id": cylinder_id}]},
+    ).json()
+    client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d['id']}/confirm", headers=headers
+    )
+    return d["id"]
+
+
+def test_return_marks_serials_devuelto_and_keeps_others_in_custody(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    d1 = _crear_y_confirmar(client, headers, supplier_id, cyls[0])
+    d2 = _crear_y_confirmar(client, headers, supplier_id, cyls[1])
+
+    # Retorno parcial: solo el serial de d2
+    ret = client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d2['id']}/return",
+        headers=headers,
+        json={"cylinders": [{"cylinder_id": cyls[1]}], "notes": "volvio hoy"},
+    )
+    assert ret.status_code == 200, ret.text
+    body = ret.json()
+    assert body["status"] == "RETORNADO"  # único serial → custodia resuelta
+    item = body["cylinders"][0]
+    assert item["status"] == "DEVUELTO"
+    assert item["returned_at"] is not None
+
+    # El de d1 sigue en custodia
+    custody = client.get(
+        f"/api/v1/plugins/compras/purchase/dispatches/suppliers/{supplier_id}/custody",
+        headers=headers,
+    ).json()
+    assert [e["cylinder_id"] for e in custody] == [cyls[0]]
+
+
+def test_return_rejects_foreign_or_already_returned_serial(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    _crear_y_confirmar(client, headers, supplier_id, cyls[0])
+
+    # Serial ajeno al despacho
+    foreign = client.post(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        json={"supplier_id": supplier_id, "cylinders": [{"cylinder_id": cyls[1]}]},
+    ).json()
+
+    ret = client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/return",
+        headers=headers,
+        json={"cylinders": [{"cylinder_id": cyls[0]}]},
+    )
+    assert ret.status_code == 400
+    assert "no pertenecen" in ret.json()["detail"]
+
+    # Ya devuelto → 400
+    client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/confirm",
+        headers=headers,
+    )
+    first = client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/return",
+        headers=headers,
+        json={"cylinders": [{"cylinder_id": cyls[1]}]},
+    )
+    assert first.status_code == 200
+    again = client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{foreign['id']}/return",
+        headers=headers,
+        json={"cylinders": [{"cylinder_id": cyls[1]}]},
+    )
+    assert again.status_code == 400
+    assert "ya devueltos" in again.json()["detail"]
+
+
+def test_all_returned_moves_dispatch_to_retornado(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    d = client.post(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        json={
+            "supplier_id": supplier_id,
+            "cylinders": [
+                {"cylinder_id": cyls[0]},
+                {"cylinder_id": cyls[1]},
+            ],
+        },
+    ).json()["id"]
+    client.post(f"/api/v1/plugins/compras/purchase/dispatches/{d}/confirm", headers=headers)
+
+    detail = client.get(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d}", headers=headers
+    ).json()
+    ret = client.post(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d}/return",
+        headers=headers,
+        json={"cylinders": [{"cylinder_id": c["cylinder_id"]} for c in detail["cylinders"]]},
+    )
+    assert ret.status_code == 200
+    assert ret.json()["status"] == "RETORNADO"
+
+    custody = client.get(
+        f"/api/v1/plugins/compras/purchase/dispatches/suppliers/{supplier_id}/custody",
+        headers=headers,
+    ).json()
+    assert custody == []
+
+
+def test_session_link_validates_tenant_and_operational_state(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    d = client.post(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        json={"supplier_id": supplier_id, "cylinders": [{"cylinder_id": cyls[0]}]},
+    ).json()["id"]
+
+    # Sesión inexistente → 400
+    missing = client.patch(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d}/session-link",
+        headers=headers,
+        json={"kind": "outbound", "session_id": "no-existe"},
+    )
+    assert missing.status_code == 400
+    assert "Jornada no encontrada" in missing.json()["detail"]
+
+    # kind inválido → 422 (pattern del schema)
+    bad_kind = client.patch(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d}/session-link",
+        headers=headers,
+        json={"kind": "otro", "session_id": None},
+    )
+    assert bad_kind.status_code == 422
+
+    # Desvincular (session_id null) permitido en PREPARADO
+    unlink = client.patch(
+        f"/api/v1/plugins/compras/purchase/dispatches/{d}/session-link",
+        headers=headers,
+        json={"kind": "outbound", "session_id": None},
+    )
+    assert unlink.status_code == 200

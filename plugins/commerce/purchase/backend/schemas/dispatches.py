@@ -87,3 +87,17 @@ class DispatchPageRead(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+class DispatchReturnItem(BaseModel):
+    cylinder_id: str
+
+
+class DispatchReturnRequest(BaseModel):
+    cylinders: list[DispatchReturnItem] = Field(min_length=1)
+    notes: str | None = None
+
+
+class DispatchSessionLinkRequest(BaseModel):
+    kind: str = Field(pattern="^(outbound|return)$")
+    session_id: str | None = None

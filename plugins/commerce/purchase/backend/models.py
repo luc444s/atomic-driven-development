@@ -231,6 +231,12 @@ class ComDispatch(Base):
     vehicle_plate: Mapped[str | None] = mapped_column(String(20), nullable=True)
     driver_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="PREPARADO")
+    session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
+    )
+    return_session_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)

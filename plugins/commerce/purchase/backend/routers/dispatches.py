@@ -12,6 +12,8 @@ from plugins.commerce.purchase.backend.schemas import (
     DispatchCreateRequest,
     DispatchPageRead,
     DispatchRead,
+    DispatchReturnRequest,
+    DispatchSessionLinkRequest,
 )
 from plugins.commerce.purchase.backend.routers.common import (
     DB_SESSION,
@@ -179,8 +181,7 @@ def get_dispatch(
     response_model=DispatchRead,
     dependencies=[REQUIRE_DISPATCH_MANAGE],
 )
-def confirm_dispatch(
-    dispatch_id: str,
+def confirm_dispatch(    dispatch_id: str,
     db: Session = DB_SESSION,
     tenant_context: TenantContext = TENANT_CONTEXT,
 ) -> DispatchRead:
@@ -210,6 +211,62 @@ def cancel_dispatch(
         raise HTTPException(status_code=404, detail="Despacho no encontrado")
     try:
         item = dispatches.transition(db, dispatch=item, target="CANCELADO")
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    return DispatchRead.model_validate(_serialize_dispatch(db, item))
+
+
+@router.post(
+    "/{dispatch_id}/return",
+    response_model=DispatchRead,
+    dependencies=[REQUIRE_DISPATCH_MANAGE],
+)
+def register_return(
+    dispatch_id: str,
+    payload: DispatchReturnRequest,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+) -> DispatchRead:
+    item = dispatches.get_dispatch(db, tenant_id=tenant_context.current_tenant_id, dispatch_id=dispatch_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Despacho no encontrado")
+    try:
+        item = dispatches.register_return(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            dispatch=item,
+            cylinder_ids=[c.cylinder_id for c in payload.cylinders],
+            notes=payload.notes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
+    db.commit()
+    return DispatchRead.model_validate(_serialize_dispatch(db, item))
+
+
+@router.patch(
+    "/{dispatch_id}/session-link",
+    response_model=DispatchRead,
+    dependencies=[REQUIRE_DISPATCH_MANAGE],
+)
+def set_session_link(
+    dispatch_id: str,
+    payload: DispatchSessionLinkRequest,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+) -> DispatchRead:
+    item = dispatches.get_dispatch(db, tenant_id=tenant_context.current_tenant_id, dispatch_id=dispatch_id)
+    if item is None:
+        raise HTTPException(status_code=404, detail="Despacho no encontrado")
+    try:
+        item = dispatches.set_session_link(
+            db,
+            tenant_id=tenant_context.current_tenant_id,
+            dispatch=item,
+            kind=payload.kind,
+            session_id=payload.session_id,
+        )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc
     db.commit()

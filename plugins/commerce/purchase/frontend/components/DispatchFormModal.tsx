@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/s
 import { FormEvent, useState } from "react";
 import { createDispatch, listSuppliers } from "../api";
 import { listCylindersWithFilters } from "../../../../logistics/frontend/api/cylinder-list";
+import { listActiveVehicleSessions } from "../../../../logistics/frontend/api/sessions";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
@@ -35,10 +36,19 @@ export function DispatchFormModal({ open, onClose }: Props) {
     enabled: open,
   });
 
+  // Jornadas operativas para vínculo OPCIONAL (§9/§32: solo si va en camión propio)
+  const jornadasQuery = useQuery({
+    queryKey: ["logistics", "vehicle-sessions", "active", "despacho"],
+    queryFn: listActiveVehicleSessions,
+    enabled: open,
+  });
+  const [sessionId, setSessionId] = useState("");
+
   const createMut = useMutation({
     mutationFn: () => createDispatch({
       supplier_id: supplierId,
       order_id: orderId || null,
+      session_id: sessionId || null,
       cylinders: cyls.map(c => ({ cylinder_id: c.cylinder_id, product_id: c.product_id || null, service_type: c.service_type })),
       dispatch_date: new Date().toISOString().slice(0, 10),
     }),
@@ -94,7 +104,24 @@ export function DispatchFormModal({ open, onClose }: Props) {
               <Input value={orderId} onChange={(e) => setOrderId(e.target.value)} placeholder="ID de orden" />
             </label>
 
-            <div className="space-y-2">
+            <label className="block space-y-2 text-sm text-foreground">
+            <span>Jornada de traslado (opcional — solo camión propio)</span>
+            <Combobox
+              value={sessionId}
+              onChange={setSessionId}
+              options={[
+                { value: "", label: "Sin jornada — transportista externo" },
+                ...(jornadasQuery.data ?? []).map(j => ({
+                  value: j.id,
+                  label: `${j.vehicle_plate} · ${j.status}`,
+                })),
+              ]}
+              placeholder="Seleccionar jornada"
+              searchPlaceholder="Buscar placa"
+            />
+          </label>
+
+          <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-foreground">Cilindros ({cyls.length})</p>
                 <Button type="button" variant="secondary" size="sm" onClick={() => setQuickAddOpen(true)}>

@@ -21,14 +21,17 @@ from plugins.logistics.backend.models.cylinder import LogisticsCylinder
 # Estados logísticos que impiden enviar un cilindro a proveedor (§8).
 BLOCKED_CYLINDER_STATES = {"BLOQUEADO", "DE_BAJA", "PERDIDO"}
 
-DISPATCH_STATUSES = ("PREPARADO", "DESPACHADO", "CANCELADO")
+DISPATCH_STATUSES = ("PREPARADO", "DESPACHADO", "RETORNADO", "CANCELADO")
 CYLINDER_ITEM_STATUSES = ("PENDIENTE", "EN_CUSTODIA", "DEVUELTO")
 
 TRANSITIONS: dict[str, set[str]] = {
     "PREPARADO": {"DESPACHADO", "CANCELADO"},
-    "DESPACHADO": set(),
+    "DESPACHADO": {"RETORNADO"},
+    "RETORNADO": set(),
     "CANCELADO": set(),
 }
+
+OPERATIONAL_SESSION_STATUSES = ("READY_TO_DEPART", "OUTBOUND", "RETURNING")
 
 
 def _validate_status_transition(current: str, target: str) -> None:
@@ -289,3 +292,102 @@ def custody_summary(db: Session, *, tenant_id: str) -> list[dict]:
         }
         for supplier_id, name, total, oldest in rows
     ]
+
+
+def register_return(
+    db: Session,
+    *,
+    tenant_id: str,
+    dispatch: ComDispatch,
+    cylinder_ids: list[str],
+    notes: str | None = None,
+) -> ComDispatch:
+    """Retorno parcial/total por serial (§43): marca DEVUELTO solo lo listado.
+
+    Cuando ya no queda ningún EN_CUSTODIA, el despacho transiciona a
+    RETORNADO (custodia resuelta). Los seriales no listados siguen en
+    custodia y visibles.
+    """
+    if dispatch.status != "DESPACHADO":
+        raise ValueError(
+            f"Solo se registra retorno de despachos DESPACHADO (actual: {dispatch.status})"
+        )
+    items = {i.cylinder_id: i for i in dispatch.cylinders}  # type: ignore[attr-defined]
+
+    unknown = [cid for cid in cylinder_ids if cid not in items]
+    if unknown:
+        raise ValueError(f"Seriales que no pertenecen a este despacho: {', '.join(unknown)}")
+
+    already = [
+        cid for cid in cylinder_ids if items[cid].status == "DEVUELTO"
+    ]
+    if already:
+        raise ValueError(f"Seriales ya devueltos: {', '.join(already)}")
+    if not cylinder_ids:
+        raise ValueError("Lista de seriales vacía")
+
+    now = datetime.now(timezone.utc)
+    for cid in cylinder_ids:
+        item = items[cid]
+        item.status = "DEVUELTO"
+        item.returned_at = now
+        if notes:
+            item.notes = notes
+        db.add(item)
+
+    remaining = db.scalar(
+        select(func.count(ComDispatchCylinder.id)).where(
+            ComDispatchCylinder.dispatch_id == dispatch.id,
+            ComDispatchCylinder.status == "EN_CUSTODIA",
+        )
+    ) or 0
+
+    target = "RETORNADO" if remaining == 0 else "DESPACHADO"
+    _validate_status_transition(dispatch.status, target)
+    dispatch.status = target
+    db.add(dispatch)
+    db.flush()
+    return dispatch
+
+
+def set_session_link(
+    db: Session,
+    *,
+    tenant_id: str,
+    dispatch: ComDispatch,
+    kind: str,
+    session_id: str | None,
+) -> ComDispatch:
+    """Vínculo OPCIONAL despacho↔jornada (§9/§32). Referencia pura: jamás
+    modifica estados de Logística. Desvinculable solo en PREPARADO."""
+    from plugins.logistics.backend.models.sessions import LogisticsVehicleSession
+
+    if kind not in ("outbound", "return"):
+        raise ValueError("kind debe ser outbound o return")
+    if dispatch.status == "CANCELADO":
+        raise ValueError("No se modifica un despacho cancelado")
+    if session_id is not None and dispatch.status != "PREPARADO":
+        raise ValueError(
+            "La sesión solo puede asignarse mientras el despacho está PREPARADO"
+        )
+
+    column = "session_id" if kind == "outbound" else "return_session_id"
+    if session_id is not None:
+        session = db.scalar(
+            select(LogisticsVehicleSession).where(
+                LogisticsVehicleSession.tenant_id == tenant_id,
+                LogisticsVehicleSession.id == session_id,
+            )
+        )
+        if session is None:
+            raise ValueError("Jornada no encontrada")
+        if session.status not in OPERATIONAL_SESSION_STATUSES:
+            raise ValueError(
+                f"La jornada debe estar en estado operativo "
+                f"(actual: {session.status})"
+            )
+
+    setattr(dispatch, column, session_id)
+    db.add(dispatch)
+    db.flush()
+    return dispatch

@@ -171,3 +171,10 @@ export function listSupplierCustody(supplierId: string, params: Record<string, u
     `${BASE}/dispatches/suppliers/${supplierId}/custody${buildQuery(params)}`
   );
 }
+
+export function registerDispatchReturn(id: string, cylinderIds: string[], notes?: string) {
+  return apiRequest<import("./types").Dispatch>(`${BASE}/dispatches/${id}/return`, {
+    method: "POST",
+    body: JSON.stringify({ cylinders: cylinderIds.map(c => ({ cylinder_id: c })), notes: notes ?? null }),
+  });
+}

@@ -6,6 +6,9 @@ from plugins.commerce.purchase.backend.schemas.dispatches import (
     DispatchCreateRequest,
     DispatchPageRead,
     DispatchRead,
+    DispatchReturnItem,
+    DispatchReturnRequest,
+    DispatchSessionLinkRequest,
 )
 from plugins.commerce.purchase.backend.schemas.orders import (
     CancelOrderRequest,
@@ -45,6 +48,9 @@ __all__ = [
     "DispatchCreateRequest",
     "DispatchPageRead",
     "DispatchRead",
+    "DispatchReturnItem",
+    "DispatchReturnRequest",
+    "DispatchSessionLinkRequest",
     "PurchaseItemCreateRequest",
     "PurchaseItemRead",
     "PurchaseOrderCreateRequest",

@@ -44,14 +44,14 @@ export function Sidebar() {
   }
 
   return (
-    <aside className="flex min-h-screen w-full flex-col border-r border-border bg-sidebar p-4">
+    <aside className="flex h-screen flex-col border-r border-border bg-sidebar p-4">
       <div className="mb-8 flex items-center justify-between">
         <div className="space-y-1">
           <h1 className="text-lg font-semibold text-sidebar-foreground">SYSTUTOR</h1>
           </div>
       </div>
 
-      <nav className="space-y-5">
+      <nav className="flex-1 space-y-5 overflow-y-auto">
         {sections.map((section) => {
           const sectionKey = section.title;
           const isCollapsed = collapsedSections.has(sectionKey);

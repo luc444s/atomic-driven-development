@@ -26,12 +26,12 @@ export function AppLayout() {
   }
 
   return (
-    <div className="flex min-h-screen">
-      <div className="w-60 shrink-0">
+    <div className="flex h-screen overflow-hidden">
+      <div className="h-screen w-60 shrink-0">
         <Sidebar />
       </div>
 
-      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+      <div className="flex h-screen min-w-0 flex-1 flex-col overflow-y-auto">
         <header className="flex items-center justify-between border-b border-border bg-surface/70 px-4 py-4 backdrop-blur lg:px-6">
           <ShellHeader
             tenantName={currentTenant?.name ?? null}

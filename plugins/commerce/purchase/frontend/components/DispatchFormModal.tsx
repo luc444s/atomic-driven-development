@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
-import { createDispatch, listSuppliers, listTanks } from "../api";
+import { createDispatch, listSuppliers } from "../api";
+import { listCylindersWithFilters } from "../../../../logistics/frontend/api/cylinder-list";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
@@ -32,9 +33,13 @@ export function DispatchFormModal({ open, onClose }: Props) {
     enabled: open,
   });
 
-  // Tanques criogénicos disponibles como candidatos (el input acepta el id
-  // de cualquier cilindro; la validación real vive en el backend).
-  void listTanks;
+  // Cilindros reales de Logística para el selector por serial (§9: nunca IDs
+  // manuales). La validación autoritativa sigue viviendo en el backend.
+  const cylindersQuery = useQuery({
+    queryKey: ["compras", "dispatch-cylinders"],
+    queryFn: () => listCylindersWithFilters({ per_page: 200 }),
+    enabled: open,
+  });
 
   const createMut = useMutation({
     mutationFn: () => createDispatch({
@@ -57,6 +62,10 @@ export function DispatchFormModal({ open, onClose }: Props) {
   function removeCyl(i: number) { setCyls(p => p.filter((_, j) => j !== i)); }
 
   const supplierOptions = (suppliersQuery.data ?? []).map(s => ({ value: s.id, label: s.commercial_name ?? s.name }));
+  const cylinderOptions = (cylindersQuery.data?.items ?? []).map(c => ({
+    value: c.id,
+    label: `${c.serial}${c.description ? ` · ${c.description}` : ""}`,
+  }));
   const duplicates = cyls.some((c, i) => c.cylinder_id && cyls.findIndex(x => x.cylinder_id === c.cylinder_id) !== i);
 
   return (
@@ -91,18 +100,28 @@ export function DispatchFormModal({ open, onClose }: Props) {
           <div className="space-y-2">
             <div className="flex items-center justify-between">
               <p className="text-sm font-medium text-foreground">Cilindros ({cyls.length})</p>
-              <Button type="button" variant="secondary" size="sm" onClick={addCyl}>Agregar serial</Button>
+              <Button type="button" variant="secondary" size="sm" onClick={addCyl}>Agregar cilindro</Button>
             </div>
             {duplicates ? (
               <Alert title="Seriales duplicados">Hay cilindros repetidos en la lista.</Alert>
             ) : null}
+            {cyls.length === 0 ? (
+              <p className="text-xs text-muted-foreground">
+                Agregá un cilindro y elegilo por serial desde el buscador.
+              </p>
+            ) : null}
             {cyls.map((row, i) => (
-              <div key={i} className="grid grid-cols-[1fr_140px_auto] gap-2">
-                <Input
+              <div key={i} className="grid grid-cols-[1fr_150px_auto] gap-2">
+                <Combobox
                   value={row.cylinder_id}
-                  onChange={(e) => updateCyl(i, "cylinder_id", e.target.value)}
-                  placeholder="ID del cilindro"
-                  required
+                  onChange={(v) => {
+                    const chosen = (cylindersQuery.data?.items ?? []).find(c => c.id === v);
+                    updateCyl(i, "cylinder_id", v);
+                    if (chosen?.product_id) updateCyl(i, "product_id", chosen.product_id);
+                  }}
+                  options={cylinderOptions}
+                  placeholder="Buscar por serial..."
+                  searchPlaceholder="Serial o descripción"
                 />
                 <Combobox
                   value={row.service_type}

@@ -7,6 +7,8 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
+> Última actualización: COMPRAS-005 (despacho por serial + custodia).
+
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 
 | § | Sección | Estado | Vía |
@@ -46,13 +48,13 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 35 | Integración Finanzas | ❌ | |
 | 36 | Trazabilidad | 🟡 | eventos de orden ✓; auditoría general pendiente |
 | 37 | Multiempresa y sucursales | ✅ | tenant_id en todas las operaciones |
-| 38 | Permisos operativos | 🟡 | 6 permisos básicos |
+| 38 | Permisos operativos | 🟡 | 8 permisos (supplier/order/dispatch read+manage; COMPRAS-005) |
 | 39 | Dashboard operativo | ❌ | |
 | 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
 | 41 | Reportes | ❌ | |
-| 42 | Flujo principal llenado | ❌ | núcleo 005+006 |
+| 42 | Flujo principal llenado | 🟡 | pasos 1-11 ✓ (necesidad→orden→despacho→custodia, 002+005); retorno/conciliación en 006 |
 | 43 | Flujo recepción parcial | 🟡 | |
-| 44 | Flujo servicio técnico | ❌ | |
+| 44 | Flujo servicio técnico | 🟡 | pasos 1-5 ✓ (service_type por serial + custodia, 005); resultado técnico y cierre en 006+ |
 | 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |
 | 46 | Objetivo operativo final | — | meta global |
 

@@ -112,6 +112,12 @@ importers:
         specifier: ^2.1.9
         version: 2.1.9
 
+  vendor/systutor-themes:
+    dependencies:
+      zustand:
+        specifier: '>=4'
+        version: 5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1))
+
 packages:
 
   '@alloc/quick-lru@5.2.0':
@@ -2846,5 +2852,11 @@ snapshots:
   zustand@5.0.14(@types/react@18.3.31)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
     optionalDependencies:
       '@types/react': 18.3.31
+      react: 18.3.1
+      use-sync-external-store: 1.6.0(react@18.3.1)
+
+  zustand@5.0.14(@types/react@19.2.17)(react@18.3.1)(use-sync-external-store@1.6.0(react@18.3.1)):
+    optionalDependencies:
+      '@types/react': 19.2.17
       react: 18.3.1
       use-sync-external-store: 1.6.0(react@18.3.1)

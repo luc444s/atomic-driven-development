@@ -4,3 +4,6 @@
 [submodule "vendor/systutor-shell"]
 	path = vendor/systutor-shell
 	url = ../systutor-shell
+[submodule "vendor/systutor-themes"]
+	path = vendor/systutor-themes
+	url = git@github.com:luc444s/systutor-themes.git

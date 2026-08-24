@@ -60,6 +60,7 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
       "@systutor/sdk/frontend": path.resolve(__dirname, "../../vendor/systutor-core/src/systutor/sdk/frontend/index.ts"),
       "@systutor/shell": path.resolve(__dirname, "../../vendor/systutor-shell/src"),
+      "@systutor/themes": path.resolve(__dirname, "../../vendor/systutor-themes/src"),
       ...nodeModulesAliases,
     },
   },

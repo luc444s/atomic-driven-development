@@ -1,5 +1,5 @@
-import { useThemeStore } from "../../features/theme/store";
-import { THEME_NAMES } from "../../features/theme/tokens";
+import { useThemeStore } from "@systutor/themes";
+import { THEME_NAMES } from "@systutor/themes";
 
 const THEME_LABELS: Record<string, string> = {
   dark: "Oscuro",

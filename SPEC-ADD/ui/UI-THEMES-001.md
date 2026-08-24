@@ -161,7 +161,7 @@ structural_constraints:
 - Origen histórico: LOGI-0005, LOGI-0006 (SPEC-ADD/logistics).
 - Extensión de esta sesión: tokens `success` / `warning` en los 6 temas +
   tailwind.config (badges semánticos).
-- Commit: pendiente.
+- Commit: `6d2284b`
 
 ## Definition of Done
 
@@ -175,4 +175,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit `6d2284b`)

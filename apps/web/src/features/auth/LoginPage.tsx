@@ -67,7 +67,7 @@ export function LoginPage() {
     <main className="flex min-h-screen items-center justify-center px-4 py-8">
       <Card className="w-full max-w-md">
         <CardHeader>
-          <CardTitle>PROBERTON</CardTitle>
+          <CardTitle>SYSTUTOR</CardTitle>
           <CardDescription>
             Inicia sesion para acceder al shell del core y revisar el estado del sistema.
           </CardDescription>

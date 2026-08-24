@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
-import { useState } from "react";
+import { FormEvent, useState } from "react";
 import {
   addSupplierAddress,
   addSupplierBankAccount,
@@ -12,6 +12,8 @@ import {
 import type { Supplier } from "../types";
 import { Button } from "@systutor/shell/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@systutor/shell/ui/card";
+import { ConfirmDialog } from "@systutor/shell/ui/confirm-dialog";
+import { DataTable } from "@systutor/shell/ui/data-table";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
 import { Alert } from "@systutor/shell/ui/alert";
@@ -26,187 +28,95 @@ type Props = {
   onEdit: (supplierId: string) => void;
 };
 
+const EMPTY_ADDR = { line1: "", label: "", district: "", city: "", latitude: null as number | null, longitude: null as number | null };
+const EMPTY_CONTACT = { full_name: "", role: "", phone: "", email: "" };
+const EMPTY_BANK = { bank_name: "", account_holder: "", iban: "", bic_swift: "" };
+
 export function SupplierDetailModal({ open, supplier, onClose, onEdit }: Props) {
   const queryClient = useQueryClient();
   const [error, setError] = useState<string | null>(null);
+  const [openSection, setOpenSection] = useState<"addresses" | "contacts" | "banks" | null>(null);
 
-  const [addrForm, setAddrForm] = useState({
-    line1: "", label: "", district: "", city: "",
-    latitude: null as number | null, longitude: null as number | null,
-  });
-  const [showAddrForm, setShowAddrForm] = useState(false);
-  const [contactForm, setContactForm] = useState({ full_name: "", role: "", phone: "", email: "" });
-  const [showContactForm, setShowContactForm] = useState(false);
-  const [bankForm, setBankForm] = useState({ bank_name: "", account_holder: "", iban: "", bic_swift: "" });
-  const [showBankForm, setShowBankForm] = useState(false);
-
-  // Al invalidarse la lista tras cada mutación, el padre re-renderiza con el
-  // Supplier actualizado y el detalle se refresca solo.
   const detail = supplier;
 
-  const addAddrMut = useMutation({
-    mutationFn: () => addSupplierAddress(detail!.id, { line1: addrForm.line1, label: addrForm.label || null, district: addrForm.district || null, city: addrForm.city || null, latitude: addrForm.latitude, longitude: addrForm.longitude }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }); setShowAddrForm(false); setAddrForm({ line1: "", label: "", district: "", city: "", latitude: null, longitude: null }); },
-    onError: (err) => setError(err instanceof Error ? err.message : "Error al agregar dirección"),
-  });
-  const removeAddrMut = useMutation({
-    mutationFn: (addressId: string) => removeSupplierAddress(detail!.id, addressId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }),
-  });
-  const addContactMut = useMutation({
-    mutationFn: () => addSupplierContact(detail!.id, { full_name: contactForm.full_name || null, role: contactForm.role || null, phone: contactForm.phone || null, email: contactForm.email || null }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }); setShowContactForm(false); setContactForm({ full_name: "", role: "", phone: "", email: "" }); },
-    onError: (err) => setError(err instanceof Error ? err.message : "Error al agregar contacto"),
-  });
-  const removeContactMut = useMutation({
-    mutationFn: (contactId: string) => removeSupplierContact(detail!.id, contactId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }),
-  });
-  const addBankMut = useMutation({
-    mutationFn: () => addSupplierBankAccount(detail!.id, { bank_name: bankForm.bank_name, account_holder: bankForm.account_holder, iban: bankForm.iban, bic_swift: bankForm.bic_swift || null }),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }); setShowBankForm(false); setBankForm({ bank_name: "", account_holder: "", iban: "", bic_swift: "" }); },
-    onError: (err) => setError(err instanceof Error ? err.message : "Error al agregar cuenta"),
-  });
-  const removeBankMut = useMutation({
-    mutationFn: (accountId: string) => removeSupplierBankAccount(detail!.id, accountId),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }),
-  });
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] });
+  }
+
+  function closeSection() {
+    setOpenSection(null);
+    setError(null);
+  }
+
   const disableMut = useMutation({
     mutationFn: () => disableSupplier(detail!.id),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] }),
+    onSuccess: invalidate,
   });
 
-  return (
-    <Dialog
-      open={open}
-      title="Detalle del proveedor"
-      description="Datos fiscales, direcciones, contactos, cuentas bancarias y envases en custodia."
-      onClose={onClose}
-      maxWidthClassName="max-w-4xl"
-    >
-      {!detail ? (
+  if (!detail) {
+    return (
+      <Dialog open={open} title="Detalle del proveedor" onClose={onClose}>
         <p className="py-6 text-center text-sm text-muted-foreground">Proveedor no encontrado.</p>
-      ) : (
-        <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-          <div className="space-y-4">
+      </Dialog>
+    );
+  }
+
+  return (
+    <>
+      <Dialog
+        open={open}
+        title="Detalle del proveedor"
+        description="Datos fiscales, direcciones, contactos y cuentas bancarias del proveedor."
+        onClose={onClose}
+        maxWidthClassName="max-w-4xl"
+      >
+        <div className="space-y-6">
+          <div className="space-y-6">
             <SupplierOverviewCard supplier={detail} />
 
-            {error ? <Alert title="Error">{error}</Alert> : null}
-
             <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Direcciones</CardTitle>
-                  <CardDescription>{detail.addresses.length} registradas</CardDescription>
-                </div>
-                <Button variant="secondary" size="sm" onClick={() => setShowAddrForm(p => !p)}>Agregar</Button>
+              <CardHeader>
+                <CardTitle>Acciones</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {detail.addresses.map((a) => (
-                  <div key={a.id} className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{a.label ?? "Dirección"} · {a.line1}</p>
-                      <p className="text-xs text-muted-foreground">{[a.district, a.city].filter(Boolean).join(", ") || "-"}</p>
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={() => removeAddrMut.mutate(a.id)}>Quitar</Button>
-                  </div>
-                ))}
-                {detail.addresses.length === 0 && !showAddrForm ? (
-                  <p className="text-sm text-muted-foreground">Sin direcciones registradas.</p>
-                ) : null}
-                {showAddrForm ? (
-                  <div className="space-y-3 rounded-md border border-dashed border-border p-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input value={addrForm.label} onChange={(e) => setAddrForm(p => ({ ...p, label: e.target.value }))} placeholder="Tipo (Principal)" />
-                      <Input value={addrForm.line1} onChange={(e) => setAddrForm(p => ({ ...p, line1: e.target.value }))} placeholder="Av. Principal 123" />
-                      <Input value={addrForm.district} onChange={(e) => setAddrForm(p => ({ ...p, district: e.target.value }))} placeholder="Distrito" />
-                      <Input value={addrForm.city} onChange={(e) => setAddrForm(p => ({ ...p, city: e.target.value }))} placeholder="Ciudad" />
-                    </div>
-                    <LocationPicker
-                      value={addrForm.latitude != null && addrForm.longitude != null ? { lat: addrForm.latitude, lng: addrForm.longitude } : null}
-                      onChange={(loc) => setAddrForm(p => ({ ...p, latitude: loc.lat, longitude: loc.lng }))}
-                      height={220}
-                    />
-                    <div className="flex justify-end gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => setShowAddrForm(false)}>Cancelar</Button>
-                      <Button size="sm" disabled={!addrForm.line1.trim() || addAddrMut.isPending} onClick={() => addAddrMut.mutate()}>Guardar dirección</Button>
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Contactos</CardTitle>
-                  <CardDescription>{detail.contacts.length} registrados</CardDescription>
+              <CardContent className="text-sm text-foreground">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <button
+                    type="button"
+                    onClick={() => onEdit(detail.id)}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="font-medium">Editar</p>
+                    <p className="mt-1 text-xs text-muted-foreground">Modifica datos generales y condiciones comerciales.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpenSection("addresses")}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="font-medium">Direcciones</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{detail.addresses.length} registradas.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpenSection("contacts")}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="font-medium">Contactos</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{detail.contacts.length} registrados.</p>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOpenSection("banks")}
+                    className="rounded-lg border border-border bg-surface p-4 text-left transition hover:border-ring hover:bg-surface-alt"
+                  >
+                    <p className="font-medium">Cuentas bancarias</p>
+                    <p className="mt-1 text-xs text-muted-foreground">{detail.bank_accounts.length} registradas.</p>
+                  </button>
                 </div>
-                <Button variant="secondary" size="sm" onClick={() => setShowContactForm(p => !p)}>Agregar</Button>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {detail.contacts.map((c) => (
-                  <div key={c.id} className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{c.full_name}{c.role ? ` · ${c.role}` : ""}</p>
-                      <p className="text-xs text-muted-foreground">{[c.phone, c.email].filter(Boolean).join(" · ") || "-"}</p>
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={() => removeContactMut.mutate(c.id)}>Quitar</Button>
-                  </div>
-                ))}
-                {detail.contacts.length === 0 && !showContactForm ? (
-                  <p className="text-sm text-muted-foreground">Sin contactos registrados.</p>
-                ) : null}
-                {showContactForm ? (
-                  <div className="space-y-3 rounded-md border border-dashed border-border p-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input value={contactForm.full_name} onChange={(e) => setContactForm(p => ({ ...p, full_name: e.target.value }))} placeholder="Nombre completo" />
-                      <Input value={contactForm.role} onChange={(e) => setContactForm(p => ({ ...p, role: e.target.value }))} placeholder="Cargo" />
-                      <Input value={contactForm.phone} onChange={(e) => setContactForm(p => ({ ...p, phone: e.target.value }))} placeholder="Teléfono" />
-                      <Input value={contactForm.email} onChange={(e) => setContactForm(p => ({ ...p, email: e.target.value }))} placeholder="Email" />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => setShowContactForm(false)}>Cancelar</Button>
-                      <Button size="sm" disabled={!contactForm.full_name.trim() || addContactMut.isPending} onClick={() => addContactMut.mutate()}>Guardar contacto</Button>
-                    </div>
-                  </div>
-                ) : null}
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Cuentas bancarias</CardTitle>
-                  <CardDescription>{detail.bank_accounts.length} registradas</CardDescription>
-                </div>
-                <Button variant="secondary" size="sm" onClick={() => setShowBankForm(p => !p)}>Agregar</Button>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {detail.bank_accounts.map((b) => (
-                  <div key={b.id} className="flex items-start justify-between gap-3 rounded-md border border-border px-3 py-2 text-sm">
-                    <div className="min-w-0">
-                      <p className="font-medium text-foreground">{b.bank_name} · {b.account_holder}</p>
-                      <p className="text-xs text-muted-foreground">{[b.iban, b.bic_swift].filter(Boolean).join(" · ") || "-"}</p>
-                    </div>
-                    <Button variant="secondary" size="sm" onClick={() => removeBankMut.mutate(b.id)}>Quitar</Button>
-                  </div>
-                ))}
-                {detail.bank_accounts.length === 0 && !showBankForm ? (
-                  <p className="text-sm text-muted-foreground">Sin cuentas registradas.</p>
-                ) : null}
-                {showBankForm ? (
-                  <div className="space-y-3 rounded-md border border-dashed border-border p-3">
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <Input value={bankForm.bank_name} onChange={(e) => setBankForm(p => ({ ...p, bank_name: e.target.value }))} placeholder="Banco" />
-                      <Input value={bankForm.account_holder} onChange={(e) => setBankForm(p => ({ ...p, account_holder: e.target.value }))} placeholder="Titular" />
-                      <Input value={bankForm.iban} onChange={(e) => setBankForm(p => ({ ...p, iban: e.target.value }))} placeholder="IBAN" />
-                      <Input value={bankForm.bic_swift} onChange={(e) => setBankForm(p => ({ ...p, bic_swift: e.target.value }))} placeholder="BIC/SWIFT" />
-                    </div>
-                    <div className="flex justify-end gap-2">
-                      <Button variant="secondary" size="sm" onClick={() => setShowBankForm(false)}>Cancelar</Button>
-                      <Button size="sm" disabled={!bankForm.bank_name.trim() || !bankForm.account_holder.trim() || addBankMut.isPending} onClick={() => addBankMut.mutate()}>Guardar cuenta</Button>
-                    </div>
+                {detail.notes ? (
+                  <div className="mt-4 rounded-md border border-border bg-muted/20 p-4">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Notas</p>
+                    <p className="mt-2 break-words">{detail.notes}</p>
                   </div>
                 ) : null}
               </CardContent>
@@ -224,27 +134,267 @@ export function SupplierDetailModal({ open, supplier, onClose, onEdit }: Props) 
               </CardContent>
             </Card>
           </div>
-
-          <Card className="h-fit">
-            <CardHeader>
-              <CardTitle>Acciones</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-2 text-sm">
-              <Button variant="secondary" className="w-full" onClick={() => onEdit(detail.id)}>Editar proveedor</Button>
-              {detail.is_active ? (
-                <Button
-                  variant="secondary"
-                  className="w-full"
-                  disabled={disableMut.isPending}
-                  onClick={() => disableMut.mutate()}
-                >
-                  Desactivar proveedor
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
         </div>
-      )}
+      </Dialog>
+
+      <SupplierAddressesDialog
+        open={openSection === "addresses"}
+        supplier={detail}
+        onError={setError}
+        onClose={closeSection}
+      />
+      <SupplierContactsDialog
+        open={openSection === "contacts"}
+        supplier={detail}
+        onError={setError}
+        onClose={closeSection}
+      />
+      <SupplierBanksDialog
+        open={openSection === "banks"}
+        supplier={detail}
+        onError={setError}
+        onClose={closeSection}
+      />
+    </>
+  );
+}
+
+type SectionProps = {
+  open: boolean;
+  supplier: Supplier;
+  onClose: () => void;
+  onError: (message: string | null) => void;
+};
+
+function SupplierAddressesDialog({ open, supplier, onClose, onError }: SectionProps) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState(EMPTY_ADDR);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] });
+  }
+
+  const saveMut = useMutation({
+    mutationFn: (e: FormEvent) => {
+      e.preventDefault();
+      return addSupplierAddress(supplier.id, {
+        line1: form.line1, label: form.label || null, district: form.district || null,
+        city: form.city || null, latitude: form.latitude, longitude: form.longitude,
+      });
+    },
+    onSuccess: () => { invalidate(); setEditingId(null); setForm(EMPTY_ADDR); },
+    onError: (err) => onError(err instanceof Error ? err.message : "Error al guardar dirección"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (addressId: string) => removeSupplierAddress(supplier.id, addressId),
+    onSuccess: () => { invalidate(); setConfirmDeleteId(null); },
+  });
+
+  const isPending = saveMut.isPending;
+
+  return (
+    <Dialog open={open} title="Direcciones" description={`Direcciones de ${supplier.name}.`} onClose={onClose} maxWidthClassName="max-w-3xl">
+      <div className="space-y-4">
+        <DataTable
+          dense
+          columns={[
+            { key: "label", header: "Etiqueta", render: (row: Supplier["addresses"][number]) => row.label ?? "-" },
+            { key: "line1", header: "Dirección", render: (row: Supplier["addresses"][number]) => row.line1 ?? "-" },
+            { key: "locality", header: "Localidad", render: (row: Supplier["addresses"][number]) => [row.district, row.city].filter(Boolean).join(", ") || "-" },
+            {
+              key: "actions",
+              header: "",
+              render: (row: Supplier["addresses"][number]) => (
+                <Button variant="secondary" className="h-7 w-7 px-0 py-0" aria-label="Eliminar dirección" onClick={(event) => { event.stopPropagation(); setConfirmDeleteId(row.id); }}>x</Button>
+              ),
+            },
+          ]}
+          rows={supplier.addresses}
+          rowKey={(row) => row.id}
+          emptyMessage="No hay direcciones registradas."
+        />
+        <Button variant="secondary" onClick={() => { setEditingId(null); setForm(EMPTY_ADDR); }}>
+          Agregar dirección
+        </Button>
+
+        <form
+          className="space-y-3 rounded-md border border-dashed border-border p-3"
+          onSubmit={saveMut.mutate}
+        >
+          <p className="text-sm font-medium text-foreground">Nueva dirección</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input value={form.label} onChange={(e) => setForm(p => ({ ...p, label: e.target.value }))} placeholder="Tipo (Principal)" />
+            <Input value={form.line1} onChange={(e) => setForm(p => ({ ...p, line1: e.target.value }))} placeholder="Av. Principal 123" required />
+            <Input value={form.district} onChange={(e) => setForm(p => ({ ...p, district: e.target.value }))} placeholder="Distrito" />
+            <Input value={form.city} onChange={(e) => setForm(p => ({ ...p, city: e.target.value }))} placeholder="Ciudad" />
+          </div>
+          <LocationPicker
+            value={form.latitude != null && form.longitude != null ? { lat: form.latitude, lng: form.longitude } : null}
+            onChange={(loc) => setForm(p => ({ ...p, latitude: loc.lat, longitude: loc.lng }))}
+            height={220}
+          />
+          <div className="flex justify-end">
+            <Button type="submit" disabled={isPending}>Guardar dirección</Button>
+          </div>
+        </form>
+
+        <ConfirmDialog
+          open={confirmDeleteId !== null}
+          onClose={() => setConfirmDeleteId(null)}
+          onConfirm={() => { if (confirmDeleteId) deleteMut.mutate(confirmDeleteId); }}
+          title="Eliminar dirección"
+          description="¿Seguro que deseas eliminar esta dirección?"
+        />
+      </div>
+    </Dialog>
+  );
+}
+
+function SupplierContactsDialog({ open, supplier, onClose, onError }: SectionProps) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState(EMPTY_CONTACT);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] });
+  }
+
+  const saveMut = useMutation({
+    mutationFn: (e: FormEvent) => {
+      e.preventDefault();
+      const payload = { full_name: form.full_name || null, role: form.role || null, phone: form.phone || null, email: form.email || null };
+      return addSupplierContact(supplier.id, payload);
+    },
+    onSuccess: () => { invalidate(); setEditingId(null); setForm(EMPTY_CONTACT); },
+    onError: (err) => onError(err instanceof Error ? err.message : "Error al guardar contacto"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (contactId: string) => removeSupplierContact(supplier.id, contactId),
+    onSuccess: () => { invalidate(); setConfirmDeleteId(null); },
+  });
+
+  return (
+    <Dialog open={open} title="Contactos" description={`Contactos de ${supplier.name}.`} onClose={onClose} maxWidthClassName="max-w-3xl">
+      <div className="space-y-4">
+        <DataTable
+          dense
+          columns={[
+            { key: "name", header: "Nombre", render: (row: Supplier["contacts"][number]) => row.full_name ?? "-" },
+            { key: "role", header: "Cargo", render: (row: Supplier["contacts"][number]) => row.role ?? "-" },
+            { key: "phone", header: "Teléfono", render: (row: Supplier["contacts"][number]) => row.phone ?? "-" },
+            { key: "email", header: "Email", render: (row: Supplier["contacts"][number]) => row.email ?? "-" },
+            {
+              key: "actions",
+              header: "",
+              render: (row: Supplier["contacts"][number]) => (
+                <Button variant="secondary" className="h-7 w-7 px-0 py-0" aria-label="Eliminar contacto" onClick={(event) => { event.stopPropagation(); setConfirmDeleteId(row.id); }}>x</Button>
+              ),
+            },
+          ]}
+          rows={supplier.contacts}
+          rowKey={(row) => row.id}
+          emptyMessage="No hay contactos registrados."
+        />
+        <Button variant="secondary" onClick={() => { setEditingId(null); setForm(EMPTY_CONTACT); }}>
+          Agregar contacto
+        </Button>
+
+        <form className="space-y-3 rounded-md border border-dashed border-border p-3" onSubmit={saveMut.mutate}>
+          <p className="text-sm font-medium text-foreground">Nuevo contacto</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input value={form.full_name} onChange={(e) => setForm(p => ({ ...p, full_name: e.target.value }))} placeholder="Nombre completo" />
+            <Input value={form.role} onChange={(e) => setForm(p => ({ ...p, role: e.target.value }))} placeholder="Cargo" />
+            <Input value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} placeholder="Teléfono" />
+            <Input value={form.email} onChange={(e) => setForm(p => ({ ...p, email: e.target.value }))} placeholder="Email" />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={saveMut.isPending}>Guardar contacto</Button>
+          </div>
+        </form>
+
+        <ConfirmDialog
+          open={confirmDeleteId !== null}
+          onClose={() => setConfirmDeleteId(null)}
+          onConfirm={() => { if (confirmDeleteId) deleteMut.mutate(confirmDeleteId); }}
+          title="Eliminar contacto"
+          description="¿Seguro que deseas eliminar este contacto?"
+        />
+      </div>
+    </Dialog>
+  );
+}
+
+function SupplierBanksDialog({ open, supplier, onClose, onError }: SectionProps) {
+  const queryClient = useQueryClient();
+  const [form, setForm] = useState(EMPTY_BANK);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+
+  function invalidate() {
+    queryClient.invalidateQueries({ queryKey: ["compras", "suppliers"] });
+  }
+
+  const saveMut = useMutation({
+    mutationFn: (e: FormEvent) => {
+      e.preventDefault();
+      const payload = { bank_name: form.bank_name, account_holder: form.account_holder, iban: form.iban, bic_swift: form.bic_swift || null };
+      return addSupplierBankAccount(supplier.id, payload);
+    },
+    onSuccess: () => { invalidate(); setEditingId(null); setForm(EMPTY_BANK); },
+    onError: (err) => onError(err instanceof Error ? err.message : "Error al guardar cuenta"),
+  });
+  const deleteMut = useMutation({
+    mutationFn: (accountId: string) => removeSupplierBankAccount(supplier.id, accountId),
+    onSuccess: () => { invalidate(); setConfirmDeleteId(null); },
+  });
+
+  return (
+    <Dialog open={open} title="Cuentas bancarias" description={`Cuentas de ${supplier.name}.`} onClose={onClose} maxWidthClassName="max-w-3xl">
+      <div className="space-y-4">
+        <DataTable
+          dense
+          columns={[
+            { key: "bank_name", header: "Banco", render: (row: Supplier["bank_accounts"][number]) => row.bank_name },
+            { key: "holder", header: "Titular", render: (row: Supplier["bank_accounts"][number]) => row.account_holder },
+            { key: "iban", header: "IBAN", render: (row: Supplier["bank_accounts"][number]) => row.iban },
+            { key: "bic", header: "BIC/SWIFT", render: (row: Supplier["bank_accounts"][number]) => row.bic_swift ?? "-" },
+            {
+              key: "actions",
+              header: "",
+              render: (row: Supplier["bank_accounts"][number]) => (
+                <Button variant="secondary" className="h-7 w-7 px-0 py-0" aria-label="Eliminar cuenta" onClick={(event) => { event.stopPropagation(); setConfirmDeleteId(row.id); }}>x</Button>
+              ),
+            },
+          ]}
+          rows={supplier.bank_accounts}
+          rowKey={(row) => row.id}
+          emptyMessage="No hay cuentas registradas."
+        />
+        <Button variant="secondary" onClick={() => { setEditingId(null); setForm(EMPTY_BANK); }}>
+          Agregar cuenta
+        </Button>
+
+        <form className="space-y-3 rounded-md border border-dashed border-border p-3" onSubmit={saveMut.mutate}>
+          <p className="text-sm font-medium text-foreground">Nueva cuenta</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <Input value={form.bank_name} onChange={(e) => setForm(p => ({ ...p, bank_name: e.target.value }))} placeholder="Banco" required />
+            <Input value={form.account_holder} onChange={(e) => setForm(p => ({ ...p, account_holder: e.target.value }))} placeholder="Titular" required />
+            <Input value={form.iban} onChange={(e) => setForm(p => ({ ...p, iban: e.target.value }))} placeholder="IBAN" required />
+            <Input value={form.bic_swift} onChange={(e) => setForm(p => ({ ...p, bic_swift: e.target.value }))} placeholder="BIC/SWIFT" />
+          </div>
+          <div className="flex justify-end">
+            <Button type="submit" disabled={saveMut.isPending}>Guardar cuenta</Button>
+          </div>
+        </form>
+
+        <ConfirmDialog
+          open={confirmDeleteId !== null}
+          onClose={() => setConfirmDeleteId(null)}
+          onConfirm={() => { if (confirmDeleteId) deleteMut.mutate(confirmDeleteId); }}
+          title="Eliminar cuenta bancaria"
+          description="¿Seguro que deseas eliminar esta cuenta bancaria?"
+        />
+      </div>
     </Dialog>
   );
 }

@@ -191,18 +191,18 @@ structural_constraints:
 
 - Requirement: plan aprobado por usuario ("ok asi") tras diagnóstico del
   ciclo de vida; COMPRAS-VISION-001 §6, §27, §28, §36, §45.
-- Commit: pendiente.
+- Commit: `800cfc5` (spec) · `215e625` (verifier gaps) · `8d576f9` (implementación)
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
-- [ ] Traceability established
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
+- [x] Composition checks passed when applicable
+- [x] No unrelated changes
+- [x] Structural constraints respected
+- [x] Traceability established

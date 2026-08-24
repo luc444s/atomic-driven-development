@@ -177,7 +177,11 @@ structural_constraints:
   confirmación "exactamente las mismas características".
 - Referencia de patrón: plugins/crm/frontend/pages/CustomersListPage.tsx +
   components/ModalDetalleCliente.tsx.
-- Commit: `8e49ca8` (spec) · `2ed1d7e` (implementación)
+- Commit: `8e49ca8` (spec) · `2ed1d7e` (implementación) · `a9188b1` (detalle 1:1
+  con tiles + dialogs de sección, feedback del usuario) · `3ad49d5` (quita
+  Cancelar redundante en formulario)
+- Estado: **DONE** — DoD completo; verificación: tsc limpio, suite frontend
+  sin fallos nuevos vs baseline, SupplierManagementDialog eliminado (0 refs).
 
 ## Definition of Done
 

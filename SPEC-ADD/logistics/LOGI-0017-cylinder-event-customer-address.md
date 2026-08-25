@@ -149,6 +149,8 @@ structural_constraints:
 - Commit: cdc2291 (junto a LOGI-0018)
 - Deployment: pendiente (migración 056 se aplica vía migrate_plugins)
 
+- Commit: `cdc2291`
+
 ## Definition of Done
 
 - [x] Objective satisfied
@@ -161,4 +163,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit pendiente)

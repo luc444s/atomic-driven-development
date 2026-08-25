@@ -144,6 +144,8 @@ structural_constraints:
 - Commit: pendiente (sin commit aún; agregar hash al integrar)
 - Deployment: pendiente (backend + frontend)
 
+- Commit: `cdc2291`
+
 ## Definition of Done
 
 - [x] Objective satisfied
@@ -156,4 +158,4 @@ structural_constraints:
 - [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established (commit pendiente)
+- [x] Traceability established (commit pendiente)

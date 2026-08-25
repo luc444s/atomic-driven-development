@@ -207,6 +207,9 @@ class ComPurchaseReceipt(Base):
     )
     warehouse_id: Mapped[str] = mapped_column(String(36), nullable=False, index=True)
     receipt_date: Mapped[date] = mapped_column(Date, nullable=False)
+    dispatch_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_dispatches.id"), nullable=True, index=True
+    )
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)

@@ -118,6 +118,7 @@ def list_dispatches_endpoint(
     tenant_context: TenantContext = TENANT_CONTEXT,
     supplier_id: str | None = None,
     status_filter: str | None = None,
+    order_id: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> dict:
@@ -126,6 +127,7 @@ def list_dispatches_endpoint(
         tenant_id=tenant_context.current_tenant_id,
         supplier_id=supplier_id,
         status=status_filter,
+        order_id=order_id,
         limit=limit,
         offset=offset,
     )

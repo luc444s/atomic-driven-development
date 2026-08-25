@@ -61,6 +61,7 @@ def _serialize_order_detail(db: Session, order: ComPurchaseOrder) -> dict:
             "id": r.id,
             "warehouse_id": r.warehouse_id,
             "receipt_date": r.receipt_date,
+            "dispatch_id": r.dispatch_id,
             "notes": r.notes,
             "created_at": r.created_at,
         }

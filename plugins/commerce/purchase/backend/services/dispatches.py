@@ -168,6 +168,7 @@ def list_dispatches(
     tenant_id: str,
     supplier_id: str | None = None,
     status: str | None = None,
+    order_id: str | None = None,
     limit: int = 20,
     offset: int = 0,
 ) -> tuple[list[ComDispatch], int]:
@@ -181,6 +182,9 @@ def list_dispatches(
     if status:
         stmt = stmt.where(ComDispatch.status == status)
         count_stmt = count_stmt.where(ComDispatch.status == status)
+    if order_id:
+        stmt = stmt.where(ComDispatch.order_id == order_id)
+        count_stmt = count_stmt.where(ComDispatch.order_id == order_id)
     total = db.scalar(count_stmt) or 0
     stmt = stmt.order_by(ComDispatch.created_at.desc()).limit(limit).offset(offset)
     return list(db.scalars(stmt).all()), total

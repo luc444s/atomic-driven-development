@@ -367,3 +367,118 @@ def test_session_link_validates_tenant_and_operational_state(app) -> None:
         json={"kind": "outbound", "session_id": None},
     )
     assert unlink.status_code == 200
+
+
+# ── COMPRAS-008: vínculo receipt ↔ despacho ──
+
+
+def _orden_confirmada(client, headers, supplier_id, product_id="prod-a"):
+    order = client.post(
+        "/api/v1/plugins/compras/purchase/orders",
+        headers=headers,
+        json={
+            "supplier_id": supplier_id,
+            "items": [{"product_id": product_id, "quantity": 10, "unit_cost": 50.0}],
+        },
+    ).json()
+    client.post(
+        f"/api/v1/plugins/compras/purchase/orders/{order['id']}/confirm", headers=headers
+    )
+    return order["id"]
+
+
+def _despacho_de_orden(client, headers, supplier_id, cylinder_id, order_id):
+    return client.post(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        json={
+            "supplier_id": supplier_id,
+            "order_id": order_id,
+            "cylinders": [{"cylinder_id": cylinder_id}],
+        },
+    ).json()["id"]
+
+
+def _recepcionar(app, client, headers, order_id, dispatch_id=None):
+    from unittest.mock import patch
+
+    class FakeStockConnector:
+        def __init__(self):
+            self.calls: list[dict] = []
+
+        def purchase_in(self, **kwargs):
+            return {"operation": "purchase_in", "balance": {}, "ledger_entry_id": "fake-ledger"}
+
+    detail = client.get(
+        f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+    ).json()
+    item_id = detail["items"][0]["id"]
+    payload = {
+        "warehouse_id": "wh-test",
+        "items": [{"purchase_item_id": item_id, "quantity": 10}],
+    }
+    if dispatch_id is not None:
+        payload["dispatch_id"] = dispatch_id
+    with patch(
+        "plugins.commerce.purchase.backend.routers.receipts._build_stock_connector",
+        return_value=FakeStockConnector(),
+    ):
+        return client.post(
+            f"/api/v1/plugins/compras/purchase/orders/{order_id}/receive",
+            headers=headers,
+            json=payload,
+        )
+
+
+def test_receive_links_dispatch_same_order(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    order_id = _orden_confirmada(client, headers, supplier_id)
+    dispatch_id = _despacho_de_orden(client, headers, supplier_id, cyls[0], order_id)
+
+    resp = _recepcionar(app, client, headers, order_id, dispatch_id)
+    assert resp.status_code == 200, resp.text
+
+    detail = client.get(
+        f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+    ).json()
+    assert len(detail["receipts"]) == 1
+    assert detail["receipts"][0]["dispatch_id"] == dispatch_id
+
+    # Filtro de lectura por orden (COMPRAS-008)
+    listing = client.get(
+        "/api/v1/plugins/compras/purchase/dispatches",
+        headers=headers,
+        params={"order_id": order_id},
+    )
+    assert listing.status_code == 200
+    assert [d["id"] for d in listing.json()["items"]] == [dispatch_id]
+
+
+def test_receive_rejects_dispatch_of_other_order(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    order_a = _orden_confirmada(client, headers, supplier_id, product_id="prod-a")
+    order_b = _orden_confirmada(client, headers, supplier_id, product_id="prod-b")
+    dispatch_a = _despacho_de_orden(client, headers, supplier_id, cyls[0], order_a)
+
+    resp = _recepcionar(app, client, headers, order_b, dispatch_a)
+    assert resp.status_code == 400, resp.text
+    assert "no pertenece a esta orden" in resp.json()["detail"]
+
+    # Despacho inexistente → 400
+    missing = _recepcionar(app, client, headers, order_b, "no-existe")
+    assert missing.status_code == 400
+    assert "Despacho no encontrado" in missing.json()["detail"]
+
+
+def test_receive_without_dispatch_unchanged(app) -> None:
+    client, headers, supplier_id, cyls = _setup(app)
+    order_id = _orden_confirmada(client, headers, supplier_id)
+
+    resp = _recepcionar(app, client, headers, order_id)
+    assert resp.status_code == 200, resp.text
+
+    detail = client.get(
+        f"/api/v1/plugins/compras/purchase/orders/{order_id}", headers=headers
+    ).json()
+    assert len(detail["receipts"]) == 1
+    assert detail["receipts"][0]["dispatch_id"] is None

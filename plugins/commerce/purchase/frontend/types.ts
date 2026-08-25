@@ -71,6 +71,7 @@ export type PurchaseReceipt = {
   id: string;
   warehouse_id: string;
   receipt_date: string;
+  dispatch_id: string | null;
   notes: string | null;
   created_at: string;
 };
@@ -135,6 +136,7 @@ export type ReceiveOrderPayload = {
   items: ReceiveItemRequest[];
   notes?: string | null;
   tank_id?: string | null;
+  dispatch_id?: string | null;
 };
 
 export type DispatchCylinder = {

@@ -6,6 +6,7 @@ import {
   cancelOrder,
   createOrder,
   getOrder,
+  listDispatches,
   listOrders,
   listSuppliers,
   listTanks,
@@ -57,8 +58,8 @@ export function PurchaseOrdersPage() {
   }>({ supplier_id: "", items: [], notes: "" });
 
   const [receiveForm, setReceiveForm] = useState<{
-    warehouse_id: string; items: { purchase_item_id: string; quantity: number }[]; notes: string; tank_id: string;
-  }>({ warehouse_id: "", items: [], notes: "", tank_id: "" });
+    warehouse_id: string; items: { purchase_item_id: string; quantity: number }[]; notes: string; tank_id: string; dispatch_id: string;
+  }>({ warehouse_id: "", items: [], notes: "", tank_id: "", dispatch_id: "" });
 
   const ordersQuery = useQuery({
     queryKey: ["compras", "orders", { status: statusFilter, page }],
@@ -88,7 +89,7 @@ export function PurchaseOrdersPage() {
     onError: (err) => setError(err instanceof Error ? err.message : "Error al cerrar"),
   });
   const receiveMut = useMutation({
-    mutationFn: () => selectedOrder ? receiveOrder(selectedOrder.id, { warehouse_id: receiveForm.warehouse_id, items: receiveForm.items, notes: receiveForm.notes || null, tank_id: receiveForm.tank_id || null }) : Promise.reject("No order"),
+    mutationFn: () => selectedOrder ? receiveOrder(selectedOrder.id, { warehouse_id: receiveForm.warehouse_id, items: receiveForm.items, notes: receiveForm.notes || null, tank_id: receiveForm.tank_id || null, dispatch_id: receiveForm.dispatch_id || null }) : Promise.reject("No order"),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setIsReceiveOpen(false); setSelectedOrder(null); setError(null); },
     onError: (err) => setError(err instanceof Error ? err.message : "Error al recepcionar"),
   });
@@ -110,6 +111,16 @@ export function PurchaseOrdersPage() {
     label: `${w.code} · ${w.name}`,
   }));
 
+  const orderDispatchesQuery = useQuery({
+    queryKey: ["compras", "dispatches", { order_id: selectedOrder?.id }],
+    queryFn: () => listDispatches({ order_id: selectedOrder!.id, limit: 50 }),
+    enabled: isReceiveOpen && Boolean(selectedOrder),
+  });
+  const orderDispatchOptions = (orderDispatchesQuery.data?.items ?? []).map(d => ({
+    value: d.id,
+    label: `${d.dispatch_date} · ${d.status}${d.carrier ? ` · ${d.carrier}` : ""}`,
+  }));
+
   function openReceiveDialog(orderId: string) {
     getOrder(orderId).then((detail) => {
       setSelectedOrder(detail);
@@ -118,6 +129,7 @@ export function PurchaseOrdersPage() {
         items: detail.items.filter(i => i.received_qty < i.quantity).map(i => ({ purchase_item_id: i.id, quantity: i.quantity - i.received_qty })),
         notes: "",
         tank_id: "",
+        dispatch_id: "",
       });
       setIsReceiveOpen(true);
     });
@@ -222,6 +234,13 @@ export function PurchaseOrdersPage() {
                 <span>Tanque criogénico destino</span>
                 <Combobox value={receiveForm.tank_id} onChange={(v) => setReceiveForm(p => ({ ...p, tank_id: v }))}
                   options={tankOptions} placeholder="Seleccionar tanque (opcional)" searchPlaceholder="Buscar tanque" />
+              </label>
+            ) : null}
+            {orderDispatchOptions.length > 0 ? (
+              <label className="block space-y-2 text-sm text-foreground">
+                <span>Despacho asociado</span>
+                <Combobox value={receiveForm.dispatch_id} onChange={(v) => setReceiveForm(p => ({ ...p, dispatch_id: v }))}
+                  options={orderDispatchOptions} placeholder="Sin despacho (opcional)" searchPlaceholder="Buscar despacho" />
               </label>
             ) : null}
             <div className="space-y-2"><span className="text-sm text-foreground">Items a recibir</span>

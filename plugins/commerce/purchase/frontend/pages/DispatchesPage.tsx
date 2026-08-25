@@ -13,6 +13,7 @@ import { DataTable } from "@systutor/shell/ui/data-table";
 import { Alert } from "@systutor/shell/ui/alert";
 import { Badge } from "@systutor/shell/ui/badge";
 import { Combobox } from "@systutor/shell/ui/combobox";
+import { Dialog } from "@systutor/shell/ui/dialog";
 import { DispatchFormModal } from "../components/DispatchFormModal";
 
 const STATUS_BADGE: Record<string, string> = {

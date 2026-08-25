@@ -43,6 +43,7 @@ class PurchaseReceiptRead(BaseModel):
     id: str
     warehouse_id: str
     receipt_date: date
+    dispatch_id: str | None
     notes: str | None
     created_at: datetime
 
@@ -93,6 +94,7 @@ class ReceiveOrderRequest(BaseModel):
     items: list[ReceiveItemRequest] = Field(min_length=1)
     notes: str | None = None
     tank_id: str | None = None
+    dispatch_id: str | None = None
 
 
 class CancelOrderRequest(BaseModel):

@@ -45,6 +45,7 @@ def receive_order(
             created_by=tenant_context.current_user_id,
             stock_connector=connector,
             tank_id=payload.tank_id,
+            dispatch_id=payload.dispatch_id,
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc)) from exc

@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from plugins.commerce._shared.stock_connector import DuplicateReceiptError, StockConnector
 from plugins.commerce.purchase.backend.models import (
+    ComDispatch,
     ComPurchaseItem,
     ComPurchaseOrder,
     ComPurchaseReceipt,
@@ -25,9 +26,22 @@ def receive_order(
     created_by: str,
     stock_connector: StockConnector,
     tank_id: str | None = None,
+    dispatch_id: str | None = None,
 ) -> ComPurchaseOrder:
     if order.status not in ("ORDERED", "PARTIAL"):
         raise ValueError(f"No se puede recepcionar una orden en estado {order.status}")
+
+    if dispatch_id is not None:
+        dispatch = db.scalar(
+            select(ComDispatch).where(
+                ComDispatch.id == dispatch_id,
+                ComDispatch.tenant_id == order.tenant_id,
+            )
+        )
+        if dispatch is None:
+            raise ValueError("Despacho no encontrado")
+        if dispatch.order_id != order.id:
+            raise ValueError("El despacho no pertenece a esta orden")
 
     item_map: dict[str, ComPurchaseItem] = {item.id: item for item in order.items}
     errors: list[str] = []
@@ -101,6 +115,7 @@ def receive_order(
         order_id=order.id,
         warehouse_id=warehouse_id,
         receipt_date=date.today(),
+        dispatch_id=dispatch_id,
         notes=notes,
         created_by=created_by,
     )

@@ -7,7 +7,7 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
-> Última actualización: COMPRAS-007 (retorno por serial + cierre de custodia + vínculo jornadas).
+> Última actualización: COMPRAS-008 (vínculo receipt↔despacho).
 
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 
@@ -23,7 +23,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 10 | Motivo de envío | ✅ | service_type por serial (COMPRAS-005) |
 | 11 | Custodia del proveedor | ✅ | estado derivado EN_CUSTODIA (COMPRAS-005) |
 | 12 | Control de permanencia | 🟡 | days_out + filtro days_gt (COMPRAS-005); alertas automáticas pendientes |
-| 13 | Recepción desde proveedor | 🟡 | receipts ✓ + retorno por serial ✓ (007); vínculo receipt↔despacho pendiente |
+| 13 | Recepción desde proveedor | ✅ | receipts ✓ + retorno ✓ (007) + vínculo receipt↔despacho (008) |
 | 14 | Recepción parcial | ✅ | retorno parcial por serial ilimitado (COMPRAS-007) |
 | 15 | Conciliación por serial | ✅ | /return concilia seriales vs despacho (COMPRAS-007) |
 | 16 | Conciliación física | ❌ | |
@@ -52,7 +52,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 39 | Dashboard operativo | ❌ | |
 | 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
 | 41 | Reportes | ❌ | |
-| 42 | Flujo principal llenado | 🟡 | pasos 1-17 ✓ (002+005+007); cantidades comerciales/costos/cierre en specs futuras |
+| 42 | Flujo principal llenado | 🟡 | pasos 1-17 ✓ (002+005+007+008); costos adicionales/cierre comercial en specs futuras |
 | 43 | Flujo recepción parcial | ✅ | retornos parciales ilimitados, saldo visible (COMPRAS-007) |
 | 44 | Flujo servicio técnico | 🟡 | pasos 1-7 ✓ (+retorno 007); actualización técnica e historial pendiente |
 | 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |

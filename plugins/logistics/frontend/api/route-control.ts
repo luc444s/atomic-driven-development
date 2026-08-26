@@ -1,16 +1,6 @@
 import { API_PREFIX } from "./_shared";
 import { apiRequest } from "@systutor/shell/api/client";
-import type { RouteControlState, VehicleLocationEvent } from "./sessions";
-
-export type VehicleLocationRecordPayload = {
-  lat: number;
-  lng: number;
-  speed?: number | null;
-  heading?: number | null;
-  accuracy_meters?: number | null;
-  recorded_at: string;
-  source?: string;
-};
+import type { RouteControlState, VehicleLocationEvent, VehicleLocationRecordPayload } from "./sessions";
 
 export type LocationHistoryFilters = {
   from?: string;

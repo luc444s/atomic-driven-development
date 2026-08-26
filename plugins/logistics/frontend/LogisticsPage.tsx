@@ -450,7 +450,6 @@ export function LogisticsPage() {
     <>
       <LogisticsSection
         title="Control de envases"
-        description="Ficha completa del cilindro, trazabilidad, retimbrados, etiquetas, servicios y escaneo en campo."
         actions={
           <div className="flex items-center gap-3">
             {permissions.canUpdate ? (

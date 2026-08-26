@@ -41,6 +41,7 @@ const BARE_DEP_ALIASES = [
   "clsx",
   "tailwind-merge",
   "sonner",
+  "zustand",
   "@monaco-editor/react",
   "monaco-editor",
   "@react-pdf-viewer/core",
@@ -78,6 +79,17 @@ export default defineConfig({
     fs: {
       allow: [searchForWorkspaceRoot(process.cwd())],
     },
+    proxy: {
+      "/api": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true,
+      },
+    },
+  },
+  preview: {
+    port: 4173,
+    host: true,
+    strictPort: true,
     proxy: {
       "/api": {
         target: "http://127.0.0.1:8000",

@@ -13,6 +13,7 @@ from systutor.kernel.auth.dependencies import get_current_tenant_context, requir
 from systutor.kernel.auth.models import User
 from systutor.kernel.tenants.context import TenantContext
 
+from plugins.crm.backend.services.customers import get_customer
 from plugins.logistics.backend.common import build_action_context
 from plugins.logistics.backend.models.contracts import (
     LogisticsContractExcessTracking,
@@ -85,14 +86,20 @@ def _raise_service_error(exc: Exception) -> Never:
     raise exc
 
 
-def _extract_customer_name(contract) -> str | None:
+def _extract_customer_name(contract, db: Session | None = None) -> str | None:
     snapshot = contract.customer_snapshot
     if snapshot and isinstance(snapshot, dict):
-        return snapshot.get("legal_name") or snapshot.get("commercial_name")
+        name = snapshot.get("legal_name") or snapshot.get("commercial_name")
+        if name:
+            return name
+    if db is not None and contract.customer_id:
+        customer = get_customer(db, tenant_id=contract.tenant_id, customer_id=contract.customer_id)
+        if customer is not None:
+            return customer.legal_name or customer.commercial_name
     return None
 
 
-def _contract_to_read(contract) -> CylinderContractRead:
+def _contract_to_read(contract, db: Session | None = None) -> CylinderContractRead:
     return CylinderContractRead(
         id=contract.id,
         document_type_code=contract.document_type_code,
@@ -104,7 +111,7 @@ def _contract_to_read(contract) -> CylinderContractRead:
         contract_type=contract.contract_type,
         status=contract.status,
         customer_id=contract.customer_id,
-        customer_name=_extract_customer_name(contract),
+        customer_name=_extract_customer_name(contract, db),
         start_date=contract.start_date,
         end_date=contract.end_date,
         renewal_type=contract.renewal_type,
@@ -148,7 +155,7 @@ def get_contracts(
     parsed_from = date.fromisoformat(date_from) if date_from else None
     parsed_to = date.fromisoformat(date_to) if date_to else None
     return [
-        _contract_to_read(contract)
+        _contract_to_read(contract, db)
         for contract in list_contracts(
             db,
             tenant_id=tenant_context.current_tenant_id,
@@ -171,7 +178,7 @@ def get_contract_detail(
     contract = get_contract(db, tenant_id=tenant_context.current_tenant_id, contract_id=contract_id)
     if contract is None:
         raise _not_found("Contract")
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/file", response_model=CylinderContractRead)
@@ -199,7 +206,7 @@ async def upload_contract_file_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.get("/contracts/{contract_id}/file/download/{stored_name}")
@@ -265,7 +272,7 @@ def create_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.patch("/contracts/{contract_id}", response_model=CylinderContractRead)
@@ -294,7 +301,7 @@ def update_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/activate", response_model=CylinderContractRead)
@@ -323,7 +330,7 @@ def activate_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/sign", response_model=CylinderContractRead)
@@ -349,7 +356,7 @@ def sign_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/renew", response_model=CylinderContractRead)
@@ -375,7 +382,7 @@ def renew_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/terminate", response_model=CylinderContractRead)
@@ -401,7 +408,7 @@ def terminate_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post("/contracts/{contract_id}/cancel", response_model=CylinderContractRead)
@@ -425,7 +432,7 @@ def cancel_contract_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 # ── Motor de exceso de contratos (SPEC 0023AD.4) ───────────────────────
@@ -455,7 +462,7 @@ def update_excess_policy_endpoint(
     except Exception as exc:
         db.rollback()
         _raise_service_error(exc)
-    return _contract_to_read(contract)
+    return _contract_to_read(contract, db)
 
 
 @router.post(

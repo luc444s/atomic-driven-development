@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { reportVehicleLocation, type VehicleLocationRecordPayload } from "../../../../plugins/logistics/frontend/api/route-control";
+import { reportVehicleLocation } from "../../../../plugins/logistics/frontend/api/route-control";
+import type { VehicleLocationRecordPayload } from "../../../../plugins/logistics/frontend/api/sessions";
 
 export type TelemetryStatus = "idle" | "running" | "error";
 

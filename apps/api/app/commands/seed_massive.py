@@ -311,9 +311,9 @@ def seed_catalogs(db: Session, tenant_id: str) -> dict:
     # Ensure movement types exist (may be wiped by TRUNCATE CASCADE)
     from plugins.logistics.backend.services.catalog import MOVEMENT_TYPE_DEFINITIONS
 
-    existing_mt = {row.code for row in db.scalars(
+    existing_mt = set(db.scalars(
         select(LogisticsMovementType.code)
-    ).all()}
+    ).all())
     for code, name, category, moves_cylinders, origin_state, target_state in MOVEMENT_TYPE_DEFINITIONS:
         if code not in existing_mt:
             db.add(LogisticsMovementType(
@@ -323,6 +323,22 @@ def seed_catalogs(db: Session, tenant_id: str) -> dict:
             ))
     if any(code not in existing_mt for code, *_ in MOVEMENT_TYPE_DEFINITIONS):
         db.flush()
+
+    # Ensure product status/condition catalogs (may be wiped by TRUNCATE CASCADE)
+    from plugins.productos.backend.models import ProductCondition, ProductStatus
+
+    for code, name in [("ACTIVO", "Activo"), ("INACTIVO", "Inactivo")]:
+        if db.get(ProductStatus, code) is None:
+            db.add(ProductStatus(code=code, name=name, is_active=True))
+    for code, name in [
+        ("GAS", "Gas envasado"),
+        ("CILPRO", "Cilindro propio"),
+        ("SERVICIO", "Servicio"),
+        ("PRODUCTO", "Producto"),
+    ]:
+        if db.get(ProductCondition, code) is None:
+            db.add(ProductCondition(code=code, name=name, is_active=True))
+    db.flush()
 
     db.commit()
     return {"categories": categories, "lines": lines, "sublines": sublines,
@@ -1577,6 +1593,10 @@ def main() -> int:
         sessions = seed_sessions(db, tenant_id, branch_id, user_id, vehicles, warehouses, products)
 
         print("Creating 100 customers...")
+        from plugins.crm.backend.services.catalog import ensure_catalogs_seeded
+        ensure_catalogs_seeded(db)
+        db.commit()
+
         customers = seed_customers(db, tenant_id, user_id)
 
         print("Creating contract types and contracts for ~30 customers...")

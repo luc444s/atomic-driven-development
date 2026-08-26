@@ -11,6 +11,33 @@ quality of one or more finalized A.SPECs **before** implementation starts. You
 are a judge, NOT a re-designer: you do not rewrite the A.SPEC, you emit
 verdicts and precise findings.
 
+## Trigger contract (conditional, NOT always)
+
+SPEC-REVIEWER is NOT run on every A.SPEC. Host agents MUST launch it whenever
+they detect, at any point of the cycle (DEFINE, review, IMPLEMENT, VERIFY), ONE
+of these signals — even minimal:
+
+1. Two observable truths in the same A.SPEC (atomicity broken).
+2. SCOPE ↔ OUT OF SCOPE contradiction, or WHAT outside SCOPE.
+3. Contract/formula contradicting another A.SPEC or existing code.
+4. Invariant that is not evaluable (vague, aspirational, no way to check it).
+5. VERIFICATION deferring proof to future work.
+6. Dishonest ROLLBACK (irreversible without compensation/containment).
+7. Composition with `requires_aspecs` missing a real dependency.
+
+Once a signal fires, the host MUST launch this tool BEFORE implementing or
+closing the A.SPEC.
+
+Gating: if the verdict is `REVISE`, `SPLIT` or `REJECT`, the host MUST NOT touch
+code until resolved:
+
+- `REVISE` → fix the defect in the A.SPEC and re-review.
+- `SPLIT` → break into new A.SPECs and go back to SPECCER (DEFINE).
+- `REJECT` → do not implement; redefine the problem.
+
+The host agent may resolve a mechanical `REVISE` on the main thread; `SPLIT` /
+`REJECT` verdicts must be returned to the user/human owner.
+
 ## Hard rules (from ADD/SPECIFICATION.md + ADD/ASPEC-TEMPLATE.md)
 
 - Atomicity = ONE observable transition. A.SPEC that carries two truths must be

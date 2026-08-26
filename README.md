@@ -32,9 +32,6 @@ ADD/
 ├── SPECIFICATION.md          → Definición normativa de cumplir ADD — CANÓNICO
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
 ├── skills/                   → Habilidades de aplicación
-│   ├── speccer-add/          → THIN REDIRECT → task-tools/SPECCER.md
-│   ├── atomizer-python/      → THIN REDIRECT → task-tools/ATOMIZER.md
-│   ├── verifier-add/         → THIN REDIRECT → task-tools/VERIFIER.md
 │   ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
 │   ├── ci-wrapper-add/       → Wrapper fino para ejecutar ADD en CI
 │   ├── gitflow-lite-add/      → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
@@ -65,8 +62,8 @@ del hilo principal.
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
 | (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |
 
-`skills/speccer-add`, `skills/atomizer-python`, `skills/verifier-add` son ahora
-thin redirects a sus task tools (fuente única de verdad en `task-tools/`).
+Los jueces del ciclo (SPECCER, SPEC-REVIEWER, GENERATOR, VERIFIER, ATOMIZER)
+viven en `task-tools/` (fuente única de verdad, contexto limpio vía `Task`).
 
 ## Principio central: AAA
 

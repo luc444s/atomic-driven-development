@@ -41,6 +41,7 @@ ADD/
 │   └── gitflow-full-add/      → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 └── task-tools/               → Prompts auto-suficientes para subagent (contexto limpio)
     ├── SPECCER.md            → DEFINE: petición suelta → A.SPEC honesta o split
+    ├── SPEC-REVIEWER.md      → calidad de A.SPEC escrito (pre-implementación)
     ├── GENERATOR.md          → BUILD: A.SPEC finalizada → código en change_surface
     ├── VERIFIER.md            → PROVE: contrato declarado vs prueba explícita
     ├── ATOMIZER.md           → cohesión de archivos Python (split)
@@ -59,6 +60,7 @@ del hilo principal.
 | Paso ADD     | Task tool            | Rol                                        |
 |-------------|----------------------|--------------------------------------------|
 | DEFINE       | `task-tools/SPECCER.md`  | petición suelta → A.SPEC honesta o split       |
+| (quality)    | `task-tools/SPEC-REVIEWER.md`| A.SPEC escrito → calidad pre-implementación    |
 | IMPLEMENT    | `task-tools/GENERATOR.md`| A.SPEC finalizada → código en change_surface    |
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
 | (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |

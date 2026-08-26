@@ -28,18 +28,43 @@ alcance, contrato, invariantes y verificación **antes** de tocar el código.
 
 ```
 ADD/
-├── MANIFESTO.md              → Principios y valores de ADD (AAA)
-├── SPECIFICATION.md          → Definición normativa de cumplir ADD
+├── MANIFESTO.md              → Principios y valores de ADD (AAA) — CANÓNICO
+├── SPECIFICATION.md          → Definición normativa de cumplir ADD — CANÓNICO
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
-└── skills/                   → Habilidades reutilizables de aplicación
-    ├── atomizer-python/      → División segura de archivos Python grandes
-    ├── speccer-add/          → DEFINE austero: petición suelta → A.SPEC honesta o split
-    ├── verifier-add/         → Juez mínimo: contrato declarado vs prueba declarada
-    ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
-    ├── ci-wrapper-add/       → Wrapper fino para ejecutar ADD en CI
-    ├── gitflow-lite-add/     → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
-    └── gitflow-full-add/     → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
+├── skills/                   → Habilidades de aplicación
+│   ├── speccer-add/          → THIN REDIRECT → task-tools/SPECCER.md
+│   ├── atomizer-python/      → THIN REDIRECT → task-tools/ATOMIZER.md
+│   ├── verifier-add/         → THIN REDIRECT → task-tools/VERIFIER.md
+│   ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
+│   ├── ci-wrapper-add/       → Wrapper fino para ejecutar ADD en CI
+│   ├── gitflow-lite-add/      → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
+│   └── gitflow-full-add/      → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
+└── task-tools/               → Prompts auto-suficientes para subagent (contexto limpio)
+    ├── SPECCER.md            → DEFINE: petición suelta → A.SPEC honesta o split
+    ├── GENERATOR.md          → BUILD: A.SPEC finalizada → código en change_surface
+    ├── VERIFIER.md            → PROVE: contrato declarado vs prueba explícita
+    ├── ATOMIZER.md           → cohesión de archivos Python (split)
+    └── README.md             → índice + protocolo de lanzamiento vía Task
 ```
+
+> **MANIFESTO es canónico.** Este README es un resumen de entrada; ante
+> contradicción, gana MANIFESTO/SPECIFICATION.
+
+## Task Tools (ejecución con contexto limpio)
+
+Los pasos del ciclo ADD se operacionalizan como task tools: subagents lanzados
+con `Task` (`subagent_type=general`) y contexto fresco, para juzgar sin ruido
+del hilo principal.
+
+| Paso ADD     | Task tool            | Rol                                        |
+|-------------|----------------------|--------------------------------------------|
+| DEFINE       | `task-tools/SPECCER.md`  | petición suelta → A.SPEC honesta o split       |
+| IMPLEMENT    | `task-tools/GENERATOR.md`| A.SPEC finalizada → código en change_surface    |
+| VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
+| (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |
+
+`skills/speccer-add`, `skills/atomizer-python`, `skills/verifier-add` son ahora
+thin redirects a sus task tools (fuente única de verdad en `task-tools/`).
 
 ## Principio central: AAA
 

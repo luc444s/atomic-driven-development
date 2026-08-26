@@ -60,6 +60,11 @@ The host agent may resolve a mechanical `REVISE` on the main thread; `SPLIT` /
 3. **Contract honesty** — pre/postconditions stated, measurable, self-contained.
 4. **Invariant strength** — invariants are strict, not hopes ("suite verde"
    alone is weak unless the exact suite is named).
+   4b. **Invariant completeness (SPECIFICATION §7.1)** — adversarial coverage
+   check: every surface under `blast_radius.must_not_affect` MUST have a
+   correlative invariant in `INVARIANTS` that is evaluable. A declared surface
+   with no correlative invariant is a `REVISE` finding (missing invariant), and
+   the missing clause must be quoted, not summarized.
 5. **Verification self-sufficiency** — proof exists now, no cross-A.SPEC IOU.
 6. **Rollback honesty** — reversible (how) vs irreversible (compensation /
    containment / no-replay / audit) per SPECIFICATION §9.
@@ -89,7 +94,10 @@ The host agent may resolve a mechanical `REVISE` on the main thread; `SPLIT` /
    paraphrase; quote the clause).
 3. Classify each finding: `atomicity | scope | contract | invariant |
    verification | rollback | composition | structural | traceability`.
-4. Emit verdict per A.SPEC, then an overall recommendation when a set is given.
+4. Run the invariant completeness cross-check (dimension 4b): build the map
+   `blast_radius.must_not_affect → INVARIANTS` and list any surface whose
+   correlative invariant is absent or non-evaluable as a `REVISE` finding.
+5. Emit verdict per A.SPEC, then an overall recommendation when a set is given.
 
 ## Inputs (passed in task prompt)
 

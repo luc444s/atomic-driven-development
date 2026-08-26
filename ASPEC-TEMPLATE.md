@@ -24,7 +24,7 @@
 
 ## INVARIANTS
 
-<!-- ¿Qué comportamiento existente no puede romperse? Si uno falla: A.SPEC FAILED -->
+<!-- ¿Qué comportamiento existente no puede romperse? Si uno falla: A.SPEC FAILED. Regla de completitud: toda superficie declarada en blast_radius.must_not_affect DEBE tener aquí su invariante correlativo evaluable. -->
 
 ```yaml
 invariants: []
@@ -47,6 +47,8 @@ change_surface:
 ```
 
 ## Blast Radius
+
+<!-- Debe declarar must_not_affect de forma coherente con INVARIANTS: cada superficie listada aquí requiere invariante correlativo (ver SPECIFICATION §7.1). -->
 
 ```yaml
 blast_radius:

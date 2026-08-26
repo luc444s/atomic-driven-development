@@ -43,7 +43,13 @@ If input is ambiguous → `GAP`.
 3. Extract the explicit proof list from `VERIFICATION` (named commands, stored
    results, evidence notes). Do NOT discover commands from repo artifacts.
 4. Build coverage map: clause → proof.
-5. Emit verdict + covered / missing / failed lists.
+5. **Completeness map (SPECIFICATION §7.1):** for every surface listed under
+   `blast_radius.must_not_affect`, check that a correlative invariant exists in
+   `INVARIANTS` and that it has explicit proof. This is a completeness gate, an
+   adversarial check on omissions — NOT proof discovery. A surface declared but
+   unprotected yields `GAP`, never `PASS`.
+6. Emit verdict + covered / missing / failed lists, including any
+   `could not be instantiated` uncovered surfaces.
 
 ## Inputs (passed in task prompt)
 
@@ -60,6 +66,9 @@ Covered:
 - contract.<clause> -> <proof>
 - invariant.<clause> -> <proof>
 
+Uncovered surfaces (from blast_radius.must_not_affect):
+- must_not_affect.<surface> -> <missing correlative invariant | missing proof>
+
 Missing:
 - invariant.<clause>
 
@@ -71,15 +80,20 @@ Failed:
 
 Explicit + inspectable only: named test/build/smoke/composition command, stored
 command result, short evidence note. NOT "should be covered by CI", "probably
-safe", inferred toolchain guesses, or broad repo heuristics.
+safe", inferred toolchain guesses, or broad repo heuristics. A correlative
+invariant with no explicit proof counts as uncovered.
 
 ## Anti-noise
 
 Do not discover commands. Do not invent invariants/composition checks not
-declared. Do not rewrite A.SPEC intent. Do not propose CI architecture or
-binding files. Do not drift into style/design review.
+declared — the completeness gate only detects ABSENCE of a declared surface's
+correlative invariant; it does not craft it. Do not rewrite A.SPEC intent. Do
+not propose CI architecture or binding files. Do not drift into style/design
+review.
 
 ## Clean-context note
 
 No prior conversation exists for you. Only the task input and files you read are
-real. Map each declared clause to explicit proof or mark `GAP`.
+real. Map each declared clause to explicit proof or mark `GAP`; mark every
+`blast_radius.must_not_affect` surface as covered, uncovered, or with missing
+proof.

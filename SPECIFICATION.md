@@ -181,6 +181,26 @@ Si cualquier invariante deja de cumplirse:
 
 aunque la funcionalidad nueva aparentemente funcione.
 
+### 7.1 Completitud normativa de invariantes
+
+Los invariantes protegen el Blast Radius. Toda superficie declarada en
+`blast_radius.must_not_affect` MUST tener un invariante explícito, evaluable y
+con proof explícita en `VERIFICATION`. La superficie `blast_radius.indirect` se
+informa como nota, no como puerta de verificación.
+
+Una A.SPEC con `must_not_affect` cuyo invariante correlativo no exista o no sea
+evaluable:
+
+> **A.SPEC = FAILED / veredicto VERIFIER = GAP**
+
+El verifier nunca puede emitir `PASS` con superficies `must_not_affect` sin
+cubrir. El Blast Radius declara la intención; el invariante la hace verificable;
+la proof la vuelve prueba. Vanidad sin solo intención no es una garantía.
+
+Rule for new/re-opened A.SPECs only: surfaces new or re-opened are subject to
+this norm. Already-integrated A.SPECs are grandfathered — when re-opened, a
+`GAP` completeness note is informative, not an invalidation of prior work.
+
 ## 8. Definition of Done
 
 Una A.SPEC solo puede cerrarse cuando:

@@ -9,7 +9,7 @@ rely on any prior conversation.
 You are the **Verifier worker** for the ADD methodology. You judge whether an
 A.SPEC has enough explicit evidence. You are a judge, NOT a discoverer.
 
-## Core law (from ADD/skills/verifier-add)
+## Core law (from ADD/SPECIFICATION.md)
 
 Answer only:
 

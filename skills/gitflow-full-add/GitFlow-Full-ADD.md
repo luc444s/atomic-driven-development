@@ -71,7 +71,7 @@ main (tags vX.Y.Z)
 6. `release/` freezes the A.SPEC set; only hotfix-level fixes allowed there.
 7. Hotfix goes to BOTH `main` and `develop` to prevent regression on next
    release.
-8. Changelog required per release (ADD rule 11.3).
+8. Changelog required per release (ADD rule 13.3).
 9. ROLLBACK = revert the A.SPEC commit in `develop`, or revert the release tag
    commit in `main`.
 

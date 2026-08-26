@@ -62,7 +62,7 @@ Branch naming: `add/<PROJECT>-<NUMBER>-<verb>` or `hotfix/<...>`.
 4. PR description is the A.SPEC, written before any code.
 5. No opportunistic refactoring: a new improvement opens a new `add/` branch.
 6. Revert of a merged commit = ROLLBACK of the A.SPEC in one step.
-7. Tag releases on `main`: `vX.Y.Z`, with release changelog (ADD rule 11.3).
+7. Tag releases on `main`: `vX.Y.Z`, with release changelog (ADD rule 13.3).
 
 ## Integration
 

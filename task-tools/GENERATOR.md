@@ -17,8 +17,10 @@ redefine scope.
 
 - Edit ONLY files listed under `change_surface.allowed`.
 - NEVER touch `change_surface.prohibited`.
-- Preserve every `INVARIANT` (tenant isolation, no new `lg_*`/`stock` writes
-  unless the A.SPEC says so, suite stays green, `tsc --noEmit` clean).
+- Preserve every `INVARIANT` declared in the A.SPEC. Any project-specific
+  checks (explicit verification commands, build/type/lint gates) must be listed
+  in the A.SPEC's `VERIFICATION` or the project's binding
+  (`ADD/VERIFY.yaml`), not hardcoded here.
 - Do not add behavior outside `SCOPE`.
 - Do not implement `OUT OF SCOPE` items.
 

@@ -78,6 +78,16 @@ def _match_location_text_to_warehouse(
 def resolve_cylinder_current_warehouse(
     db: Session, *, tenant_id: str, cylinder: LogisticsCylinder
 ) -> CylinderCurrentWarehouse:
+    if cylinder.current_warehouse_id is not None:
+        warehouse = db.get(LogisticsWarehouse, cylinder.current_warehouse_id)
+        if warehouse is not None:
+            return CylinderCurrentWarehouse(
+                warehouse.id,
+                warehouse.code,
+                warehouse.name,
+                "denormalized",
+            )
+        # Columna apunta a warehouse inexistente: degrada al calculo.
     # Si el cilindro ya no esta en transito (CARGA_EN_VEHICULO / EN_RUTA),
     # el ultimo movimiento pierde vigencia. La verdad fisica esta en el
     # ultimo evento de ubicacion (WAREHOUSE_IN, CUSTOMER_DELIVERY, etc.)

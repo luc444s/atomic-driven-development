@@ -14,6 +14,8 @@ from plugins.logistics.backend.services.route_context import build_route_context
 from plugins.logistics.backend.services.session_console import build_session_console_context
 from plugins.logistics.backend.services.sessions import list_vehicle_sessions
 from plugins.logistics.backend.services.snapshots import build_session_list_items
+from plugins.logistics.backend.models import LogisticsCylinder, LogisticsWarehouse
+from sqlalchemy import select
 
 # Presupuestos de queries (regresion anti N+1). Margen 2x sobre lo medido
 # con 3 sesiones en SQLite para absorber datos sinteticos.
@@ -151,4 +153,56 @@ def test_query_budgets_for_jornadas_flows(
         assert route.session.id == sessions[0].id
         assert route_queries <= ROUTE_CONTEXT_BUDGET, (
             f"Route context disparo {route_queries} queries (presupuesto {ROUTE_CONTEXT_BUDGET})"
+        )
+
+
+def test_console_query_budget_scales_with_serialized_cylinders(
+    client: TestClient, app, seeded_demo: dict[str, str], monkeypatch
+) -> None:
+    _disable_catalog_bootstrap_hook(monkeypatch)
+    _create_sessions(client, app, seeded_demo, count=1)
+
+    tenant_id = seeded_demo["tenant_id"]
+    with app.state.session_factory() as db:
+        warehouse = db.scalar(
+            select(LogisticsWarehouse).where(LogisticsWarehouse.tenant_id == tenant_id)
+        )
+        assert warehouse is not None
+
+        n = 300
+        for i in range(n):
+            db.add(
+                LogisticsCylinder(
+                    tenant_id=tenant_id,
+                    serial=f"BUD-SER-{i:05d}",
+                    container_type="CYLINDER",
+                    current_state="EN_ALMACEN_VACIO",
+                    current_warehouse_id=warehouse.id,
+                    product_id="PROD-BUDGET-FAKE",
+                    is_active=True,
+                )
+            )
+        db.commit()
+
+        session = db.scalar(
+            select(LogisticsCylinder).where(LogisticsCylinder.tenant_id == tenant_id)
+        )
+        sessions, _ = list_vehicle_sessions(
+            db, tenant_id=tenant_id, status=None, active_only=False, page=1, per_page=50
+        )
+        assert sessions
+
+        build_session_console_context(db, tenant_id=tenant_id, session_id=sessions[0].id)
+
+        counter = _counter_for(app)
+        counter["count"] = 0
+        console = build_session_console_context(
+            db, tenant_id=tenant_id, session_id=sessions[0].id
+        )
+        console_queries = counter["count"]
+        assert console.session.id == sessions[0].id
+        # No proporcional a N (presupuesto fijo, no crece con 300 seriales).
+        assert console_queries <= CONSOLE_BUDGET, (
+            f"Console disparo {console_queries} queries con {n} cilindros "
+            f"(presupuesto {CONSOLE_BUDGET})"
         )

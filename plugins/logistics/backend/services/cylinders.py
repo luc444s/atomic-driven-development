@@ -284,31 +284,26 @@ def summarize_serialized_cylinders_by_warehouse(
     if warehouse is None:
         raise LookupError("Warehouse not found")
 
-    cylinders = list(
-        db.scalars(
-            select(LogisticsCylinder)
-            .where(
-                LogisticsCylinder.tenant_id == tenant_id,
-                LogisticsCylinder.is_active.is_(True),
-                LogisticsCylinder.current_state.in_(SERIALIZED_WAREHOUSE_AVAILABILITY_STATES),
-            )
-            .order_by(LogisticsCylinder.serial.asc())
-        ).all()
-    )
+    product_ref = func.coalesce(
+        LogisticsCylinder.product_id, LogisticsCylinder.gas_group_id
+    ).label("product_ref")
+
+    rows = db.execute(
+        select(product_ref, func.count(LogisticsCylinder.id))
+        .where(
+            LogisticsCylinder.tenant_id == tenant_id,
+            LogisticsCylinder.is_active.is_(True),
+            LogisticsCylinder.current_state.in_(SERIALIZED_WAREHOUSE_AVAILABILITY_STATES),
+            LogisticsCylinder.current_warehouse_id == warehouse.id,
+        )
+        .group_by(product_ref)
+    ).all()
 
     counts_by_product: dict[str, int] = {}
-    for cylinder in cylinders:
-        if not cylinder_is_at_warehouse(
-            db,
-            tenant_id=tenant_id,
-            warehouse_id=warehouse.id,
-            cylinder=cylinder,
-        ):
-            continue
-        product_id = cylinder.product_id or cylinder.gas_group_id
+    for product_id, count in rows:
         if product_id is None:
             continue
-        counts_by_product[product_id] = counts_by_product.get(product_id, 0) + 1
+        counts_by_product[product_id] = int(count)
 
     if not counts_by_product:
         return []
@@ -1549,6 +1544,10 @@ def record_cylinder_event(
     )
     if existing is not None:
         return existing
+
+    cylinder = db.get(LogisticsCylinder, cylinder_id)
+    if cylinder is not None and warehouse_id is not None:
+        cylinder.current_warehouse_id = warehouse_id
 
     event = LogisticsCylinderEvent(
         id=str(_uuid4()),

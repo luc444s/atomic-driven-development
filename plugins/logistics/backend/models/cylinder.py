@@ -128,6 +128,9 @@ class LogisticsCylinder(Base):
     session_id: Mapped[str | None] = mapped_column(
         ForeignKey("lg_vehicle_sessions.id"), nullable=True, index=True
     )
+    current_warehouse_id: Mapped[str | None] = mapped_column(
+        ForeignKey("lg_warehouses.id"), nullable=True, index=True
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utc_now, onupdate=utc_now

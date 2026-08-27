@@ -180,7 +180,7 @@ structural_constraints:
 - Requirement: VISION §17 (aceptadas/rechazadas), §18 (diferencias),
   §42 flujo principal. Decisión de sesión 2026-08-26 (milestone cierre
   procure-to-pay hasta COMPRAS-011).
-- Commit: pendiente (al ejecutar).
+- Commit: 0763d5b (squash add/compras-009-011 → main).
 - Deployment: migración 009 en runtime del plugin commerce.
 
 ## Definition of Done

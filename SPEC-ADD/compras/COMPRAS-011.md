@@ -245,7 +245,7 @@ structural_constraints:
 
 - Requirement: VISION §23 (factura), §24 (tres vías), §42 cierre flujo
   principal. Milestone procure-to-pay hasta COMPRAS-011 (sesión 2026-08-26).
-- Commit: pendiente (al ejecutar).
+- Commit: 0763d5b (squash add/compras-009-011 → main).
 - Deployment: migración 011 en runtime del plugin commerce.
 
 ## Definition of Done

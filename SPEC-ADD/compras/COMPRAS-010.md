@@ -159,7 +159,7 @@ structural_constraints:
 
 - Requirement: VISION §22 (costos adicionales + costo real). Milestone
   procure-to-pay hasta COMPRAS-011 (sesión 2026-08-26).
-- Commit: pendiente (al ejecutar).
+- Commit: 0763d5b (squash add/compras-009-011 → main).
 - Deployment: migración 010 en runtime del plugin commerce.
 
 ## Definition of Done

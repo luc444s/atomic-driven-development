@@ -389,6 +389,12 @@ structural_constraints:
   nueva ronda CORE). Esto debe quedar escrito así en la spec (no como
   promesa diferida de verdad propia — como límite honesto de esta).
 
+> **Nota (CORE-009, 2026-08-27):** el presupuesto de líneas `<=600` dejó de
+> ser contrato duro. §4.2 del canon ahora trata los umbrales como heurística
+> de cohesión también para SPECIFICATION.md; el trigger real de división es
+> que el documento pierda su única razón de cambio, no una cifra. El monolito
+> se mantiene mientras cumpla esa función única (decisión owner).
+
 ## Definition of Done
 
 - [ ] Objective satisfied

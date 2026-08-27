@@ -1,6 +1,7 @@
 import type { PluginFrontendContext, PluginFrontendRegistration } from "@systutor/sdk/frontend";
 import { PurchaseOrdersPage } from "./pages/PurchaseOrdersPage";
 import { DispatchesPage } from "./pages/DispatchesPage";
+import { CylinderHistoryPage } from "./pages/CylinderHistoryPage";
 
 export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegistration {
   return {
@@ -18,6 +19,12 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         component: DispatchesPage,
         requiredPermissions: ["compras.dispatch.read"],
       },
+      {
+        path: "commerce/cylinder-history",
+        title: "Historial del envase",
+        component: CylinderHistoryPage,
+        requiredPermissions: ["compras.order.read"],
+      },
     ],
     navigation: [
       {
@@ -30,6 +37,12 @@ export function registerPlugin(ctx: PluginFrontendContext): PluginFrontendRegist
         to: `${ctx.appBasePath}/commerce/dispatches`,
         label: "Despachos",
         requiredPermissions: ["compras.dispatch.read"],
+        group: "Gestión Comercial",
+      },
+      {
+        to: `${ctx.appBasePath}/commerce/cylinder-history`,
+        label: "Historial del envase",
+        requiredPermissions: ["compras.order.read"],
         group: "Gestión Comercial",
       },
     ],

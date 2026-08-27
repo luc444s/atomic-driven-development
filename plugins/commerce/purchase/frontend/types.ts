@@ -360,3 +360,42 @@ export type CreateReceiptServiceLinePayload = {
   result?: string | null;
   document_ref?: string | null;
 };
+
+export type CylinderHistoryDispatch = {
+  dispatch_id: string;
+  order_id: string | null;
+  supplier_id: string;
+  dispatch_date: string;
+  service_type: string;
+  status: string;
+  returned_at: string | null;
+};
+
+export type CylinderHistoryReceipt = {
+  receipt_id: string;
+  order_id: string;
+  receipt_date: string;
+  qty_accepted: number | null;
+  qty_rejected: number | null;
+  difference_type: string | null;
+};
+
+export type CylinderHistoryService = {
+  receipt_id: string;
+  service_type: string;
+  cost: number | null;
+  notes: string | null;
+  test_date: string | null;
+  next_test_date: string | null;
+  result: string | null;
+  document_ref: string | null;
+  created_at: string;
+};
+
+export type CylinderHistory = {
+  cylinder_id: string;
+  serial: string;
+  dispatches: CylinderHistoryDispatch[];
+  receipts: CylinderHistoryReceipt[];
+  services: CylinderHistoryService[];
+};

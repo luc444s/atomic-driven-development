@@ -17,6 +17,7 @@ import type {
   CreateOrderPayload,
   CreateReceiptServiceLinePayload,
   CreateSupplierPayload,
+  CylinderHistory,
   PurchaseOrder,
   PurchaseOrderDetail,
   PurchaseOrderPage,
@@ -239,6 +240,14 @@ export function deleteReceiptServiceLine(receiptId: string, lineId: string) {
   return apiRequest<void>(`${BASE}/receipts/${receiptId}/service-lines/${lineId}`, {
     method: "DELETE",
   });
+}
+
+// ── Cylinder history (historial técnico del envase por serial) ──
+
+export function getCylinderHistory(serial: string) {
+  return apiRequest<CylinderHistory>(
+    `${BASE}/cylinders/${encodeURIComponent(serial)}/history`
+  );
 }
 
 // ── Dispatches ──

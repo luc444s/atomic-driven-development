@@ -9,6 +9,12 @@ from plugins.commerce.purchase.backend.schemas.claims import (
     SupplierClaimEventRead,
     SupplierClaimRead,
 )
+from plugins.commerce.purchase.backend.schemas.cylinder_history import (
+    CylinderHistoryDispatchRead,
+    CylinderHistoryRead,
+    CylinderHistoryReceiptRead,
+    CylinderHistoryServiceRead,
+)
 from plugins.commerce.purchase.backend.schemas.dispatches import (
     CustodyEntryRead,
     CustodySummaryRow,
@@ -78,6 +84,10 @@ __all__ = [
     "CloseOrderRequest",
     "CommercialCloseLineRequest",
     "CommercialCloseRequest",
+    "CylinderHistoryDispatchRead",
+    "CylinderHistoryRead",
+    "CylinderHistoryReceiptRead",
+    "CylinderHistoryServiceRead",
     "CustodyEntryRead",
     "CustodySummaryRow",
     "DispatchCylinderInput",

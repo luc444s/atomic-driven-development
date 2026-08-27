@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from plugins.commerce.purchase.backend.routers import (
     claims,
+    cylinder_history,
     dispatches,
     invoices,
     orders,
@@ -19,3 +20,4 @@ router.include_router(receipts.router)
 router.include_router(service_lines.router)
 router.include_router(invoices.router)
 router.include_router(claims.router)
+router.include_router(cylinder_history.router)

@@ -61,10 +61,10 @@ cerrada.**
 
 ### Frontend
 
-- Componente nuevo `components/ReceiptServiceLines.tsx`: editor por serial
-  (serial + tipo + costo + notas) listado bajo la recepción, reutilizado en
-  el flujo de recepción de `PurchaseOrdersPage.tsx` (edición de la página
-  mínima: import + render).
+- Componente nuevo `pages/purchase/ReceiptServiceLines.tsx`: editor por
+  serial (serial + tipo + costo + notas) listado bajo la recepción,
+  integrado en el flujo de recepción de `ReceiptPanel.tsx` (árbol post-020;
+  edición del panel mínima: import + ref + render; se abre tras recepcionar).
 
 ## SCOPE
 
@@ -80,8 +80,9 @@ cerrada.**
   (validaciones tenant/serial/cierre).
 - `plugins/commerce/purchase/backend/routers/service_lines.py`
   (+ inclusión en `routers/__init__.py`): endpoints listados.
-- Frontend: `components/ReceiptServiceLines.tsx` (nuevo),
-  `pages/PurchaseOrdersPage.tsx` (integración mínima), `types.ts`, `api.ts`.
+- Frontend: `pages/purchase/ReceiptServiceLines.tsx` (nuevo),
+  `pages/purchase/ReceiptPanel.tsx` (integración mínima en flujo de
+  recepción, árbol post-020), `types.ts`, `api.ts`.
 - Tests: `apps/api/tests/test_compras_receipt_service_lines.py`.
 
 ## OUT OF SCOPE
@@ -184,8 +185,8 @@ change_surface:
     - plugins/commerce/purchase/backend/services/service_lines.py
     - plugins/commerce/purchase/backend/routers/service_lines.py
     - plugins/commerce/purchase/backend/routers/__init__.py
-    - plugins/commerce/purchase/frontend/components/ReceiptServiceLines.tsx
-    - plugins/commerce/purchase/frontend/pages/PurchaseOrdersPage.tsx
+    - plugins/commerce/purchase/frontend/pages/purchase/ReceiptServiceLines.tsx
+    - plugins/commerce/purchase/frontend/pages/purchase/ReceiptPanel.tsx
     - plugins/commerce/purchase/frontend/types.ts
     - plugins/commerce/purchase/frontend/api.ts
     - apps/api/tests/test_compras_receipt_service_lines.py
@@ -247,10 +248,12 @@ structural_constraints:
     - services/service_lines.py
     - routers/service_lines.py
     - schemas/service_lines.py
-    - frontend/components/ReceiptServiceLines.tsx   # PurchaseOrdersPage.tsx (~596)
-                                                    # en umbral de extracción (600):
-                                                    # lógica nueva a componente propio;
-                                                    # edición de la página mínima.
+    - frontend/pages/purchase/ReceiptServiceLines.tsx   # ReceiptPanel.tsx
+                                                        # (flujo de recepción,
+                                                        # árbol post-020):
+                                                        # lógica nueva a
+                                                        # componente propio;
+                                                        # edición del panel mínima.
 ```
 
 ## Traceability

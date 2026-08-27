@@ -48,7 +48,13 @@ If input is ambiguous → `GAP`.
    `INVARIANTS` and that it has explicit proof. This is a completeness gate, an
    adversarial check on omissions — NOT proof discovery. A surface declared but
    unprotected yields `GAP`, never `PASS`.
-6. Emit verdict + covered / missing / failed lists, including any
+6. **Reversibility proof (SPECIFICATION §9.1):** if the A.SPEC's `SCOPE`
+   includes migrations (`migrations/*\.py`) or a schema change and `ROLLBACK`
+   is via physical downgrade, the effective proof list MUST include the
+   downgrade command with a recorded result. Presence of `def downgrade(` is
+   TRACE's fact; EXECUTION is yours. Missing execution proof → `GAP`, never
+   `PASS`. Irreversible A.SPECs (§9 compensation/containment) are untouched.
+7. Emit verdict + covered / missing / failed lists, including any
    `could not be instantiated` uncovered surfaces.
 
 ## Inputs (passed in task prompt)

@@ -295,6 +295,25 @@ ROLLBACK: deshacer envío de email
 Si una A.SPEC irreversible no define control posterior al efecto, falla como
 contrato ADD aunque la operación "funcione".
 
+### 9.1 Reversibilidad probada
+
+La reversibilidad de un cambio de schema NO es una promesa: es una prueba.
+
+Si el `ROLLBACK` de la A.SPEC es por migración/downgrade físico (reversión
+reversible de schema), el `VERIFICATION` DEBE incluir el comando que ejecuta el
+downgrade (p.ej. `alembic downgrade <base>`) con su resultado registrado.
+
+La mera presencia de `def downgrade(` en el tree **no alcanza**: TRACE
+(CORE-002) verifica que existe; la **ejecución** la prueba el `VERIFICATION`.
+
+Veredicto:
+
+> Downgrade declarado sin ejecución probada → A.SPEC = GAP (reversibilidad no
+> verificable), nunca `PASS`.
+
+Esta norma aplica solo a A.SPECs nuevas o re-abiertas; las integradas quedan
+grandfathered. No modifica §9 (irreversibles siguen por compensación/contención).
+
 ## 10. Correctitud local vs global
 
 Una A.SPEC puede ser localmente correcta y, aun así, una secuencia de A.SPEC

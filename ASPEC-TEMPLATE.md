@@ -38,11 +38,11 @@ invariants: []
 
 ## VERIFICATION
 
-<!-- ¿Cómo demostramos objetivamente que esta verdad ya existe ahora? Comandos, tests, checks. No delegar prueba real a futuras A.SPEC. Incluir checks de composición si esta A.SPEC depende de una capability mayor. -->
+<!-- ¿Cómo demostramos objetivamente que esta verdad ya existe ahora? Comandos, tests, checks. No delegar prueba real a futuras A.SPEC. Incluir checks de composición si esta A.SPEC depende de una capability mayor. Si ROLLBACK es por migración/downgrade físico, incluir aquí el comando que ejecuta el downgrade con su resultado (SPECIFICATION §9.1): presence no es execution. -->
 
 ## ROLLBACK
 
-<!-- Si es reversible: ¿cómo lo deshacemos? Si es irreversible: ¿cómo compensamos, contenemos, evitamos replay y auditamos? -->
+<!-- Si es reversible: ¿cómo lo deshacemos? Si es irreversible: ¿cómo compensamos, contenemos, evitamos replay y auditamos? Reversión por migración: el downgrade se demuestra EJECUTÁNDOLO en VERIFICATION (§9.1), no con prosa. -->
 
 ## Change Surface
 

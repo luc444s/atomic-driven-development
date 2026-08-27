@@ -55,6 +55,16 @@ from plugins.commerce.purchase.backend.schemas.orders import (
     ReceiveItemRequest,
     ReceiveOrderRequest,
 )
+from plugins.commerce.purchase.backend.schemas.returns import (
+    MerchandiseReturnAnnulRequest,
+    MerchandiseReturnCompleteRequest,
+    MerchandiseReturnCreate,
+    MerchandiseReturnDetailRead,
+    MerchandiseReturnEventRead,
+    MerchandiseReturnLineCreate,
+    MerchandiseReturnLineRead,
+    MerchandiseReturnRead,
+)
 from plugins.commerce.purchase.backend.schemas.physical_counts import (
     COUNT_RESOLUTIONS,
     COUNT_STATUS_CERRADA,
@@ -117,6 +127,14 @@ __all__ = [
     "DispatchReturnItem",
     "DispatchReturnRequest",
     "DispatchSessionLinkRequest",
+    "MerchandiseReturnAnnulRequest",
+    "MerchandiseReturnCompleteRequest",
+    "MerchandiseReturnCreate",
+    "MerchandiseReturnDetailRead",
+    "MerchandiseReturnEventRead",
+    "MerchandiseReturnLineCreate",
+    "MerchandiseReturnLineRead",
+    "MerchandiseReturnRead",
     "PurchaseItemCreateRequest",
     "PurchaseItemRead",
     "PurchaseOrderCreateRequest",

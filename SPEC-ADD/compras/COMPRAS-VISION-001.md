@@ -7,7 +7,7 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
-> Última actualización: COMPRAS-012 (reclamaciones al proveedor §25).
+> Última actualización: COMPRAS-018 (devolución de mercadería §26; tracker 013..018 al día).
 
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 
@@ -26,17 +26,17 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 13 | Recepción desde proveedor | ✅ | receipts ✓ + retorno ✓ (007) + vínculo receipt↔despacho (008) |
 | 14 | Recepción parcial | ✅ | retorno parcial por serial ilimitado (COMPRAS-007) |
 | 15 | Conciliación por serial | ✅ | /return concilia seriales vs despacho (COMPRAS-007) |
-| 16 | Conciliación física | ❌ | |
+| 16 | Conciliación física | ✅ | conteo físico serial-by-serial + discrepancias auditadas (COMPRAS-017) |
 | 17 | Recepción comercial | ✅ | aceptadas/rechazadas + cierre comercial (COMPRAS-009) |
 | 18 | Recepción con diferencias | ✅ | difference_type FALTANTE/SOBRANTE/DANO + incidencia (COMPRAS-009) |
-| 19 | Servicios realizados | ❌ | |
-| 20 | PH y retimbrado | ❌ | |
+| 19 | Servicios realizados | ✅ | líneas de servicio por serial en recepción (COMPRAS-014) |
+| 20 | PH y retimbrado | ✅ | datos legales PH/retimbrado con vigencia y validación (COMPRAS-015) |
 | 21 | Recepción en almacén | ✅ | stock_connector en receipts (orden→recepción→ledger) |
 | 22 | Costos | ✅ | costo real prorratea item + cost_lines (COMPRAS-010) |
 | 23 | Factura del proveedor | ✅ | alta + líneas + anulación (COMPRAS-011) |
 | 24 | Conciliación tres vías | ✅ | orden↔recibido(aceptadas)↔facturado, MATCH/MISMATCH (COMPRAS-011) |
-| 25 | Reclamaciones | ✅ | registro motivo cerrado §25 + ciclo a resolución con timeline (COMPRAS-012); derivación desde MISMATCH futura |
-| 26 | Devoluciones | 🟡 | retorno de envases ✓; devolución de mercadería ❌ |
+| 25 | Reclamaciones | ✅ | registro + ciclo a resolución (COMPRAS-012) + derivación idempotente desde MISMATCH (COMPRAS-013) |
+| 26 | Devoluciones | ✅ | retorno de envases (007) + devolución de mercadería con lifecycle auditable (COMPRAS-018) |
 | 27 | Cancelaciones | ✅ | regla received_qty=0 (COMPRAS-002) |
 | 28 | Cierre | ✅ | close administrativo con motivo (COMPRAS-002) |
 | 29 | Proveedores | ✅ | CRUD + catálogo/detalle UI (COMPRAS-004) |
@@ -50,11 +50,11 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 37 | Multiempresa y sucursales | ✅ | tenant_id en todas las operaciones |
 | 38 | Permisos operativos | 🟡 | 8 permisos (supplier/order/dispatch read+manage; COMPRAS-005) |
 | 39 | Dashboard operativo | ❌ | |
-| 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
+| 40 | Consultas esenciales | ✅ | por orden/proveedor/cilindro en custodia (005) + historial técnico por serial (COMPRAS-016) |
 | 41 | Reportes | ❌ | |
-| 42 | Flujo principal llenado | ✅ | procure-to-pay completo: 002+005+007+008+009 (comercial) +010 (costo real) +011 (factura+tres vías) +012 (reclamaciones) |
+| 42 | Flujo principal llenado | ✅ | procure-to-pay completo: 002+005+007+008+009 (comercial) +010 (costo real) +011 (factura+tres vías) +012/013 (reclamaciones + derivación) +014/015/016/017 (servicio técnico, PH, historial y conteo físico) +018 (devolución de mercadería) |
 | 43 | Flujo recepción parcial | ✅ | retornos parciales ilimitados, saldo visible (COMPRAS-007) |
-| 44 | Flujo servicio técnico | 🟡 | pasos 1-7 ✓ (+retorno 007); actualización técnica e historial pendiente |
+| 44 | Flujo servicio técnico | ✅ | retorno 007 + servicios por serial (014) + PH/retimbrado (015) + historial técnico consultable (016) |
 | 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |
 | 46 | Objetivo operativo final | — | meta global |
 

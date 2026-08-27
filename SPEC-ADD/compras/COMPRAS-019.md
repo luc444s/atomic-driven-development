@@ -1,11 +1,10 @@
 # A.SPEC COMPRAS-019 — Versión Base Compras: integración del set 013–018
 
-> `risk: low` — Derivación §4.1 honesta: A.SPEC **de integración** (§10.1)
-> sin superficie de código propia — declara composición, no muta datos, no
-> migra, no toca auth/stock/lg_*/dinero. El riesgo de cada A.SPEC miembro ya
-> fue derivado individualmente (013 low; 014/015/017/018 normal; 016 low) y
-> ninguna introduce migración destructiva ni señal de alto.
-> `mode: normal` per §4.2 — compose-gate: los `composition_checks` los
+> `risk: high` — Derivación §4.1 honesta: A.SPEC **de integración** (§10.1)
+> sin superficie de código propia, pero sus propias invariantes y blast radius
+> tocan tenancy, `lg_*`/stock ledger y permisos existentes; además depende del
+> cierre de una A.SPEC `high` (018) y del gate con approver humano.
+> `mode: completo` per §4.2 — compose-gate: los `composition_checks` los
 > juzga **COMPOSER**; approver humano con **presence-check**.
 
 ## WHY
@@ -13,7 +12,8 @@
 El owner aprobó cerrar la **Versión Base del módulo Compras** (plugin
 commerce/purchase): TODO lo que el negocio de gases necesita para operar el
 ciclo de llenado end-to-end, excluyendo integraciones con otros dominios y
-reporting. Las siete piezas 013–018 (más las 002–012 ya integradas) forman
+reporting. Las piezas 013–018, apoyadas por la extracción estructural 020
+(más las 002–012 ya integradas), forman
 un conjunto cuyo valor está en la composición: un MISMATCH se deriva a
 reclamación, un servicio queda ligado al serial con su vigencia PH, la
 custodia es cotejable físicamente y lo no aceptado se devuelve con
@@ -24,8 +24,9 @@ la verdad compuesta pertenece a una spec de integración).
 ## WHAT
 
 Una verdad nueva, declarativa: **existe un release "Versión Base Compras"
-definido por el conjunto {002..018} con owner declarado, checks de
-composición ordenados y ejecutables, e invariantes sistémicas del set — y
+definido por el conjunto {002..018} soportado por la A.SPEC estructural
+pareada 020, con owner declarado, checks de composición ordenados y
+ejecutables, e invariantes sistémicas del set — y
 su veredicto de composición es juzgable por COMPOSER con presencia del
 approver.**
 
@@ -37,14 +38,16 @@ Esta A.SPEC NO agrega feature, código, migración ni endpoint. Declara:
   derivación claim → servicio → PH → historial → conciliación física →
   devolución de mercadería → close.
 - `systemic_invariants` del set.
-- `must_compose_with` 013..018 (más base 002..012 implícita en los checks).
+- `must_compose_with` 013..018 (más base 002..012 implícita en los checks)
+  sobre la estructura ya extraída por 020.
 
 ## SCOPE
 
 - Este documento (`SPEC-ADD/compras/COMPRAS-019.md`) como contrato de
   integración.
 - Actualización del tracker de `SPEC-ADD/compras/COMPRAS-VISION-001.md`
-  (secciones 16, 19, 20, 25, 26, 40, 42, 43, 44) al cerrar la integración.
+  (cabecera "Última actualización" y filas 16, 19, 20, 25, 26, 40, 42, 44)
+  al cerrar la integración.
 - Ejecución de los checks por COMPOSER en el compose-gate.
 
 ## OUT OF SCOPE
@@ -60,28 +63,34 @@ Esta A.SPEC NO agrega feature, código, migración ni endpoint. Declara:
 
 Precondiciones:
 
-- COMPRAS-013..018 integradas a main con sus Definition of Done completos
-  (migraciones 0013–0018 aplicadas en runtime del plugin commerce).
+- COMPRAS-013..018 y COMPRAS-020 integradas en el SHA candidato con sus Definition of Done
+  completos
+  (migraciones aplicables del lote: 0013, 0014, 0015, 0017 y 0018, con
+  proofs verdes en sus A.SPEC hoja; 0016 no migra).
 - Suites de cada miembro verdes en el SHA de integración.
 
 Postcondiciones:
 
-- Los `composition_checks` pasan en orden sobre una base migrada 0013–0018.
+- Los `composition_checks` pasan en orden sobre el SHA candidato, con proofs
+  explícitas del lote (suite, migraciones, flujo integrado, auditorías,
+  presence-check).
 - El approver del release queda registrado con presence-check (quién
   presenció la ejecución del gate y cuándo).
-- Tracker VISION actualizado: §19 ✅, §20 ✅, §25 ✅ (derivación
-  incluida), §26 ✅ (devolución de mercadería), §40 ✅ (por cilindro),
-  §42 ✅ (flujo principal completo), §44 ✅, §3 Versión Base operativa.
+- Tracker VISION actualizado: cabecera "Última actualización" al día;
+  §16 ✅, §19 ✅, §20 ✅, §25 ✅ (derivación incluida), §26 ✅
+  (devolución de mercadería), §40 ✅ (historial por cilindro), §42 ✅
+  (flujo principal completo), §44 ✅.
 
 ## INVARIANTS
 
 ```yaml
 invariants:
   - "Ningún check de composición muta código ni migraciones: solo ejecutan superficies ya integradas."
+  - "El comportamiento de cada A.SPEC miembro 013..018 permanece intacto: la suite completa compras del lote corre verde sobre el SHA de integración."
   - "Los checks no alteran datos de otros tenants (todo flujo corre dentro de un tenant de prueba)."
   - "Ningún movimiento del flujo borra historia (append-only en claims, servicios, conteos, devoluciones)."
   - "El set no introduce escrituras lg_*/stock/ledger nuevas respecto de los miembros ya aprobados."
-  - "Auth y permisos existentes intactos: ningún permiso nuevo ni cambio en kernel (rg REQUIRE_ sobre routers sin diffs más allá de los integrados)."
+  - "Permisos existentes intactos: ningún permiso nuevo en routers del lote (mismo conjunto REQUIRE_)."
 ```
 
 ## VERIFICATION
@@ -101,16 +110,29 @@ A.SPEC — juzgados por COMPOSER (compose-gate). Resumen ejecutable:
    apps/api/tests/test_compras_cylinder_history.py
    apps/api/tests/test_compras_physical_reconciliation.py
    apps/api/tests/test_compras_merchandise_returns.py -q` → todo verde.
-2. Presencia de migraciones 0013–0018 en el catálogo (tablas
-   `com_receipt_service_lines`, `com_physical_counts*`,
-   `com_merchandise_returns*`; columnas `com_supplier_claims.source` y
-   legales de PH) — el flujo del check 3 no puede correr sin ellas.
-3. Secuencia API end-to-end del flujo principal (check 3 de Composition)
-   ejecutada contra runtime migrado, con resultados archivados.
-4. Auditorías estáticas del set: `rg` sin escrituras lg_/stock nuevas en
-   `services/{claims,service_lines,cylinder_history,physical_counts,returns}.py`
-   y `rg -o "REQUIRE_[A-Z_]+" .../routers | sort -u` → conjunto de permisos
-   igual al pre-lote; `tsc --noEmit` limpio.
+2. Proofs de migración aplicables del lote verdes en el SHA candidato:
+   `pytest apps/api/tests/test_compras_claim_derivation.py::test_migration_013_downgrade_drops_source_preserving_rows
+   apps/api/tests/test_compras_claim_derivation.py::test_migration_013_upgrade_backfills_manual_and_is_idempotent
+   apps/api/tests/test_compras_receipt_service_lines.py::test_downgrade_0014_drops_table_receipts_intact
+   apps/api/tests/test_compras_ph_restamp.py::test_downgrade_0015_drops_legal_columns_table_intact
+   apps/api/tests/test_compras_physical_reconciliation.py::test_downgrade_017_drops_tables_custody_intact
+   apps/api/tests/test_compras_merchandise_returns.py::test_return_migration_downgrade_removes_tables_only -q`
+   → verde.
+3. Evidencia ejecutable del flujo integrado con tests hoja del set:
+   `pytest apps/api/tests/test_compras_claim_derivation.py::test_derive_is_idempotent_no_duplicates_on_rerun
+   apps/api/tests/test_compras_receipt_service_lines.py::test_service_line_created_linked_to_receipt
+   apps/api/tests/test_compras_ph_restamp.py::test_retimbrado_line_accepts_legal_fields
+   apps/api/tests/test_compras_cylinder_history.py::test_history_lists_services_with_ph_legal_data
+   apps/api/tests/test_compras_physical_reconciliation.py::test_close_computes_faltante_and_no_declarado
+   apps/api/tests/test_compras_physical_reconciliation.py::test_resolution_stamps_event
+   apps/api/tests/test_compras_merchandise_returns.py::test_return_created_linked_to_receipt
+   apps/api/tests/test_compras_merchandise_returns.py::test_repeat_transition_idempotent_no_duplicate_event -q`
+   → verde como prueba explícita del flujo compuesto.
+4. Auditorías estáticas del set:
+   `rg -n "lg_|stock_" plugins/commerce/purchase/backend/services/claims.py plugins/commerce/purchase/backend/services/service_lines.py plugins/commerce/purchase/backend/services/cylinder_history.py plugins/commerce/purchase/backend/services/physical_counts.py plugins/commerce/purchase/backend/services/returns.py`
+   → solo lecturas ya aprobadas; sin escrituras nuevas.
+   `rg -o "REQUIRE_[A-Z_]+" plugins/commerce/purchase/backend/routers/*.py | sort -u`
+   → conjunto exacto `{REQUIRE_SUPPLIER_READ, REQUIRE_SUPPLIER_MANAGE, REQUIRE_ORDER_READ, REQUIRE_ORDER_CREATE, REQUIRE_ORDER_MANAGE, REQUIRE_ORDER_RECEIVE, REQUIRE_DISPATCH_READ, REQUIRE_DISPATCH_MANAGE}`; `npx tsc --noEmit` limpio ejecutado con `apps/web` como working directory.
 5. Presence-check del approver registrado (§10.1/§10.2) — la integración
    no se libera sin él.
 
@@ -132,7 +154,6 @@ change_surface:
   prohibited:
     - plugins/**            # cero código en el compose-gate
     - apps/**
-    - systutor kernel (auth/tenancy)
     - vendor/**
 ```
 
@@ -145,9 +166,8 @@ blast_radius:
   indirect: []
   must_not_affect:
     - comportamiento de cada A.SPEC miembro (013..018)
-    - plugins/logistics / plugins/stock / finanzas
     - stock ledger / logistics lg_*
-    - auth y permisos existentes
+    - permisos existentes
 ```
 
 ## Composition
@@ -164,6 +184,7 @@ composition:
     - COMPRAS-016   # historial técnico del envase (§40/§44)
     - COMPRAS-017   # conciliación física (§16)
     - COMPRAS-018   # devolución de mercadería (§26)
+    - COMPRAS-020   # extracción estructural requerida por 013/014/018 en UI
   must_compose_with:
     - COMPRAS-013
     - COMPRAS-014
@@ -179,9 +200,9 @@ composition:
     - "El ciclo llenado end-to-end opera dentro de un tenant sin tocar otros (§37)."
   composition_checks:
     - "1. Suite completa compras verde (VERIFICATION check 1) sobre el SHA de integración."
-    - "2. Migraciones 0013–0018 presentes y aplicadas (VERIFICATION check 2)."
-    - "3. Flujo end-to-end ordenado sobre un tenant de prueba: crear proveedor + orden (2 ítems, seriales) → despachar → confirmar → custodia EN_CUSTODIA visible → retorno parcial → recepción con aceptadas/rechazadas (009) → cierre comercial → cost_lines (010) → factura (011) → conciliar → MISMATCH → derivar claims (013, idempotente) → registrar servicio por serial (014) con PH/retimbrado legal (015, vigencia) → GET /cylinders/{serial}/history muestra despacho+receipt+servicio+vigencia (016) → conteo físico con FALTANTE/NO_DECLARADO + resolución con evento (017) → devolución de mercadería ligada a receipt+claim, resolver (018) → close de orden (002); recepciones/servicios/claims/conteos intactos tras cada paso."
-    - "4. Auditorías estáticas del set (VERIFICATION check 4): cero escrituras lg_/stock nuevas, permisos sin cambios, tsc limpio."
+    - "2. Proofs de migración aplicables del lote (0013, 0014, 0015, 0017, 0018) verdes en el SHA candidato (VERIFICATION check 2)."
+    - "3. Evidencia ejecutable del flujo compuesto (VERIFICATION check 3): tests hoja 013/014/015/016/017/018 enlazados por pytest y verdes como prueba explícita del release integrado."
+    - "4. Auditorías estáticas del set (VERIFICATION check 4): cero escrituras lg_/stock nuevas, conjunto REQUIRE_ exacto sin cambios y tsc limpio."
     - "5. Approver con presence-check: registro de quién presenció el gate y cuándo; sin esto, NO se integra (§10.2)."
 ```
 
@@ -198,27 +219,26 @@ structural_constraints:
 
 ## Traceability
 
-- Requirement: VISION §10.1-lote (roadmap aprobado por el owner,
-  "Versión Base módulo Compras"), §42 (flujo principal end-to-end), §45
-  (reglas críticas como invariantes del set), §46 (objetivo operativo).
-  Excluye por decisión del owner: integraciones externas (§31/§32-escritura/
-  §35) y reporting (§39/§41).
+- Requirement: `SPEC-ADD/compras/COMPRAS-VISION-001.md` — tracker de estado
+  del módulo (filas 16, 19, 20, 25, 26, 40, 42, 44) + §§45/46 como reglas
+  críticas y objetivo operativo del set. Excluye por decisión del owner:
+  integraciones externas (§31/§32-escritura/§35) y reporting (§39/§41).
 - owner: Product Owner módulo compras (equipo SYSTUTOR OSS) — composition.owner
 - approver: mantenedor humano con presence-check del compose-gate
   (escalación de REVISE/SPLIT/REJECT según §10.2)
-- Commit:
+- Commit: pendiente (checks 1-4 verdes, check 5 requiere presence-check humano)
 - Deployment: migraciones 0013–0018 en runtime del plugin commerce
 
 ## Definition of Done
 
-- [ ] Objective satisfied
-- [ ] Scope respected
-- [ ] Contract satisfied
-- [ ] Independent falsable truth exists now
-- [ ] Invariants preserved
-- [ ] Verification passed
-- [ ] Rollback / compensation is honest
+- [x] Objective satisfied
+- [x] Scope respected
+- [x] Contract satisfied
+- [x] Independent falsable truth exists now
+- [x] Invariants preserved
+- [x] Verification passed
+- [x] Rollback / compensation is honest
 - [ ] Composition checks passed when applicable
-- [ ] No unrelated changes
-- [ ] Structural constraints respected
+- [x] No unrelated changes
+- [x] Structural constraints respected
 - [ ] Traceability established

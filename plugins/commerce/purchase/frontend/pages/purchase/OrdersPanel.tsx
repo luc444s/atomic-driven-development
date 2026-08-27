@@ -45,9 +45,10 @@ type OrdersPanelProps = {
   onReceiveOrder: (orderId: string) => void;
   onInvoicesOrder: (orderId: string) => void;
   onClaimsOrder: (orderId: string) => void;
+  onReturnsOrder: (orderId: string) => void;
 };
 
-export function OrdersPanel({ error, setError, products, onReceiveOrder, onInvoicesOrder, onClaimsOrder }: OrdersPanelProps) {
+export function OrdersPanel({ error, setError, products, onReceiveOrder, onInvoicesOrder, onClaimsOrder, onReturnsOrder }: OrdersPanelProps) {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -135,11 +136,12 @@ export function OrdersPanel({ error, setError, products, onReceiveOrder, onInvoi
                 {(row.status === "ORDERED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => onReceiveOrder(row.id)}>Recepcionar</Button> : null}
                 {(row.status === "RECEIVED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => { setCloseOrderId(row.id); setCloseReason(""); }}>Cerrar</Button> : null}
                 {(row.status === "DRAFT" || row.status === "ORDERED" || row.status === "PARTIAL") ? <Button variant="secondary" onClick={() => cancelMut.mutate(row.id)}>Cancelar</Button> : null}
-                {(row.status === "RECEIVED" || row.status === "PARTIAL" || row.status === "CLOSED") ? <Button variant="secondary" onClick={() => onInvoicesOrder(row.id)}>Facturas</Button> : null}
-                <Button variant="secondary" onClick={() => onClaimsOrder(row.id)}>Reclamaciones</Button>
-              </div>
-            )},
-          ]}
+                 {(row.status === "RECEIVED" || row.status === "PARTIAL" || row.status === "CLOSED") ? <Button variant="secondary" onClick={() => onInvoicesOrder(row.id)}>Facturas</Button> : null}
+                 <Button variant="secondary" onClick={() => onClaimsOrder(row.id)}>Reclamaciones</Button>
+                 {(row.status === "RECEIVED" || row.status === "PARTIAL" || row.status === "CLOSED") ? <Button variant="secondary" onClick={() => onReturnsOrder(row.id)}>Devoluciones</Button> : null}
+               </div>
+             )},
+           ]}
           rows={orders} rowKey={(row) => row.id} emptyMessage="No hay órdenes de compra."
         />
 

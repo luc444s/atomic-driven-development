@@ -540,3 +540,10 @@ class ComPhysicalCountEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     count: Mapped[ComPhysicalCount] = relationship(back_populates="events")
+
+
+from plugins.commerce.purchase.backend.returns_models import (  # noqa: E402
+    ComMerchandiseReturn,
+    ComMerchandiseReturnEvent,
+    ComMerchandiseReturnLine,
+)

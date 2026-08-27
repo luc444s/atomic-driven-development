@@ -1,12 +1,11 @@
 # A.SPEC COMPRAS-018 — Devolución de mercadería al proveedor
 
-> `risk: normal` — Derivación §4.1: migración aditiva (3 tablas nuevas), sin
-> dinero (la acreditación contable es Finanzas §35, futura), sin stock (la
-> salida de inventario es Inventario §33, futura — aquí cero escrituras de
-> ledger), sin auth, sin escrituras `lg_*`; señal de normal: nuevo ciclo de
-> vida con validaciones cruzadas (receipt 009, claim 012, serial por
-> despacho) cuyo error podría inducir devoluciones de mercadería mal
-> referenciadas. No hay señal de `high`. `mode: normal` per §4.2.
+> `risk: high` — Derivación §4.1: la A.SPEC toca señales hard declaradas en
+> sus propias cláusulas (`tenant_id` en toda lectura/escritura y referencia
+> a `lg_cylinders`/`lg_*`, aunque sea de solo lectura), además de migración
+> aditiva y ciclo de vida con validaciones cruzadas (receipt 009, claim 012,
+> serial por despacho). No hay dinero ni stock ledger, pero §4.1 manda `high`
+> al tocar tenancy/`lg_*`. `mode: completo` per §4.2.
 
 ## WHY
 
@@ -63,10 +62,14 @@ y timeline auditable, sin borrar ni alterar la recepción original.**
 
 ### Reglas
 
-- Receipt de origen pertenece a la orden y al tenant (400 si ajeno).
-- Claim, si viene, pertenece a la misma orden (400 si ajeno — patrón 012).
+- Orden inexistente o cross-tenant → 404.
+- Receipt/claim/serial cross-tenant → 404 por filtrado `tenant_id`.
+- Receipt de origen de otra orden del mismo tenant → 400.
+- Claim, si viene, pertenece a la misma orden (400 si es de otra orden del
+  mismo tenant — patrón 012).
 - Serial/cylinder, si viene, pertenece a un despacho de la misma orden
-  (`com_dispatch_cylinders` → `com_dispatches.order_id`; 400 si ajeno).
+  (`com_dispatch_cylinders` → `com_dispatches.order_id`; 400 si es de otra
+  orden del mismo tenant).
 - `qty > 0` por línea (422).
 - La devolución NO muta la recepción (qty_accepted/rejected,
   difference_type intocados), NO muta la orden, NO escribe stock ni
@@ -83,18 +86,23 @@ y timeline auditable, sin borrar ni alterar la recepción original.**
 
 ### Frontend
 
-- Componente nuevo `components/MerchandiseReturnDialog.tsx` (alta con
+- Componente nuevo `pages/purchase/MerchandiseReturnDialog.tsx` (alta con
   recepción de origen, líneas qty/serial/claim, resolver/anular con
-  motivo, timeline), integrado en `PurchaseOrdersPage.tsx` (edición
-  mínima: import + botón).
+  motivo, timeline), integrado sobre la estructura post-020:
+  `PurchaseOrdersPage.tsx` queda en wiring mínimo (mount/ref) y
+  `pages/purchase/OrdersPanel.tsx` agrega el botón de apertura.
 
 ## SCOPE
 
 - `plugins/commerce/migrations/018_merchandise_returns.py`
   (`revision = "0018"`): 3 tablas + índices (`order_id`, `receipt_id`,
   `return_id`), estilo familia.
-- `plugins/commerce/purchase/backend/models.py`: `ComMerchandiseReturn`,
-  `ComMerchandiseReturnLine`, `ComMerchandiseReturnEvent`.
+- `plugins/commerce/purchase/backend/returns_models.py`:
+  `ComMerchandiseReturn`, `ComMerchandiseReturnLine`,
+  `ComMerchandiseReturnEvent` (responsabilidad nueva extraída per §12.4).
+- `plugins/commerce/purchase/backend/models.py`: import/re-export mínimo de
+  los modelos de devoluciones para registrar metadata y preservar el punto de
+  import existente del plugin.
 - `plugins/commerce/purchase/backend/schemas/returns.py`
   (+ export `schemas/__init__.py`): payloads y reads del ciclo.
 - `plugins/commerce/purchase/backend/services/returns.py`:
@@ -102,8 +110,9 @@ y timeline auditable, sin borrar ni alterar la recepción original.**
   `annul_return` (máquina de estados + eventos + validaciones cruzadas).
 - `plugins/commerce/purchase/backend/routers/returns.py`
   (+ inclusión `routers/__init__.py`): endpoints listados.
-- Frontend: `components/MerchandiseReturnDialog.tsx` (nuevo),
-  `pages/PurchaseOrdersPage.tsx` (integración mínima), `types.ts`, `api.ts`.
+- Frontend: `pages/purchase/MerchandiseReturnDialog.tsx` (nuevo),
+  `pages/purchase/OrdersPanel.tsx` (botón/acción),
+  `pages/PurchaseOrdersPage.tsx` (wiring mínimo), `types.ts`, `api.ts`.
 - Tests: `apps/api/tests/test_compras_merchandise_returns.py`.
 
 ## OUT OF SCOPE
@@ -119,9 +128,12 @@ y timeline auditable, sin borrar ni alterar la recepción original.**
 
 Precondiciones:
 
-- Orden existe en el mismo tenant (404 si no); receipt de origen de esa
-  orden; claim/serial de la misma orden si presentes (400 si no);
-  `qty > 0` (422).
+- Orden existe en el mismo tenant (404 si no / cross-tenant).
+- Receipt/claim/serial, si vienen, existen en el tenant (404 si no /
+  cross-tenant).
+- Receipt de origen, claim y serial pertenecen a la misma orden cuando
+  aplican (400 si refieren objetos de otra orden del mismo tenant).
+- `qty > 0` (422).
 
 Postcondiciones:
 
@@ -174,7 +186,7 @@ apps/api/tests/test_compras_receipt_service_lines.py
 apps/api/tests/test_compras_ph_restamp.py
 apps/api/tests/test_compras_cylinder_history.py
 apps/api/tests/test_compras_physical_reconciliation.py -q` — verde.
-`tsc --noEmit` limpio.
+`npx tsc --noEmit` limpio ejecutado con `apps/web` como working directory.
 
 Prueba de reversibilidad (SPECIFICATION §9.1 — presence no es execution):
 invocar `downgrade(db)` del módulo `plugins/commerce/migrations/018_merchandise_returns.py`
@@ -214,12 +226,14 @@ change_surface:
     - SPEC-ADD/compras/COMPRAS-018.md   # el contrato viaja con su integración
     - plugins/commerce/migrations/018_merchandise_returns.py
     - plugins/commerce/purchase/backend/models.py
+    - plugins/commerce/purchase/backend/returns_models.py
     - plugins/commerce/purchase/backend/schemas/returns.py
     - plugins/commerce/purchase/backend/schemas/__init__.py
     - plugins/commerce/purchase/backend/services/returns.py
     - plugins/commerce/purchase/backend/routers/returns.py
     - plugins/commerce/purchase/backend/routers/__init__.py
-    - plugins/commerce/purchase/frontend/components/MerchandiseReturnDialog.tsx
+    - plugins/commerce/purchase/frontend/pages/purchase/MerchandiseReturnDialog.tsx
+    - plugins/commerce/purchase/frontend/pages/purchase/OrdersPanel.tsx
     - plugins/commerce/purchase/frontend/pages/PurchaseOrdersPage.tsx
     - plugins/commerce/purchase/frontend/types.ts
     - plugins/commerce/purchase/frontend/api.ts
@@ -228,7 +242,6 @@ change_surface:
     - plugins/logistics/**
     - plugins/stock/**
     - plugins/finanzas/**   # §35 futura (acreditación)
-    - systutor kernel (auth/tenancy)
     - vendor/**
 ```
 
@@ -246,7 +259,7 @@ blast_radius:
     - servicios (014) / PH (015) / historial (016) / conteos (017)
     - custodia/despachos (005/007/008) y lifecycle de órdenes (002)
     - stock ledger / logistics lg_* (escrituras)
-    - auth y permisos existentes
+    - permisos existentes
 ```
 
 ## Composition
@@ -255,13 +268,15 @@ blast_radius:
 composition:
   requires_aspecs:
     - COMPRAS-002   # orden sobre la que se devuelve
-    - COMPRAS-009   # recepción de origen (lo no aceptado)
     - COMPRAS-004   # suppliers (FK server-side)
+    - COMPRAS-005   # despacho/seriales en custodia usados para validar cylinder
+    - COMPRAS-009   # recepción de origen (lo no aceptado)
+    - COMPRAS-012   # claim opcional validado contra la misma orden
+    - COMPRAS-020   # estructura frontend post-extracción donde aterriza la UI
   must_compose_with:
-    - COMPRAS-012   # claim opcional como motivo de la devolución
     - COMPRAS-019   # set Versión Base Compras
   systemic_invariants:
-    - "Toda devolución conserva la historia completa: recepción de origen intocada, ciclo auditado."
+    - "La devolución de mercadería compone con receipt/claim/serial existentes sin reintroducir cambios en lg_*, stock ledger ni un god-file en la UI de órdenes."
   composition_checks:
     - "Flujo: recepción con rechazados → claim (012) → devolución ligada → resolver → recepción y claim intactos."
 ```
@@ -270,20 +285,22 @@ composition:
 
 ```yaml
 structural_constraints:
-  primary_rule: ciclo de devoluciones cohesivo en services/returns.py
+  primary_rule: >-
+    ciclo de devoluciones cohesivo en services/returns.py; los modelos nuevos
+    viven en returns_models.py y models.py solo re-exporta/registra metadata
   entrypoints_must_stay_thin: true   # routers/returns.py solo delega
-  review_threshold_lines: 400       # models.py (~470 tras 017) ya en revisión:
-  extraction_threshold_lines: 600   #   +3 tablas justificadas (cohesión dominio
-                                    #   compras); extracción a módulo models/
-                                    #   sigue señalizada, NO en esta ronda
-                                    #   (muy bajo 600).
+  review_threshold_lines: 400       # models.py ya está bajo presión; §12.4
+  extraction_threshold_lines: 600   # obliga a extraer esta nueva
+                                    # responsabilidad a módulo propio.
   preferred_new_logic_locations:
+    - backend/returns_models.py
     - services/returns.py
     - routers/returns.py
     - schemas/returns.py
-    - frontend/components/MerchandiseReturnDialog.tsx   # PurchaseOrdersPage.tsx
-                                                        # (~596, umbral 600): edición
-                                                        # mínima, lógica a componente.
+    - frontend/pages/purchase/MerchandiseReturnDialog.tsx
+    - frontend/pages/purchase/OrdersPanel.tsx           # wiring mínimo de la
+                                                        # acción en estructura
+                                                        # post-020.
 ```
 
 ## Traceability
@@ -294,7 +311,7 @@ structural_constraints:
   "devolución de mercadería ❌". Roadmap aprobado lote 013..019.
 - owner: Product Owner módulo compras (equipo SYSTUTOR OSS)
 - approver: mantenedor humano responsable del squash/integración a main
-- Commit:
+- Commit: pendiente (al ejecutar)
 - Deployment: migración 0018 en runtime del plugin commerce
 
 ## Definition of Done

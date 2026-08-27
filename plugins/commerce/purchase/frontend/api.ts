@@ -15,11 +15,14 @@ import type {
   CommercialClosePayload,
   CreateClaimPayload,
   CreateInvoicePayload,
+  CreateMerchandiseReturnPayload,
   CreateOrderPayload,
   CreatePhysicalCountPayload,
   CreateReceiptServiceLinePayload,
   CreateSupplierPayload,
   CylinderHistory,
+  MerchandiseReturn,
+  MerchandiseReturnDetail,
   PhysicalCount,
   PhysicalCountDetail,
   PurchaseOrder,
@@ -224,6 +227,37 @@ export function annulClaim(orderId: string, claimId: string, reason: string) {
 export function deriveClaims(orderId: string) {
   return apiRequest<ClaimDerivationResult>(`${BASE}/orders/${orderId}/claims/derive`, {
     method: "POST",
+  });
+}
+
+// ── Merchandise returns (devolución al proveedor) ──
+
+export function listMerchandiseReturns(orderId: string) {
+  return apiRequest<MerchandiseReturn[]>(`${BASE}/orders/${orderId}/returns`);
+}
+
+export function getMerchandiseReturn(orderId: string, returnId: string) {
+  return apiRequest<MerchandiseReturnDetail>(`${BASE}/orders/${orderId}/returns/${returnId}`);
+}
+
+export function createMerchandiseReturn(orderId: string, payload: CreateMerchandiseReturnPayload) {
+  return apiRequest<MerchandiseReturn>(`${BASE}/orders/${orderId}/returns`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function completeMerchandiseReturn(orderId: string, returnId: string, resolutionNotes: string) {
+  return apiRequest<MerchandiseReturn>(`${BASE}/orders/${orderId}/returns/${returnId}/complete`, {
+    method: "POST",
+    body: JSON.stringify({ resolution_notes: resolutionNotes }),
+  });
+}
+
+export function annulMerchandiseReturn(orderId: string, returnId: string, reason: string) {
+  return apiRequest<MerchandiseReturn>(`${BASE}/orders/${orderId}/returns/${returnId}/annul`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
   });
 }
 

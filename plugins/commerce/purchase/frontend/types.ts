@@ -334,6 +334,64 @@ export type CreateClaimPayload = {
   invoice_id?: string | null;
 };
 
+export type MerchandiseReturnEvent = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  user_id: string | null;
+  created_at: string;
+};
+
+export type MerchandiseReturnLine = {
+  id: string;
+  return_id: string;
+  order_item_id: string | null;
+  product_id: string | null;
+  cylinder_id: string | null;
+  serial: string | null;
+  qty: number;
+  unit_cost: number | null;
+  notes: string | null;
+};
+
+export type MerchandiseReturn = {
+  id: string;
+  tenant_id: string;
+  order_id: string;
+  supplier_id: string;
+  receipt_id: string;
+  claim_id: string | null;
+  return_date: string;
+  notes: string | null;
+  status: string;
+  created_by: string;
+  created_at: string;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+};
+
+export type MerchandiseReturnDetail = MerchandiseReturn & {
+  lines: MerchandiseReturnLine[];
+  events: MerchandiseReturnEvent[];
+};
+
+export type CreateMerchandiseReturnPayload = {
+  receipt_id: string;
+  claim_id?: string | null;
+  return_date: string;
+  notes?: string | null;
+  lines: Array<{
+    order_item_id?: string | null;
+    product_id?: string | null;
+    cylinder_id?: string | null;
+    qty: number;
+    unit_cost?: number | null;
+    notes?: string | null;
+  }>;
+};
+
 export type ReceiptServiceLine = {
   id: string;
   receipt_id: string;

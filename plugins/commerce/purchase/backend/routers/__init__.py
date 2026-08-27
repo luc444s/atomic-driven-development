@@ -8,6 +8,7 @@ from plugins.commerce.purchase.backend.routers import (
     orders,
     physical_counts,
     receipts,
+    returns,
     service_lines,
     suppliers,
 )
@@ -21,6 +22,7 @@ router.include_router(orders.router, prefix="/orders")
 router.include_router(physical_counts.router)
 router.include_router(dispatches.router, prefix="/dispatches")
 router.include_router(receipts.router)
+router.include_router(returns.router)
 router.include_router(service_lines.router)
 router.include_router(invoices.router)
 router.include_router(claims.router)

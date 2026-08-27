@@ -1,7 +1,5 @@
 from sqlalchemy import inspect, text
 
-from plugins.commerce.purchase.backend.models import ComDispatch
-
 revision = "0004"
 
 

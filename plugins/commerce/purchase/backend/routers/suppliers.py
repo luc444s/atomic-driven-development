@@ -3,13 +3,18 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
-
 from systutor.kernel.auth.models import User  # noqa: F401 - mantiene parity con router previo
 from systutor.kernel.tenants.context import TenantContext
 
 from plugins.commerce.purchase.backend.models import (
     ComSupplierBankAccount,
     ComSupplierContact,
+)
+from plugins.commerce.purchase.backend.routers.common import (
+    DB_SESSION,
+    REQUIRE_SUPPLIER_MANAGE,
+    REQUIRE_SUPPLIER_READ,
+    TENANT_CONTEXT,
 )
 from plugins.commerce.purchase.backend.schemas import (
     SupplierAddressCreateRequest,
@@ -18,12 +23,6 @@ from plugins.commerce.purchase.backend.schemas import (
     SupplierCreateRequest,
     SupplierRead,
     SupplierUpdateRequest,
-)
-from plugins.commerce.purchase.backend.routers.common import (
-    DB_SESSION,
-    REQUIRE_SUPPLIER_MANAGE,
-    REQUIRE_SUPPLIER_READ,
-    TENANT_CONTEXT,
 )
 from plugins.commerce.purchase.backend.services import addresses, suppliers
 

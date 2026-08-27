@@ -1,9 +1,9 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from uuid import uuid4
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Numeric, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from systutor.core.database import Base
 
@@ -13,7 +13,7 @@ def _new_uuid() -> str:
 
 
 def _utc_now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class ComSupplier(Base):
@@ -159,7 +159,7 @@ class ComPurchaseOrder(Base):
     receipts: Mapped[list[ComPurchaseReceipt]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )
-    events: Mapped[list["ComPurchaseOrderEvent"]] = relationship(
+    events: Mapped[list[ComPurchaseOrderEvent]] = relationship(
         back_populates="order", cascade="all, delete-orphan"
     )
     supplier: Mapped[ComSupplier] = relationship(back_populates="orders")
@@ -214,7 +214,85 @@ class ComPurchaseReceipt(Base):
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
+    # COMPRAS-009: distinción comercial aceptadas/rechazadas + diferencia
+    qty_accepted: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    qty_rejected: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    difference_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    incidence_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    commercial_closed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    commercial_closed_by: Mapped[str | None] = mapped_column(String(36), nullable=True)
+
     order: Mapped[ComPurchaseOrder] = relationship(back_populates="receipts")
+    cost_lines: Mapped[list[ComReceiptCostLine]] = relationship(
+        back_populates="receipt", cascade="all, delete-orphan"
+    )
+
+
+class ComReceiptCostLine(Base):
+    """COMPRAS-010: costos adicionales de una recepción (flete, arancel, ...)."""
+
+    __tablename__ = "com_receipt_cost_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    receipt_id: Mapped[str] = mapped_column(
+        ForeignKey("com_purchase_receipts.id"), nullable=False, index=True
+    )
+    cost_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    amount: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="PEN")
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    receipt: Mapped[ComPurchaseReceipt] = relationship(back_populates="cost_lines")
+
+
+class ComSupplierInvoice(Base):
+    """COMPRAS-011: factura de proveedor vinculada a una orden."""
+
+    __tablename__ = "com_supplier_invoices"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    supplier_id: Mapped[str] = mapped_column(
+        ForeignKey("com_suppliers.id"), nullable=False, index=True
+    )
+    order_id: Mapped[str] = mapped_column(
+        ForeignKey("com_purchase_orders.id"), nullable=False, index=True
+    )
+    invoice_number: Mapped[str] = mapped_column(String(60), nullable=False)
+    invoice_date: Mapped[date] = mapped_column(Date, nullable=False)
+    currency: Mapped[str] = mapped_column(String(3), nullable=False, default="PEN")
+    subtotal: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False, default=0)
+    tax: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False, default=0)
+    total: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="REGISTRADA")
+
+    lines: Mapped[list[ComSupplierInvoiceLine]] = relationship(
+        back_populates="invoice", cascade="all, delete-orphan"
+    )
+
+
+class ComSupplierInvoiceLine(Base):
+    __tablename__ = "com_supplier_invoice_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    invoice_id: Mapped[str] = mapped_column(
+        ForeignKey("com_supplier_invoices.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    order_item_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_purchase_items.id"), nullable=True, index=True
+    )
+    product_id: Mapped[str | None] = mapped_column(
+        ForeignKey("prod_products.id"), nullable=True, index=True
+    )
+    qty: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
+    unit_price: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False)
+    line_total: Mapped[float] = mapped_column(Numeric(19, 4), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    invoice: Mapped[ComSupplierInvoice] = relationship(back_populates="lines")
 
 
 class ComDispatch(Base):
@@ -247,7 +325,7 @@ class ComDispatch(Base):
         DateTime(timezone=True), default=_utc_now, onupdate=_utc_now
     )
 
-    cylinders: Mapped[list["ComDispatchCylinder"]] = relationship(
+    cylinders: Mapped[list[ComDispatchCylinder]] = relationship(
         back_populates="dispatch", cascade="all, delete-orphan"
     )
 

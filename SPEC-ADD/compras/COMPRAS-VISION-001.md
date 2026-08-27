@@ -7,7 +7,7 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
-> Última actualización: COMPRAS-008 (vínculo receipt↔despacho).
+> Última actualización: COMPRAS-011 (factura + conciliación tres vías).
 
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 
@@ -27,14 +27,14 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 14 | Recepción parcial | ✅ | retorno parcial por serial ilimitado (COMPRAS-007) |
 | 15 | Conciliación por serial | ✅ | /return concilia seriales vs despacho (COMPRAS-007) |
 | 16 | Conciliación física | ❌ | |
-| 17 | Recepción comercial | 🟡 | cantidades sí; aceptadas/rechazadas no |
-| 18 | Recepción con diferencias | ❌ | incidencias |
+| 17 | Recepción comercial | ✅ | aceptadas/rechazadas + cierre comercial (COMPRAS-009) |
+| 18 | Recepción con diferencias | ✅ | difference_type FALTANTE/SOBRANTE/DANO + incidencia (COMPRAS-009) |
 | 19 | Servicios realizados | ❌ | |
 | 20 | PH y retimbrado | ❌ | |
 | 21 | Recepción en almacén | ✅ | stock_connector en receipts (orden→recepción→ledger) |
-| 22 | Costos | 🟡 | unit_cost por item; costos adicionales no |
-| 23 | Factura del proveedor | ❌ | |
-| 24 | Conciliación tres vías | ❌ | |
+| 22 | Costos | ✅ | costo real prorratea item + cost_lines (COMPRAS-010) |
+| 23 | Factura del proveedor | ✅ | alta + líneas + anulación (COMPRAS-011) |
+| 24 | Conciliación tres vías | ✅ | orden↔recibido(aceptadas)↔facturado, MATCH/MISMATCH (COMPRAS-011) |
 | 25 | Reclamaciones | ❌ | |
 | 26 | Devoluciones | 🟡 | retorno de envases ✓; devolución de mercadería ❌ |
 | 27 | Cancelaciones | ✅ | regla received_qty=0 (COMPRAS-002) |
@@ -52,7 +52,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 39 | Dashboard operativo | ❌ | |
 | 40 | Consultas esenciales | 🟡 | por orden y por proveedor/cilindro en custodia ✓ (005) |
 | 41 | Reportes | ❌ | |
-| 42 | Flujo principal llenado | 🟡 | pasos 1-17 ✓ (002+005+007+008); costos adicionales/cierre comercial en specs futuras |
+| 42 | Flujo principal llenado | ✅ | procure-to-pay completo: 002+005+007+008+009 (comercial) +010 (costo real) +011 (factura+tres vías) |
 | 43 | Flujo recepción parcial | ✅ | retornos parciales ilimitados, saldo visible (COMPRAS-007) |
 | 44 | Flujo servicio técnico | 🟡 | pasos 1-7 ✓ (+retorno 007); actualización técnica e historial pendiente |
 | 45 | Reglas críticas | 🟡 | vigentes como invariantes de specs cerradas |

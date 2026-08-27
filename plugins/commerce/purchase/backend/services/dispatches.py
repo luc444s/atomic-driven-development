@@ -6,7 +6,7 @@ derivado: filas com_dispatch_cylinders con status='EN_CUSTODIA'.
 """
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -330,7 +330,7 @@ def register_return(
     if not cylinder_ids:
         raise ValueError("Lista de seriales vacía")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     for cid in cylinder_ids:
         item = items[cid]
         item.status = "DEVUELTO"

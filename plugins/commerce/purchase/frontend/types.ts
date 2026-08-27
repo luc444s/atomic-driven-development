@@ -67,6 +67,14 @@ export type PurchaseItem = {
   received_qty: number;
 };
 
+export type ReceiptCostLine = {
+  id: string;
+  cost_type: string;
+  amount: number;
+  currency: string;
+  notes: string | null;
+};
+
 export type PurchaseReceipt = {
   id: string;
   warehouse_id: string;
@@ -74,6 +82,16 @@ export type PurchaseReceipt = {
   dispatch_id: string | null;
   notes: string | null;
   created_at: string;
+  qty_accepted: number | null;
+  qty_rejected: number | null;
+  difference_type: string | null;
+  incidence_notes: string | null;
+  commercial_closed_at: string | null;
+  commercial_closed_by: string | null;
+  extra_total: number | null;
+  real_total: number | null;
+  unit_cost_real: number | null;
+  cost_lines: ReceiptCostLine[];
 };
 
 export type PurchaseOrder = {
@@ -129,6 +147,15 @@ export type UpdateOrderPayload = Partial<CreateOrderPayload>;
 export type ReceiveItemRequest = {
   purchase_item_id: string;
   quantity: number;
+  qty_accepted?: number | null;
+  qty_rejected?: number | null;
+};
+
+export type ReceiveCostLine = {
+  cost_type: string;
+  amount: number;
+  currency?: string;
+  notes?: string | null;
 };
 
 export type ReceiveOrderPayload = {
@@ -137,6 +164,78 @@ export type ReceiveOrderPayload = {
   notes?: string | null;
   tank_id?: string | null;
   dispatch_id?: string | null;
+  cost_lines?: ReceiveCostLine[] | null;
+};
+
+export type CommercialCloseLine = {
+  purchase_item_id: string;
+  qty_accepted: number;
+  qty_rejected?: number;
+};
+
+export type CommercialClosePayload = {
+  lines?: CommercialCloseLine[] | null;
+  cost_lines?: ReceiveCostLine[] | null;
+  incidence_notes?: string | null;
+};
+
+export type SupplierInvoiceLine = {
+  id: string;
+  invoice_id: string;
+  order_item_id: string | null;
+  product_id: string | null;
+  qty: number;
+  unit_price: number;
+  line_total: number;
+  notes: string | null;
+};
+
+export type SupplierInvoice = {
+  id: string;
+  supplier_id: string;
+  order_id: string;
+  invoice_number: string;
+  invoice_date: string;
+  currency: string;
+  subtotal: number;
+  tax: number;
+  total: number;
+  status: string;
+  lines: SupplierInvoiceLine[];
+};
+
+export type ReconciliationItem = {
+  order_item_id: string | null;
+  ordered_qty: number;
+  accepted_qty: number;
+  invoiced_qty: number;
+  ordered_cost: number;
+  real_cost: number;
+  invoiced_cost: number;
+  status: string;
+  reason: string | null;
+};
+
+export type ReconciliationTotals = {
+  ordered: number;
+  real: number;
+  invoiced: number;
+  status: string;
+  reasons: string[];
+};
+
+export type Reconciliation = {
+  by_item: ReconciliationItem[];
+  totals: ReconciliationTotals;
+  invoice_status: string | null;
+};
+
+export type CreateInvoicePayload = {
+  invoice_number: string;
+  invoice_date: string;
+  currency?: string;
+  tax?: number;
+  lines: { order_item_id?: string | null; product_id?: string | null; qty: number; unit_price: number; notes?: string | null }[];
 };
 
 export type DispatchCylinder = {

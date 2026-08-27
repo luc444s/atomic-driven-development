@@ -7,3 +7,6 @@
 [submodule "vendor/systutor-themes"]
 	path = vendor/systutor-themes
 	url = git@github.com:luc444s/systutor-themes.git
+[submodule "ADD"]
+	path = ADD
+	url = https://github.com/luc444s/atomic-driven-development.git

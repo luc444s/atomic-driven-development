@@ -46,6 +46,28 @@ class PurchaseReceiptRead(BaseModel):
     dispatch_id: str | None
     notes: str | None
     created_at: datetime
+    # COMPRAS-009
+    qty_accepted: int | None
+    qty_rejected: int | None
+    difference_type: str | None
+    incidence_notes: str | None
+    commercial_closed_at: datetime | None
+    commercial_closed_by: str | None
+    # COMPRAS-010
+    extra_total: float | None
+    real_total: float | None
+    unit_cost_real: float | None
+    cost_lines: list[ReceiptCostLineRead] = []
+
+
+class ReceiptCostLineRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    cost_type: str
+    amount: float
+    currency: str
+    notes: str | None
 
 
 class PurchaseOrderRead(BaseModel):
@@ -65,7 +87,7 @@ class PurchaseOrderRead(BaseModel):
 class PurchaseOrderDetailRead(PurchaseOrderRead):
     items: list[PurchaseItemRead]
     receipts: list[PurchaseReceiptRead]
-    events: list["PurchaseOrderEventRead"] = []
+    events: list[PurchaseOrderEventRead] = []
 
 
 class PurchaseOrderEventRead(BaseModel):
@@ -87,6 +109,16 @@ class PurchaseOrderPageRead(BaseModel):
 class ReceiveItemRequest(BaseModel):
     purchase_item_id: str
     quantity: float = Field(gt=0)
+    # COMPRAS-009: distinción comercial (opcional, retrocompatible)
+    qty_accepted: int | None = None
+    qty_rejected: int | None = None
+
+
+class ReceiveCostLine(BaseModel):
+    cost_type: str
+    amount: float = Field(ge=0)
+    currency: str = "PEN"
+    notes: str | None = None
 
 
 class ReceiveOrderRequest(BaseModel):
@@ -95,6 +127,23 @@ class ReceiveOrderRequest(BaseModel):
     notes: str | None = None
     tank_id: str | None = None
     dispatch_id: str | None = None
+    # COMPRAS-010: costos adicionales de la recepción
+    cost_lines: list[ReceiveCostLine] | None = None
+
+
+class CommercialCloseLineRequest(BaseModel):
+    purchase_item_id: str
+    qty_accepted: int
+    qty_rejected: int = 0
+
+
+class CommercialCloseRequest(BaseModel):
+    """COMPRAS-009: cierre comercial de una recepción ya creada."""
+
+    lines: list[CommercialCloseLineRequest] | None = None
+    # COMPRAS-010: costos adicionales al cerrar
+    cost_lines: list[ReceiveCostLine] | None = None
+    incidence_notes: str | None = None
 
 
 class CancelOrderRequest(BaseModel):

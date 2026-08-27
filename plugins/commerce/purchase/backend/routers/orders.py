@@ -3,12 +3,18 @@ from __future__ import annotations
 import httpx  # noqa: F401 - parity con router previo
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
-
 from systutor.kernel.auth.dependencies import require_permission
 from systutor.kernel.auth.models import User
 from systutor.kernel.tenants.context import TenantContext
 
 from plugins.commerce.purchase.backend.models import ComPurchaseOrder
+from plugins.commerce.purchase.backend.routers.common import (
+    DB_SESSION,
+    REQUIRE_ORDER_CREATE,
+    REQUIRE_ORDER_MANAGE,
+    REQUIRE_ORDER_READ,
+    TENANT_CONTEXT,
+)
 from plugins.commerce.purchase.backend.schemas import (
     CancelOrderRequest,
     CloseOrderRequest,
@@ -18,14 +24,7 @@ from plugins.commerce.purchase.backend.schemas import (
     PurchaseOrderRead,
     PurchaseOrderUpdateRequest,
 )
-from plugins.commerce.purchase.backend.routers.common import (
-    DB_SESSION,
-    REQUIRE_ORDER_CREATE,
-    REQUIRE_ORDER_MANAGE,
-    REQUIRE_ORDER_READ,
-    TENANT_CONTEXT,
-)
-from plugins.commerce.purchase.backend.services import orders
+from plugins.commerce.purchase.backend.services import orders, receipts
 
 router = APIRouter()
 
@@ -56,17 +55,38 @@ def _serialize_order_detail(db: Session, order: ComPurchaseOrder) -> dict:
         }
         for i in order.items  # type: ignore[attr-defined]
     ]
-    result["receipts"] = [
-        {
-            "id": r.id,
-            "warehouse_id": r.warehouse_id,
-            "receipt_date": r.receipt_date,
-            "dispatch_id": r.dispatch_id,
-            "notes": r.notes,
-            "created_at": r.created_at,
-        }
-        for r in order.receipts  # type: ignore[attr-defined]
-    ]
+    result["receipts"] = []
+    for r in order.receipts:  # type: ignore[attr-defined]
+        cost = receipts.recompute_receipt_real_cost(r)
+        result["receipts"].append(
+            {
+                "id": r.id,
+                "warehouse_id": r.warehouse_id,
+                "receipt_date": r.receipt_date,
+                "dispatch_id": r.dispatch_id,
+                "notes": r.notes,
+                "created_at": r.created_at,
+                "qty_accepted": r.qty_accepted,
+                "qty_rejected": r.qty_rejected,
+                "difference_type": r.difference_type,
+                "incidence_notes": r.incidence_notes,
+                "commercial_closed_at": r.commercial_closed_at,
+                "commercial_closed_by": r.commercial_closed_by,
+                "extra_total": cost["extra_total"],
+                "real_total": cost["real_total"],
+                "unit_cost_real": cost["unit_cost_real"],
+                "cost_lines": [
+                    {
+                        "id": c.id,
+                        "cost_type": c.cost_type,
+                        "amount": float(c.amount),
+                        "currency": c.currency,
+                        "notes": c.notes,
+                    }
+                    for c in r.cost_lines
+                ],
+            }
+        )
     result["events"] = [
         {
             "id": e.id,

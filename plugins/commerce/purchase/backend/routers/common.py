@@ -4,7 +4,6 @@ from __future__ import annotations
 from fastapi import Depends
 from systutor.api.deps import get_db_session
 from systutor.kernel.auth.dependencies import get_current_tenant_context, require_permission
-from systutor.kernel.tenants.context import TenantContext
 
 from plugins.commerce._shared.stock_connector import StockConnector
 

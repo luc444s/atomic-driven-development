@@ -10,13 +10,17 @@ function buildQuery(params: Record<string, unknown>) {
   return qs ? `?${qs}` : "";
 }
 import type {
+  CommercialClosePayload,
+  CreateInvoicePayload,
   CreateOrderPayload,
   CreateSupplierPayload,
   PurchaseOrder,
   PurchaseOrderDetail,
   PurchaseOrderPage,
   ReceiveOrderPayload,
+  Reconciliation,
   Supplier,
+  SupplierInvoice,
   UpdateOrderPayload,
   UpdateSupplierPayload,
 } from "./types";
@@ -138,6 +142,34 @@ export function receiveOrder(id: string, payload: ReceiveOrderPayload) {
   return apiRequest<PurchaseOrder>(`${BASE}/orders/${id}/receive`, {
     method: "POST",
     body: JSON.stringify(payload),
+  });
+}
+
+export function commercialCloseReceipt(receiptId: string, payload: CommercialClosePayload) {
+  return apiRequest<PurchaseOrder>(`${BASE}/receipts/${receiptId}/commercial-close`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function createInvoice(orderId: string, payload: CreateInvoicePayload) {
+  return apiRequest<SupplierInvoice>(`${BASE}/orders/${orderId}/invoices`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function listInvoices(orderId: string) {
+  return apiRequest<SupplierInvoice[]>(`${BASE}/orders/${orderId}/invoices`);
+}
+
+export function getReconciliation(orderId: string) {
+  return apiRequest<Reconciliation>(`${BASE}/orders/${orderId}/reconciliation`);
+}
+
+export function cancelInvoice(invoiceId: string) {
+  return apiRequest<SupplierInvoice>(`${BASE}/invoices/${invoiceId}/cancel`, {
+    method: "POST",
   });
 }
 

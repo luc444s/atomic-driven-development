@@ -13,11 +13,21 @@ from plugins.commerce.purchase.backend.models import (
     ComSupplierInvoice,
 )
 from plugins.commerce.purchase.backend.schemas.claims import CLAIM_REASONS
+from plugins.commerce.purchase.backend.services import invoices as invoices_service
 
 STATUS_ABIERTA = "ABIERTA"
 STATUS_EN_GESTION = "EN_GESTION"
 STATUS_RESUELTA = "RESUELTA"
 STATUS_ANULADA = "ANULADA"
+
+SOURCE_MANUAL = "MANUAL"
+SOURCE_DERIVED = "DERIVED"
+
+_DERIVED_DESCRIPTION_PREFIX = "Derivada de conciliación (ítem {order_item_id}): "
+_QTY_MISMATCH_TOKEN = "aceptado"
+_COST_MISMATCH_PREFIX = "costo facturado"
+_SIN_FACTURA_REASON = "sin factura"
+_MISMATCH_STATUS = "MISMATCH"
 
 _TERMINAL_STATUSES = {STATUS_RESUELTA, STATUS_ANULADA}
 _ALLOWED_TRANSITIONS = {
@@ -179,3 +189,111 @@ def annul_claim(
         db, claim=claim, target=STATUS_ANULADA, user_id=user_id, event_reason=reason
     )
     return claim
+
+
+def _derived_description(order_item_id: str, reason_literal: str) -> str:
+    return (
+        _DERIVED_DESCRIPTION_PREFIX.format(order_item_id=order_item_id)
+        + reason_literal
+    )
+
+
+def _derived_item_id(description: str | None) -> str | None:
+    prefix = _DERIVED_DESCRIPTION_PREFIX.split("{")[0]
+    if not description or not description.startswith(prefix):
+        return None
+    rest = description[len(prefix):]
+    separator = rest.find("): ")
+    return rest[:separator] if separator > 0 else None
+
+
+def _mismatches_to_motives(reason_literal: str | None) -> list[str]:
+    """Mapea el `reason` literal del output de conciliación (011) a motivos cerrados.
+
+    - razón de cantidad ("facturado X != aceptado Y") → FALTANTE
+    - razón de costo ("costo facturado X != real Y") → PRECIO_INCORRECTO
+    - "sin factura" no deriva reclamación (no hay documento que reclamar aún).
+    """
+    if not reason_literal or reason_literal == _SIN_FACTURA_REASON:
+        return []
+    motives: list[str] = []
+    for part in reason_literal.split("; "):
+        if _QTY_MISMATCH_TOKEN in part:
+            motives.append("FALTANTE")
+        elif part.startswith(_COST_MISMATCH_PREFIX):
+            motives.append("PRECIO_INCORRECTO")
+    return motives
+
+
+def _single_active_invoice_id(
+    db: Session, *, order: ComPurchaseOrder
+) -> str | None:
+    invoices = [
+        iv
+        for iv in invoices_service.list_supplier_invoices(db, order=order)
+        if iv.status != "ANULADA"
+    ]
+    return invoices[0].id if len(invoices) == 1 else None
+
+
+def _derived_claims_for_order(
+    db: Session, *, order: ComPurchaseOrder
+) -> list[ComSupplierClaim]:
+    stmt = select(ComSupplierClaim).where(
+        ComSupplierClaim.tenant_id == order.tenant_id,
+        ComSupplierClaim.order_id == order.id,
+        ComSupplierClaim.source == SOURCE_DERIVED,
+    )
+    return list(db.scalars(stmt).all())
+
+
+def derive_claims_from_reconciliation(
+    db: Session, *, order: ComPurchaseOrder, opened_by: str
+) -> tuple[list[ComSupplierClaim], int]:
+    """Deriva reclamaciones al proveedor desde el MISMATCH de conciliación (011).
+
+    Idempotente: la clave (order_id, order_item_id, reason, invoice_id) de cada
+    reclamación DERIVED —con invoice_id NULL casando solo con NULL— bloquea
+    duplicados en cualquier estado (incluida ANULADA); claims MANUAL no bloquean.
+    El item de orden viaja en la descripción autogenerada (_derived_item_id).
+
+    Devuelve (created, skipped): skipped cuenta MISMATCH que no materializaron
+    reclamación — por dedup o por omisión explícita de "sin factura".
+    """
+    reconciliation = invoices_service.reconcile_order(db, order=order)
+    invoice_id = _single_active_invoice_id(db, order=order)
+
+    existing_keys = {
+        (item_id, claim.reason, claim.invoice_id)
+        for claim in _derived_claims_for_order(db, order=order)
+        if (item_id := _derived_item_id(claim.description)) is not None
+    }
+
+    created: list[ComSupplierClaim] = []
+    skipped = 0
+    for item in reconciliation.by_item:
+        if item.status != _MISMATCH_STATUS:
+            continue
+        motives = _mismatches_to_motives(item.reason)
+        if not motives:
+            skipped += 1
+            continue
+        for motive in motives:
+            key = (item.order_item_id, motive, invoice_id)
+            if key in existing_keys:
+                skipped += 1
+                continue
+            claim = create_claim(
+                db,
+                order=order,
+                reason=motive,
+                description=_derived_description(item.order_item_id, item.reason),
+                opened_by=opened_by,
+                invoice_id=invoice_id,
+            )
+            claim.source = SOURCE_DERIVED
+            db.add(claim)
+            db.flush()
+            existing_keys.add(key)
+            created.append(claim)
+    return created, skipped

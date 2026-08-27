@@ -72,6 +72,7 @@ class SupplierClaimRead(BaseModel):
     reason: str
     description: str
     status: str
+    source: str
     opened_by: str
     opened_at: datetime
     resolved_by: str | None
@@ -81,3 +82,8 @@ class SupplierClaimRead(BaseModel):
 
 class SupplierClaimDetailRead(SupplierClaimRead):
     events: list[SupplierClaimEventRead] = []
+
+
+class ClaimDerivationResult(BaseModel):
+    created: list[SupplierClaimRead]
+    skipped: int

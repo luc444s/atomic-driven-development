@@ -310,6 +310,7 @@ export type SupplierClaim = {
   reason: string;
   description: string;
   status: string;
+  source: string;
   opened_by: string;
   opened_at: string;
   resolved_by: string | null;
@@ -319,6 +320,11 @@ export type SupplierClaim = {
 
 export type SupplierClaimDetail = SupplierClaim & {
   events: SupplierClaimEvent[];
+};
+
+export type ClaimDerivationResult = {
+  created: SupplierClaim[];
+  skipped: number;
 };
 
 export type CreateClaimPayload = {

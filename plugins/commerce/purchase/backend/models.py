@@ -373,6 +373,7 @@ class ComSupplierClaim(Base):
     reason: Mapped[str] = mapped_column(String(40), nullable=False)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="ABIERTA")
+    source: Mapped[str] = mapped_column(String(20), nullable=False, default="MANUAL")
     opened_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
     resolved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)

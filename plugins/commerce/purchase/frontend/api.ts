@@ -10,6 +10,7 @@ function buildQuery(params: Record<string, unknown>) {
   return qs ? `?${qs}` : "";
 }
 import type {
+  ClaimDerivationResult,
   CommercialClosePayload,
   CreateClaimPayload,
   CreateInvoicePayload,
@@ -210,6 +211,12 @@ export function annulClaim(orderId: string, claimId: string, reason: string) {
   return apiRequest<SupplierClaim>(`${BASE}/orders/${orderId}/claims/${claimId}/annul`, {
     method: "POST",
     body: JSON.stringify({ reason }),
+  });
+}
+
+export function deriveClaims(orderId: string) {
+  return apiRequest<ClaimDerivationResult>(`${BASE}/orders/${orderId}/claims/derive`, {
+    method: "POST",
   });
 }
 

@@ -14,6 +14,7 @@ import type {
   SupplierInvoice,
 } from "../../types";
 import type { ProductListItem } from "../../../../../productos/frontend/types";
+import { ClaimDerivationPanel } from "./ClaimDerivationPanel";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
@@ -103,6 +104,8 @@ export const InvoicePanel = forwardRef<InvoicePanelHandle, InvoicePanelProps>(fu
             ))}
           </div>
         ) : null}
+
+        <ClaimDerivationPanel orderId={invoiceOrder?.id ?? null} setError={setError} />
 
         <div className="space-y-2">
           <span className="text-sm text-foreground">Facturas registradas</span>

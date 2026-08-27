@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, Response, status
 from sqlalchemy.orm import Session
 from systutor.kernel.tenants.context import TenantContext
 
@@ -13,6 +13,7 @@ from plugins.commerce.purchase.backend.routers.common import (
 )
 from plugins.commerce.purchase.backend.schemas import (
     ClaimAnnulRequest,
+    ClaimDerivationResult,
     ClaimResolveRequest,
     SupplierClaimCreate,
     SupplierClaimDetailRead,
@@ -178,3 +179,26 @@ def annul_claim(
     except claims_service.ClaimTransitionError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
     return _transition_response(db, claim)
+
+
+@router.post(
+    "/orders/{order_id}/claims/derive",
+    response_model=ClaimDerivationResult,
+    dependencies=[REQUIRE_ORDER_MANAGE],
+)
+def derive_claims(
+    order_id: str,
+    response: Response,
+    db: Session = DB_SESSION,
+    tenant_context: TenantContext = TENANT_CONTEXT,
+) -> ClaimDerivationResult:
+    order = _get_order(db, tenant_context.current_tenant_id, order_id)
+    created, skipped = claims_service.derive_claims_from_reconciliation(
+        db, order=order, opened_by=tenant_context.current_user_id
+    )
+    db.commit()
+    response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+    return ClaimDerivationResult(
+        created=[SupplierClaimRead.model_validate(c) for c in created],
+        skipped=skipped,
+    )

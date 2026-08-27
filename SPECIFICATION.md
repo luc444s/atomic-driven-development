@@ -32,6 +32,8 @@ Una A.SPEC responde obligatoriamente:
 | Structural Constraints (§12) | ¿Qué reglas estructurales respeta?        |
 | Traceability (§10.2) | ¿Quién es owner/approver y cómo se trazará?       |
 | DoD (§8)     | ¿Qué checklist debe quedar verde al cerrar?              |
+| Modo (§4.2)  | ¿Qué ceremonia de ciclo le corresponde? (mechanical /    |
+|              | judges-lite / completo por defecto)                      |
 
 Una SPEC no es documentación: es un contrato de cambio.
 
@@ -158,6 +160,82 @@ condicional. La semántica de veredictos (REVISE/SPLIT/REJECT) no cambia.
 
 Un `high` con ROLLBACK irreversible exige compensación/contención (§9) y
 `approver` humano documentado en el A.SPEC; no se integra sin esa aprobación.
+
+### 4.2 Verificación proporcional: modos de ejecución del ciclo
+
+La ceremonia es función de (señales §4.1 × naturaleza de las proofs ×
+superficie), **no del tamaño ni del tipo de archivo**. Dos líneas en código
+transaccional pueden exigir jueces; cien líneas de prosa o de tema verificables
+con build no ganan nada con contexto limpio. El host declara el modo en el
+encabezado de la A.SPEC (`mode:`) ANTES de IMPLEMENT; lo que cambia por modo es
+QUIÉN/QUÉ ejecuta cada fase, nunca qué debe probarse (la Definition of Done es
+idéntica en todos los modos).
+
+#### Modo A — Vía mecánica (main-thread, sin jueces)
+
+Aplica cuando TODAS estas condiciones son verdaderas y quedan declaradas
+explícitamente en la A.SPEC:
+
+1. `risk: low` derivado honestamente per §4.1 (reversible, sin señales).
+2. Todas las cláusulas de VERIFICATION son comandos deterministas ejecutables
+   localmente (grep/wc/diff-stat/tsc/pytest/ruff o equivalentes) con resultado
+   binario.
+3. Ninguna cláusula requiere juicio semántico ("¿esta prosa es coherente?",
+   "¿esta UX es correcta?", "¿este dominio está bien modelado?").
+4. Superficie ≤ 3 archivos modificados y blast radius acotado con invariants
+   demostrables por diff directo.
+5. La A.SPEC declara `mode: mechanical` y lista las condiciones cumplidas
+   (1–4) una a una [o invoca una exención automática].
+
+Exenciones automáticas del Modo A (sin necesidad de listar condiciones):
+
+- **Presentación pura** (themes, tokens, colores, estilos, copy, labels,
+  layout): aunque la superficie exceda 3 archivos. Proof requerida: build
+  (tsc) + diff visual; cero task tools; TRACE opcional — sin migraciones ni
+  contratos que anclar, normalmente NO aporta.
+- **Frontend consumidor** (comportamiento observable de UI que consume
+  endpoints ya probados por tests backend): la verdad dura ya fue verificada
+  atrás; aquí basta build + smoke. Máximo TRACE; jueces full sobran.
+
+Regla **backend-decide**: cuando una A.SPEC toca backend y frontend juntos,
+la ceremonia la fija el lado backend (donde vive la verdad dura: dominio,
+persistencia, transacciones); el frontend hereda el trato y nunca lo agrava.
+El trabajo pesado se verifica donde el riesgo vive; la presentación no
+re-ceremoniza lo ya probado.
+
+Bajo modo A: DEFINE+IMPLEMENT+VERIFY corren en hilo principal; los jueces vía
+Task son OPCIONALES (el host puede lanzarlos si duda); TRACE minimal
+(sha_anchor + surface check) sigue OBLIGATORIO para integrar cuando haya
+contratos/migraciones que anclar. La desviación no se narra: queda declarada
+por el propio `mode:`.
+
+#### Modo B — Jueces-lite
+
+Aplica cuando hay juicio genuino pero el blast radius no toca runtime/producto
+(docs/canon/prosa): SPECCER + SPEC-REVIEWER sí corren (la calidad del contrato
+importa); GENERATOR corre solo si superficie > 3 archivos o parche no-trivial;
+VERIFIER full NO corre — verificación mecánica de proofs + inspección visual
+del diff documentada como evidence sustitutiva; TRACE mínimo obligatorio.
+
+Modo C (default, retro-compatibilidad): ausencia de `mode:` = ciclo completo
+como siempre.
+
+#### Contra-guardias (aplican a Modo A y B)
+
+- Señal hard §4.1 prevalece SIEMPRE sobre el modo declarado, aunque el diff
+  sea de 1 línea → ciclo completo.
+- Si tras integrar un defecto aparece que el ciclo completo habría atrapado,
+  próximas A.SPECs del mismo tema vuelven al ciclo completo; reincidencia
+  obliga a SPEC-REVIEWER retroactivo.
+- Auto-declaración falsa de condiciones = subvaloración → REVISE retroactivo
+  del cambio integrado.
+- El approver puede exigir el ciclo completo en cualquier momento, sin
+  justificación; su mención en Traceability cierra la discusión.
+
+Nota estructural del canon: §12.2 aplica sus umbrales como HEURÍSTICA de
+cohesión también a este documento. Un monolito coherente que hace bien una
+única función normativa puede excederlos: el trigger real de división es que
+el documento ya no mantenga una sola razón de cambio, no una cifra.
 
 ## 5. Change Surface
 

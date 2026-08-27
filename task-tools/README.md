@@ -8,15 +8,20 @@ with clean memory (no main-thread conversation bleed).
 These three are task tools by nature: they need clean context to judge
 honestly.
 
-| Task tool | File | Judges | Use when |
-|-----------|------|--------|----------|
-| SPECCER | `SPECCER.md` | `DEFINE` — atomicity of a request | request exists, no A.SPEC yet |
-| SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation |
-| ATOMIZER | `ATOMIZER.md` | file cohesion / split boundary | Python file mixes responsibilities or is too big |
-| VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION |
-| GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation |
-| TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) |
-| COMPOSER | `COMPOSER.md` | `compose-gate` — integration A.SPEC's checks, owner, systemic invariants | composed set/release needs gate before integrate (§10.1) |
+| Task tool | File | Judges | Use when | Default mode (§4.2) |
+|-----------|------|--------|----------|---------------------|
+| SPECCER | `SPECCER.md` | `DEFINE` — atomicity of a request | request exists, no A.SPEC yet | skipped: mechanical (mode A) / pure presentation |
+| SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation | runs unless mode A; always in judges-lite for docs/canon |
+| ATOMIZER | `ATOMIZER.md` | file cohesion / split boundary | Python file mixes responsibilities or is too big | on structural signals only |
+| VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION | skipped: mechanical / presentation / frontend-consumer; lite-proof in docs |
+| GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation | skipped: surface ≤3 files non-trivial → main thread; backend-decide governs mixed specs |
+| TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) | minimal ALWAYS when contracts/migrations exist; optional for pure presentation |
+| COMPOSER | `COMPOSER.md` | `compose-gate` — integration A.SPEC's checks, owner, systemic invariants | composed set/release needs gate before integrate (§10.1) | unchanged (set-level gate, any mode) |
+
+Default modes per SPECIFICATION §4.2: ceremony scales with risk signals ×
+proof nature × surface — never with file count or file type alone.
+Backend-decide rule applies to mixed frontend/backend specs. Absence of
+`mode:` = full cycle (Mode C).
 
 ## Launch protocol (main thread)
 

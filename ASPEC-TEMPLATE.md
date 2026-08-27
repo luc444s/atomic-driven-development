@@ -1,5 +1,11 @@
 # A.SPEC [ID] — [Título: verbo + objeto observable]
 
+> `risk: low|normal|high` — Ver SPECIFICATION §4.1. Derivar de las señales del
+> propio A.SPEC (ROLLBACK, scope/invariantes que tocan stock/finanzas/auth,
+> migración destructiva, blast radius). `low` o `normal` con señales de alto
+> es subvaloración → SPEC-REVIEWER emite `REVISE`. `high` exige SPEC-REVIEWER
+> siempre y `approver:` humano en Traceability.
+
 > Ejemplo de título: `Discover existing WordPress containers`
 
 ## WHY

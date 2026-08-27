@@ -121,6 +121,37 @@ DEFINE → BOUND → CONTRACT → IMPLEMENT → VERIFY → INTEGRATE
 Si mientras implementas encuentras otra mejora ("ya que estoy aquí podría
 refactorizar..."), eso es una **nueva A.SPEC**.
 
+### 4.1 Risk-tiering: ceremonia proporcional al riesgo
+
+El ciclo ADD declara un nivel de riesgo por A.SPEC; la ceremonia mínima
+obligatoria es proporcional a ese nivel.
+
+| Nivel | Cuándo (señales del A.SPEC) | Ceremonia mínima |
+|-------|------------------------------|------------------|
+| `low` | Reversible; sin dinero, stock, auth/seguridad, `lg_*` ni migraciones destructivas; blast radius acotado a la feature | SPECCER → GENERATOR → VERIFIER → TRACE. SPEC-REVIEWER opcional |
+| `normal` | Default por defecto | Ciclo estándar; SPEC-REVIEWER regido por su Trigger contract (condicional) |
+| `high` | Irreversible (§9), dinero, stock físico, auth/seguridad, migración destructiva, blast radius amplio | SPEC-REVIEWER SIEMPRE (incondicional), aprobación humana (`approver`), VERIFIER y TRACE obligatorios |
+
+Derivación del nivel — solo señales del A.SPEC, sin inferencia externa:
+
+- ROLLBACK sin reversión física posible (§9) → `high`.
+- Scope/invariantes tocan `stock`, `finanzas`, `auth`, `tenancy`,
+  `seguridad`, `lg_*` → `high`.
+- Migración destructiva (`drop`) o reescritura de datos existentes → `high`.
+- Blast radius con `must_not_affect` amplio o superficies críticas → `high`.
+- Fuera de eso → `normal`; trivias internas reversibles sin señales → `low`.
+
+Honestidad: un nivel declarado **menor** al sugerido por las señales es
+subvaloración → SPEC-REVIEWER emite `REVISE`. Un nivel conservador mayor
+no llama a `REVISE`.
+
+**Matiz al Trigger contract de SPEC-REVIEWER:** para `high`, SPEC-REVIEWER
+corre siempre (no condicional); para `low/normal` mantiene su trigger
+condicional. La semántica de veredictos (REVISE/SPLIT/REJECT) no cambia.
+
+Un `high` con ROLLBACK irreversible exige compensación/contención (§9) y
+`approver` humano documentado en el A.SPEC; no se integra sin esa aprobación.
+
 ## 5. Change Surface
 
 Cada A.SPEC declara su Change Surface:

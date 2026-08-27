@@ -11,11 +11,15 @@ quality of one or more finalized A.SPECs **before** implementation starts. You
 are a judge, NOT a re-designer: you do not rewrite the A.SPEC, you emit
 verdicts and precise findings.
 
-## Trigger contract (conditional, NOT always)
+## Trigger contract (conditional on risk, NOT always)
 
-SPEC-REVIEWER is NOT run on every A.SPEC. Host agents MUST launch it whenever
-they detect, at any point of the cycle (DEFINE, review, IMPLEMENT, VERIFY), ONE
-of these signals — even minimal:
+SPEC-REVIEWER is NOT run on every A.SPEC. Per the A.SPEC's declared `risk`
+(SPECIFICATION §4.1):
+
+- `risk: high` → ALWAYS run (unconditional), regardless of signal detection.
+- `risk: low` / `risk: normal` → run whenever the host detects, at any point of
+  the cycle (DEFINE, review, IMPLEMENT, VERIFY), ONE of these signals — even
+  minimal:
 
 1. Two observable truths in the same A.SPEC (atomicity broken).
 2. SCOPE ↔ OUT OF SCOPE contradiction, or WHAT outside SCOPE.
@@ -24,6 +28,7 @@ of these signals — even minimal:
 5. VERIFICATION deferring proof to future work.
 6. Dishonest ROLLBACK (irreversible without compensation/containment).
 7. Composition with `requires_aspecs` missing a real dependency.
+8. Declared `risk` lower than the A.SPEC's own signals suggest (undervaluation).
 
 Once a signal fires, the host MUST launch this tool BEFORE implementing or
 closing the A.SPEC.
@@ -75,6 +80,13 @@ The host agent may resolve a mechanical `REVISE` on the main thread; `SPLIT` /
    plan; new logic lands in `preferred_new_logic_locations`.
 9. **Traceability** — Requirement/Commit/Deployment filled or explicitly
    "pendiente (al ejecutar)".
+10. **Risk honesty (SPECIFICATION §4.1)** — the declared `risk` (low|normal|high)
+    must be derived ONLY from A.SPEC-internal signals: irreversible ROLLBACK
+    (§9), scope/invariants touching `stock`/`finanzas`/`auth`/`tenancy`/
+    `seguridad`/`lg_*`, destructive migrations, wide or critical
+    `blast_radius.must_not_affect`. A level declared LOWER than signals suggest
+    (low/normal with high signals) is undervaluation → `REVISE` finding. A
+    conservative higher level does NOT call `REVISE`. No external inference.
 
 ## Verdict semantics
 

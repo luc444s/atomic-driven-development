@@ -276,7 +276,7 @@ structural_constraints:
 - owner: Product Owner módulo compras (equipo SYSTUTOR OSS)
 - approver: mantenedor humano responsable del squash/integración a main
   (escalación de REVISE/SPLIT/REJECT según §10.2)
-- Commit: (INTEGRATE — SHA literal al integrar, §13.5)
+- Commit: fa91ce0 (squash add/compras-012 → main).
 - Deployment: migración 0012 en runtime del plugin commerce
 
 ## Definition of Done

@@ -35,7 +35,7 @@ Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de hori
 | 22 | Costos | ✅ | costo real prorratea item + cost_lines (COMPRAS-010) |
 | 23 | Factura del proveedor | ✅ | alta + líneas + anulación (COMPRAS-011) |
 | 24 | Conciliación tres vías | ✅ | orden↔recibido(aceptadas)↔facturado, MATCH/MISMATCH (COMPRAS-011) |
-| 25 | Reclamaciones | ❌ | |
+| 25 | Reclamaciones | ✅ | registro motivo cerrado §25 + ciclo a resolución con timeline (COMPRAS-012); derivación desde MISMATCH futura |
 | 26 | Devoluciones | 🟡 | retorno de envases ✓; devolución de mercadería ❌ |
 | 27 | Cancelaciones | ✅ | regla received_qty=0 (COMPRAS-002) |
 | 28 | Cierre | ✅ | close administrativo con motivo (COMPRAS-002) |

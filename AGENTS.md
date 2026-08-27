@@ -23,6 +23,16 @@ Ejecución del ciclo con task-tools: lanzar subagents vía `Task`
 task-tool como prompt + los inputs concretos del trabajo. Ver
 [`ADD/task-tools/README.md`](./ADD/task-tools/README.md) para el protocolo.
 
+## Modo de ejecución por defecto (decisión del approver, 2026-08-27)
+
+**ADD lite** (SPECIFICATION §4.2 — `mode: mechanical` / `judges-lite`) para
+iteraciones rutinarias: presentación pura, frontend consumidor de endpoints
+ya probados, docs/canon trivial, cambios ≤3 archivos con proofs mecánicas.
+El agente declara `mode:` en cada A.SPEC y ejecuta sin preguntar ni anunciar
+ceremonia. Escala a ciclo completo SOLO por señales hard §4.1 (kernel/auth/
+stock/lg_*, dinero, migración destructiva) o pedido explícito del approver.
+La declaración `mode:` nunca se omite; backend-decide para specs mixtas.
+
 ## Spec-review obligatorio condicional
 
 SPEC-REVIEWER NO se ejecuta siempre. El agente DEBE lanzarlo (contexto limpio

@@ -35,8 +35,9 @@ Split STRUCTURE, not semantics. Freeze behavior first:
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`, and
-   the source file under review.
+1. Read (fresh, file access): the source file under review. This tool is
+   self-contained: its judgment order, heuristics and core law live in this
+   file (SPECIFICATION §12 mirrors them canon-side).
 2. Build a reason-to-change map (HTTP routes, schemas, orchestration,
    persistence, integrations, auth, helpers, constants).
 3. Pick the smallest layout that restores cohesion:

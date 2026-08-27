@@ -55,8 +55,9 @@ discoverer: you read git history and files; you never invent or infer.
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`, and
-   the A.SPEC path.
+1. Read (fresh, file access): the A.SPEC path. This tool is self-contained:
+   its six checks, gitlink rule and verdict semantics live in this file
+   (§13.5 mirrors them canon-side).
 2. Extract ID (title prefix, e.g. `CORE-002`), `change_surface`, SCOPE paths.
 3. Run the six checks via git (read-only) and filesystem reads — starting with
    the `sha_anchor` (check 1), which gates the rest: no valid anchor, no chain.

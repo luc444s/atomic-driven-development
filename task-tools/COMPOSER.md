@@ -50,8 +50,8 @@ judge of the SET — you do not re-judge the leaf A.SPECs' contract/invariants
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`, and
-   the integration A.SPEC path.
+1. Read (fresh, file access): the integration A.SPEC path. This tool is
+   self-contained: its five checks and verdict semantics live in this file.
 2. Extract `composition.owner`, `composition_checks`, `composition.systemic_invariants`.
 3. Run the five checks. Do NOT invent checks, targets, or owners.
 4. Emit verdict + coverage list.

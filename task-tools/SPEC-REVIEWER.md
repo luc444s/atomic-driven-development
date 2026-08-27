@@ -80,7 +80,12 @@ The host agent may resolve a mechanical `REVISE` on the main thread; `SPLIT` /
    plan; new logic lands in `preferred_new_logic_locations`.
 9. **Traceability** — Requirement/Commit/Deployment filled or explicitly
    "pendiente (al ejecutar)".
-10. **Risk honesty (SPECIFICATION §4.1)** — the declared `risk` (low|normal|high)
+10. **Governance (SPECIFICATION §10.2)** — `Traceability.owner` and
+    `Traceability.approver` are present and non-empty. Absence → `REVISE`
+    finding. In `SPLIT`/`REJECT` verdicts, name the declared `approver` as the
+    escalation destination (not a vague "user"). Presence-check only: do not
+    judge the human-ness of the role.
+11. **Risk honesty (SPECIFICATION §4.1)** — the declared `risk` (low|normal|high)
     must be derived ONLY from A.SPEC-internal signals: irreversible ROLLBACK
     (§9), scope/invariants touching `stock`/`finanzas`/`auth`/`tenancy`/
     `seguridad`/`lg_*`, destructive migrations, wide or critical

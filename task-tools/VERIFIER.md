@@ -54,7 +54,10 @@ If input is ambiguous → `GAP`.
    downgrade command with a recorded result. Presence of `def downgrade(` is
    TRACE's fact; EXECUTION is yours. Missing execution proof → `GAP`, never
    `PASS`. Irreversible A.SPECs (§9 compensation/containment) are untouched.
-7. Emit verdict + covered / missing / failed lists, including any
+7. **Governance (SPECIFICATION §10.2):** `Traceability.owner` and
+   `Traceability.approver` must be present and non-empty. Absence → `GAP`,
+   never `PASS`. Presence-check only: do not judge role veracity.
+8. Emit verdict + covered / missing / failed lists, including any
    `could not be instantiated` uncovered surfaces.
 
 ## Inputs (passed in task prompt)

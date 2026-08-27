@@ -357,6 +357,30 @@ Verificación del `owner`: COMPOSER valida **presencia** (ausencia → `GAP`); l
 naturaleza humana del owner es norma de autoría. Para conjuntos con señales de
 riesgo alto, la puerta humana la exige el `approver` de CORE-003 (§4.1).
 
+### 10.2 Governance: owner/approver estructurales
+
+Toda A.SPEC declara `owner` y `approver` (persona o rol) en Traceability.
+
+- **owner**: responsable del cambio.
+- **approver**: quien libera la integración (commit/release). El approver es el
+  destino de escalación de `REVISE` (si no es mecánico), `SPLIT` y `REJECT`. El
+  approver es el destino de escalación de los veredictos no mecánicos y
+  reemplaza el vago "se devuelve al usuario".
+- En conjuntos de nivel `high` (§4.1), el approver debe ser humano documentado
+  y aprobar explícitamente.
+- owner/approver se verifican por **presence-check** (presencia, no veracidad
+  humana del rol).
+- El agente no puede auto-asignarse como owner ni approver.
+- Aplica a A.SPECs nuevas o re-abiertas; las integradas quedan grandfathered.
+
+Verificación: SPEC-REVIEWER flaggea ausencia → `REVISE`; VERIFIER → `GAP`
+(nunca `PASS`).
+
+Disambiguación de campos: `composition.owner` (nivel set, leído por COMPOSER)
+y Traceability `owner`/`approver` (nivel spec, leídos por VERIFIER/
+SPEC-REVIEWER) son dos campos distintos con el mismo espíritu; COMPOSER no lee
+Traceability, y VERIFIER no lee composition.owner.
+
 ## 11. Estructura de documentos
 
 ```

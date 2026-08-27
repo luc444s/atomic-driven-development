@@ -17,6 +17,7 @@ Una A.SPEC responde obligatoriamente:
 
 | Sección      | Pregunta que responde                                    |
 |--------------|----------------------------------------------------------|
+| risk (§4.1)  | ¿Qué nivel de riesgo declara y qué ceremonia exige?      |
 | WHY          | ¿Qué problema concreto existe?                           |
 | WHAT         | ¿Qué comportamiento observable cambia?                   |
 | SCOPE        | ¿Qué entra?                                              |
@@ -25,6 +26,12 @@ Una A.SPEC responde obligatoriamente:
 | INVARIANTS   | ¿Qué comportamiento existente no puede romperse?         |
 | VERIFICATION | ¿Cómo demostramos que funciona?                          |
 | ROLLBACK     | ¿Cómo deshacemos el cambio?                              |
+| Change Surface (§5) | ¿Qué superficie puede tocar y cuál queda prohibida? |
+| Blast Radius (§6) | ¿Qué comportamiento podría verse afectado?           |
+| Composition (§10.1) | ¿De qué capability mayor depende y con qué checks? |
+| Structural Constraints (§12) | ¿Qué reglas estructurales respeta?        |
+| Traceability (§10.2) | ¿Quién es owner/approver y cómo se trazará?       |
+| DoD (§8)     | ¿Qué checklist debe quedar verde al cerrar?              |
 
 Una SPEC no es documentación: es un contrato de cambio.
 
@@ -171,6 +178,10 @@ change_surface:
 La implementación declara de antemano qué superficie del sistema está
 autorizada a modificar. Potentísimo para agentes de IA.
 
+Convención normativa: el `.md` de la propia A.SPEC entra en su propia change_surface.allowed cuando su contrato viaja en el mismo commit. El check
+de superficie del executor TRACE (check 2) evalúa esa presencia bajo esta
+misma regla.
+
 ## 6. Blast Radius
 
 Change Surface ≠ Blast Radius.
@@ -227,6 +238,11 @@ evaluable:
 El verifier nunca puede emitir `PASS` con superficies `must_not_affect` sin
 cubrir. El Blast Radius declara la intención; el invariante la hace verificable;
 la proof la vuelve prueba. Vanidad sin solo intención no es una garantía.
+
+Contraste obligatorio: la cobertura de proof NO termina en coincidencia nominal
+de nombres. El verifier MUST contrastar cada proof nombrada contra el artefacto
+real (leer el test declarado, ejecutar el comando registrado); una proof
+inflada o no corroborada por su artefacto no cierra `PASS` → veredicto `GAP`.
 
 Rule for new/re-opened A.SPECs only: surfaces new or re-opened are subject to
 this norm. Already-integrated A.SPECs are grandfathered — when re-opened, a
@@ -353,6 +369,10 @@ en orden y emite el veredicto:
 VERIFIER (`verify-composition`); los de la A.SPEC de integración (nivel set) los
 juzga COMPOSER (`compose-gate`). No se corren dos jueces sobre el mismo check.
 
+En hojas, quien **ejecuta y registra los resultados** de los composition_checks
+es VERIFIER (`verify-composition`) durante VERIFY; esos resultados quedan como
+proof de composición registrada junto al cierre.
+
 Verificación del `owner`: COMPOSER valida **presencia** (ausencia → `GAP`); la
 naturaleza humana del owner es norma de autoría. Para conjuntos con señales de
 riesgo alto, la puerta humana la exige el `approver` de CORE-003 (§4.1).
@@ -371,6 +391,9 @@ Toda A.SPEC declara `owner` y `approver` (persona o rol) en Traceability.
 - owner/approver se verifican por **presence-check** (presencia, no veracidad
   humana del rol).
 - El agente no puede auto-asignarse como owner ni approver.
+- Alcance mecánico: El presence-check NO verifica la prohibición de
+  auto-asignación (no-self-assign); esa regla queda como norma de governance
+  de autoría, fuera del chequeo mecánico.
 - Aplica a A.SPECs nuevas o re-abiertas; las integradas quedan grandfathered.
 
 Verificación: SPEC-REVIEWER flaggea ausencia → `REVISE`; VERIFIER → `GAP`
@@ -387,8 +410,28 @@ Traceability, y VERIFIER no lee composition.owner.
 ADD/
 ├── MANIFESTO.md
 ├── SPECIFICATION.md
-└── ASPEC-TEMPLATE.md
+├── ASPEC-TEMPLATE.md
+├── README.md
+├── LICENSE
+├── task-tools/          # jueces y ejecutores del ciclo
+│   ├── README.md
+│   ├── SPECCER.md
+│   ├── SPEC-REVIEWER.md
+│   ├── GENERATOR.md
+│   ├── VERIFIER.md
+│   ├── COMPOSER.md
+│   ├── TRACE.md
+│   └── ATOMIZER.md
+└── skills/              # habilidades de aplicación (gitflow, CI, binding)
+    └── <skill>/<Capabilidad>-ADD.md
 ```
+
+Sincronización del monolito: mientras SPECIFICATION.md respete el presupuesto
+de <= 600 líneas se mantiene como monolito. Las tablas de secciones
+obligatorias (§1) y este árbol de estructura (§11) se sincronizan en TODA
+enmienda futura al canon. El split del canon en artículos es decisión futura
+del owner, reabierta solo si cruza 600 líneas o hay nueva ronda CORE:
+explícitamente out of scope aquí.
 
 ## 12. Ley estructural
 
@@ -440,6 +483,12 @@ implementación MUST hacer una de estas dos cosas:
 1. extraer la nueva responsabilidad a un módulo nuevo
 2. abrir una A.SPEC estructural previa o pareada para separar el archivo
 
+Quién juzga: ATOMIZER es el **juez estructural ejecutor** de este trigger al
+cruzar umbrales (lee el canon fresco en cada corrida; orden de juicio
+cohesión → acoplamiento → navegabilidad → tamaño, con red flags propias).
+SPEC-REVIEWER mantiene su chequeo del plan pre-implementación (dimensión 8,
+sin cambio).
+
 ### 12.5 Falla estructural
 
 Una A.SPEC falla aunque el comportamiento nuevo funcione si:
@@ -448,6 +497,10 @@ Una A.SPEC falla aunque el comportamiento nuevo funcione si:
 - convierte un entrypoint en un god-file
 - aumenta acoplamiento evitable entre rutas, servicios y acceso a datos
 - deja el archivo con múltiples razones principales de cambio
+
+Cruce del trigger §12.4 sin invocación de ATOMIZER y sin A.SPEC estructural
+pareada abierta se emite como `GAP` estructural por VERIFIER sobre hechos del
+árbol (conteo de líneas / motivos de cambio), nunca `PASS`.
 
 ## 13. Commit y changelog
 
@@ -512,6 +565,11 @@ repo:
 Veredicto de TRACE:
 
 > Sin hechos que respalden la cadena, la A.SPEC queda `GAP`, nunca `PASS`.
+
+Fuente espejada: las reglas de discovery de checks (`commit→test`,
+`commit→migración`) viven SOLO en `ADD/task-tools/TRACE.md`, fuente espejada
+de este canon; toda enmienda futura a esas reglas MUST sincronizar canon↔tool
+en el mismo cambio.
 
 Los gitlinks de submódulos se aceptan: si la integración en el repo padre bumpa
 un gitlink `G` y `allowed` tiene paths bajo `G/`, TRACE valida el diff dentro

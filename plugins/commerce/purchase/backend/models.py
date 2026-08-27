@@ -386,6 +386,8 @@ class ComReceiptServiceLine(Base):
 
     El costo es descriptivo: NO alimenta conciliación (011) ni costos (010).
     Referencia a lg_cylinders es de solo lectura (snapshot `serial` guardado).
+    COMPRAS-015: datos legales de PH/retimbrado (fecha, resultado, vigencia,
+    referencia documental) viven SOLO aquí — nunca en lg_cylinders.
     """
 
     __tablename__ = "com_receipt_service_lines"
@@ -402,6 +404,10 @@ class ComReceiptServiceLine(Base):
     service_type: Mapped[str] = mapped_column(String(30), nullable=False)
     cost: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
     notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    test_date: Mapped[date | None] = mapped_column(Date, nullable=True)
+    next_test_date: Mapped[date | None] = mapped_column(Date, nullable=True, index=True)
+    result: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    document_ref: Mapped[str | None] = mapped_column(String(80), nullable=True)
     created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 

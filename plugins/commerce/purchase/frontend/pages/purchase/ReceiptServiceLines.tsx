@@ -37,6 +37,15 @@ const SERVICE_TYPE_LABEL: Record<string, string> = {
   CERTIFICACION: "Certificación",
 };
 
+const LEGAL_SERVICE_TYPES = ["PRUEBA_HIDROSTATICA", "RETIMBRADO"];
+
+const LEGAL_RESULTS = [
+  { value: "APROBADO", label: "Aprobado" },
+  { value: "RECHAZADO", label: "Rechazado" },
+];
+
+const EMPTY_LEGAL_FORM = { test_date: "", next_test_date: "", result: "", document_ref: "" };
+
 export type ReceiptServiceLinesHandle = {
   openServiceLinesDialog: (receiptId: string) => void;
 };
@@ -49,12 +58,15 @@ export const ReceiptServiceLines = forwardRef<ReceiptServiceLinesHandle, Receipt
   const queryClient = useQueryClient();
   const [isServiceLinesOpen, setIsServiceLinesOpen] = useState(false);
   const [serviceReceiptId, setServiceReceiptId] = useState<string | null>(null);
-  const [lineForm, setLineForm] = useState<{ serial: string; service_type: string; cost: string; notes: string }>({
+  const [lineForm, setLineForm] = useState<{ serial: string; service_type: string; cost: string; notes: string; test_date: string; next_test_date: string; result: string; document_ref: string }>({
     serial: "",
     service_type: "",
     cost: "",
     notes: "",
+    ...EMPTY_LEGAL_FORM,
   });
+
+  const isLegalType = LEGAL_SERVICE_TYPES.includes(lineForm.service_type);
 
   const linesQuery = useQuery({
     queryKey: ["compras", "service-lines", serviceReceiptId],
@@ -63,6 +75,11 @@ export const ReceiptServiceLines = forwardRef<ReceiptServiceLinesHandle, Receipt
   });
   const lines = linesQuery.data ?? [];
 
+  const legalFieldsValid = !isLegalType
+    || (lineForm.test_date !== ""
+      && lineForm.result !== ""
+      && (lineForm.result !== "APROBADO" || lineForm.next_test_date !== ""));
+
   const createMut = useMutation({
     mutationFn: () => serviceReceiptId
       ? createReceiptServiceLine(serviceReceiptId, {
@@ -70,11 +87,17 @@ export const ReceiptServiceLines = forwardRef<ReceiptServiceLinesHandle, Receipt
           service_type: lineForm.service_type,
           cost: lineForm.cost === "" ? null : Number(lineForm.cost),
           notes: lineForm.notes || null,
+          ...(isLegalType ? {
+            test_date: lineForm.test_date || null,
+            next_test_date: lineForm.next_test_date || null,
+            result: lineForm.result || null,
+            document_ref: lineForm.document_ref || null,
+          } : {}),
         })
       : Promise.reject("No receipt"),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["compras", "service-lines", serviceReceiptId] });
-      setLineForm({ serial: "", service_type: "", cost: "", notes: "" });
+      setLineForm({ serial: "", service_type: "", cost: "", notes: "", ...EMPTY_LEGAL_FORM });
       setError(null);
     },
     onError: (err) => setError(err instanceof Error ? err.message : "Error al registrar servicio"),
@@ -94,7 +117,7 @@ export const ReceiptServiceLines = forwardRef<ReceiptServiceLinesHandle, Receipt
 
   function openServiceLinesDialog(receiptId: string) {
     setServiceReceiptId(receiptId);
-    setLineForm({ serial: "", service_type: "", cost: "", notes: "" });
+    setLineForm({ serial: "", service_type: "", cost: "", notes: "", ...EMPTY_LEGAL_FORM });
     setIsServiceLinesOpen(true);
   }
 
@@ -107,25 +130,43 @@ export const ReceiptServiceLines = forwardRef<ReceiptServiceLinesHandle, Receipt
           <span className="text-sm text-foreground">Servicios registrados</span>
           {lines.map((line: ReceiptServiceLine) => (
             <div key={line.id} className="flex items-center justify-between rounded-md border border-border p-2 text-sm">
-              <span>{line.serial} · {SERVICE_TYPE_LABEL[line.service_type] ?? line.service_type}{line.cost !== null ? ` · ${line.cost.toFixed(2)}` : ""}{line.notes ? ` · ${line.notes}` : ""}</span>
+              <span>
+                {line.serial} · {SERVICE_TYPE_LABEL[line.service_type] ?? line.service_type}
+                {line.cost !== null ? ` · ${line.cost.toFixed(2)}` : ""}
+                {line.test_date ? ` · ${line.test_date}${line.next_test_date ? ` → ${line.next_test_date}` : ""}${line.result ? ` (${line.result})` : ""}` : ""}
+                {line.document_ref ? ` · ${line.document_ref}` : ""}
+                {line.notes ? ` · ${line.notes}` : ""}
+              </span>
               <Button variant="secondary" onClick={() => deleteMut.mutate(line.id)}>X</Button>
             </div>
           ))}
           {!lines.length ? <p className="text-xs text-muted-foreground">Sin servicios registrados.</p> : null}
         </div>
 
-        <form className="space-y-2 border-t border-border pt-3" onSubmit={(e: FormEvent) => { e.preventDefault(); if (lineForm.serial.trim() && lineForm.service_type) createMut.mutate(); }}>
+        <form className="space-y-2 border-t border-border pt-3" onSubmit={(e: FormEvent) => { e.preventDefault(); if (lineForm.serial.trim() && lineForm.service_type && legalFieldsValid) createMut.mutate(); }}>
           <span className="text-sm text-foreground">Nuevo servicio</span>
           <div className="grid grid-cols-[1fr_1fr] gap-2">
             <Input value={lineForm.serial} onChange={(e) => setLineForm(p => ({ ...p, serial: e.target.value }))} placeholder="Serial del cilindro *" />
-            <Combobox value={lineForm.service_type} onChange={(v) => setLineForm(p => ({ ...p, service_type: v }))} options={SERVICE_TYPES.map(t => ({ value: t, label: SERVICE_TYPE_LABEL[t] ?? t }))} placeholder="Tipo de servicio *" searchPlaceholder="Buscar servicio" />
+            <Combobox value={lineForm.service_type} onChange={(v) => setLineForm(p => ({ ...p, service_type: v, ...EMPTY_LEGAL_FORM }))} options={SERVICE_TYPES.map(t => ({ value: t, label: SERVICE_TYPE_LABEL[t] ?? t }))} placeholder="Tipo de servicio *" searchPlaceholder="Buscar servicio" />
           </div>
+          {isLegalType ? (
+            <>
+              <div className="grid grid-cols-[1fr_1fr] gap-2">
+                <Input type="date" value={lineForm.test_date} onChange={(e) => setLineForm(p => ({ ...p, test_date: e.target.value }))} placeholder="Fecha del trabajo *" />
+                <Combobox value={lineForm.result} onChange={(v) => setLineForm(p => ({ ...p, result: v }))} options={LEGAL_RESULTS} placeholder="Resultado *" searchPlaceholder="Buscar resultado" />
+              </div>
+              <div className="grid grid-cols-[1fr_1fr] gap-2">
+                <Input type="date" value={lineForm.next_test_date} onChange={(e) => setLineForm(p => ({ ...p, next_test_date: e.target.value }))} placeholder={lineForm.result === "RECHAZADO" ? "Próxima PH (no aplica)" : "Próxima prueba PH *"} disabled={lineForm.result === "RECHAZADO"} />
+                <Input value={lineForm.document_ref} onChange={(e) => setLineForm(p => ({ ...p, document_ref: e.target.value }))} placeholder="Referencia documental" />
+              </div>
+            </>
+          ) : null}
           <div className="grid grid-cols-[120px_1fr] gap-2">
             <Input value={lineForm.cost} onChange={(e) => setLineForm(p => ({ ...p, cost: e.target.value }))} placeholder="Costo" />
             <Input value={lineForm.notes} onChange={(e) => setLineForm(p => ({ ...p, notes: e.target.value }))} placeholder="Notas" />
           </div>
           <div className="flex justify-end gap-3">
-            <Button type="submit" disabled={!lineForm.serial.trim() || !lineForm.service_type || createMut.isPending}>{createMut.isPending ? "Guardando..." : "Registrar servicio"}</Button>
+            <Button type="submit" disabled={!lineForm.serial.trim() || !lineForm.service_type || !legalFieldsValid || createMut.isPending}>{createMut.isPending ? "Guardando..." : "Registrar servicio"}</Button>
           </div>
         </form>
       </div>

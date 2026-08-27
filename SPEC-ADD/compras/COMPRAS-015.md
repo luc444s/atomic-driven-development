@@ -175,10 +175,11 @@ change_surface:
     - plugins/commerce/purchase/backend/models.py
     - plugins/commerce/purchase/backend/schemas/service_lines.py
     - plugins/commerce/purchase/backend/services/service_lines.py
-    - plugins/commerce/purchase/frontend/components/ReceiptServiceLines.tsx
+    - plugins/commerce/purchase/frontend/pages/purchase/ReceiptServiceLines.tsx   # ubicación post-020
     - plugins/commerce/purchase/frontend/types.ts
     - plugins/commerce/purchase/frontend/api.ts
     - apps/api/tests/test_compras_ph_restamp.py
+    - apps/api/tests/test_compras_receipt_service_lines.py   # payloads 014 requieren datos legales ahora obligatorios (regresión de la verdad nueva; hallazgo VERIFY, enmienda in-scope)
   prohibited:
     - plugins/logistics/**
     - plugins/stock/**

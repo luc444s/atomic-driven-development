@@ -138,6 +138,9 @@ def test_service_line_created_linked_to_receipt(app) -> None:
                 "service_type": "RETIMBRADO",
                 "cost": 25.5,
                 "notes": "retimbrado de origen",
+                "test_date": "2026-08-27",
+                "result": "APROBADO",
+                "next_test_date": "2031-08-27",
             },
         )
         assert resp.status_code == 201, resp.text
@@ -415,7 +418,9 @@ def test_service_lines_listed_by_receipt(app) -> None:
         first = client.post(
             f"{SERVICE_LINES}/{receipt_a}/service-lines",
             headers=headers,
-            json={"serial": "SERV-0008", "service_type": "RETIMBRADO"},
+            json={"serial": "SERV-0008", "service_type": "RETIMBRADO",
+                  "test_date": "2026-08-27", "result": "APROBADO",
+                  "next_test_date": "2031-08-27"},
         ).json()["id"]
         second = client.post(
             f"{SERVICE_LINES}/{receipt_a}/service-lines",
@@ -447,7 +452,9 @@ def test_downgrade_0014_drops_table_receipts_intact(app) -> None:
         created = client.post(
             f"{SERVICE_LINES}/{receipt_id}/service-lines",
             headers=headers,
-            json={"serial": "SERV-0011", "service_type": "PRUEBA_HIDROSTATICA", "cost": 80},
+            json={"serial": "SERV-0011", "service_type": "PRUEBA_HIDROSTATICA", "cost": 80,
+                  "test_date": "2026-08-27", "result": "APROBADO",
+                  "next_test_date": "2029-08-27"},
         )
         assert created.status_code == 201, created.text
 

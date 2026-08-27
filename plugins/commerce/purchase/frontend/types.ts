@@ -342,6 +342,10 @@ export type ReceiptServiceLine = {
   service_type: string;
   cost: number | null;
   notes: string | null;
+  test_date: string | null;
+  next_test_date: string | null;
+  result: string | null;
+  document_ref: string | null;
   created_by: string;
   created_at: string;
 };
@@ -351,4 +355,8 @@ export type CreateReceiptServiceLinePayload = {
   service_type: string;
   cost?: number | null;
   notes?: string | null;
+  test_date?: string | null;
+  next_test_date?: string | null;
+  result?: string | null;
+  document_ref?: string | null;
 };

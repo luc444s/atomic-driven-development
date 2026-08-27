@@ -45,11 +45,18 @@ def create_service_line(
             service_type=payload.service_type,
             cost=payload.cost,
             notes=payload.notes,
+            test_date=payload.test_date,
+            next_test_date=payload.next_test_date,
+            result=payload.result,
+            document_ref=payload.document_ref,
             created_by=tenant_context.current_user_id,
         )
     except service_lines_service.ReceiptCommerciallyClosedError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
-    except service_lines_service.SerialNotFoundError as exc:
+    except (
+        service_lines_service.SerialNotFoundError,
+        service_lines_service.ServiceLegalDataError,
+    ) as exc:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc)
         ) from exc

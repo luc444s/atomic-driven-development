@@ -427,3 +427,116 @@ class ComSupplierClaimEvent(Base):
     reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+
+class ComPhysicalCount(Base):
+    """COMPRAS-017: sesión de conteo físico serial-by-serial de la custodia.
+
+    El snapshot de custodia se PERSISTE al crear (expected_serials) y es la
+    base inmutable del diff al cerrar. La custodia (005) NUNCA se muta desde
+    un conteo: las discrepancias se resuelven por decisión registrada (§45).
+    """
+
+    __tablename__ = "com_physical_counts"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    supplier_id: Mapped[str] = mapped_column(
+        ForeignKey("com_suppliers.id"), nullable=False, index=True
+    )
+    order_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_purchase_orders.id"), nullable=True, index=True
+    )
+    dispatch_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_dispatches.id"), nullable=True, index=True
+    )
+    expected_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    found_total: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    match_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="EN_CURSO")
+    counted_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    counted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+    closed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    expected_serials: Mapped[list[ComPhysicalCountExpectedSerial]] = relationship(
+        back_populates="count", cascade="all, delete-orphan"
+    )
+    items: Mapped[list[ComPhysicalCountItem]] = relationship(
+        back_populates="count", cascade="all, delete-orphan"
+    )
+    events: Mapped[list[ComPhysicalCountEvent]] = relationship(
+        back_populates="count", cascade="all, delete-orphan"
+    )
+
+
+class ComPhysicalCountExpectedSerial(Base):
+    """COMPRAS-017: snapshot persistido e inmutable de la custodia al crear.
+
+    Sobrevive reinicios y cierre: es la base del diff serial-by-serial y de
+    la auditoría (append-only tras creación, nunca se edita ni borra).
+    """
+
+    __tablename__ = "com_physical_count_expected_serials"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    count_id: Mapped[str] = mapped_column(
+        ForeignKey("com_physical_counts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    cylinder_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_cylinders.id"), nullable=False, index=True
+    )
+    serial: Mapped[str] = mapped_column(String(50), nullable=False)
+    captured_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+    count: Mapped[ComPhysicalCount] = relationship(back_populates="expected_serials")
+
+
+class ComPhysicalCountItem(Base):
+    """COMPRAS-017: discrepancia del diff (FALTANTE | NO_DECLARADO | CONDICION).
+
+    Append-only tras creación: la resolución solo estampa quién/cuándo/cómo.
+    NO_DECLARADO precede sobre CONDICION (serial no esperado es NO_DECLARADO
+    aunque traiga condition_note, que se conserva en `notes`).
+    """
+
+    __tablename__ = "com_physical_count_items"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    count_id: Mapped[str] = mapped_column(
+        ForeignKey("com_physical_counts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    cylinder_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_cylinders.id"), nullable=False, index=True
+    )
+    serial: Mapped[str] = mapped_column(String(50), nullable=False)
+    expected: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    found: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    discrepancy_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    resolution: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    resolved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    count: Mapped[ComPhysicalCount] = relationship(back_populates="items")
+
+
+class ComPhysicalCountEvent(Base):
+    """COMPRAS-017: timeline auditable de la sesión de conteo."""
+
+    __tablename__ = "com_physical_count_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    count_id: Mapped[str] = mapped_column(
+        ForeignKey("com_physical_counts.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+    count: Mapped[ComPhysicalCount] = relationship(back_populates="events")

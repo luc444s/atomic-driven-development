@@ -15,6 +15,7 @@ import { Badge } from "@systutor/shell/ui/badge";
 import { Combobox } from "@systutor/shell/ui/combobox";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { DispatchFormModal } from "../components/DispatchFormModal";
+import { PhysicalCountDialog } from "./purchase/PhysicalCountDialog";
 
 const STATUS_BADGE: Record<string, string> = {
   PREPARADO: "border-warning/30 bg-warning/10 text-warning",
@@ -27,6 +28,7 @@ export function DispatchesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState("");
   const [formOpen, setFormOpen] = useState(false);
+  const [countOpen, setCountOpen] = useState(false);
 
   const dispatchesQuery = useQuery({
     queryKey: ["compras", "dispatches", { status: statusFilter }],
@@ -90,6 +92,7 @@ export function DispatchesPage() {
               </CardDescription>
             </div>
             <Button onClick={() => setFormOpen(true)}>Nuevo despacho</Button>
+            <Button variant="secondary" onClick={() => setCountOpen(true)}>Conteo físico</Button>
           </div>
           <div className="max-w-xs">
             <Combobox
@@ -158,6 +161,11 @@ export function DispatchesPage() {
       <DispatchFormModal
         open={formOpen}
         onClose={() => { setFormOpen(false); setError(null); }}
+      />
+
+      <PhysicalCountDialog
+        open={countOpen}
+        onClose={() => { setCountOpen(false); setError(null); }}
       />
 
       <Dialog

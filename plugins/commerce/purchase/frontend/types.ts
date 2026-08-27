@@ -399,3 +399,66 @@ export type CylinderHistory = {
   receipts: CylinderHistoryReceipt[];
   services: CylinderHistoryService[];
 };
+
+export type PhysicalCountEvent = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  user_id: string | null;
+  created_at: string;
+};
+
+export type PhysicalCountExpectedSerial = {
+  id: string;
+  cylinder_id: string;
+  serial: string;
+  captured_at: string;
+};
+
+export type PhysicalCountItem = {
+  id: string;
+  cylinder_id: string;
+  serial: string;
+  expected: boolean;
+  found: boolean;
+  discrepancy_type: "FALTANTE" | "NO_DECLARADO" | "CONDICION";
+  notes: string | null;
+  resolution: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+};
+
+export type PhysicalCount = {
+  id: string;
+  tenant_id: string;
+  supplier_id: string;
+  order_id: string | null;
+  dispatch_id: string | null;
+  expected_total: number;
+  found_total: number;
+  match_count: number;
+  status: string;
+  counted_by: string;
+  counted_at: string;
+  closed_at: string | null;
+  notes: string | null;
+};
+
+export type PhysicalCountDetail = PhysicalCount & {
+  expected_serials: PhysicalCountExpectedSerial[];
+  items: PhysicalCountItem[];
+  events: PhysicalCountEvent[];
+};
+
+export type CreatePhysicalCountPayload = {
+  supplier_id: string;
+  order_id?: string | null;
+  dispatch_id?: string | null;
+  notes?: string | null;
+};
+
+export type ClosePhysicalCountPayload = {
+  found: { serial: string; condition_note?: string | null }[];
+  notes?: string | null;
+};

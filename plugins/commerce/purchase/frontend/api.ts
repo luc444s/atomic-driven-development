@@ -11,13 +11,17 @@ function buildQuery(params: Record<string, unknown>) {
 }
 import type {
   ClaimDerivationResult,
+  ClosePhysicalCountPayload,
   CommercialClosePayload,
   CreateClaimPayload,
   CreateInvoicePayload,
   CreateOrderPayload,
+  CreatePhysicalCountPayload,
   CreateReceiptServiceLinePayload,
   CreateSupplierPayload,
   CylinderHistory,
+  PhysicalCount,
+  PhysicalCountDetail,
   PurchaseOrder,
   PurchaseOrderDetail,
   PurchaseOrderPage,
@@ -247,6 +251,47 @@ export function deleteReceiptServiceLine(receiptId: string, lineId: string) {
 export function getCylinderHistory(serial: string) {
   return apiRequest<CylinderHistory>(
     `${BASE}/cylinders/${encodeURIComponent(serial)}/history`
+  );
+}
+
+// ── Physical counts (conteo físico de custodia serial-by-serial) ──
+
+export function listPhysicalCounts(params: Record<string, unknown> = {}) {
+  return apiRequest<PhysicalCount[]>(
+    `${BASE}/dispatches/physical-counts${buildQuery(params)}`
+  );
+}
+
+export function getPhysicalCount(id: string) {
+  return apiRequest<PhysicalCountDetail>(`${BASE}/dispatches/physical-counts/${id}`);
+}
+
+export function createPhysicalCount(payload: CreatePhysicalCountPayload) {
+  return apiRequest<PhysicalCount>(`${BASE}/dispatches/physical-counts`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function closePhysicalCount(id: string, payload: ClosePhysicalCountPayload) {
+  return apiRequest<PhysicalCount>(`${BASE}/dispatches/physical-counts/${id}/close`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function resolvePhysicalCountItem(
+  id: string,
+  itemId: string,
+  resolution: string,
+  reason: string
+) {
+  return apiRequest<PhysicalCountDetail>(
+    `${BASE}/dispatches/physical-counts/${id}/items/${itemId}/resolve`,
+    {
+      method: "POST",
+      body: JSON.stringify({ resolution, reason }),
+    }
   );
 }
 

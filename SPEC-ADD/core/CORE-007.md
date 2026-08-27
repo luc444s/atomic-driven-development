@@ -342,8 +342,8 @@ structural_constraints:
   Los findings transcritos son la fuente normativa de los nueve parches.
 - owner: Owner del canon ADD (rol)
 - approver: Approver del repo padre Systutor-oss (rol)
-- Commit: al ejecutar (1 commit en el submódulo `ADD` + 1 bump de gitlink en
-  el repo padre, igual que CORE-001..006; este .md vive en el repo padre).
+- Commit: d91694d (submódulo `ADD`, canon) + b9d4eb7 (bump gitlink en repo
+  padre, incluye este .md).
 - Deployment: canon ADD vía commit del submódulo + bump del gitlink.
 
 ### Fuente normativa — findings del meta-review (verbatim)

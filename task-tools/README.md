@@ -44,8 +44,9 @@ conversation history into the subagent.
 
 ## Rules
 
-- Subagent reads `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`,
-  `ADD/ASPEC-TEMPLATE.md` and the target files itself.
+- Each subagent reads what its own procedure's step 1 declares (per-tool
+  reading budget, SPECIFICATION §4.2): task tools are self-contained;
+  SPEC-REVIEWER additionally reads the canon it judges against.
 - Subagent must not invent commands, invariants, or redesign behavior.
 - Speccer/Verifier/Spec-Reviewer/Trace/Composer are judges: they emit verdicts,
   not implementations.

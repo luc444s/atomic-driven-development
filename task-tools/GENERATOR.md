@@ -26,8 +26,9 @@ redefine scope.
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`,
-   `ADD/ASPEC-TEMPLATE.md`, and the A.SPEC path given in the task input.
+1. Read (fresh, file access): the A.SPEC path given in the task input. This
+   tool is self-contained: its hard rules (change_surface, invariants,
+   verification discipline) live in this file — no canon reading needed.
 2. Parse `change_surface.allowed` / `prohibited`, `INVARIANTS`, `VERIFICATION`.
 3. Implement file by file, smallest coherent units first (models → migration →
    schema → service → router → frontend → tests).

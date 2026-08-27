@@ -37,8 +37,9 @@ If input is ambiguous → `GAP`.
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`, and
-   the A.SPEC path given in the task input.
+1. Read (fresh, file access): the A.SPEC path given in the task input. This
+   tool is self-contained: its gates (§7.1 completeness, §9.1 reversibility,
+   §10.2 governance), proof semantics and verdicts live in this file.
 2. Normalize contract clauses, invariants, and (if present) composition clauses.
 3. Extract the explicit proof list from `VERIFICATION` (named commands, stored
    results, evidence notes). Do NOT discover commands from repo artifacts.

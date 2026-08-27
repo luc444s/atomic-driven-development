@@ -27,7 +27,9 @@ of `DEFINE`.
 
 ## Operating procedure
 
-1. Read (fresh, file access): `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`, `ADD/ASPEC-TEMPLATE.md`.
+1. Read (fresh, file access): `ADD/ASPEC-TEMPLATE.md` (its output format) and
+   the request in the task input. This tool is self-contained: its atomicity
+   test and verdicts live in this file.
 2. Receive the request in the task input.
 3. Apply the atomicity test.
 4. If `ACCEPT_ONE`/`SPLIT`, draft the A.SPEC(s) using ALL template sections

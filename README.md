@@ -37,6 +37,7 @@ ADD/
 │   ├── gitflow-lite-add/      → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
 │   └── gitflow-full-add/      → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 └── task-tools/               → Prompts auto-suficientes para subagent (contexto limpio)
+                                 Solo SPEC-REVIEWER lee el canon completo (presupuesto §4.2)
     ├── SPECCER.md            → DEFINE: petición suelta → A.SPEC honesta o split
     ├── SPEC-REVIEWER.md      → calidad de A.SPEC escrito (pre-implementación)
     ├── GENERATOR.md          → BUILD: A.SPEC finalizada → código en change_surface
@@ -55,6 +56,30 @@ ADD/
 Los pasos del ciclo ADD se operacionalizan como task tools: subagents lanzados
 con `Task` (`subagent_type=general`) y contexto fresco, para juzgar sin ruido
 del hilo principal.
+
+### Presupuesto de lectura
+
+Cada task tool es **autocontenido**: sus checks y veredictos viven completos en
+su propio cuerpo, y solo lee su input de juicio (`ASPEC-TEMPLATE.md` adicional
+en SPECCER, formato de salida). El único lector del canon completo es
+**SPEC-REVIEWER** — el juez cuyo objeto de juicio es la norma misma — que ademaś
+solo corre condicionalmente (Trigger contract + §4.1/§4.2).
+
+### Tres marchas del ciclo (SPECIFICATION §4.2)
+
+La ceremonia se declara con `mode:` antes de IMPLEMENT:
+
+| mode | Quién ejecuta | Cuándo |
+|------|---------------|--------|
+| *(ausente = completo)* | Ciclo estándar con jueces | dominio, dinero, stock, auth, migraciones |
+| `mechanical` | hilo principal, proofs deterministas (grep/wc/build/diff) | trivial reversible ≤3 archivos; presentación pura exenta |
+| `judges-lite` | SPECCER+REVIEWER sí; VERIFIER full no; TRACE mínimo | docs/canon/prosa |
+
+Reglas canónicas: la ceremonia es función de (señales × naturaleza de las
+proofs × superficie), **no del tamaño ni del tipo de archivo**; señales hard
+§4.1 prevalecen SIEMPRE aunque el diff sea de una línea; **backend-decide** —
+el frontend hereda el trato más liviano del backend y no re-ceremoniza lo ya
+probado atrás.
 
 | Paso ADD     | Task tool            | Rol                                        |
 |-------------|----------------------|--------------------------------------------|

@@ -15,10 +15,12 @@ import type {
   CreateClaimPayload,
   CreateInvoicePayload,
   CreateOrderPayload,
+  CreateReceiptServiceLinePayload,
   CreateSupplierPayload,
   PurchaseOrder,
   PurchaseOrderDetail,
   PurchaseOrderPage,
+  ReceiptServiceLine,
   ReceiveOrderPayload,
   Reconciliation,
   Supplier,
@@ -217,6 +219,25 @@ export function annulClaim(orderId: string, claimId: string, reason: string) {
 export function deriveClaims(orderId: string) {
   return apiRequest<ClaimDerivationResult>(`${BASE}/orders/${orderId}/claims/derive`, {
     method: "POST",
+  });
+}
+
+// ── Receipt service lines (servicios del proveedor por serial) ──
+
+export function listReceiptServiceLines(receiptId: string) {
+  return apiRequest<ReceiptServiceLine[]>(`${BASE}/receipts/${receiptId}/service-lines`);
+}
+
+export function createReceiptServiceLine(receiptId: string, payload: CreateReceiptServiceLinePayload) {
+  return apiRequest<ReceiptServiceLine>(`${BASE}/receipts/${receiptId}/service-lines`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function deleteReceiptServiceLine(receiptId: string, lineId: string) {
+  return apiRequest<void>(`${BASE}/receipts/${receiptId}/service-lines/${lineId}`, {
+    method: "DELETE",
   });
 }
 

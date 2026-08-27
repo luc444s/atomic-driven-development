@@ -333,3 +333,22 @@ export type CreateClaimPayload = {
   receipt_id?: string | null;
   invoice_id?: string | null;
 };
+
+export type ReceiptServiceLine = {
+  id: string;
+  receipt_id: string;
+  cylinder_id: string;
+  serial: string;
+  service_type: string;
+  cost: number | null;
+  notes: string | null;
+  created_by: string;
+  created_at: string;
+};
+
+export type CreateReceiptServiceLinePayload = {
+  serial: string;
+  service_type: string;
+  cost?: number | null;
+  notes?: string | null;
+};

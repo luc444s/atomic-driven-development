@@ -381,6 +381,31 @@ class ComSupplierClaim(Base):
     resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
+class ComReceiptServiceLine(Base):
+    """COMPRAS-014: servicio realizado por el proveedor a un serial en recepción.
+
+    El costo es descriptivo: NO alimenta conciliación (011) ni costos (010).
+    Referencia a lg_cylinders es de solo lectura (snapshot `serial` guardado).
+    """
+
+    __tablename__ = "com_receipt_service_lines"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    receipt_id: Mapped[str] = mapped_column(
+        ForeignKey("com_purchase_receipts.id"), nullable=False, index=True
+    )
+    cylinder_id: Mapped[str] = mapped_column(
+        ForeignKey("lg_cylinders.id"), nullable=False, index=True
+    )
+    serial: Mapped[str] = mapped_column(String(50), nullable=False)
+    service_type: Mapped[str] = mapped_column(String(30), nullable=False)
+    cost: Mapped[float | None] = mapped_column(Numeric(19, 4), nullable=True)
+    notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+
+
 class ComSupplierClaimEvent(Base):
     """COMPRAS-012: timeline auditable de una reclamación."""
 

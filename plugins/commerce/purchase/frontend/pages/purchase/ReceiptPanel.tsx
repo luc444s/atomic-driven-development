@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "../../../../../../apps/web/src/lib/react-query";
-import { FormEvent, forwardRef, useImperativeHandle, useState } from "react";
+import { FormEvent, forwardRef, useImperativeHandle, useRef, useState } from "react";
 import {
   getOrder,
   listDispatches,
@@ -12,6 +12,7 @@ import type {
 } from "../../types";
 import type { ProductListItem } from "../../../../../productos/frontend/types";
 import { listWarehouses, getRealWarehouses } from "../../../../../logistics/frontend/api/warehouses";
+import { ReceiptServiceLines, type ReceiptServiceLinesHandle } from "./ReceiptServiceLines";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";
@@ -28,6 +29,7 @@ type ReceiptPanelProps = {
 
 export const ReceiptPanel = forwardRef<ReceiptPanelHandle, ReceiptPanelProps>(function ReceiptPanel({ setError, products }, ref) {
   const queryClient = useQueryClient();
+  const serviceLinesRef = useRef<ReceiptServiceLinesHandle>(null);
   const [isReceiveOpen, setIsReceiveOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<PurchaseOrderDetail | null>(null);
 
@@ -37,7 +39,19 @@ export const ReceiptPanel = forwardRef<ReceiptPanelHandle, ReceiptPanelProps>(fu
 
   const receiveMut = useMutation({
     mutationFn: () => selectedOrder ? receiveOrder(selectedOrder.id, { warehouse_id: receiveForm.warehouse_id, items: receiveForm.items, notes: receiveForm.notes || null, tank_id: receiveForm.tank_id || null, dispatch_id: receiveForm.dispatch_id || null, cost_lines: receiveForm.cost_lines.length ? receiveForm.cost_lines : null }) : Promise.reject("No order"),
-    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["compras", "orders"] }); setIsReceiveOpen(false); setSelectedOrder(null); setError(null); },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["compras", "orders"] });
+      setIsReceiveOpen(false);
+      setError(null);
+      if (selectedOrder) {
+        const orderId = selectedOrder.id;
+        setSelectedOrder(null);
+        getOrder(orderId).then((detail) => {
+          const receipt = detail.receipts[detail.receipts.length - 1];
+          if (receipt) serviceLinesRef.current?.openServiceLinesDialog(receipt.id);
+        });
+      }
+    },
     onError: (err) => setError(err instanceof Error ? err.message : "Error al recepcionar"),
   });
 
@@ -89,7 +103,8 @@ export const ReceiptPanel = forwardRef<ReceiptPanelHandle, ReceiptPanelProps>(fu
   useImperativeHandle(ref, () => ({ openReceiveDialog }));
 
   return (
-    <Dialog open={isReceiveOpen} title="Recepcionar mercadería" description="Selecciona almacén y confirma cantidades." onClose={() => { setIsReceiveOpen(false); setSelectedOrder(null); }}>
+    <>
+      <Dialog open={isReceiveOpen} title="Recepcionar mercadería" description="Selecciona almacén y confirma cantidades." onClose={() => { setIsReceiveOpen(false); setSelectedOrder(null); }}>
       <form className="space-y-4" onSubmit={(e: FormEvent) => { e.preventDefault(); receiveMut.mutate(); }}>
         <label className="block space-y-2 text-sm text-foreground"><span>Almacén destino *</span><Combobox value={receiveForm.warehouse_id} onChange={(v) => setReceiveForm(p => ({ ...p, warehouse_id: v }))} options={warehouseOptions} placeholder="Seleccionar almacén" searchPlaceholder="Buscar almacén" /></label>
         {tankOptions.length > 0 ? (
@@ -144,5 +159,7 @@ export const ReceiptPanel = forwardRef<ReceiptPanelHandle, ReceiptPanelProps>(fu
         </div>
       </form>
     </Dialog>
+    <ReceiptServiceLines ref={serviceLinesRef} setError={setError} />
+    </>
   );
 });

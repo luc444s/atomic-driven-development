@@ -49,6 +49,11 @@ from plugins.commerce.purchase.backend.schemas.orders import (
     ReceiveItemRequest,
     ReceiveOrderRequest,
 )
+from plugins.commerce.purchase.backend.schemas.service_lines import (
+    SERVICE_TYPES,
+    ReceiptServiceLineCreate,
+    ReceiptServiceLineRead,
+)
 from plugins.commerce.purchase.backend.schemas.suppliers import (
     SupplierAddressCreateRequest,
     SupplierAddressRead,
@@ -65,6 +70,7 @@ from plugins.commerce.purchase.backend.schemas.suppliers import (
 __all__ = [
     "CLAIM_REASON",
     "CLAIM_REASONS",
+    "SERVICE_TYPES",
     "CancelOrderRequest",
     "ClaimAnnulRequest",
     "ClaimDerivationResult",
@@ -95,6 +101,8 @@ __all__ = [
     "ReceiveItemRequest",
     "ReceiveOrderRequest",
     "ReceiptCostLineRead",
+    "ReceiptServiceLineCreate",
+    "ReceiptServiceLineRead",
     "ReconciliationItemRead",
     "ReconciliationRead",
     "ReconciliationTotalsRead",

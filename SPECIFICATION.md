@@ -328,6 +328,35 @@ Corolario normativo:
 ADD verifica cambios pequeños de forma aislada, pero no asume que la suma de
 cambios correctos sea automáticamente correcta.
 
+### 10.1 Composition gate: A.SPEC de integración con dueño
+
+Una release/capability compuesta exige una **A.SPEC de integración** que declara
+`composition` con:
+
+- `owner`: persona o rol humano responsable del conjunto.
+- `composition_checks`: lista ordenada de comandos/procedimientos ejecutables.
+- `systemic_invariants`: propiedades del conjunto, no de una hoja.
+
+Sin A.SPEC de integración o sin `owner`, la integración del conjunto queda
+`GAP`, nunca `PASS`.
+
+El task tool `ADD/task-tools/COMPOSER.md` (`compose-gate`) ejecuta los checks
+en orden y emite el veredicto:
+
+- `PASS` — owner presente, todos los checks verdes, invariantes sistémicas
+  evaluables.
+- `FAIL` — un check declarado corrió y falló.
+- `GAP` — owner ausente, check faltante/vago/inejecutable, invariante
+  sistémica no evaluable, o el conjunto no tiene A.SPEC de integración.
+
+**División de trabajo:** los `composition_checks` de una A.SPEC hoja los juzga
+VERIFIER (`verify-composition`); los de la A.SPEC de integración (nivel set) los
+juzga COMPOSER (`compose-gate`). No se corren dos jueces sobre el mismo check.
+
+Verificación del `owner`: COMPOSER valida **presencia** (ausencia → `GAP`); la
+naturaleza humana del owner es norma de autoría. Para conjuntos con señales de
+riesgo alto, la puerta humana la exige el `approver` de CORE-003 (§4.1).
+
 ## 11. Estructura de documentos
 
 ```

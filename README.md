@@ -43,6 +43,7 @@ ADD/
     ├── VERIFIER.md            → PROVE: contrato declarado vs prueba explícita
     ├── ATOMIZER.md           → cohesión de archivos Python (split)
     ├── TRACE.md              → trazabilidad vs hechos del repo (ancla SHA)
+    ├── COMPOSER.md           → gate de composición (set/release, compose-gate)
     └── README.md             → índice + protocolo de lanzamiento vía Task
 ```
 
@@ -63,6 +64,7 @@ del hilo principal.
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
 | (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |
 | INTEGRATE    | `task-tools/TRACE.md`   | trazabilidad vs hechos del repo (ancla SHA)     |
+| COMPOSE      | `task-tools/COMPOSER.md`| gate de integración set/release (owner + checks)|
 
 Los jueces del ciclo (SPECCER, SPEC-REVIEWER, GENERATOR, VERIFIER, ATOMIZER)
 viven en `task-tools/` (fuente única de verdad, contexto limpio vía `Task`).

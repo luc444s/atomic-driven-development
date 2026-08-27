@@ -16,6 +16,7 @@ honestly.
 | VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION |
 | GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation |
 | TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) |
+| COMPOSER | `COMPOSER.md` | `compose-gate` — integration A.SPEC's checks, owner, systemic invariants | composed set/release needs gate before integrate (§10.1) |
 
 ## Launch protocol (main thread)
 
@@ -41,8 +42,8 @@ conversation history into the subagent.
 - Subagent reads `ADD/MANIFESTO.md`, `ADD/SPECIFICATION.md`,
   `ADD/ASPEC-TEMPLATE.md` and the target files itself.
 - Subagent must not invent commands, invariants, or redesign behavior.
-- Speccer/Verifier/Spec-Reviewer/Trace are judges: they emit verdicts, not
-  implementations.
+- Speccer/Verifier/Spec-Reviewer/Trace/Composer are judges: they emit verdicts,
+  not implementations.
 - Atomizer splits structure only; it preserves semantics and verification.
 - Generator implements only inside `change_surface.allowed`; never touches
   `prohibited`; runs the explicit `VERIFICATION` commands and reports.

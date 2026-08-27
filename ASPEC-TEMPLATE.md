@@ -75,6 +75,11 @@ composition:
   composition_checks: []
 ```
 
+<!-- A.SPEC de integración (release/capability compuesta): declarar `owner:` y
+`composition_checks` ordenados y ejecutables; los juzga COMPOSER (compose-gate).
+A.SPEC hoja: `composition_checks` los juzga VERIFIER (verify-composition).
+SPECIFICATION §10.1. -->
+
 ## Structural Constraints
 
 <!-- Cohesion first. File size is only warning signal. -->

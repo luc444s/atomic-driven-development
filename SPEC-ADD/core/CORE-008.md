@@ -154,7 +154,7 @@ structural_constraints:
   cláusula del canon, es señal de autosuficiencia falsa → revert/re-spec.
 - owner: Owner del canon ADD (rol)
 - approver: Approver del repo padre Systutor-oss (rol, presente en sesión)
-- Commit: al ejecutar (submodule + bump padre).
+- Commit: e71a607 (submodule ADD) + 2bfeab5 (bump gitlink padre, incluye este .md).
 - Deployment: canon ADD vía submodule+bump.
 
 ## Definition of Done

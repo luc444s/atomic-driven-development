@@ -248,7 +248,8 @@ structural_constraints:
 - owner: Owner del canon ADD (rol)
 - approver: Approver repo padre Systutor-oss (rol, presente en sesión; aprobó
   el concepto antes de esta escritura)
-- Commit: al ejecutar (submodule + bump padre).
+- Commit: f997a05 (submodule ADD: §4.2 + fila §1 + README modes) + c667909
+  (bump gitlink padre, incluye CORE-009 y nota de presupuesto en CORE-007).
 - Deployment: canon ADD vía submodule+bump.
 
 ## Definition of Done

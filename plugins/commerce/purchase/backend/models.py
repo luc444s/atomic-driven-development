@@ -349,3 +349,49 @@ class ComDispatchCylinder(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
 
     dispatch: Mapped[ComDispatch] = relationship(back_populates="cylinders")
+
+
+class ComSupplierClaim(Base):
+    """COMPRAS-012: reclamación al proveedor sobre una orden."""
+
+    __tablename__ = "com_supplier_claims"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    order_id: Mapped[str] = mapped_column(
+        ForeignKey("com_purchase_orders.id"), nullable=False, index=True
+    )
+    supplier_id: Mapped[str] = mapped_column(
+        ForeignKey("com_suppliers.id"), nullable=False, index=True
+    )
+    receipt_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_purchase_receipts.id"), nullable=True, index=True
+    )
+    invoice_id: Mapped[str | None] = mapped_column(
+        ForeignKey("com_supplier_invoices.id"), nullable=True, index=True
+    )
+    reason: Mapped[str] = mapped_column(String(40), nullable=False)
+    description: Mapped[str] = mapped_column(Text, nullable=False)
+    status: Mapped[str] = mapped_column(String(20), nullable=False, default="ABIERTA")
+    opened_by: Mapped[str] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)
+    resolved_by: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    resolution_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class ComSupplierClaimEvent(Base):
+    """COMPRAS-012: timeline auditable de una reclamación."""
+
+    __tablename__ = "com_supplier_claim_events"
+
+    id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_new_uuid)
+    tenant_id: Mapped[str] = mapped_column(ForeignKey("tenants.id"), nullable=False, index=True)
+    claim_id: Mapped[str] = mapped_column(
+        ForeignKey("com_supplier_claims.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    from_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    to_status: Mapped[str] = mapped_column(String(20), nullable=False)
+    reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utc_now)

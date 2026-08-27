@@ -1,3 +1,13 @@
+from plugins.commerce.purchase.backend.schemas.claims import (
+    CLAIM_REASON,
+    CLAIM_REASONS,
+    ClaimAnnulRequest,
+    ClaimResolveRequest,
+    SupplierClaimCreate,
+    SupplierClaimDetailRead,
+    SupplierClaimEventRead,
+    SupplierClaimRead,
+)
 from plugins.commerce.purchase.backend.schemas.dispatches import (
     CustodyEntryRead,
     CustodySummaryRow,
@@ -52,7 +62,11 @@ from plugins.commerce.purchase.backend.schemas.suppliers import (
 )
 
 __all__ = [
+    "CLAIM_REASON",
+    "CLAIM_REASONS",
     "CancelOrderRequest",
+    "ClaimAnnulRequest",
+    "ClaimResolveRequest",
     "CloseOrderRequest",
     "CommercialCloseLineRequest",
     "CommercialCloseRequest",
@@ -86,6 +100,10 @@ __all__ = [
     "SupplierAddressRead",
     "SupplierBankAccountCreateRequest",
     "SupplierBankAccountRead",
+    "SupplierClaimCreate",
+    "SupplierClaimDetailRead",
+    "SupplierClaimEventRead",
+    "SupplierClaimRead",
     "SupplierContactCreateRequest",
     "SupplierContactRead",
     "SupplierCreateRequest",

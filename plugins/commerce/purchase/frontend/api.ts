@@ -11,6 +11,7 @@ function buildQuery(params: Record<string, unknown>) {
 }
 import type {
   CommercialClosePayload,
+  CreateClaimPayload,
   CreateInvoicePayload,
   CreateOrderPayload,
   CreateSupplierPayload,
@@ -20,6 +21,8 @@ import type {
   ReceiveOrderPayload,
   Reconciliation,
   Supplier,
+  SupplierClaim,
+  SupplierClaimDetail,
   SupplierInvoice,
   UpdateOrderPayload,
   UpdateSupplierPayload,
@@ -170,6 +173,43 @@ export function getReconciliation(orderId: string) {
 export function cancelInvoice(invoiceId: string) {
   return apiRequest<SupplierInvoice>(`${BASE}/invoices/${invoiceId}/cancel`, {
     method: "POST",
+  });
+}
+
+// ── Claims (reclamaciones al proveedor) ──
+
+export function listClaims(orderId: string) {
+  return apiRequest<SupplierClaim[]>(`${BASE}/orders/${orderId}/claims`);
+}
+
+export function getClaim(orderId: string, claimId: string) {
+  return apiRequest<SupplierClaimDetail>(`${BASE}/orders/${orderId}/claims/${claimId}`);
+}
+
+export function createClaim(orderId: string, payload: CreateClaimPayload) {
+  return apiRequest<SupplierClaim>(`${BASE}/orders/${orderId}/claims`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export function startClaim(orderId: string, claimId: string) {
+  return apiRequest<SupplierClaim>(`${BASE}/orders/${orderId}/claims/${claimId}/start`, {
+    method: "POST",
+  });
+}
+
+export function resolveClaim(orderId: string, claimId: string, resolutionNotes: string) {
+  return apiRequest<SupplierClaim>(`${BASE}/orders/${orderId}/claims/${claimId}/resolve`, {
+    method: "POST",
+    body: JSON.stringify({ resolution_notes: resolutionNotes }),
+  });
+}
+
+export function annulClaim(orderId: string, claimId: string, reason: string) {
+  return apiRequest<SupplierClaim>(`${BASE}/orders/${orderId}/claims/${claimId}/annul`, {
+    method: "POST",
+    body: JSON.stringify({ reason }),
   });
 }
 

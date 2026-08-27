@@ -290,3 +290,40 @@ export type CustodySummaryRow = {
   total_cylinders: number;
   oldest_days_out: number;
 };
+
+export type SupplierClaimEvent = {
+  id: string;
+  from_status: string | null;
+  to_status: string;
+  reason: string | null;
+  user_id: string | null;
+  created_at: string;
+};
+
+export type SupplierClaim = {
+  id: string;
+  tenant_id: string;
+  order_id: string;
+  supplier_id: string;
+  receipt_id: string | null;
+  invoice_id: string | null;
+  reason: string;
+  description: string;
+  status: string;
+  opened_by: string;
+  opened_at: string;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  resolution_notes: string | null;
+};
+
+export type SupplierClaimDetail = SupplierClaim & {
+  events: SupplierClaimEvent[];
+};
+
+export type CreateClaimPayload = {
+  reason: string;
+  description: string;
+  receipt_id?: string | null;
+  invoice_id?: string | null;
+};

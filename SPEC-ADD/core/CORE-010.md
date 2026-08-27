@@ -184,7 +184,7 @@ structural_constraints:
   Modo A del propio CORE-009 que autorizamos juntos.
 - owner: Owner del canon ADD (rol)
 - approver: Approver repo padre Systutor-oss (rol, presente en sesión)
-- Commit: al ejecutar (submodule + bump padre).
+- Commit: 4a017f6 (submodule ADD) + 5efb113 (bump gitlink padre, incluye esta spec).
 - Deployment: canon ADD vía submodule+bump.
 
 ## Definition of Done

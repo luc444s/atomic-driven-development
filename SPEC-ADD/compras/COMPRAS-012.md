@@ -195,6 +195,7 @@ Reversible: revertir commit; ejecutar `downgrade("0012")` elimina las 2 tablas
 ```yaml
 change_surface:
   allowed:
+    - SPEC-ADD/compras/COMPRAS-012.md   # el contrato viaja con su integración
     - plugins/commerce/migrations/012_supplier_claims.py
     - plugins/commerce/purchase/backend/models.py
     - plugins/commerce/purchase/backend/schemas/claims.py

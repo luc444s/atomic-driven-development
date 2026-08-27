@@ -386,6 +386,34 @@ La regla mínima de ADD es:
 - changelog por commit: opcional
 - changelog por release o hito: recomendado
 
+### 13.5 Trazabilidad verificable por hechos del repo
+
+La trazabilidad no es prosa: es verificable por hechos del repo, anclada en el
+SHA del commit.
+
+El campo `Traceability.Commit` de una A.SPEC MUST llenarse en INTEGRATE con el
+SHA literal del commit (o el SHA inicial de la secuencia). Sin SHA → la
+integración queda `GAP`.
+
+El task tool `ADD/task-tools/TRACE.md` verifica la cadena contra hechos del
+repo:
+
+- A.SPEC→commit: el SHA existe en `git log` y el mensaje menciona el ID.
+- commit→code: los paths del `--stat` quedan bajo `change_surface.allowed`,
+  ninguno bajo `prohibited`.
+- commit→test: los tests nombrados en VERIFICATION existen en el tree.
+- commit→migración: las migraciones del SCOPE existen y tienen `downgrade(`.
+- deployment: la migración está aplicada (o `GAP` informativo si el runtime
+  no es expuesto).
+
+Veredicto de TRACE:
+
+> Sin hechos que respalden la cadena, la A.SPEC queda `GAP`, nunca `PASS`.
+
+Los gitlinks de submódulos se aceptan: si la integración en el repo padre bumpa
+un gitlink `G` y `allowed` tiene paths bajo `G/`, TRACE valida el diff dentro
+del submódulo con el mismo SHA.
+
 Opcional:
 
 ```

@@ -84,7 +84,7 @@ structural_constraints:
 
 ## Traceability
 
-<!-- Requirement → esta A.SPEC → code → migration → test → commit → deployment -->
+<!-- Requirement → esta A.SPEC → code → migration → test → commit → deployment. Al integrar, llenar Commit con el SHA literal del commit (SPECIFICATION §13.5); el resto lo verifica el task tool TRACE contra hechos del repo. -->
 
 - Requirement:
 - Commit:

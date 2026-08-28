@@ -28,11 +28,11 @@ alcance, contrato, invariantes y verificación **antes** de tocar el código.
 
 ```
 ADD/
-├── QUICKSTART.md             → Canon de cabecera para agentes activos (lectura SIEMPRE) — CANÓNICO
 ├── MANIFESTO.md              → Principios y valores de ADD (AAA) — CANÓNICO
 ├── SPECIFICATION.md          → Definición normativa de cumplir ADD — CANÓNICO
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
 ├── skills/                   → Habilidades de aplicación
+│   ├── atomizer-add/         → Split estructural de Python como acción de primer plano
 │   ├── extreme-poverty-add/  → Orquestador anidado: 1 toolcall por ciclo (solo GENERATOR)
 │   ├── composer-gate-add/    → Compose-gate como acción de primer plano (el agente es COMPOSER)
 │   ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
@@ -40,19 +40,16 @@ ADD/
 │   ├── gitflow-lite-add/      → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
 │   └── gitflow-full-add/      → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 └── task-tools/               → Prompts auto-suficientes para subagent (contexto limpio)
-                                 SPEC-REVIEWER lee el QUICKSTART como ley (canon completo solo risk high)
-    ├── SPECCER.md            → DEFINE: petición suelta → A.SPEC honesta o split
+                                 SPEC-REVIEWER lee SPECIFICATION como ley (canon completo)
     ├── SPEC-REVIEWER.md      → calidad de A.SPEC escrito (pre-implementación)
     ├── GENERATOR.md          → BUILD: A.SPEC finalizada → código en change_surface
     ├── VERIFIER.md            → PROVE: contrato declarado vs prueba explícita
-    ├── ATOMIZER.md           → cohesión de archivos Python (split)
     ├── TRACE.md              → trazabilidad vs hechos del repo (ancla SHA)
     └── README.md             → índice + protocolo de lanzamiento vía Task
 ```
 
-> **QUICKSTART/MANIFESTO/SPECIFICATION son canónicos.** QUICKSTART es la puerta
-> de entrada para agentes activos; este README es un resumen de entrada; ante
-> contradicción, gana MANIFESTO/SPECIFICATION.
+> **MANIFESTO/SPECIFICATION son canónicos.** Este README es un resumen de
+> entrada; ante contradicción, gana MANIFESTO/SPECIFICATION.
 
 ## Task Tools (ejecución con contexto limpio)
 
@@ -64,21 +61,25 @@ del hilo principal.
 
 Cada task tool es **autocontenido**: sus checks y veredictos viven completos en
 su propio cuerpo, y solo lee su input de juicio (`ASPEC-TEMPLATE.md` adicional
-en SPECCER, formato de salida). **SPEC-REVIEWER** — el juez cuyo objeto de
-juicio es la norma misma — lee el **QUICKSTART como ley por defecto** (canon de
-cabecera) y el canon completo solo si la A.SPEC es `risk: high` o hay duda de
-norma; además solo corre condicionalmente (Trigger contract + §4.1/§4.2).
+    en la plantilla, formato de salida). **SPEC-REVIEWER** — el juez cuyo objeto de
+juicio es la norma misma — lee `SPECIFICATION.md` como ley por defecto y el
+canon completo (MANIFESTO + SPECIFICATION) solo si la A.SPEC es `risk: high`
+o hay duda de norma; además solo corre condicionalmente (Trigger contract +
+§4.1/§4.2).
 
 ### Modos del ciclo (SPECIFICATION §4.2)
 
-La ceremonia se declara con `mode:` antes de IMPLEMENT:
+La ceremonia se declara con `mode:` antes de IMPLEMENT. En la práctica:
+
+- `low` y `medium` usan `extreme-poverty` como camino normal.
+- `high` y cambios core/compuestos usan el ciclo completo y las task tools
+  necesarias.
 
 | mode | Quién ejecuta | Cuándo |
 |------|---------------|--------|
 | `mechanical` | hilo principal, proofs deterministas (grep/wc/build/diff) | trivial reversible ≤3 archivos; presentación pura exenta |
-| `judges-lite` | SPECCER+REVIEWER sí; VERIFIER full no; TRACE mínimo | docs/canon/prosa |
-| `extreme-poverty` | hilo principal, 0–1 Task (solo GENERATOR); garantías completas | **default vigente**; cualquier riesgo manteniendo proofs/gates/approver |
-| `full` | ciclo estándar con task tools | garantías altas, retro-compatibilidad (ausencia de `mode:`), pedido explícito del approver |
+| `extreme-poverty` | hilo principal, 0–1 Task (solo GENERATOR); garantías completas | default para `low`/`medium`, y para cambios no-core |
+| `full` | ciclo estándar con task tools | `high`, core, composición, o pedido explícito del approver |
 
 Reglas canónicas: la ceremonia es función de (señales × naturaleza de las
 proofs × superficie), **no del tamaño ni del tipo de archivo**; las señales
@@ -90,16 +91,14 @@ probado atrás.
 
 | Paso ADD     | Task tool            | Rol                                        |
 |-------------|----------------------|--------------------------------------------|
-| DEFINE       | `task-tools/SPECCER.md`  | petición suelta → A.SPEC honesta o split       |
 | (quality)    | `task-tools/SPEC-REVIEWER.md`| A.SPEC escrito → calidad pre-implementación    |
 | IMPLEMENT    | `task-tools/GENERATOR.md`| A.SPEC finalizada → código en change_surface    |
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
-| (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |
 | INTEGRATE    | `task-tools/TRACE.md`   | trazabilidad vs hechos del repo (ancla SHA)     |
 | COMPOSE      | skill `composer-gate-add/` | gate de integración set/release (owner + checks) — acción de primer plano del agente principal |
 
-Los jueces del ciclo (SPECCER, SPEC-REVIEWER, GENERATOR, VERIFIER, ATOMIZER)
-viven en `task-tools/` (fuente única de verdad, contexto limpio vía `Task`).
+Los jueces del ciclo (SPEC-REVIEWER, GENERATOR, VERIFIER, TRACE)
+viven en `task-tools/` (contexto limpio vía `Task`). Atomizer vive como skill.
 
 ## Principio central: AAA
 

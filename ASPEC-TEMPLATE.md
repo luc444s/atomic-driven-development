@@ -9,10 +9,10 @@
 > `mode: mechanical|judges-lite|extreme-poverty|full` — Ver SPECIFICATION §4.2.
 > Declara la ceremonia de ciclo ANTES de IMPLEMENT; lo que cambia por modo es
 > QUIÉN/QUÉ ejecuta cada fase, nunca qué debe probarse (la DoD es idéntica).
-> Modo por defecto vigente: `extreme-poverty` (default del approver, §4.2 Modo
-> D) — ciclo completo en el hilo principal con `toolcalls: 0|1` (solo
-> GENERATOR). Las señales hard §4.1 imponen garantías completas (approver
-> humano, proofs, gates), no toolcalls; `high` exige `approver:` humano.
+> Modo normal para `low`/`medium`: `extreme-poverty` con `toolcalls: 0|1`
+> (solo GENERATOR). Cambios `high` o core/composed usan el ciclo completo.
+> Las señales hard §4.1 imponen garantías completas (approver humano,
+> proofs, gates), no toolcalls; `high` exige `approver:` humano.
 
 > Ejemplo de título: `Discover existing WordPress containers`
 

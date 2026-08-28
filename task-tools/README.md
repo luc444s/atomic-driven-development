@@ -5,14 +5,12 @@ Subagent-ready prompts for the ADD/A.SPEC workflow. Each file under
 `Task` tool with `subagent_type=general` and a FRESH context so the worker runs
 with clean memory (no main-thread conversation bleed).
 
-These three are task tools by nature: they need clean context to judge
+These four are task tools by nature: they need clean context to judge
 honestly.
 
 | Task tool | File | Judges | Use when | Default mode (§4.2) |
 |-----------|------|--------|----------|---------------------|
-| SPECCER | `SPECCER.md` | `DEFINE` — atomicity of a request | request exists, no A.SPEC yet | skipped: mechanical (mode A) / pure presentation |
 | SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation | runs unless mode A; always in judges-lite for docs/canon |
-| ATOMIZER | `ATOMIZER.md` | file cohesion / split boundary | Python file mixes responsibilities or is too big | on structural signals only |
 | VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION | skipped: mechanical / presentation / frontend-consumer; lite-proof in docs |
 | GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation | skipped: surface ≤3 files non-trivial → main thread; backend-decide governs mixed specs |
 | TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) | minimal ALWAYS when contracts/migrations exist; optional for pure presentation |
@@ -21,9 +19,13 @@ honestly.
 > es una **skill** — `ADD/skills/composer-gate-add/Composer-Gate-ADD.md` — que
 > el agente principal ejecuta como acción de primer plano (§10.1).
 
-Default modes per SPECIFICATION §4.2: ceremony scales with risk signals ×
-proof nature × surface — never with file count or file type alone.
-Backend-decide rule applies to mixed frontend/backend specs. Absence of
+> ATOMIZER no es task tool: es una **skill** — `ADD/skills/atomizer-add/Atomizer-ADD.md` —
+> que el agente principal ejecuta como acción de primer plano.
+
+Default modes per SPECIFICATION §4.2: `low`/`medium` default to
+`extreme-poverty`; `high`/core/composed changes use full cycle. Ceremony scales
+with risk signals × proof nature × surface — never with file count or file type
+alone. Backend-decide rule applies to mixed frontend/backend specs. Absence of
 `mode:` = full cycle (Mode C).
 
 ## Launch protocol (main thread)
@@ -32,7 +34,7 @@ For each, create a `Task` call whose `prompt` = the task-tool file content
 (feed it literally) + the concrete inputs for that job. Example shape:
 
 ```text
-<contents of ADD/task-tools/SPECCER.md>
+<contents of ADD/task-tools/GENERATOR.md>
 
 ---
 INPUT:
@@ -51,9 +53,8 @@ conversation history into the subagent.
   reading budget, SPECIFICATION §4.2): task tools are self-contained;
   SPEC-REVIEWER additionally reads the canon it judges against.
 - Subagent must not invent commands, invariants, or redesign behavior.
-- Speccer/Verifier/Spec-Reviewer/Trace/Composer are judges: they emit verdicts,
+- Verifier/Spec-Reviewer/Trace/Composer are judges: they emit verdicts,
   not implementations.
-- Atomizer splits structure only; it preserves semantics and verification.
 - Generator implements only inside `change_surface.allowed`; never touches
   `prohibited`; runs the explicit `VERIFICATION` commands and reports.
 - Trace only reads repo facts (git + files); it never parses prose, invents
@@ -62,7 +63,6 @@ conversation history into the subagent.
 
 ## Why clean context
 
-Speccer must not be biased by partially-formed main-thread reasoning. Verifier
-must not "discover" proof from ambient repo noise. Atomizer must not inherit the
-main thread's refactor temptations. Isolating them keeps each judgment honest
-and reproducibility high.
+Verifier must not "discover" proof from ambient repo noise. Atomizer must not
+inherit the main thread's refactor temptations. Isolating them keeps each
+judgment honest and reproducibility high.

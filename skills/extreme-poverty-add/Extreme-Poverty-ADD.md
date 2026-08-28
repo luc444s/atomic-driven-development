@@ -11,20 +11,21 @@ Task permitida es GENERATOR (`ADD/task-tools/GENERATOR.md`).
 
 ## Use When
 
-- el approver declaró extreme poverty como modo por defecto
-- se busca máximo ahorro de contexto y toolcalls en ejecución agéntica
-- cualquier A.SPEC, sin importar señales de riesgo (§4.1)
+- la A.SPEC es `low` o `medium` y se busca máximo ahorro de contexto/toolcalls
+- el approver acepta el camino corto para cambios no-core
+- una A.SPEC no requiere más que 0–1 Task tool (solo GENERATOR)
 
 ## Do Not Use When
 
+- la A.SPEC es `high`, core, compuesta, o requiere composición/validación amplia
 - el approver pide explícitamente ciclo completo (su mención prevalece)
 
 ## Core Law
 
 El hilo principal hace TODO el ciclo; la única delegación externa es
-GENERATOR para IMPLEMENT. Los demás task-tools (SPECCER, SPEC-REVIEWER,
-VERIFIER, ATOMIZER, TRACE) NO se lanzan como subagentes: sus funciones se
-absorben en el hilo principal con proofs mecánicas.
+GENERATOR para IMPLEMENT. Los demás task-tools (SPEC-REVIEWER, VERIFIER,
+TRACE) NO se lanzan como subagentes: sus funciones se absorben en el hilo
+principal con proofs mecánicas. Atomizer vive como skill, no como task tool.
 
 COMPOSER no es una task tool ni una función "absorbida" ligera: el
 **compose-gate es una acción de primer plano** del hilo principal. Cuando la
@@ -70,13 +71,14 @@ Se declara `toolcalls: 0|1` en el encabezado de la A.SPEC junto a `mode:`.
 5. **INTEGRATE**: TRACE minimal en hilo principal (sha_anchor + surface check)
    y commit trazable que referencia el ID de la A.SPEC.
 
-## Riesgo alto (§4.1) en extreme poverty
+## Riesgo alto (§4.1)
 
-Modo formal del canon (§4.2 Modo D): extreme poverty aplica SIEMPRE, incluso
-con señales hard, porque las señales hard imponen **garantías completas
-obligatorias** (approver humano en `high`, proofs ejecutadas, gates) — no
-toolcalls. **Ceremonia ≠ subagent calls**: se conservan todas las garantías y
-solo cambia la ejecución. Compensación obligatoria del hilo principal:
+`high` y cambios core/composed no usan extreme poverty como camino normal.
+Ahí la ceremonia completa y las task tools necesarias se activan para sostener
+las garantías obligatorias (approver humano en `high`, proofs ejecutadas,
+gates). **Ceremonia ≠ subagent calls**: el modo cambia la ejecución, no las
+garantías. Compensación obligatoria del hilo principal cuando extreme poverty
+sí aplica:
 
 - invariantes evaluables con proof explícita (nunca "debería estar cubierto")
 - verificación redundante si la señal lo amerita (auth/stock/dinero/lg_*/migración)
@@ -87,9 +89,10 @@ solo cambia la ejecución. Compensación obligatoria del hilo principal:
 
 1. Máximo 1 toolcall Task por ciclo; solo GENERATOR. El compose-gate (acción
    de COMPOSER) no consume toolcall: es acción de primer plano.
-2. No lanzar SPECCER, SPEC-REVIEWER, VERIFIER, ATOMIZER, TRACE ni COMPOSER
-   como subagentes. COMPOSER se ejecuta como acción de primer plano del hilo
-   principal (nunca como task tool automática ni como subagente).
+2. No lanzar SPEC-REVIEWER, VERIFIER, TRACE ni COMPOSER como
+   subagentes. COMPOSER se ejecuta como acción de primer plano del hilo
+   principal (nunca como task tool automática ni como subagente). Atomizer se
+   usa como skill de primer plano cuando corresponde.
 3. La calidad del contrato se garantiza en el hilo principal contra la
    plantilla y el canon; un defecto detectado se corrige en la propia A.SPEC
    antes de IMPLEMENT (equivalente a resolver un REVISE mecánico).
@@ -107,4 +110,4 @@ solo cambia la ejecución. Compensación obligatoria del hilo principal:
 - [ ] TRACE minimal (sha_anchor + surface) hecho en el hilo principal
 - [ ] compose-gate ejecutado como acción de primer plano (owner + checks en orden + presence-check) si la A.SPEC es de integración
 - [ ] commit trazable al ID de la A.SPEC
-- [ ] sin toolcalls de SPECCER/SPEC-REVIEWER/VERIFIER/ATOMIZER/TRACE/COMPOSER
+- [ ] sin toolcalls de SPEC-REVIEWER/VERIFIER/TRACE/COMPOSER

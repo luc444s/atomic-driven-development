@@ -7,7 +7,7 @@
 
 ## Estado de implementación (se actualiza al cerrar cada A.SPEC)
 
-> Última actualización: COMPRAS-018 (devolución de mercadería §26; tracker 013..018 al día).
+> Última actualización: COMPRAS-019 — Versión Base Compras cerrada (set 002..018 + estructural 020; compose-gate PASS 2026-08-28; tracker 013..020 al día).
 
 Leyenda: ✅ DONE · 🟡 PARCIAL · ❌ PENDIENTE · 🔮 FUTURO (fuera de horizonte cercano)
 

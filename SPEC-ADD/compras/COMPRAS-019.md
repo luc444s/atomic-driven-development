@@ -4,8 +4,10 @@
 > sin superficie de código propia, pero sus propias invariantes y blast radius
 > tocan tenancy, `lg_*`/stock ledger y permisos existentes; además depende del
 > cierre de una A.SPEC `high` (018) y del gate con approver humano.
-> `mode: completo` per §4.2 — compose-gate: los `composition_checks` los
-> juzga **COMPOSER**; approver humano con **presence-check**.
+> `mode: extreme-poverty` (skill `ADD/skills/extreme-poverty-add/Extreme-Poverty-ADD.md`,
+> decisión approver 2026-08-28) — compose-gate: los `composition_checks` los
+> ejecuta el **hilo principal** (función de COMPOSER absorbida, sin subagentes);
+> approver humano con **presence-check**.
 
 ## WHY
 
@@ -27,8 +29,8 @@ Una verdad nueva, declarativa: **existe un release "Versión Base Compras"
 definido por el conjunto {002..018} soportado por la A.SPEC estructural
 pareada 020, con owner declarado, checks de composición ordenados y
 ejecutables, e invariantes sistémicas del set — y
-su veredicto de composición es juzgable por COMPOSER con presencia del
-approver.**
+su veredicto de composición es juzgable por el compose-gate en el hilo
+principal (función de COMPOSER absorbida) con presencia del approver.**
 
 Esta A.SPEC NO agrega feature, código, migración ni endpoint. Declara:
 
@@ -48,7 +50,8 @@ Esta A.SPEC NO agrega feature, código, migración ni endpoint. Declara:
 - Actualización del tracker de `SPEC-ADD/compras/COMPRAS-VISION-001.md`
   (cabecera "Última actualización" y filas 16, 19, 20, 25, 26, 40, 42, 44)
   al cerrar la integración.
-- Ejecución de los checks por COMPOSER en el compose-gate.
+- Ejecución de los checks en el compose-gate (hilo principal, función de
+  COMPOSER absorbida).
 
 ## OUT OF SCOPE
 
@@ -96,7 +99,8 @@ invariants:
 ## VERIFICATION
 
 Los `composition_checks` (abajo, Composition) SON la verificación de esta
-A.SPEC — juzgados por COMPOSER (compose-gate). Resumen ejecutable:
+A.SPEC — ejecutados en orden por el compose-gate en el hilo principal
+(función de COMPOSER absorbida). Resumen ejecutable:
 
 1. `pytest apps/api/tests/test_compras_plugin.py
    apps/api/tests/test_compras_dispatch.py
@@ -226,7 +230,9 @@ structural_constraints:
 - owner: Product Owner módulo compras (equipo SYSTUTOR OSS) — composition.owner
 - approver: mantenedor humano con presence-check del compose-gate
   (escalación de REVISE/SPLIT/REJECT según §10.2)
-- Commit: pendiente (checks 1-4 verdes, check 5 requiere presence-check humano)
+- Commit: pendiente (compose-gate PASS en hilo principal 2026-08-28: 106/106
+  tests, proofs migración y flujo verdes, auditorías lg_/stock_ + REQUIRE_ +
+  tsc limpias; presence-check approver firmado; SHA se ancla al squash a main)
 - Deployment: migraciones 0013–0018 en runtime del plugin commerce
 
 ## Definition of Done
@@ -238,7 +244,7 @@ structural_constraints:
 - [x] Invariants preserved
 - [x] Verification passed
 - [x] Rollback / compensation is honest
-- [ ] Composition checks passed when applicable
+- [x] Composition checks passed when applicable
 - [x] No unrelated changes
 - [x] Structural constraints respected
-- [ ] Traceability established
+- [ ] Traceability established  (SHA del squash a main pendiente)

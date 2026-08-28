@@ -8,11 +8,11 @@ with clean memory (no main-thread conversation bleed).
 These four are task tools by nature: they need clean context to do their job
 honestly.
 
-| Task tool | File | Judges | Use when | Default mode (§4.2) |
-|-----------|------|--------|----------|---------------------|
-| SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation | runs unless mode A; always in judges-lite for docs/canon |
-| VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION | skipped: mechanical / presentation / frontend-consumer; lite-proof in docs |
-| TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) | minimal ALWAYS when contracts/migrations exist; optional for pure presentation |
+| Task tool | File | Role | Use when |
+|-----------|------|------|----------|
+| SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation |
+| VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION |
+| TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) |
 
 > COMPOSER no es task tool (2026-08-28, decisión approver): su compose-gate
 > es una **skill** — `ADD/skills/composer-gate-add/Composer-Gate-ADD.md` — que
@@ -22,12 +22,6 @@ honestly.
 > que el agente principal ejecuta como acción de primer plano.
 
 > GENERATOR no es judge: implementa el cambio dentro de `change_surface.allowed`.
-
-Default modes per SPECIFICATION §4.2: `low`/`medium` default to
-`extreme-poverty`; `high`/core/composed changes use full cycle. Ceremony scales
-with risk signals × proof nature × surface — never with file count or file type
-alone. Backend-decide rule applies to mixed frontend/backend specs. Absence of
-`mode:` = full cycle (Mode C).
 
 ## Launch protocol (main thread)
 
@@ -50,9 +44,8 @@ conversation history into the subagent.
 
 ## Rules
 
-- Each subagent reads what its own procedure's step 1 declares (per-tool
-  reading budget, SPECIFICATION §4.2): task tools are self-contained;
-  SPEC-REVIEWER additionally reads the canon it judges against.
+- Each subagent reads what its own procedure's step 1 declares: task tools are
+  self-contained; SPEC-REVIEWER additionally reads the canon it judges against.
 - Subagent must not invent commands, invariants, or redesign behavior.
 - SPEC-REVIEWER, VERIFIER, and TRACE are judges: they emit verdicts, not
   implementations.

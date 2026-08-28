@@ -5,14 +5,13 @@ Subagent-ready prompts for the ADD/A.SPEC workflow. Each file under
 `Task` tool with `subagent_type=general` and a FRESH context so the worker runs
 with clean memory (no main-thread conversation bleed).
 
-These four are task tools by nature: they need clean context to judge
+These three are task tools by nature: they need clean context to judge
 honestly.
 
 | Task tool | File | Judges | Use when | Default mode (§4.2) |
 |-----------|------|--------|----------|---------------------|
 | SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation | runs unless mode A; always in judges-lite for docs/canon |
 | VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION | skipped: mechanical / presentation / frontend-consumer; lite-proof in docs |
-| GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation | skipped: surface ≤3 files non-trivial → main thread; backend-decide governs mixed specs |
 | TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) | minimal ALWAYS when contracts/migrations exist; optional for pure presentation |
 
 > COMPOSER no es task tool (2026-08-28, decisión approver): su compose-gate
@@ -22,6 +21,8 @@ honestly.
 > ATOMIZER no es task tool: es una **skill** — `ADD/skills/atomizer-add/Atomizer-ADD.md` —
 > que el agente principal ejecuta como acción de primer plano.
 
+> GENERATOR no es judge: implementa el cambio dentro de `change_surface.allowed`.
+
 Default modes per SPECIFICATION §4.2: `low`/`medium` default to
 `extreme-poverty`; `high`/core/composed changes use full cycle. Ceremony scales
 with risk signals × proof nature × surface — never with file count or file type
@@ -30,7 +31,7 @@ alone. Backend-decide rule applies to mixed frontend/backend specs. Absence of
 
 ## Launch protocol (main thread)
 
-For each, create a `Task` call whose `prompt` = the task-tool file content
+For each prompt, create a `Task` call whose `prompt` = the file content
 (feed it literally) + the concrete inputs for that job. Example shape:
 
 ```text

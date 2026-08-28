@@ -24,7 +24,7 @@ La estrategia de ejecución puede variar, pero no puede reducir las garantías n
 
 `low`: reversible, sin señales.
 `normal`: default.
-`high`: irreversible, o toca stock/finanzas/auth/tenancy/seguridad/lg_*, o migración destructiva, o blast radius amplio.
+`high`: irreversible, o toca componentes criticos del sistema, o migración destructiva, o blast radius amplio.
 `high` exige `approver:` humano en Traceability.
 Subvaluar riesgo es REVISE.
 

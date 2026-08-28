@@ -1,18 +1,9 @@
 # A.SPEC [ID] — [Título: verbo + objeto observable]
 
 > `risk: low|normal|high` — Ver SPECIFICATION §4.1. Derivar de las señales del
-> propio A.SPEC (ROLLBACK, scope/invariantes que tocan stock/finanzas/auth,
-> migración destructiva, blast radius). `low` o `normal` con señales de alto
-> es subvaloración → SPEC-REVIEWER emite `REVISE`. `high` exige SPEC-REVIEWER
-> siempre y `approver:` humano en Traceability.
-
-> `mode: mechanical|judges-lite|extreme-poverty|full` — Ver SPECIFICATION §4.2.
-> Declara la ceremonia de ciclo ANTES de IMPLEMENT; lo que cambia por modo es
-> QUIÉN/QUÉ ejecuta cada fase, nunca qué debe probarse (la DoD es idéntica).
-> Modo normal para `low`/`medium`: `extreme-poverty` con `toolcalls: 0|1`
-> (solo GENERATOR). Cambios `high` o core/composed usan el ciclo completo.
-> Las señales hard §4.1 imponen garantías completas (approver humano,
-> proofs, gates), no toolcalls; `high` exige `approver:` humano.
+> propio cambio (rollback, invariants, migración, blast radius, lógica de
+> negocio central, componentes críticos). `low` o `normal` con señales de alto
+> es subvaloración → REVISE. `high` exige `approver:` humano en Traceability.
 
 > Ejemplo de título: `Discover existing WordPress containers`
 

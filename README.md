@@ -91,6 +91,7 @@ probado atrás.
 
 | Paso ADD     | Task tool            | Rol                                        |
 |-------------|----------------------|--------------------------------------------|
+| DEFINE       | hilo principal       | intención conocida → A.SPEC honesta o split |
 | (quality)    | `task-tools/SPEC-REVIEWER.md`| A.SPEC escrito → calidad pre-implementación    |
 | IMPLEMENT    | `task-tools/GENERATOR.md`| A.SPEC finalizada → código en change_surface    |
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |

@@ -48,6 +48,7 @@ plugins/
   commerce/           Compras
 vendor/
   systutor-core/      Kernel OSS (submodule git, MIT, ADR 0029)
+ADD/                  Disciplina ADD (submodule git: canon, skills y task-tools)
 tools/
   migrator/           Migrador legacy (CSV + manifest)
   legacy-analyzer/    Analizador del legacy
@@ -177,7 +178,9 @@ Los tests usan SQLite + `TestClient`. Los tests del kernel viven en
 
 ## Documentacion obligatoria antes de desarrollar
 
-1. `AGENTS.md` (reglas operativas, orden de lectura, limites kernel/plugins)
+1. `AGENTS.md` + `ADD/QUICKSTART.md` — reglas operativas, orden de lectura y
+   modo de ejecución por defecto de agentes (**extreme-poverty**: ciclo ADD en
+   hilo principal, 0–1 toolcall, canon §4.2 Modo D)
 2. `docs/adr/` (decisiones de arquitectura vigentes)
 3. Spec activa del dominio (`docs/specs/core/`)
 4. Contrato de datos/API si aplica (`docs/contracts/`)

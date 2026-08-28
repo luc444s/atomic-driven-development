@@ -28,27 +28,30 @@ alcance, contrato, invariantes y verificación **antes** de tocar el código.
 
 ```
 ADD/
+├── QUICKSTART.md             → Canon de cabecera para agentes activos (lectura SIEMPRE) — CANÓNICO
 ├── MANIFESTO.md              → Principios y valores de ADD (AAA) — CANÓNICO
 ├── SPECIFICATION.md          → Definición normativa de cumplir ADD — CANÓNICO
 ├── ASPEC-TEMPLATE.md         → Plantilla canónica de una A.SPEC
 ├── skills/                   → Habilidades de aplicación
+│   ├── extreme-poverty-add/  → Orquestador anidado: 1 toolcall por ciclo (solo GENERATOR)
+│   ├── composer-gate-add/    → Compose-gate como acción de primer plano (el agente es COMPOSER)
 │   ├── verify-binding-add/   → Binding explícito de comandos/proofs por proyecto
 │   ├── ci-wrapper-add/       → Wrapper fino para ejecutar ADD en CI
 │   ├── gitflow-lite-add/      → GitFlow liviano: main + add/* (1 A.SPEC = 1 commit)
 │   └── gitflow-full-add/      → GitFlow estricto: main + develop + add/* + release/* + hotfix/*
 └── task-tools/               → Prompts auto-suficientes para subagent (contexto limpio)
-                                 Solo SPEC-REVIEWER lee el canon completo (presupuesto §4.2)
+                                 SPEC-REVIEWER lee el QUICKSTART como ley (canon completo solo risk high)
     ├── SPECCER.md            → DEFINE: petición suelta → A.SPEC honesta o split
     ├── SPEC-REVIEWER.md      → calidad de A.SPEC escrito (pre-implementación)
     ├── GENERATOR.md          → BUILD: A.SPEC finalizada → código en change_surface
     ├── VERIFIER.md            → PROVE: contrato declarado vs prueba explícita
     ├── ATOMIZER.md           → cohesión de archivos Python (split)
     ├── TRACE.md              → trazabilidad vs hechos del repo (ancla SHA)
-    ├── COMPOSER.md           → gate de composición (set/release, compose-gate)
     └── README.md             → índice + protocolo de lanzamiento vía Task
 ```
 
-> **MANIFESTO es canónico.** Este README es un resumen de entrada; ante
+> **QUICKSTART/MANIFESTO/SPECIFICATION son canónicos.** QUICKSTART es la puerta
+> de entrada para agentes activos; este README es un resumen de entrada; ante
 > contradicción, gana MANIFESTO/SPECIFICATION.
 
 ## Task Tools (ejecución con contexto limpio)
@@ -61,9 +64,10 @@ del hilo principal.
 
 Cada task tool es **autocontenido**: sus checks y veredictos viven completos en
 su propio cuerpo, y solo lee su input de juicio (`ASPEC-TEMPLATE.md` adicional
-en SPECCER, formato de salida). El único lector del canon completo es
-**SPEC-REVIEWER** — el juez cuyo objeto de juicio es la norma misma — que ademaś
-solo corre condicionalmente (Trigger contract + §4.1/§4.2).
+en SPECCER, formato de salida). **SPEC-REVIEWER** — el juez cuyo objeto de
+juicio es la norma misma — lee el **QUICKSTART como ley por defecto** (canon de
+cabecera) y el canon completo solo si la A.SPEC es `risk: high` o hay duda de
+norma; además solo corre condicionalmente (Trigger contract + §4.1/§4.2).
 
 ### Tres marchas del ciclo (SPECIFICATION §4.2)
 
@@ -89,7 +93,7 @@ probado atrás.
 | VERIFY       | `task-tools/VERIFIER.md`  | contrato declarado vs prueba explícita         |
 | (estructural)| `task-tools/ATOMIZER.md` | cohesión de archivos Python (split)            |
 | INTEGRATE    | `task-tools/TRACE.md`   | trazabilidad vs hechos del repo (ancla SHA)     |
-| COMPOSE      | `task-tools/COMPOSER.md`| gate de integración set/release (owner + checks)|
+| COMPOSE      | skill `composer-gate-add/` | gate de integración set/release (owner + checks) — acción de primer plano del agente principal |
 
 Los jueces del ciclo (SPECCER, SPEC-REVIEWER, GENERATOR, VERIFIER, ATOMIZER)
 viven en `task-tools/` (fuente única de verdad, contexto limpio vía `Task`).

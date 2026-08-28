@@ -434,8 +434,11 @@ Una release/capability compuesta exige una **A.SPEC de integración** que declar
 Sin A.SPEC de integración o sin `owner`, la integración del conjunto queda
 `GAP`, nunca `PASS`.
 
-El task tool `ADD/task-tools/COMPOSER.md` (`compose-gate`) ejecuta los checks
-en orden y emite el veredicto:
+El compose-gate (`compose-gate`) ejecuta los checks en orden y emite el
+veredicto. Se materializa como **acción de primer plano del agente principal**
+vía la skill `ADD/skills/composer-gate-add/Composer-Gate-ADD.md` (decisión
+approver 2026-08-28: la task tool `COMPOSER` fue retirada; el gate nunca corre
+como subagente automático):
 
 - `PASS` — owner presente, todos los checks verdes, invariantes sistémicas
   evaluables.
@@ -488,6 +491,7 @@ Traceability, y VERIFIER no lee composition.owner.
 ADD/
 ├── MANIFESTO.md
 ├── SPECIFICATION.md
+├── QUICKSTART.md             # canon de cabecera para agentes activos
 ├── ASPEC-TEMPLATE.md
 ├── README.md
 ├── LICENSE
@@ -497,19 +501,19 @@ ADD/
 │   ├── SPEC-REVIEWER.md
 │   ├── GENERATOR.md
 │   ├── VERIFIER.md
-│   ├── COMPOSER.md
 │   ├── TRACE.md
 │   └── ATOMIZER.md
 └── skills/              # habilidades de aplicación (gitflow, CI, binding)
     └── <skill>/<Capabilidad>-ADD.md
 ```
 
-Sincronización del monolito: mientras SPECIFICATION.md respete el presupuesto
-de <= 600 líneas se mantiene como monolito. Las tablas de secciones
-obligatorias (§1) y este árbol de estructura (§11) se sincronizan en TODA
-enmienda futura al canon. El split del canon en artículos es decisión futura
-del owner, reabierta solo si cruza 600 líneas o hay nueva ronda CORE:
-explícitamente out of scope aquí.
+Sincronización del monolito: SPECIFICATION.md se mantiene como documento único
+mientras conserve una responsabilidad normativa coherente. Los umbrales de
+§12.2 son heurísticos y no obligan por sí solos a dividirlo. Las tablas de
+secciones obligatorias (§1) y este árbol de estructura (§11) se sincronizan en
+TODA enmienda futura al canon. El split del canon en artículos es decisión
+futura del owner, reabierta solo ante nueva ronda CORE: explícitamente out of
+scope aquí.
 
 ## 12. Ley estructural
 

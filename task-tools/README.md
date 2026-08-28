@@ -16,7 +16,10 @@ honestly.
 | VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION | skipped: mechanical / presentation / frontend-consumer; lite-proof in docs |
 | GENERATOR | `GENERATOR.md` | `BUILD` — A.SPEC → code in change_surface | A.SPEC finalized, needs implementation | skipped: surface ≤3 files non-trivial → main thread; backend-decide governs mixed specs |
 | TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) | minimal ALWAYS when contracts/migrations exist; optional for pure presentation |
-| COMPOSER | `COMPOSER.md` | `compose-gate` — integration A.SPEC's checks, owner, systemic invariants | composed set/release needs gate before integrate (§10.1) | unchanged (set-level gate, any mode) |
+
+> COMPOSER no es task tool (2026-08-28, decisión approver): su compose-gate
+> es una **skill** — `ADD/skills/composer-gate-add/Composer-Gate-ADD.md` — que
+> el agente principal ejecuta como acción de primer plano (§10.1).
 
 Default modes per SPECIFICATION §4.2: ceremony scales with risk signals ×
 proof nature × surface — never with file count or file type alone.

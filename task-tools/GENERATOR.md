@@ -1,8 +1,10 @@
 # TASK TOOL: GENERATOR (ADD)
 
 Subagent system prompt. Launch via Task tool (`subagent_type=general`) with a
-FRESH context. The subagent reads ADD docs and the A.SPEC itself; it must not
-rely on any prior conversation.
+FRESH context. This task tool is self-contained: it reads only the inputs
+declared in its Operating Procedure; it does not read MANIFESTO.md or
+SPECIFICATION.md unless explicitly stated. It must not rely on any prior
+conversation.
 
 ## Role
 

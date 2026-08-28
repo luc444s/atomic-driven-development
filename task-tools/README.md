@@ -5,7 +5,7 @@ Subagent-ready prompts for the ADD/A.SPEC workflow. Each file under
 `Task` tool with `subagent_type=general` and a FRESH context so the worker runs
 with clean memory (no main-thread conversation bleed).
 
-These three are task tools by nature: they need clean context to judge
+These four are task tools by nature: they need clean context to do their job
 honestly.
 
 | Task tool | File | Judges | Use when | Default mode (§4.2) |
@@ -31,7 +31,7 @@ alone. Backend-decide rule applies to mixed frontend/backend specs. Absence of
 
 ## Launch protocol (main thread)
 
-For each prompt, create a `Task` call whose `prompt` = the file content
+For each tool, create a `Task` call whose `prompt` = the file content
 (feed it literally) + the concrete inputs for that job. Example shape:
 
 ```text
@@ -54,11 +54,11 @@ conversation history into the subagent.
   reading budget, SPECIFICATION §4.2): task tools are self-contained;
   SPEC-REVIEWER additionally reads the canon it judges against.
 - Subagent must not invent commands, invariants, or redesign behavior.
-- Verifier/Spec-Reviewer/Trace/Composer are judges: they emit verdicts,
-  not implementations.
-- Generator implements only inside `change_surface.allowed`; never touches
-  `prohibited`; runs the explicit `VERIFICATION` commands and reports.
-- Trace only reads repo facts (git + files); it never parses prose, invents
+- SPEC-REVIEWER, VERIFIER, and TRACE are judges: they emit verdicts, not
+  implementations.
+- GENERATOR is an implementer: it changes only `change_surface.allowed`, never
+  `prohibited`, and reports the explicit `VERIFICATION` commands it ran.
+- TRACE only reads repo facts (git + files); it never parses prose, invents
   commands, or judges test quality.
 - After a task tool returns, the main thread still owns the edit/commit decision.
 

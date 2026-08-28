@@ -10,9 +10,10 @@ honestly.
 
 | Task tool | File | Role | Use when |
 |-----------|------|------|----------|
-| SPEC-REVIEWER | `SPEC-REVIEWER.md` | A.SPEC quality (atomicity, scope drift, contract, invariants, composition) | A.SPEC(s) written, before implementation |
-| VERIFIER | `VERIFIER.md` | `PROVE` — declared clause vs explicit proof | A.SPEC has CONTRACT/INVARIANTS/VERIFICATION |
-| TRACE | `TRACE.md` | integration traceability vs repo facts (SHA-anchored) | A.SPEC integrated, needs trace validation (§13.5) |
+| SPEC-REVIEWER | `SPEC-REVIEWER.md` | Judge A.SPEC quality | Contract requires independent review |
+| GENERATOR | `GENERATOR.md` | Implement A.SPEC within Change Surface | Isolated implementation is required |
+| VERIFIER | `VERIFIER.md` | Judge declared clauses vs explicit proof | Independent proof judgment is required |
+| TRACE | `TRACE.md` | Judge A.SPEC against repository facts | Integrated change needs trace validation |
 
 > COMPOSER no es task tool (2026-08-28, decisión approver): su compose-gate
 > es una **skill** — `ADD/skills/composer-gate-add/Composer-Gate-ADD.md` — que
@@ -20,8 +21,6 @@ honestly.
 
 > ATOMIZER no es task tool: es una **skill** — `ADD/skills/atomizer-add/Atomizer-ADD.md` —
 > que el agente principal ejecuta como acción de primer plano.
-
-> GENERATOR no es judge: implementa el cambio dentro de `change_surface.allowed`.
 
 ## Launch protocol (main thread)
 

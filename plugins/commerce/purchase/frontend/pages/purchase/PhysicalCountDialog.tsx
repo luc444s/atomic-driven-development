@@ -1,4 +1,4 @@
-import { useMutation, useQuery, useQueryClient } from "../../../../../apps/web/src/lib/react-query";
+import { useMutation, useQuery, useQueryClient } from "../../../../../../apps/web/src/lib/react-query";
 import { FormEvent, useState } from "react";
 import {
   closePhysicalCount,
@@ -7,12 +7,12 @@ import {
   listPhysicalCounts,
   listSuppliers,
   resolvePhysicalCountItem,
-} from "../api";
+} from "../../api";
 import type {
   CreatePhysicalCountPayload,
   PhysicalCount,
   PhysicalCountDetail,
-} from "../types";
+} from "../../types";
 import { Button } from "@systutor/shell/ui/button";
 import { Dialog } from "@systutor/shell/ui/dialog";
 import { Input } from "@systutor/shell/ui/input";

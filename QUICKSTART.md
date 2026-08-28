@@ -61,7 +61,7 @@ línea (`ROLLBACK: revert`, `Composition: no aplica`). No re-explicar el canon.
   `change_surface`; registrar la proof y reusarla; no re-correr suites ya
   verdes en el mismo SHA.
 
-## Modo de ejecución: extreme poverty (por defecto, decisión approver 2026-08-28)
+## Modo de ejecución: extreme poverty (modo formal §4.2, default del approver 2026-08-28)
 
 - Todo el ciclo en el **hilo principal** con proofs mecánicas.
 - **ÚNICA toolcall Task permitida: GENERATOR** (0-1 por ciclo). La A.SPEC
@@ -76,8 +76,11 @@ línea (`ROLLBACK: revert`, `Composition: no aplica`). No re-explicar el canon.
   en orden → systemic_invariants → presence-check del approver). No consume
   toolcall.
 - Aplica SIEMPRE (incluso señales hard §4.1) salvo pedido explícito del
-  approver de ciclo completo (ahí sí se lanzan los task-tools como subagentes:
-  `task-tools/README.md`).
+  approver de ciclo full. Regla clave: las señales hard imponen **garantías
+  completas obligatorias** (approver humano en `high`, proofs ejecutadas,
+  gates), no toolcalls — **ceremonia ≠ subagent calls**; extreme-poverty
+  conserva todas las checks/proofs y solo cambia la ejecución (main thread,
+  0–1 Task).
 
 ## Gobernanza (§10.2)
 

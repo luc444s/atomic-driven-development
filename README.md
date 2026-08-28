@@ -69,20 +69,23 @@ juicio es la norma misma — lee el **QUICKSTART como ley por defecto** (canon d
 cabecera) y el canon completo solo si la A.SPEC es `risk: high` o hay duda de
 norma; además solo corre condicionalmente (Trigger contract + §4.1/§4.2).
 
-### Tres marchas del ciclo (SPECIFICATION §4.2)
+### Modos del ciclo (SPECIFICATION §4.2)
 
 La ceremonia se declara con `mode:` antes de IMPLEMENT:
 
 | mode | Quién ejecuta | Cuándo |
 |------|---------------|--------|
-| *(ausente = completo)* | Ciclo estándar con jueces | dominio, dinero, stock, auth, migraciones |
 | `mechanical` | hilo principal, proofs deterministas (grep/wc/build/diff) | trivial reversible ≤3 archivos; presentación pura exenta |
 | `judges-lite` | SPECCER+REVIEWER sí; VERIFIER full no; TRACE mínimo | docs/canon/prosa |
+| `extreme-poverty` | hilo principal, 0–1 Task (solo GENERATOR); garantías completas | **default vigente**; cualquier riesgo manteniendo proofs/gates/approver |
+| `full` | ciclo estándar con task tools | garantías altas, retro-compatibilidad (ausencia de `mode:`), pedido explícito del approver |
 
 Reglas canónicas: la ceremonia es función de (señales × naturaleza de las
-proofs × superficie), **no del tamaño ni del tipo de archivo**; señales hard
-§4.1 prevalecen SIEMPRE aunque el diff sea de una línea; **backend-decide** —
-el frontend hereda el trato más liviano del backend y no re-ceremoniza lo ya
+proofs × superficie), **no del tamaño ni del tipo de archivo**; las señales
+hard §4.1 imponen **garantías completas obligatorias** (approver humano en
+`high`, proofs ejecutadas, gates) — el modo puede ser `full` o
+`extreme-poverty`, **ceremonia ≠ subagent calls**; **backend-decide** — el
+frontend hereda el trato más liviano del backend y no re-ceremoniza lo ya
 probado atrás.
 
 | Paso ADD     | Task tool            | Rol                                        |

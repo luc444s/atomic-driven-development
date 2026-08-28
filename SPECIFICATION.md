@@ -217,13 +217,43 @@ importa); GENERATOR corre solo si superficie > 3 archivos o parche no-trivial;
 VERIFIER full NO corre — verificación mecánica de proofs + inspección visual
 del diff documentada como evidence sustitutiva; TRACE mínimo obligatorio.
 
-Modo C (default, retro-compatibilidad): ausencia de `mode:` = ciclo completo
-como siempre.
+Modo C (retro-compatibilidad): ausencia de `mode:` = ciclo completo como
+siempre.
 
-#### Contra-guardias (aplican a Modo A y B)
+#### Modo D — Pobreza extrema (extreme-poverty)
 
-- Señal hard §4.1 prevalece SIEMPRE sobre el modo declarado, aunque el diff
-  sea de 1 línea → ciclo completo.
+Modo formal del canon (integración CORE-012, decisión approver 2026-08-28).
+Colapsa la ceremonia en el hilo principal con presupuesto mínimo de agentes:
+
+- **Ejecución**: ciclo completo (DEFINE → BOUND → CONTRACT → VERIFY →
+  INTEGRATE) en el hilo principal con proofs mecánicas.
+- **Presupuesto de Task calls**: 0–1 por ciclo; la ÚNICA toolcall permitida es
+  GENERATOR (IMPLEMENT). SPECCER, SPEC-REVIEWER, VERIFIER, ATOMIZER y TRACE
+  NO se lanzan como subagentes: sus funciones se absorben en el hilo principal
+  (rigor contra la plantilla y el canon).
+- **SPEC-REVIEWER nunca** como subagente (ni `risk: high`): sus señales se
+  resuelven en el hilo principal (REVISE mecánico) o se escalan al approver.
+- **COMPOSER no es task tool**: el compose-gate es **acción de primer plano**
+  del hilo principal (skill `composer-gate-add`) para A.SPEC de integración;
+  no consume toolcall.
+- **Mantiene TODAS las checks/proofs**: la DoD es idéntica a los demás modos;
+  ningún proof o gate exigido por el risk se omite. `high` sigue exigiendo
+  `approver:` humano documentado y no se integra sin esa aprobación.
+- La A.SPEC declara `mode: extreme-poverty` y `toolcalls: 0|1`.
+- Aplica incluso con señales hard §4.1 (garantías completas obligatorias, ver
+  contra-guardias), salvo pedido explícito del approver de ciclo full.
+
+#### Contra-guardias (aplican a Modo A, B y D)
+
+- Señal hard §4.1 impone **garantías completas obligatorias**: el modo de
+  ejecución puede ser `full` o `extreme-poverty`, pero NINGUNA proof ni gate
+  exigido por el riesgo puede omitirse (approver humano en `high`, proofs de
+  invariantes ejecutadas, TRACE minimal, compose-gate cuando aplique).
+  **Ceremonia ≠ subagent calls**: conservar las garantías no exige lanzar 5
+  subagentes; el modo solo decide QUIÉN/QUÉ ejecuta, nunca qué se prueba.
+- Un modo que elimine una garantía exigida por su risk (p.ej. `high` sin
+  `approver:` humano, o una proof declarada y no ejecutada) = subvaloración →
+  REVISE retroactivo del cambio integrado.
 - Si tras integrar un defecto aparece que el ciclo completo habría atrapado,
   próximas A.SPECs del mismo tema vuelven al ciclo completo; reincidencia
   obliga a SPEC-REVIEWER retroactivo.

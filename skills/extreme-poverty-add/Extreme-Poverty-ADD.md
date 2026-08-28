@@ -72,8 +72,11 @@ Se declara `toolcalls: 0|1` en el encabezado de la A.SPEC junto a `mode:`.
 
 ## Riesgo alto (§4.1) en extreme poverty
 
-El approver aprobó (decisión 2026-08-28) que extreme poverty aplica SIEMPRE,
-incluso con señales hard. Compensación obligatoria del hilo principal:
+Modo formal del canon (§4.2 Modo D): extreme poverty aplica SIEMPRE, incluso
+con señales hard, porque las señales hard imponen **garantías completas
+obligatorias** (approver humano en `high`, proofs ejecutadas, gates) — no
+toolcalls. **Ceremonia ≠ subagent calls**: se conservan todas las garantías y
+solo cambia la ejecución. Compensación obligatoria del hilo principal:
 
 - invariantes evaluables con proof explícita (nunca "debería estar cubierto")
 - verificación redundante si la señal lo amerita (auth/stock/dinero/lg_*/migración)
